@@ -130,10 +130,42 @@ Before declaring a task done: `fmt`, `clippy -D warnings`, and `test` must pass 
 - Reactive system: tests for glitch-freedom, disposal, and no leaks (count live nodes).
 - New widgets require: at least one behavior test, one golden, and a gallery entry.
 
-## When working on a task
+## Development workflow: Plan → Spec → Unit tests → Implementation
 
-1. Read `PLAN.md` to find the current milestone; do not jump ahead to later-phase features.
-2. Keep changes within one crate where possible; respect the dependency rule above.
-3. Prefer small, reviewable commits. Update `PLAN.md` checkboxes when a milestone item lands.
-4. If a design decision here seems wrong, raise it. Do not silently diverge. Record accepted
-   decisions in `docs/adr/NNNN-title.md`.
+We combine spec-driven development with TDD. Every feature goes through these four steps in order.
+Do not skip ahead: no implementation without a spec and failing tests.
+
+1. **Plan.** Find the item in `PLAN.md` for the current phase. Don't start later-phase work. If the
+   item is missing or too big, update `PLAN.md` first, splitting it into items that each fit one spec.
+2. **Spec.** Write or update `docs/specs/<crate>/<feature>.md` before any code. A spec states:
+   - purpose and scope (and what is explicitly out of scope)
+   - public API: type and function signatures, with doc-comment-level descriptions
+   - behavior as numbered, testable rules (e.g. `LAYOUT-FLEX-03: Expanded children share
+     remaining main-axis space in proportion to flex`), including edge cases and error cases
+   - performance or allocation constraints, if any
+   - open questions
+
+   Get the spec reviewed/agreed before moving on. Design decisions that go beyond one feature
+   go in `docs/adr/NNNN-title.md`.
+3. **Unit tests.** Turn each numbered rule into one or more tests, named after the rule id where
+   practical (`fn layout_flex_03_expanded_shares_space()`). Add signatures or `todo!()` stubs so the
+   tests compile, then run them and confirm they **fail for the right reason**.
+4. **Implementation.** Write the minimum code that makes the tests pass, then refactor with the
+   tests green. If implementation reveals the spec is wrong or incomplete, go back and update the
+   spec and tests first. Don't let code and spec drift apart.
+
+Done means all of the following:
+- the spec matches the code
+- every spec rule has a test
+- `fmt`, `clippy -D warnings` and `test` pass for the touched crates
+- the `PLAN.md` checkbox is ticked
+
+Bug fixes follow the same loop in miniature: add the missing rule to the spec, write a failing
+test that reproduces the bug, then fix it.
+
+## General rules
+
+- Keep changes within one crate where possible; respect the dependency rule above.
+- Prefer small, reviewable commits. A commit may contain spec + tests + implementation for one
+  item, but they must be written in that order.
+- If a design decision here seems wrong, raise it. Do not silently diverge.

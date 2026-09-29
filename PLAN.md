@@ -35,6 +35,7 @@ utility app that starts fast and is a single small binary.
 ### Phase 0 — Foundations (weeks 1–2)
 - [ ] Cargo workspace, `rust-toolchain.toml`, CI (fmt, clippy, test on Linux/Windows/macOS)
 - [ ] `docs/adr/` with ADRs 0001–0006
+- [ ] `docs/specs/` with a spec template (purpose, API, numbered rules, perf, open questions)
 - [ ] `dkui-core`: `Point/Size/Rect/Insets/Affine`, `Color`, `Id`, generational arena
 - [ ] `dkui-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
 - [ ] Reactive micro-benchmarks

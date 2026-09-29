@@ -7,6 +7,10 @@
 
 - `AGENTS.md` holds the architecture, crate boundaries, conventions and commands. Follow it and
   do not repeat it here. `PLAN.md` holds the phased roadmap. Work on the current phase only.
+- Always follow the **Plan → Spec → Unit tests → Implementation** workflow in `AGENTS.md`. When
+  asked to "implement X", first check for `docs/specs/.../X.md`. If there isn't one, write the spec
+  and stop for review before writing tests or code, unless the user says to go straight through.
+  Show the failing test run before implementing.
 - Before editing a crate, read its `lib.rs` module docs and the relevant section of `AGENTS.md`.
 - After changes, run `cargo fmt --all`, `cargo clippy -p <crate> --all-targets -- -D warnings`
   and `cargo test -p <crate>`. Report failures verbatim; don't paper over them.
