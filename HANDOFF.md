@@ -37,7 +37,8 @@ _Last updated: 2026-09-29_
 5. **Platform:** winit behind a `Platform` trait; Linux targets both Wayland and X11.
 6. **Text:** parley/swash/fontique. **A11y:** AccessKit.
 7. **Workflow:** Plan → Spec (`docs/specs/`) → failing unit tests → implementation.
-8. **License:** MIT OR Apache-2.0. Copyright line currently "The dkui Authors".
+8. **License:** MIT OR Apache-2.0. Copyright: "Rajesh Pillai - Algorisys Technologies"
+   (use the same in `[workspace.package] authors`).
 9. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
@@ -49,7 +50,8 @@ _Last updated: 2026-09-29_
 | `08261d1` | README + dual MIT/Apache-2.0 license |
 | `584bb1d` | Adopted Clay ideas (incl. sizing vocabulary) |
 | `c02ae26` | Reverted to Flutter structure as the layout API; Clay for internals only |
-| _this commit_ | Added HANDOFF.md and the rule to keep it updated |
+| `34c12e3` | Added HANDOFF.md and the rule to keep it updated |
+| _this commit_ | Set copyright holder to Rajesh Pillai - Algorisys Technologies |
 
 A commit can't contain its own hash, so the newest row says _this commit_. The next update replaces
 that with the real hash from `git log`.
@@ -57,7 +59,7 @@ that with the real hash from `git log`.
 ## Next steps (Phase 0 in PLAN.md)
 
 1. Cargo workspace skeleton: `Cargo.toml` with `[workspace.package]` (edition 2024,
-   `license = "MIT OR Apache-2.0"`), `rust-toolchain.toml`, empty crates per the AGENTS.md table.
+   `license = "MIT OR Apache-2.0"`, `authors`), `rust-toolchain.toml`, empty crates per the AGENTS.md table.
 2. CI (GitHub Actions): fmt, clippy `-D warnings`, test on Linux/Windows/macOS.
 3. `docs/specs/TEMPLATE.md` and `docs/adr/` with ADRs 0001–0006.
 4. First spec → tests → code: `dkui-core` geometry (`Point`, `Size`, `Rect`, `Insets`, `Affine`, `Color`).
@@ -65,6 +67,5 @@ that with the real hash from `git log`.
 
 ## Open questions
 
-- Copyright holder in `LICENSE-MIT`: keep "The dkui Authors", or use Algorisys / a named person?
 - MSRV to pin (the local toolchain is rustc 1.95.0).
 - Is the `dkui` name available on crates.io? Check before the first publish.
