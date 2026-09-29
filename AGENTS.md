@@ -184,3 +184,12 @@ test that reproduces the bug, then fix it.
 - Prefer small, reviewable commits. A commit may contain spec + tests + implementation for one
   item, but they must be written in that order.
 - If a design decision here seems wrong, raise it. Do not silently diverge.
+- **Keep `HANDOFF.md` current.** Every commit that gets pushed must include an updated
+  `HANDOFF.md`, covering:
+  - current state and phase
+  - decisions made
+  - a row in the commit log
+  - next steps
+  - open questions
+
+  Read it first when starting a session.

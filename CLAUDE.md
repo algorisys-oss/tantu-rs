@@ -2,6 +2,7 @@
 
 @AGENTS.md
 @PLAN.md
+@HANDOFF.md
 
 ## Claude Code specifics
 
@@ -24,3 +25,5 @@
 - Record significant design decisions as ADRs in `docs/adr/`. If a decision in `AGENTS.md` needs
   to change, propose it first rather than making the change unilaterally.
 - Do not commit or push unless asked. Branch off `main` for feature work.
+- At the start of a session, read `HANDOFF.md`. Before every commit/push, update `HANDOFF.md`
+  (state, decisions, commit log row, next steps, open questions) and include it in the same commit.
