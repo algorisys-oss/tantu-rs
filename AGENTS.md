@@ -46,10 +46,11 @@ Two non-negotiable design goals:
   element id and z-index, and off-screen elements are culled. Renderers must not call back into
   the UI. This mirrors Knots' `render.Packet` and Clay's render commands, and makes golden tests,
   retained backends (diff by id) and remote rendering straightforward.
-- **Clay-style layout vocabulary on a Flutter protocol.** Containers are sized per axis with
-  `Fit`/`Grow`/`Fixed`/`Percent` (with min/max) and use `padding`, `gap` and `align`. Internally
-  these compile to Flutter-style `BoxConstraints`, which custom render objects implement directly.
-  Text is measured through a `TextMeasure` trait, so layout never depends on the text crate.
+- **Flutter structure is the API.** Layout is done by composing layout widgets (`Row`, `Column`,
+  `Expanded`, `Flexible`, `Padding`, `Align`, `SizedBox`, `Stack`, `Positioned`, …) using Flutter's
+  constraint protocol. Custom layouts implement the same `RenderBox`-style protocol. Don't introduce
+  an alternative layout vocabulary alongside it. Text is measured through a `TextMeasure` trait,
+  so layout never depends on the text crate.
 
 ## Workspace layout (target)
 
@@ -59,7 +60,7 @@ Two non-negotiable design goals:
 | `dkui-reactive` | signals, memos, effects, scheduler | core |
 | `dkui-scene` | `Scene` display list, `Renderer` trait, resource handles | core |
 | `dkui-text` | font loading, shaping, bidi, line breaking (parley/swash) | core, scene |
-| `dkui-layout` | `BoxConstraints` protocol, `Sizing` (Fit/Grow/Fixed/Percent), Flex/Stack/Grid/Floating algorithms, `TextMeasure` trait | core |
+| `dkui-layout` | `BoxConstraints` protocol, Flex/Stack/Wrap/Grid/Overlay algorithms, `TextMeasure` trait | core |
 | `dkui-view` | View/Element/RenderObject traits, reconciler, event dispatch, focus | core, reactive, scene, text, layout |
 | `dkui-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …) | view |
 | `dkui-theme` | design tokens, Material-ish + Fluent-ish default themes | view |
@@ -84,13 +85,14 @@ use dkui::prelude::*;
 
 fn counter() -> impl View {
     let count = signal(0);
-    Column::new()
-        .size(Sizing::Grow, Sizing::Fit)
-        .padding(16.0)
-        .gap(8.0)
-        .align(Align::Center)
-        .child(Text::new(move || format!("Count: {}", count.get())).style(TextStyle::title()))
-        .child(Button::new("Increment").on_press(move || count.update(|c| *c += 1)))
+    Padding::all(16.0).child(
+        Column::new()
+            .main_axis_alignment(MainAxisAlignment::Center)
+            .cross_axis_alignment(CrossAxisAlignment::Center)
+            .spacing(8.0)
+            .child(Text::new(move || format!("Count: {}", count.get())).style(TextStyle::title()))
+            .child(Button::new("Increment").on_press(move || count.update(|c| *c += 1))),
+    )
 }
 
 fn main() -> dkui::Result<()> {
@@ -100,8 +102,10 @@ fn main() -> dkui::Result<()> {
 
 - Builders take `self` by value and return `Self`; `.child()`/`.children()` for composition.
 - Reactive props accept either a value or a closure (`impl IntoProp<T>`).
-- Layout props use the Clay vocabulary (`size`, `padding`, `gap`, `align`, `direction`), not
-  wrapper widgets. `Sizing` defaults to `Fit`. Overlays (tooltips, menus, popovers) use `Floating`.
+- Follow Flutter's names and semantics for layout widgets and their properties
+  (`main_axis_alignment`, `cross_axis_alignment`, `main_axis_size`, `flex`, …), converted to
+  snake_case. Someone who knows Flutter should be able to read dkui code straight away.
+- Overlays (tooltips, menus, popovers, dialogs) go through `Overlay` + anchored positioning.
 - No macros are required to build UI. A `view!{}` DSL may come later as sugar, never as the only way.
 
 ## Coding conventions
