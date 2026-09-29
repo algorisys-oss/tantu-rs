@@ -28,8 +28,10 @@ use dkui::prelude::*;
 fn counter() -> impl View {
     let count = signal(0);
     Column::new()
-        .spacing(8.0)
-        .cross_align(CrossAxis::Center)
+        .size(Sizing::Grow, Sizing::Fit)
+        .padding(16.0)
+        .gap(8.0)
+        .align(Align::Center)
         .child(Text::new(move || format!("Count: {}", count.get())).style(TextStyle::title()))
         .child(Button::new("Increment").on_press(move || count.update(|c| *c += 1)))
 }
@@ -58,6 +60,8 @@ The crate breakdown and dependency rules are in [AGENTS.md](AGENTS.md).
   APIs through a plain render packet. dkui keeps that idea but uses a retained, reactive tree instead
   of immediate mode.
 - [Flutter](https://flutter.dev): widget composition and the constraint-based layout protocol.
+- [Clay](https://github.com/nicbarker/clay): the Fit/Grow/Fixed/Percent sizing model, padding/gap/align
+  layout vocabulary, floating elements, and render commands that any renderer can consume.
 - Rust GUI projects we learn from: Xilem/Masonry, Floem, Iced, Slint, egui, GPUI.
 
 ## Roadmap

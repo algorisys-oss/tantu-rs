@@ -18,13 +18,37 @@ utility app that starts fast and is a single small binary.
 | AccessKit (native only) | AccessKit as a first-class part of the pipeline | Accessibility compliance (Section 508 / EN 301 549) |
 | HMR via WASM modules | Later phase: hot-reload of view code + live theme reload | Nice to have, not foundational |
 
+## What we take from Clay (nicbarker/clay), and what we change
+
+[Clay](https://github.com/nicbarker/clay) is a small C layout library: flexbox-like, renderer-agnostic,
+arena-allocated, with layout times measured in microseconds. It confirms the Knots idea (layout → flat
+render commands → any renderer, even HTML) and adds a better layout vocabulary.
+
+| Clay (C) | dkui (Rust) | Why |
+|---|---|---|
+| Per-axis sizing: `Fit(min,max)`, `Grow(min,max)`, `Fixed(n)`, `Percent(p)` | Adopt as the main sizing API of `Row`/`Column`/`Box`, compiled down to `BoxConstraints` | Easier to learn than Flutter's `Expanded`/`Flexible`/`SizedBox`/`FractionallySizedBox` mix; one mental model |
+| `padding`, `child_gap`, `child_alignment {x, y}`, `direction` on every container | Same fields on container widgets | Covers most layouts without extra wrapper widgets |
+| Overflow compresses children down to their `min` instead of erroring | Adopt: shrink `Grow`/`Fit` children towards `min` before overflowing (Flutter just reports an overflow) | Desktop windows are resized constantly; layouts should degrade gracefully |
+| Width pass, then text wrap, then height pass | Adopt this ordering inside Flex so wrapped text gets the correct height without an intrinsic-size query | Correct text wrapping in a single layout run |
+| Text measured through a user callback, with a word-level measure cache | `TextMeasure` trait injected into `dkui-layout`, with a cache keyed by (font, size, word) | Keeps `dkui-layout` independent of `dkui-text`; big win for grids |
+| Floating elements: attach to parent / element id / root, 9-point attach anchors, offset, z-index, pointer capture or passthrough | Adopt as the `Floating` / overlay model for tooltips, popovers, menus, drop-downs, modals | One positioning model for every overlay |
+| Render commands carry element `id`, `z_index`, bounding box; `ScissorStart/End`, `OverlayColor`, `Custom` | `Scene` commands carry element id + z-index; add overlay-color and custom (user-drawn) commands | Stable ids let retained backends diff commands; custom commands are the escape hatch for charts / 3D viewports |
+| Visibility culling on by default | Cull off-screen elements before emitting `Scene` | Cheap win for large scroll areas |
+| Declarative transitions (properties bitmask, easing, enter/exit states, keyed by stable id) | Add enter/exit transitions to the implicit-animation API | Common list/dialog animations without hand-written tickers |
+| Debug inspector drawn as extra render commands | Devtools overlay emits ordinary `Scene` commands, so it works with every renderer | No per-backend debug tooling |
+| Static arena, no malloc per frame, explicit context (multiple instances) | Arena-backed element/layout storage, no per-frame allocation, no hidden global state (one context per app/window) | Predictable performance; testable; multi-window |
+| Immediate mode, C macros, no a11y / IME / text shaping | Keep our retained + reactive tree, plain Rust builders, AccessKit, parley | Same reasons as for Knots above |
+
 ## Key design decisions (initial ADRs to write)
 
 1. **Retained + reactive.** View → Element → RenderObject, driven by signals. (ADR-0001)
-2. **Flutter layout protocol.** `BoxConstraints` down, `Size` up, parent sets offsets; single-pass
-   with intrinsic-size queries as an explicit opt-in; relayout boundaries. (ADR-0002)
+2. **Flutter layout protocol + Clay sizing vocabulary.** Internally, `BoxConstraints` go down,
+   `Size` comes up and the parent sets offsets, with relayout boundaries and intrinsic-size queries
+   as an explicit opt-in. Custom render objects implement this protocol. The user-facing container
+   API is Clay's: `Fit`/`Grow`/`Fixed`/`Percent` per axis, `padding`, `gap`, `align`. (ADR-0002)
 3. **Scene as the renderer contract.** Flat, versioned, serializable command list with layers,
-   clips, transforms, glyph runs, images, and a damage region. (ADR-0003)
+   clips, transforms, glyph runs, images, custom commands and a damage region. Every command
+   carries its element id and z-index, and off-screen content is culled. (ADR-0003)
 4. **Platform trait.** Windowing, input, IME, clipboard, DnD, menus, dialogs, tray are all behind
    `dkui-platform`; winit is the default implementation. (ADR-0004)
 5. **Text stack = parley + swash + fontique.** (ADR-0005)
@@ -41,14 +65,16 @@ utility app that starts fast and is a single small binary.
 - [ ] Reactive micro-benchmarks
 
 ### Phase 1 — Pixels on screen (weeks 3–5)
-- [ ] `dkui-scene`: command set, layers, clip stack, `Renderer` trait, image/font resource handles
+- [ ] `dkui-scene`: command set (with element id + z-index), layers, clip stack, overlay color, custom commands, `Renderer` trait, image/font resource handles
 - [ ] `dkui-render-headless` (recording) and `dkui-render-soft` (tiny-skia → PNG)
 - [ ] `dkui-platform` trait + `dkui-platform-winit`: window, resize, DPI, pointer, keyboard
 - [ ] `dkui-render-wgpu`: rects, rounded rects, borders, shadows, clips, images
 - [ ] **Milestone:** a hand-built Scene renders identically in wgpu and software (golden diff)
 
 ### Phase 2 — Layout, views and text (weeks 6–10)
-- [ ] `dkui-layout`: `BoxConstraints`, `Padding`, `Align`, `SizedBox`, `Flex` (Row/Column/Expanded/Flexible), `Stack`/`Positioned`
+- [ ] `dkui-layout`: `BoxConstraints` protocol; `Sizing` (`Fit`/`Grow`/`Fixed`/`Percent` with min/max); Flex (`Row`/`Column`/`Box` with padding, gap, align) incl. compress-to-min and width → wrap → height ordering; `Stack`
+- [ ] `TextMeasure` trait + word-level measure cache; visibility culling
+- [ ] Layout benchmark: 10k elements, target < 1 ms full layout (Clay-class numbers)
 - [ ] `dkui-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries
 - [ ] `dkui-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons
@@ -58,11 +84,12 @@ utility app that starts fast and is a single small binary.
 
 ### Phase 3 — Core widget set and interaction (weeks 11–16)
 - [ ] Focus system, keyboard navigation, shortcuts/command registry
+- [ ] `Floating` overlay model: attach to parent / id / root, 9-point anchors, offset, z-index, pointer passthrough; flip/clamp to window
 - [ ] Widgets: Text, RichText, Button, IconButton, Checkbox, Radio, Switch, Slider, TextField (with IME, selection, undo), Image, Icon, Divider, Tooltip
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
 - [ ] Virtualized `ListView` (100k items at 60fps)
 - [ ] `dkui-theme`: design tokens, light/dark, density, live theme switching
-- [ ] Animation: tickers, tweens, curves, implicit animations (`AnimatedOpacity`-style)
+- [ ] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
 - [ ] `dkui-a11y`: AccessKit tree for every standard widget
 - [ ] `examples/gallery`
 
@@ -81,13 +108,14 @@ utility app that starts fast and is a single small binary.
 - [ ] Damage tracking and partial repaint; layer caching; GPU texture atlas tuning
 - [ ] Profiling overlay (frame time, rebuild/relayout counts); `tracing` spans throughout
 - [ ] Hot reload (theme and assets first, then view code via dylib or WASM host, the Knots-style approach)
-- [ ] Inspector / devtools window (element tree, layout bounds, signals graph)
+- [ ] Inspector / devtools (element tree, layout bounds, signals graph), drawn as ordinary Scene commands so it works on every renderer
 - [ ] Optional `view!{}` macro DSL as sugar
 - [ ] Packaging guide (MSI/MSIX, .app/.dmg + notarization, AppImage/Flatpak/deb)
 - [ ] Docs site + book, API stabilisation, 0.1 release, **make repo public**
 
 ### Later / exploratory
-- Web target (wgpu on WebGPU + canvas platform shell), which the Scene/Platform split makes possible
+- Web target (wgpu on WebGPU + canvas platform shell), which the Scene/Platform split makes possible;
+  a DOM renderer that diffs Scene commands by element id, like Clay's HTML renderer
 - Remote/thin-client rendering by streaming `Scene` over the network
 - Mobile shells (Android/iOS) through the same Platform trait
 - Vello backend for vector-heavy apps; charts library on top of Scene paths
@@ -108,4 +136,4 @@ utility app that starts fast and is a single small binary.
 - **Reactivity + retained tree** ownership in Rust (no GC). Keep elements in an arena with ids,
   and have closures capture `Copy` signal handles, as Leptos/Floem/Xilem do.
 - **Prior art to study:** Xilem/Masonry, Floem, Iced, Slint, egui, GPUI (Zed), Flutter's
-  rendering layer, and Knots' Packet design.
+  rendering layer, Knots' Packet design, and Clay's layout algorithm and render commands.

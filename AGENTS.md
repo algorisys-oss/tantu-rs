@@ -42,8 +42,14 @@ Two non-negotiable design goals:
   change marks only its dependent elements dirty → rebuild/relayout/repaint just those subtrees.
   There is no whole-subtree `setState` rebuild by default.
 - **Scene is data, not calls.** `Scene` is a flat, serializable list of commands (rects, rounded
-  rects, paths, glyph runs, images, clips, transforms, layers). Renderers must not call back into
-  the UI. This mirrors Knots' `render.Packet` and makes golden tests and remote rendering trivial.
+  rects, paths, glyph runs, images, clips, transforms, layers, custom). Each command carries its
+  element id and z-index, and off-screen elements are culled. Renderers must not call back into
+  the UI. This mirrors Knots' `render.Packet` and Clay's render commands, and makes golden tests,
+  retained backends (diff by id) and remote rendering straightforward.
+- **Clay-style layout vocabulary on a Flutter protocol.** Containers are sized per axis with
+  `Fit`/`Grow`/`Fixed`/`Percent` (with min/max) and use `padding`, `gap` and `align`. Internally
+  these compile to Flutter-style `BoxConstraints`, which custom render objects implement directly.
+  Text is measured through a `TextMeasure` trait, so layout never depends on the text crate.
 
 ## Workspace layout (target)
 
@@ -53,7 +59,7 @@ Two non-negotiable design goals:
 | `dkui-reactive` | signals, memos, effects, scheduler | core |
 | `dkui-scene` | `Scene` display list, `Renderer` trait, resource handles | core |
 | `dkui-text` | font loading, shaping, bidi, line breaking (parley/swash) | core, scene |
-| `dkui-layout` | `BoxConstraints`, layout protocol, Flex/Stack/Grid algorithms | core |
+| `dkui-layout` | `BoxConstraints` protocol, `Sizing` (Fit/Grow/Fixed/Percent), Flex/Stack/Grid/Floating algorithms, `TextMeasure` trait | core |
 | `dkui-view` | View/Element/RenderObject traits, reconciler, event dispatch, focus | core, reactive, scene, text, layout |
 | `dkui-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …) | view |
 | `dkui-theme` | design tokens, Material-ish + Fluent-ish default themes | view |
@@ -79,8 +85,10 @@ use dkui::prelude::*;
 fn counter() -> impl View {
     let count = signal(0);
     Column::new()
-        .spacing(8.0)
-        .cross_align(CrossAxis::Center)
+        .size(Sizing::Grow, Sizing::Fit)
+        .padding(16.0)
+        .gap(8.0)
+        .align(Align::Center)
         .child(Text::new(move || format!("Count: {}", count.get())).style(TextStyle::title()))
         .child(Button::new("Increment").on_press(move || count.update(|c| *c += 1)))
 }
@@ -92,6 +100,8 @@ fn main() -> dkui::Result<()> {
 
 - Builders take `self` by value and return `Self`; `.child()`/`.children()` for composition.
 - Reactive props accept either a value or a closure (`impl IntoProp<T>`).
+- Layout props use the Clay vocabulary (`size`, `padding`, `gap`, `align`, `direction`), not
+  wrapper widgets. `Sizing` defaults to `Fit`. Overlays (tooltips, menus, popovers) use `Floating`.
 - No macros are required to build UI. A `view!{}` DSL may come later as sugar, never as the only way.
 
 ## Coding conventions
