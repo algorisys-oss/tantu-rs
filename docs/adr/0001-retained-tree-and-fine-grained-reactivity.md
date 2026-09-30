@@ -1,6 +1,7 @@
 # 0001. Retained tree and fine-grained reactivity
 
-- **Status:** Accepted
+- **Status:** Accepted. The disposed-handle consequence is superseded by
+  [ADR 0007](0007-using-disposed-reactive-handles.md).
 - **Date:** 2026-09-30
 
 ## Context
@@ -49,7 +50,8 @@ references into the tree.
   disposal, and leaks (count live nodes).
 - A signal handle can outlive the scope that owns it. What happens when a disposed signal is used
   must be defined in the `tantu-reactive` spec, without undefined behavior or panics in release
-  builds.
+  builds. (Superseded by [ADR 0007](0007-using-disposed-reactive-handles.md): reads of a disposed
+  handle panic, `try_*` reads return `None`, writes are ignored.)
 - Debugging "why did this rebuild?" needs tooling. The Phase 5 inspector shows the signal graph
   for this reason.
 

@@ -143,6 +143,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Platform trait, winit by default | [ADR-0004](adr/0004-platform-trait-with-winit-by-default.md) |
 | Text stack: parley + swash + fontique | [ADR-0005](adr/0005-text-stack-parley-swash-fontique.md) |
 | wgpu as default GPU backend | [ADR-0006](adr/0006-wgpu-as-the-default-gpu-backend.md) |
+| Reads of disposed signal handles panic, `try_*` reads and writes don't | [ADR-0007](adr/0007-using-disposed-reactive-handles.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).

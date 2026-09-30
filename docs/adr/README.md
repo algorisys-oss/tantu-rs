@@ -8,12 +8,13 @@ instead.
 
 | ADR | Title | Status |
 |---|---|---|
-| [0001](0001-retained-tree-and-fine-grained-reactivity.md) | Retained tree and fine-grained reactivity | Accepted |
+| [0001](0001-retained-tree-and-fine-grained-reactivity.md) | Retained tree and fine-grained reactivity | Accepted (disposed-handle consequence superseded by 0007) |
 | [0002](0002-flutter-structure-and-layout-protocol.md) | Flutter structure and layout protocol | Accepted |
 | [0003](0003-scene-as-the-renderer-contract.md) | Scene as the renderer contract | Accepted |
 | [0004](0004-platform-trait-with-winit-by-default.md) | Platform trait, with winit by default | Accepted |
 | [0005](0005-text-stack-parley-swash-fontique.md) | Text stack: parley, swash and fontique | Accepted |
 | [0006](0006-wgpu-as-the-default-gpu-backend.md) | wgpu as the default GPU backend | Accepted |
+| [0007](0007-using-disposed-reactive-handles.md) | Using disposed reactive handles | Accepted |
 
 ## Writing a new ADR
 
