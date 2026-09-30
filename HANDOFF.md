@@ -144,7 +144,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `7c8006e` | spec: tantu-core `Color` (CORE-COLOR-01..15) |
 | `5ca4f17` | test: tantu-core `Color`, stubs + 16 tests (15 failing on `todo!()`) |
 | `7ffce33` | spec: exact 0/1 endpoints for `Color::from_linear` (CORE-COLOR-14) |
-| _this commit_ | impl: tantu-core `Color`; spec Implemented, PLAN.md ticked |
+| `712a1cb` | impl: tantu-core `Color`; spec Implemented, PLAN.md ticked |
+| _this commit_ | impl: named, documented constants for the sRGB transfer function and 8-bit scale in `color.rs` (no behavior change) |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

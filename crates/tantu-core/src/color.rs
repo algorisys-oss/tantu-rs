@@ -47,10 +47,10 @@ impl Color {
     #[inline]
     pub const fn from_rgba8(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color::new(
-            r as f32 / 255.0,
-            g as f32 / 255.0,
-            b as f32 / 255.0,
-            a as f32 / 255.0,
+            r as f32 / U8_MAX,
+            g as f32 / U8_MAX,
+            b as f32 / U8_MAX,
+            a as f32 / U8_MAX,
         )
     }
 
@@ -73,7 +73,7 @@ impl Color {
     #[inline]
     pub fn to_rgba8(self) -> [u8; 4] {
         let c = self.clamp();
-        [c.r, c.g, c.b, c.a].map(|v| (v * 255.0).round() as u8)
+        [c.r, c.g, c.b, c.a].map(|v| (v * U8_MAX).round() as u8)
     }
 
     /// Packed `0xAARRGGBB`, from the same 8-bit values as [`Color::to_rgba8`].
@@ -156,6 +156,26 @@ impl Default for Color {
     }
 }
 
+/// Largest 8-bit component value, as `f32`: 8-bit values map to and from 0..=1 through it.
+const U8_MAX: f32 = u8::MAX as f32;
+
+// The sRGB transfer function, from IEC 61966-2-1. sRGB values are gamma-encoded so that most
+// 8-bit steps go to dark tones, where the eye is most sensitive; blending and shading need linear
+// light. The curve is a power curve with a short straight segment near black (a pure power curve
+// has infinite slope at 0).
+
+/// Exponent of the power segment. With the offset, the whole curve is close to "gamma 2.2".
+const SRGB_GAMMA: f32 = 2.4;
+/// Offset of the power segment. With the scale `1 + SRGB_OFFSET`, it makes the curve pass through
+/// (1, 1) and meet the straight segment.
+const SRGB_OFFSET: f32 = 0.055;
+/// Slope of the straight segment near black: `linear = srgb / SRGB_LINEAR_SLOPE`.
+const SRGB_LINEAR_SLOPE: f32 = 12.92;
+/// Where decoding switches from the straight segment to the power curve (sRGB side).
+const SRGB_DECODE_THRESHOLD: f32 = 0.04045;
+/// The same switch point on the linear side, `SRGB_DECODE_THRESHOLD / SRGB_LINEAR_SLOPE`.
+const SRGB_ENCODE_THRESHOLD: f32 = 0.003_130_8;
+
 /// Clamps to 0..=1; NaN becomes 0.
 #[inline]
 fn clamp01(v: f32) -> f32 {
@@ -166,20 +186,21 @@ fn clamp01(v: f32) -> f32 {
 /// sRGB decoding (electro-optical transfer function) for one component in 0..=1.
 #[inline]
 fn decode(c: f32) -> f32 {
-    if c <= 0.04045 {
-        c / 12.92
+    if c <= SRGB_DECODE_THRESHOLD {
+        c / SRGB_LINEAR_SLOPE
     } else {
-        ((c + 0.055) / 1.055).powf(2.4)
+        ((c + SRGB_OFFSET) / (1.0 + SRGB_OFFSET)).powf(SRGB_GAMMA)
     }
 }
 
 /// sRGB encoding, the inverse of [`decode`], for one component in 0..=1.
 #[inline]
 fn encode(c: f32) -> f32 {
-    if c <= 0.003_130_8 {
-        12.92 * c
+    if c <= SRGB_ENCODE_THRESHOLD {
+        SRGB_LINEAR_SLOPE * c
     } else {
         // In f64, so that 1.0 encodes to exactly 1.0 (f32 gives 0.99999994).
-        (1.055 * f64::from(c).powf(1.0 / 2.4) - 0.055) as f32
+        let offset = f64::from(SRGB_OFFSET);
+        ((1.0 + offset) * f64::from(c).powf(1.0 / f64::from(SRGB_GAMMA)) - offset) as f32
     }
 }
