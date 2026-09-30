@@ -1,0 +1,17 @@
+[package]
+name = "tantu-test"
+description = "Widget tester, golden images and event simulation for Tantu."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tantu-view = { workspace = true }
+tantu-render-soft = { workspace = true }
+tantu-render-headless = { workspace = true }

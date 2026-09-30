@@ -1,0 +1,16 @@
+[package]
+name = "tantu-text"
+description = "Font loading, shaping, bidi and line breaking."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tantu-core = { workspace = true }
+tantu-scene = { workspace = true }

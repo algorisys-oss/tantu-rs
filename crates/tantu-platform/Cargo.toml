@@ -1,0 +1,15 @@
+[package]
+name = "tantu-platform"
+description = "The `Platform` trait: windows, input, clipboard, IME, dialogs and menus."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tantu-core = { workspace = true }

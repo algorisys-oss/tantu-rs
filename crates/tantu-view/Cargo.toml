@@ -1,0 +1,19 @@
+[package]
+name = "tantu-view"
+description = "View, Element and RenderObject traits, reconciliation, event dispatch and focus."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tantu-core = { workspace = true }
+tantu-reactive = { workspace = true }
+tantu-scene = { workspace = true }
+tantu-text = { workspace = true }
+tantu-layout = { workspace = true }

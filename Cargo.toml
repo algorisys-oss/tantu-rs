@@ -1,0 +1,39 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+authors = ["Rajesh Pillai - Algorisys Technologies"]
+repository = "https://github.com/algorisys-oss/tantu-rs"
+
+[workspace.dependencies]
+tantu = { path = "crates/tantu", version = "0.0.0" }
+tantu-a11y = { path = "crates/tantu-a11y", version = "0.0.0" }
+tantu-core = { path = "crates/tantu-core", version = "0.0.0" }
+tantu-layout = { path = "crates/tantu-layout", version = "0.0.0" }
+tantu-platform = { path = "crates/tantu-platform", version = "0.0.0" }
+tantu-platform-winit = { path = "crates/tantu-platform-winit", version = "0.0.0" }
+tantu-reactive = { path = "crates/tantu-reactive", version = "0.0.0" }
+tantu-render-headless = { path = "crates/tantu-render-headless", version = "0.0.0" }
+tantu-render-soft = { path = "crates/tantu-render-soft", version = "0.0.0" }
+tantu-render-wgpu = { path = "crates/tantu-render-wgpu", version = "0.0.0" }
+tantu-scene = { path = "crates/tantu-scene", version = "0.0.0" }
+tantu-test = { path = "crates/tantu-test", version = "0.0.0" }
+tantu-text = { path = "crates/tantu-text", version = "0.0.0" }
+tantu-theme = { path = "crates/tantu-theme", version = "0.0.0" }
+tantu-view = { path = "crates/tantu-view", version = "0.0.0" }
+tantu-widgets = { path = "crates/tantu-widgets", version = "0.0.0" }
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
+unwrap_used = "warn"
+print_stdout = "warn"
+print_stderr = "warn"

@@ -7,9 +7,10 @@ _Last updated: 2026-09-30_
 
 ## Resume here (session of 2026-09-30)
 
-The project was renamed from **dkui** to **Tantu**. Every doc says Tantu and every crate name uses
-the `tantu-` prefix. The folder is now `~/lab/rust/tantu-rs`, and the code lives in a new **public**
-GitHub repo, `algorisys-oss/tantu-rs`, with the full history.
+Phase 0 has started. The Cargo workspace skeleton and CI are on branch `phase0/workspace-skeleton`
+(pushed, not yet merged). fmt, clippy `-D warnings`,
+test and doc all pass locally on Linux with Rust 1.85.1. CI has not run on GitHub yet, so the
+Phase 0 checkbox in `PLAN.md` stays unticked until the first CI run is green on all three OSes.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -18,7 +19,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **Name:** **Tantu** (pronounced "tan-too", Sanskrit for "thread"). Tagline: *Compose once. Render
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
-- **Phase:** pre-Phase 0. There are only docs so far, no Rust code or Cargo workspace yet.
+- **Phase:** Phase 0 (Foundations). The workspace skeleton exists: 16 empty crates under `crates/`
+  (the AGENTS.md table), with the internal dependency edges from that table already declared. No
+  feature code yet.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -28,6 +31,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   - `docs/architecture.md`: architecture write-up; diagram in `docs/architecture/`
     (`tantu-architecture.svg` is the source, `.png` is rendered from it, `rough-sketch.png` is the original sketch)
   - `LICENSE-MIT`, `LICENSE-APACHE`: dual license
+  - `Cargo.toml`: workspace manifest (`[workspace.package]`, internal crates in
+    `[workspace.dependencies]`, shared lints in `[workspace.lints]`)
+  - `rust-toolchain.toml`: pins Rust 1.85, which is also the MSRV; `clippy.toml`
+  - `crates/`: one directory per crate; `crates/tantu` is the facade
+  - `.github/workflows/ci.yml`: fmt, clippy + rustdoc (`-D warnings`), test on Linux/Windows/macOS
 
 ## Decisions made so far
 
@@ -58,7 +66,17 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     Rust or a backend. Room for an ecosystem: Tantu Inspector, Studio, Themes, Gallery. Attribution
     "by Algorisys". Crate prefix `tantu-`; golden-update env var `TANTU_UPDATE_GOLDENS`.
 11. **Public from the start** (2026-09-30), not at 0.1 as first planned. Repo: `algorisys-oss/tantu-rs`.
-12. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+12. **MSRV = Rust 1.85** (the first release with edition 2024), pinned in `rust-toolchain.toml`, so
+    local and CI builds run the MSRV itself. `rust-version` in `Cargo.toml` must match. Raise both
+    together when a dependency needs a newer compiler (wgpu may be the first to force this).
+13. **Workspace setup:** crates live in `crates/<name>`. Internal crates are declared once in
+    `[workspace.dependencies]` and each crate depends only on what the AGENTS.md table allows.
+    Shared lints: `missing_docs`, `unsafe_op_in_unsafe_fn`, `clippy::undocumented_unsafe_blocks`,
+    `clippy::unwrap_used`, `clippy::print_stdout`/`print_stderr` (unwrap/print allowed in tests via
+    `clippy.toml`). `#![forbid(unsafe_code)]` in every crate except `tantu-core`,
+    `tantu-platform-winit` and `tantu-render-*`. Facade features: `wgpu`, `winit`, `default-theme`
+    (default) and `soft`. `Cargo.lock` is committed.
+14. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
 
@@ -72,22 +90,21 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `34c12e3` | Added HANDOFF.md and the rule to keep it updated |
 | `594513f` | Set copyright holder to Rajesh Pillai - Algorisys Technologies |
 | `a2c71a4` | Architecture doc + diagram (`docs/architecture.md`, `docs/architecture/`), rule to keep them current (AGENTS.md, CLAUDE.md); renamed project dkui → Tantu across all docs, README tagline; moved to new public repo `algorisys-oss/tantu-rs` |
-| _this commit_ | Removed references to the old repo from HANDOFF.md |
+| `9703361` | Removed references to the old repo from HANDOFF.md |
+| _this commit_ | Phase 0: Cargo workspace skeleton (16 crates), `rust-toolchain.toml` (1.85), shared lints, CI workflow |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 0 in PLAN.md)
 
-1. Cargo workspace skeleton: `Cargo.toml` with `[workspace.package]` (edition 2024,
-   `license = "MIT OR Apache-2.0"`, `authors`), `rust-toolchain.toml`, empty crates per the AGENTS.md table.
-2. CI (GitHub Actions): fmt, clippy `-D warnings`, test on Linux/Windows/macOS.
-3. `docs/specs/TEMPLATE.md` and `docs/adr/` with ADRs 0001–0006.
-4. First spec → tests → code: `tantu-core` geometry (`Point`, `Size`, `Rect`, `Insets`, `Affine`, `Color`).
-5. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
+1. Commit the workspace skeleton, push the branch and open a PR. Once CI is green on all three OSes,
+   tick "Cargo workspace, rust-toolchain.toml, CI" in `PLAN.md` and merge.
+2. `docs/specs/TEMPLATE.md` and `docs/adr/` with ADRs 0001–0006.
+3. First spec → tests → code: `tantu-core` geometry (`Point`, `Size`, `Rect`, `Insets`, `Affine`, `Color`).
+4. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
 
 ## Open questions
 
-- MSRV to pin (the local toolchain is rustc 1.95.0).
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the
   first publish. Same for a domain / GitHub org name if wanted.
