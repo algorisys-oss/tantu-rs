@@ -61,7 +61,10 @@ faster or more portable without changing how apps are written.
 - [x] `docs/adr/` with ADRs 0001–0006
 - [x] `docs/specs/` with a spec template (purpose, API, numbered rules, perf, open questions)
 - [x] Spec-coverage check in CI (`cargo xtask spec-coverage`): every rule of an agreed spec has a test
-- [ ] `tantu-core`: `Point/Size/Rect/Insets/Affine`, `Color`, `Id`, generational arena
+- [ ] `tantu-core`:
+  - [ ] geometry: `Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine` (spec `docs/specs/core/geometry.md`)
+  - [ ] `Color` (spec `docs/specs/core/color.md`)
+  - [ ] `Id` and generational arena (spec `docs/specs/core/arena.md`)
 - [ ] `tantu-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
 - [ ] Reactive micro-benchmarks
 
