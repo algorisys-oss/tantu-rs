@@ -115,8 +115,8 @@ fn main() -> tantu::Result<()> {
 
 - Rust edition 2024, stable toolchain, MSRV pinned in `rust-toolchain.toml`.
 - License: `MIT OR Apache-2.0`. Every crate sets `license = "MIT OR Apache-2.0"` (inherit via `[workspace.package]`).
-- `#![forbid(unsafe_code)]` in every crate except `tantu-render-*`, `tantu-platform-*`, and `tantu-core`
-  arena internals. Every `unsafe` block needs a `// SAFETY:` comment.
+- `#![forbid(unsafe_code)]` in every crate except `tantu-render-*` and `tantu-platform-*`.
+  Every `unsafe` block needs a `// SAFETY:` comment.
 - No `unwrap()`/`expect()` in library code paths reachable by users; return `tantu::Error` or handle.
   `expect` is allowed for true invariants with a message explaining the invariant.
 - Public API: every public item has a doc comment; crate roots have an overview with an example.
