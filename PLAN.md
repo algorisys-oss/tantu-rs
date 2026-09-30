@@ -56,7 +56,7 @@ faster or more portable without changing how apps are written.
 
 ## Phases
 
-### Phase 0 — Foundations (weeks 1–2)
+### Phase 0 — Foundations (weeks 1–2) — done 2026-09-30
 - [x] Cargo workspace, `rust-toolchain.toml`, CI (fmt, clippy, test on Linux/Windows/macOS)
 - [x] `docs/adr/` with ADRs 0001–0006
 - [x] `docs/specs/` with a spec template (purpose, API, numbered rules, perf, open questions)
@@ -66,7 +66,7 @@ faster or more portable without changing how apps are written.
   - [x] `Color` (spec `docs/specs/core/color.md`)
   - [x] `Id` and generational arena (spec `docs/specs/core/arena.md`)
 - [x] `tantu-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
-- [ ] Reactive micro-benchmarks
+- [x] Reactive micro-benchmarks (spec `docs/specs/reactive/benchmarks.md`)
 
 ### Phase 1 — Pixels on screen (weeks 3–5)
 - [ ] `tantu-scene`: command set (with element id + z-index), layers, clip stack, overlay color, custom commands, `Renderer` trait, image/font resource handles

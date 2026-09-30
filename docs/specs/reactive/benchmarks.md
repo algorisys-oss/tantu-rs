@@ -1,6 +1,6 @@
 # Reactive micro-benchmarks
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-reactive` (benches and tests only; no library API)
 - **Plan item:** Phase 0, "Reactive micro-benchmarks"
 - **Related:** [signals](signals.md) (the API under test),
@@ -88,12 +88,25 @@ Each rule describes one scenario and what its test checks after `new(n)` and som
 
 ## Performance and allocation
 
-The sizes benchmarked are `n` = 10, 100 and 1 000 (100 000 for `GetSet`). Baselines, on the
-machine named, in release mode:
+The sizes benchmarked are `n` = 10, 100 and 1 000 (100 000 for `GetSet`). Baselines (criterion
+median per `step()`, `cargo bench`, Rust 1.85.1, Linux, Intel Core i5-1235U laptop, 2026-09-30):
 
-| Scenario | n | Time per step |
-|---|---|---|
-| _to be filled by the `impl:` commit_ | | |
+| Scenario | n = 10 | n = 100 | n = 1 000 |
+|---|---|---|---|
+| `CreateDispose` (n signals + memos + effects) | 6.1 µs | 68 µs | 881 µs |
+| `GetSet` (n = 100 000 round trips) | | | 2.9 ms (29 ns each) |
+| `FanOut` | 0.77 µs | 7.2 µs | 72 µs |
+| `FanIn` | 0.50 µs | 3.5 µs | 34 µs |
+| `DeepChain` | 1.1 µs | 10.8 µs | 108 µs |
+| `Diamond` | 1.2 µs | 10.1 µs | 102 µs |
+| `Cutoff` | 0.25 µs | 1.6 µs | 16 µs |
+| `ScopeChurn` | 8.2 µs | 86 µs | 853 µs |
+
+Every scenario scales linearly in `n`. The first run of these benchmarks found `FanOut`, `FanIn`
+and `Diamond` growing about 33× from 100 to 1 000 (for example `FanOut` at 1 000: 454 µs), because
+every re-run unsubscribed from and re-subscribed to all of its sources. Dependency tracking was
+changed to leave subscriptions alone when a re-run reads the same sources (spec `signals.md`,
+Performance). That made node creation about 10 % slower, which is the accepted trade-off.
 
 No targets are enforced in Phase 0. When a number regresses by more than about 20 % on the same
 machine, find out why before merging.

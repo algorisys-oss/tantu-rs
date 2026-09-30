@@ -15,3 +15,10 @@ workspace = true
 
 [dependencies]
 tantu-core = { workspace = true }
+
+[dev-dependencies]
+criterion = { version = "0.7.0", default-features = false }
+
+[[bench]]
+name = "reactive"
+harness = false

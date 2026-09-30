@@ -9,7 +9,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use tantu_reactive::{Memo, Runtime, Signal};
+use tantu_reactive::{Memo, Runtime, Scope, Signal, batch, effect, memo, on_cleanup, signal};
 
 /// Adds one to a shared counter.
 fn bump(counter: &Cell<usize>) {
@@ -26,12 +26,31 @@ pub struct CreateDispose {
 impl CreateDispose {
     /// Builds the scenario.
     pub fn new(n: usize) -> Self {
-        todo!("CreateDispose::new({n})")
+        CreateDispose {
+            rt: Runtime::new(),
+            n,
+            effect_runs: Rc::default(),
+        }
     }
 
     /// One create-and-dispose round.
     pub fn step(&mut self) {
-        todo!()
+        let (n, runs) = (self.n, &self.effect_runs);
+        self.rt.enter(|| {
+            let scope = Scope::new();
+            scope.run(|| {
+                for i in 0..n {
+                    let s = signal(i);
+                    let m = memo(move || s.get() + 1);
+                    let runs = runs.clone();
+                    effect(move || {
+                        m.get();
+                        bump(&runs);
+                    });
+                }
+            });
+            scope.dispose();
+        });
     }
 
     /// Total effect runs so far.
@@ -55,12 +74,19 @@ pub struct GetSet {
 impl GetSet {
     /// Builds the scenario.
     pub fn new(n: usize) -> Self {
-        todo!("GetSet::new({n})")
+        let rt = Runtime::new();
+        let value = rt.enter(|| signal(0));
+        GetSet { rt, n, value }
     }
 
     /// `n` round trips.
     pub fn step(&mut self) {
-        todo!()
+        let (n, value) = (self.n, self.value);
+        self.rt.enter(|| {
+            for _ in 0..n {
+                value.set(value.get() + 1);
+            }
+        });
     }
 
     /// The signal's value.
@@ -81,12 +107,34 @@ pub struct FanOut {
 impl FanOut {
     /// Builds the scenario.
     pub fn new(n: usize) -> Self {
-        todo!("FanOut::new({n})")
+        let rt = Runtime::new();
+        let effect_runs = Rc::new(Cell::new(0));
+        let seen: Rc<Vec<Cell<u64>>> = Rc::new((0..n).map(|_| Cell::new(0)).collect());
+        let source = rt.enter(|| {
+            let source = signal(0);
+            for i in 0..n {
+                let (runs, seen) = (effect_runs.clone(), seen.clone());
+                effect(move || {
+                    seen[i].set(source.get());
+                    bump(&runs);
+                });
+            }
+            source
+        });
+        FanOut {
+            rt,
+            source,
+            next: 1,
+            effect_runs,
+            seen,
+        }
     }
 
     /// Writes the source once.
     pub fn step(&mut self) {
-        todo!()
+        let (source, next) = (self.source, self.next);
+        self.rt.enter(|| source.set(next));
+        self.next += 1;
     }
 
     /// Total effect runs so far.
@@ -118,12 +166,41 @@ pub struct FanIn {
 impl FanIn {
     /// Builds the scenario.
     pub fn new(n: usize) -> Self {
-        todo!("FanIn::new({n})")
+        let rt = Runtime::new();
+        let effect_runs = Rc::new(Cell::new(0));
+        let seen = Rc::new(Cell::new(0));
+        let (signals, sum) = rt.enter(|| {
+            let signals: Vec<Signal<u64>> = (0..n).map(|_| signal(0)).collect();
+            let inputs = signals.clone();
+            let sum = memo(move || inputs.iter().map(|s| s.get()).sum::<u64>());
+            let (runs, seen) = (effect_runs.clone(), seen.clone());
+            effect(move || {
+                seen.set(sum.get());
+                bump(&runs);
+            });
+            (signals, sum)
+        });
+        FanIn {
+            rt,
+            signals,
+            sum,
+            next: 1,
+            effect_runs,
+            seen,
+        }
     }
 
     /// Writes every signal inside one batch.
     pub fn step(&mut self) {
-        todo!()
+        let (signals, next) = (&self.signals, self.next);
+        self.rt.enter(|| {
+            batch(|| {
+                for s in signals {
+                    s.set(next);
+                }
+            });
+        });
+        self.next += 1;
     }
 
     /// Total effect runs so far.
@@ -157,12 +234,49 @@ pub struct DeepChain {
 impl DeepChain {
     /// Builds the scenario.
     pub fn new(n: usize) -> Self {
-        todo!("DeepChain::new({n})")
+        let rt = Runtime::new();
+        let recomputes = Rc::new(Cell::new(0));
+        let effect_runs = Rc::new(Cell::new(0));
+        let seen = Rc::new(Cell::new(0));
+        let head = rt.enter(|| {
+            let head = signal(0);
+            let first = {
+                let recomputes = recomputes.clone();
+                memo(move || {
+                    bump(&recomputes);
+                    head.get() + 1
+                })
+            };
+            let last = (1..n).fold(first, |prev, _| {
+                let recomputes = recomputes.clone();
+                memo(move || {
+                    bump(&recomputes);
+                    prev.get() + 1
+                })
+            });
+            let (runs, seen) = (effect_runs.clone(), seen.clone());
+            effect(move || {
+                seen.set(last.get());
+                bump(&runs);
+            });
+            head
+        });
+        DeepChain {
+            rt,
+            n,
+            head,
+            next: 1,
+            recomputes,
+            effect_runs,
+            seen,
+        }
     }
 
     /// Writes the head of the chain.
     pub fn step(&mut self) {
-        todo!()
+        let (head, next) = (self.head, self.next);
+        self.rt.enter(|| head.set(next));
+        self.next += 1;
     }
 
     /// Total memo recomputations so far.
@@ -201,12 +315,58 @@ pub struct Diamond {
 impl Diamond {
     /// Builds the scenario.
     pub fn new(n: usize) -> Self {
-        todo!("Diamond::new({n})")
+        let rt = Runtime::new();
+        let middle_recomputes = Rc::new(Cell::new(0));
+        let sum_recomputes = Rc::new(Cell::new(0));
+        let effect_runs = Rc::new(Cell::new(0));
+        let glitches = Rc::new(Cell::new(0));
+        let source = rt.enter(|| {
+            let source = signal(0u64);
+            let middle: Vec<Memo<u64>> = (0..n as u64)
+                .map(|i| {
+                    let recomputes = middle_recomputes.clone();
+                    memo(move || {
+                        bump(&recomputes);
+                        source.get() + i
+                    })
+                })
+                .collect();
+            let sum = {
+                let recomputes = sum_recomputes.clone();
+                memo(move || {
+                    bump(&recomputes);
+                    middle.iter().map(|m| m.get()).sum::<u64>()
+                })
+            };
+            // Sum of `source + i` for i in 0..n.
+            let n = n as u64;
+            let expected = move |source: u64| n * source + n * n.saturating_sub(1) / 2;
+            let (runs, glitches) = (effect_runs.clone(), glitches.clone());
+            effect(move || {
+                if sum.get() != expected(source.get()) {
+                    bump(&glitches);
+                }
+                bump(&runs);
+            });
+            source
+        });
+        Diamond {
+            rt,
+            n,
+            source,
+            next: 1,
+            middle_recomputes,
+            sum_recomputes,
+            effect_runs,
+            glitches,
+        }
     }
 
     /// Writes the source once.
     pub fn step(&mut self) {
-        todo!()
+        let (source, next) = (self.source, self.next);
+        self.rt.enter(|| source.set(next));
+        self.next += 1;
     }
 
     /// Total recomputations of the middle memos so far.
@@ -242,12 +402,41 @@ pub struct Cutoff {
 impl Cutoff {
     /// Builds the scenario.
     pub fn new(n: usize) -> Self {
-        todo!("Cutoff::new({n})")
+        let rt = Runtime::new();
+        let memo_recomputes = Rc::new(Cell::new(0));
+        let effect_runs = Rc::new(Cell::new(0));
+        let source = rt.enter(|| {
+            let source = signal(0u64);
+            let even = {
+                let recomputes = memo_recomputes.clone();
+                memo(move || {
+                    bump(&recomputes);
+                    source.get() % 2 == 0
+                })
+            };
+            for _ in 0..n {
+                let runs = effect_runs.clone();
+                effect(move || {
+                    even.get();
+                    bump(&runs);
+                });
+            }
+            source
+        });
+        Cutoff {
+            rt,
+            source,
+            next: 2,
+            memo_recomputes,
+            effect_runs,
+        }
     }
 
     /// Writes the source with a value the memo maps to its current output.
     pub fn step(&mut self) {
-        todo!()
+        let (source, next) = (self.source, self.next);
+        self.rt.enter(|| source.set(next));
+        self.next += 2;
     }
 
     /// Total memo recomputations so far.
@@ -272,12 +461,36 @@ pub struct ScopeChurn {
 impl ScopeChurn {
     /// Builds the scenario.
     pub fn new(n: usize) -> Self {
-        todo!("ScopeChurn::new({n})")
+        ScopeChurn {
+            rt: Runtime::new(),
+            n,
+            effect_runs: Rc::default(),
+            cleanups: Rc::default(),
+        }
     }
 
     /// Mounts `n` child scopes under a parent, then disposes the parent.
     pub fn step(&mut self) {
-        todo!()
+        let (n, runs, cleanups) = (self.n, &self.effect_runs, &self.cleanups);
+        self.rt.enter(|| {
+            let parent = Scope::new();
+            parent.run(|| {
+                for i in 0..n {
+                    Scope::new().run(|| {
+                        let s = signal(i);
+                        let m = memo(move || s.get() * 2);
+                        let runs = runs.clone();
+                        effect(move || {
+                            m.get();
+                            bump(&runs);
+                        });
+                        let cleanups = cleanups.clone();
+                        on_cleanup(move || bump(&cleanups));
+                    });
+                }
+            });
+            parent.dispose();
+        });
     }
 
     /// Total effect runs so far.
