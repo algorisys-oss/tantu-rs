@@ -141,7 +141,8 @@ Renderer conversions
   `((c + 0.055) / 1.055)^2.4`. Alpha is only clamped. 0 and 1 map to exactly 0 and 1.
 - **CORE-COLOR-14:** `from_linear` clamps each component to 0..=1 (NaN becomes 0), then applies the
   sRGB encoding function to r, g and b: `12.92·c` if `c ≤ 0.0031308`, else
-  `1.055·c^(1/2.4) − 0.055`. Alpha is only clamped. `Color::from_linear(c.to_linear())` equals
+  `1.055·c^(1/2.4) − 0.055`. Alpha is only clamped. 0 and 1 map to exactly 0 and 1, so black and
+  white survive the round trip unchanged. `Color::from_linear(c.to_linear())` equals
   `c.clamp()` within 1e-5 per component, and for every 8-bit color the round trip gives back the
   same `to_rgba8` bytes.
 
@@ -165,3 +166,6 @@ Resolved (2026-09-30, the proposals were accepted):
 3. **Linear conversion here or in the renderers?** Here. Every GPU backend needs the same function,
    and golden tests should agree across backends. It returns `[f32; 4]` rather than a separate
    `LinearColor` type, to keep "a `Color` is always sRGB" simple.
+4. **Exact endpoints for `from_linear` (CORE-COLOR-14).** Found while implementing: evaluated in
+   `f32`, the encoding function maps 1.0 to 0.99999994, so white would not survive the linear
+   round trip exactly. Rule 14 now promises exact 0 and 1, like rule 13 does for `to_linear`.
