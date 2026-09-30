@@ -18,6 +18,10 @@ Everything in `tantu-reactive` and the benchmarks was decided in autopilot (the 
 Phase 0 to be finished without stopping for review). Review decisions 20 and 21, and ADR 0007,
 before Phase 2 builds on them.
 
+Paused here at the end of Phase 0 (2026-09-30). CI is green on `main`. The working branch
+`phase0/reactive` has been fast-forward merged and can be deleted; start Phase 1 on a new branch
+off `main` (e.g. `phase1/scene`). The first Phase 1 step is a spec, which stops for review.
+
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 ## Current state
@@ -200,7 +204,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `b68482b` | test: deep-chain test at 500 levels |
 | `13565b5` | test: reordered/repeated dependency reads and subscriber-list growth (pass on the old tracking) |
 | `1c2f2f7` | impl: dependency tracking without re-subscribing on every re-run (fixes quadratic fan-out/fan-in) |
-| _this commit_ | impl: benchmark scenarios + criterion harness, baselines in the spec; Phase 0 ticked in PLAN.md |
+| `c1e019a` | impl: benchmark scenarios + criterion harness, baselines in the spec; Phase 0 ticked in PLAN.md |
+| _this commit_ | docs: HANDOFF.md refreshed for the next session |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
