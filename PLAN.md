@@ -57,7 +57,7 @@ faster or more portable without changing how apps are written.
 ## Phases
 
 ### Phase 0 — Foundations (weeks 1–2)
-- [ ] Cargo workspace, `rust-toolchain.toml`, CI (fmt, clippy, test on Linux/Windows/macOS)
+- [x] Cargo workspace, `rust-toolchain.toml`, CI (fmt, clippy, test on Linux/Windows/macOS)
 - [ ] `docs/adr/` with ADRs 0001–0006
 - [ ] `docs/specs/` with a spec template (purpose, API, numbered rules, perf, open questions)
 - [ ] `tantu-core`: `Point/Size/Rect/Insets/Affine`, `Color`, `Id`, generational arena
