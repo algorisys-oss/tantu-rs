@@ -2,8 +2,8 @@
 //!
 //! Geometry, color, ids, arena and errors shared by every Tantu crate.
 //!
-//! So far this crate has the [`geometry`] types and [`Color`], re-exported at the crate root. Ids
-//! and the arena follow (see `PLAN.md`, Phase 0).
+//! It has the [`geometry`] types, [`Color`], and [`Id`] with the generational [`Arena`], all
+//! re-exported at the crate root. No dependencies and no `unsafe`.
 //!
 //! ```
 //! use tantu_core::{Color, EdgeInsets, Point, Rect, Size, Vec2};
@@ -17,8 +17,12 @@
 //! assert!(background.is_opaque());
 //! ```
 
+#![forbid(unsafe_code)]
+
+pub mod arena;
 pub mod color;
 pub mod geometry;
 
+pub use arena::{Arena, Id};
 pub use color::Color;
 pub use geometry::{Affine, EdgeInsets, Point, Rect, Size, Vec2};
