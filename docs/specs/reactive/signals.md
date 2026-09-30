@@ -258,8 +258,9 @@ Misuse
 - A write visits only the nodes downstream of the written signal. Unrelated nodes are not
   touched.
 - Each affected memo and effect runs at most once per write or batch (REACTIVE-SIG-15, -17).
-- Reads are O(1) plus a subscription check that is linear in the reader's dependency count
-  (small in practice).
+- Reads are O(1). A re-run that reads the same sources as last time, in the same order, doesn't
+  touch any subscriber list; only sources that were added or dropped cost extra. So one signal
+  read by n effects, or one memo reading n signals, updates in O(n), not O(n²).
 - Timings are measured by the reactive micro-benchmarks (spec `benchmarks.md`), not asserted here.
 
 ## Design notes

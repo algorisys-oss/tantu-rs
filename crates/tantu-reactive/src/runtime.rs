@@ -55,6 +55,7 @@ impl Runtime {
                     flushing: false,
                     queue: VecDeque::new(),
                     mark_stack: Vec::new(),
+                    stamp: 0,
                 }),
             }),
         }
@@ -156,12 +157,30 @@ pub(crate) struct Node {
     compute: Option<Compute>,
     sources: Vec<Id>,
     subscribers: Vec<Id>,
+    /// While running: how many of `sources` the run has read again, in the same order.
+    cursor: usize,
+    /// While running: sources read after the first read that differed from `sources`.
+    new_sources: Vec<Id>,
+    /// Stamp of the current run, while running.
+    run: u64,
+    /// Scratch stamp: the last run that tracked this node, or a reconcile mark.
+    mark: u64,
     owner: Option<Id>,
     owned: Vec<Id>,
     cleanups: Vec<Box<dyn FnOnce()>>,
 }
 
 impl Node {
+    /// Whether this node, while running, has already read `source` in the current run. Until
+    /// then an older subscription to `source` must not mark it: the run will read the new value.
+    fn has_read(&self, source: Id) -> bool {
+        if self.new_sources.is_empty() && self.sources.get(self.cursor) == Some(&source) {
+            return false; // The next read expected; sources hold no duplicates.
+        }
+        let read = &self.sources[..self.cursor.min(self.sources.len())];
+        read.contains(&source) || self.new_sources.contains(&source)
+    }
+
     fn new(kind: Kind, state: State, owner: Option<Id>) -> Node {
         Node {
             kind,
@@ -171,6 +190,10 @@ impl Node {
             compute: None,
             sources: Vec::new(),
             subscribers: Vec::new(),
+            cursor: 0,
+            new_sources: Vec::new(),
+            run: 0,
+            mark: 0,
             owner,
             owned: Vec::new(),
             cleanups: Vec::new(),
@@ -192,8 +215,10 @@ struct Graph {
     flushing: bool,
     /// Effects to bring up to date.
     queue: VecDeque<Id>,
-    /// Reused by `mark`.
-    mark_stack: Vec<(Id, State)>,
+    /// Reused by `mark_subscribers`: (node, state to raise it to, the source that marks it).
+    mark_stack: Vec<(Id, State, Id)>,
+    /// Last stamp handed out by `next_stamp`.
+    stamp: u64,
 }
 
 impl Graph {
@@ -202,38 +227,132 @@ impl Graph {
     fn mark_subscribers(&mut self, id: Id, state: State) {
         let mut stack = mem::take(&mut self.mark_stack);
         if let Some(node) = self.nodes.get(id) {
-            stack.extend(node.subscribers.iter().map(|&s| (s, state)));
+            stack.extend(node.subscribers.iter().map(|&s| (s, state, id)));
         }
-        while let Some((id, state)) = stack.pop() {
+        while let Some((id, state, from)) = stack.pop() {
             let Some(node) = self.nodes.get_mut(id) else {
                 continue;
             };
-            if node.state >= state {
+            if node.state >= state || (node.running && !node.has_read(from)) {
                 continue;
             }
             if node.state == State::Clean && node.kind == Kind::Effect {
                 self.queue.push_back(id);
             }
             node.state = state;
-            stack.extend(node.subscribers.iter().map(|&s| (s, State::Check)));
+            stack.extend(node.subscribers.iter().map(|&s| (s, State::Check, id)));
         }
         self.mark_stack = stack;
     }
 
+    /// A stamp no node carries yet.
+    fn next_stamp(&mut self) -> u64 {
+        self.stamp += 1;
+        self.stamp
+    }
+
     /// Makes the running computation (if any) depend on `id`.
+    ///
+    /// Reads that repeat the previous run's sources in order only advance a cursor. Other reads
+    /// subscribe at once (so writes later in the run are seen) and are reconciled with the old
+    /// sources by [`Graph::end_tracking`]. Re-runs that read the same sources therefore don't
+    /// touch any subscriber list.
     fn track(&mut self, id: Id) {
         let Some(observer) = self.observer else {
             return;
         };
+        let Some(run) = self.nodes.get(observer).map(|n| n.run) else {
+            return;
+        };
+        let Some(source) = self.nodes.get_mut(id) else {
+            return;
+        };
+        if source.mark == run {
+            return; // Already read in this run.
+        }
+        source.mark = run;
         let Some(node) = self.nodes.get_mut(observer) else {
             return;
         };
-        if node.sources.contains(&id) {
+        if node.new_sources.is_empty() && node.sources.get(node.cursor) == Some(&id) {
+            node.cursor += 1;
             return;
         }
-        node.sources.push(id);
+        node.new_sources.push(id);
         if let Some(source) = self.nodes.get_mut(id) {
             source.subscribers.push(observer);
+        }
+    }
+
+    /// Prepares `id` to record the sources of a new run.
+    fn begin_tracking(&mut self, id: Id) {
+        let run = self.next_stamp();
+        if let Some(node) = self.nodes.get_mut(id) {
+            node.cursor = 0;
+            node.new_sources.clear();
+            node.run = run;
+        }
+    }
+
+    /// Makes the sources read by the run of `id` its sources: drops the extra subscription of
+    /// reads that turned out to be duplicates or old sources, and unsubscribes from old sources
+    /// it no longer read.
+    fn end_tracking(&mut self, id: Id) {
+        let Some(node) = self.nodes.get_mut(id) else {
+            return;
+        };
+        let cursor = node.cursor.min(node.sources.len());
+        if node.new_sources.is_empty() && cursor == node.sources.len() {
+            return; // Same sources as last time.
+        }
+        let mut sources = mem::take(&mut node.sources);
+        let mut new = mem::take(&mut node.new_sources);
+        let stale = if cursor < sources.len() {
+            sources.split_off(cursor)
+        } else {
+            Vec::new()
+        };
+
+        let (old, keep) = (self.next_stamp(), self.next_stamp());
+        for (list, mark) in [(&stale, old), (&sources, keep)] {
+            for &s in list {
+                if let Some(s) = self.nodes.get_mut(s) {
+                    s.mark = mark;
+                }
+            }
+        }
+        let nodes = &mut self.nodes;
+        new.retain(|&s| {
+            let Some(source) = nodes.get_mut(s) else {
+                return false;
+            };
+            if source.mark == keep || source.mark == old {
+                // Already subscribed before this read subscribed again.
+                if let Some(i) = source.subscribers.iter().rposition(|&x| x == id) {
+                    source.subscribers.remove(i);
+                }
+            }
+            let first = source.mark != keep;
+            source.mark = keep;
+            first
+        });
+        for &s in &stale {
+            if let Some(source) = self.nodes.get_mut(s) {
+                if source.mark != keep {
+                    source.subscribers.retain(|&x| x != id);
+                }
+            }
+        }
+        if sources.is_empty() {
+            // Typically the first run: the new reads become the sources without copying.
+            mem::swap(&mut sources, &mut new);
+        } else {
+            sources.append(&mut new);
+        }
+        if let Some(node) = self.nodes.get_mut(id) {
+            node.sources = sources;
+            node.new_sources = new;
+            node.cursor = 0;
         }
     }
 
@@ -263,7 +382,12 @@ impl Graph {
         }
         for &sub in &node.subscribers {
             if let Some(s) = self.nodes.get_mut(sub) {
-                s.sources.retain(|&x| x != id);
+                if let Some(i) = s.sources.iter().position(|&x| x == id) {
+                    s.sources.remove(i);
+                    if i < s.cursor {
+                        s.cursor -= 1;
+                    }
+                }
             }
         }
         Some(node)
@@ -410,16 +534,7 @@ impl Inner {
             // Clean before the run, so writes during the run can mark it dirty again.
             node.state = State::Clean;
             node.running = true;
-            let mut sources = mem::take(&mut node.sources);
-            for &source in &sources {
-                if let Some(s) = graph.nodes.get_mut(source) {
-                    s.subscribers.retain(|&x| x != id);
-                }
-            }
-            sources.clear();
-            if let Some(node) = graph.nodes.get_mut(id) {
-                node.sources = sources;
-            }
+            graph.begin_tracking(id);
             let observer = graph.observer.replace(id);
             let owner = mem::replace(&mut graph.owner, id);
             (compute, observer, owner)
@@ -435,6 +550,7 @@ impl Inner {
         impl Drop for Restore<'_> {
             fn drop(&mut self) {
                 let mut graph = self.inner.graph.borrow_mut();
+                graph.end_tracking(self.id);
                 graph.observer = self.observer;
                 graph.owner = self.owner;
                 if let Some(node) = graph.nodes.get_mut(self.id) {
