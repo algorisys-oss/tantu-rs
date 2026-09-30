@@ -7,9 +7,8 @@ _Last updated: 2026-09-30_
 
 ## Resume here (session of 2026-09-30)
 
-Phase 0 has started. The Cargo workspace skeleton and CI are merged into `main`, and the first CI
-run passed on Linux, Windows and macOS (fmt, clippy, rustdoc, tests). The next item is the spec
-template and ADRs 0001–0006.
+Phase 0 is under way. On `main`: the Cargo workspace skeleton, CI (green on Linux, Windows and
+macOS), the spec template and ADRs 0001–0006. The next item is the first real feature, `tantu-core` geometry, starting with its spec.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -34,6 +33,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     `[workspace.dependencies]`, shared lints in `[workspace.lints]`)
   - `rust-toolchain.toml`: pins Rust 1.85, which is also the MSRV; `clippy.toml`
   - `crates/`: one directory per crate; `crates/tantu` is the facade
+  - `docs/adr/`: ADRs 0001–0006 plus `README.md` (index, template, how to supersede)
+  - `docs/specs/`: `TEMPLATE.md` and `README.md` (location, rule-id and test-name conventions)
   - `.github/workflows/ci.yml`: fmt, clippy + rustdoc (`-D warnings`), test on Linux/Windows/macOS
 
 ## Decisions made so far
@@ -77,7 +78,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     (default) and `soft`. `Cargo.lock` is committed.
 14. **No PRs for now.** Rajesh is the only developer: do feature work on a branch, then
     fast-forward merge into `main` and push. CI runs on the push to `main`.
-15. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+15. **ADRs and specs conventions.** ADRs 0001–0006 are Accepted and record decisions 1–6 above
+    (retained + signals, Flutter layout, Scene contract, Platform trait, text stack, wgpu). Accepted
+    ADRs are not rewritten; a new ADR supersedes them. Specs live in `docs/specs/<crate>/<feature>.md`
+    (crate name without `tantu-`), with rule ids like `LAYOUT-FLEX-03` that are never renumbered,
+    and statuses Draft → Agreed → Implemented.
+16. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
 
@@ -94,16 +100,17 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `9703361` | Removed references to the old repo from HANDOFF.md |
 | `f3b4adb` | Phase 0: Cargo workspace skeleton (16 crates), `rust-toolchain.toml` (1.85), shared lints, CI workflow |
 | `6d7c732` | Merged the workspace skeleton into `main`; no-PR workflow noted |
-| _this commit_ | CI green on Linux/Windows/macOS; ticked the workspace/CI item in PLAN.md |
+| `6084f23` | CI green on Linux/Windows/macOS; ticked the workspace/CI item in PLAN.md |
+| _this commit_ | Spec template and README (`docs/specs/`), ADRs 0001–0006 (`docs/adr/`), ADR links in `docs/architecture.md` |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 0 in PLAN.md)
 
-1. `docs/specs/TEMPLATE.md` and `docs/adr/` with ADRs 0001–0006.
-2. First spec → tests → code: `tantu-core` geometry (`Point`, `Size`, `Rect`, `Insets`, `Affine`, `Color`).
-3. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
+1. First spec → tests → code: `tantu-core` geometry (`Point`, `Size`, `Rect`, `Insets`, `Affine`, `Color`).
+   Write `docs/specs/core/geometry.md` from the template and stop for review before tests.
+2. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
 
 ## Open questions
 

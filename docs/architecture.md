@@ -137,15 +137,15 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 
 | Decision | Where recorded |
 |---|---|
-| Retained tree + fine-grained signals | ADR-0001 (planned) |
-| Flutter structure and layout protocol | ADR-0002 (planned) |
-| Scene as the renderer contract | ADR-0003 (planned) |
-| Platform trait, winit by default | ADR-0004 (planned) |
-| Text stack: parley + swash + fontique | ADR-0005 (planned) |
-| wgpu as default GPU backend | ADR-0006 (planned) |
+| Retained tree + fine-grained signals | [ADR-0001](adr/0001-retained-tree-and-fine-grained-reactivity.md) |
+| Flutter structure and layout protocol | [ADR-0002](adr/0002-flutter-structure-and-layout-protocol.md) |
+| Scene as the renderer contract | [ADR-0003](adr/0003-scene-as-the-renderer-contract.md) |
+| Platform trait, winit by default | [ADR-0004](adr/0004-platform-trait-with-winit-by-default.md) |
+| Text stack: parley + swash + fontique | [ADR-0005](adr/0005-text-stack-parley-swash-fontique.md) |
+| wgpu as default GPU backend | [ADR-0006](adr/0006-wgpu-as-the-default-gpu-backend.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
-Link each row to its ADR file once the ADRs are written.
+The full list, with statuses, is in [`adr/README.md`](adr/README.md).
 
 ## Keeping this document current
 
