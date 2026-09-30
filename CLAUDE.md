@@ -15,13 +15,15 @@
 - Before editing a crate, read its `lib.rs` module docs and the relevant section of `AGENTS.md`.
 - After changes, run `cargo fmt --all`, `cargo clippy -p <crate> --all-targets -- -D warnings`
   and `cargo test -p <crate>`. Report failures verbatim; don't paper over them.
-- GPU tests may not run in this environment. Prefer `dkui-render-soft` / `dkui-render-headless`
+- GPU tests may not run in this environment. Prefer `tantu-render-soft` / `tantu-render-headless`
   for verification, and say so when a change was not checked on a real GPU.
 - When a task changes a public API, update the doc comments, the affected examples, and
   `examples/gallery` in the same change.
 - When adding a dependency, check it against the dependency rule in `AGENTS.md`, prefer crates
   already used in the Rust GUI ecosystem (winit, wgpu, parley, swash, tiny-skia, accesskit, taffy),
   and note why in the commit message.
+- When a design decision changes the architecture, update `docs/architecture.md` and the diagram
+  (`docs/architecture/tantu-architecture.svg` → regenerate the PNG) in the same change.
 - Record significant design decisions as ADRs in `docs/adr/`. If a decision in `AGENTS.md` needs
   to change, propose it first rather than making the change unilaterally.
 - Do not commit or push unless asked. Branch off `main` for feature work.

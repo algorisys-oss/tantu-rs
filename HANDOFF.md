@@ -3,18 +3,32 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-09-29_
+_Last updated: 2026-09-30_
+
+## Resume here (session of 2026-09-30)
+
+The project was renamed from **dkui** to **Tantu**. Every doc says Tantu and every crate name uses
+the `tantu-` prefix. The folder is now `~/lab/rust/tantu-rs`, and the code lives in a new **public**
+GitHub repo, `algorisys-oss/tantu-rs`. The old private repo `algorisys-oss/dkui-rs` still exists
+with the history up to `594513f`. Archive or delete it when convenient.
+
+When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 ## Current state
 
+- **Name:** **Tantu** (pronounced "tan-too", Sanskrit for "thread"). Tagline: *Compose once. Render
+  your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
+  `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** pre-Phase 0. There are only docs so far, no Rust code or Cargo workspace yet.
-- **Repo:** https://github.com/algorisys-oss/dkui-rs (private; will go public at the 0.1 release,
-  once there's a working copy). Branch: `main`.
+- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`. The old private
+  repo `algorisys-oss/dkui-rs` is superseded.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
   - `CLAUDE.md`: Claude Code notes (imports AGENTS.md and PLAN.md)
   - `PLAN.md`: roadmap, comparisons with Knots and Clay, ADR list, phases
   - `README.md`: public-facing overview
+  - `docs/architecture.md`: architecture write-up; diagram in `docs/architecture/`
+    (`tantu-architecture.svg` is the source, `.png` is rendered from it, `rough-sketch.png` is the original sketch)
   - `LICENSE-MIT`, `LICENSE-APACHE`: dual license
 
 ## Decisions made so far
@@ -39,7 +53,14 @@ _Last updated: 2026-09-29_
 7. **Workflow:** Plan → Spec (`docs/specs/`) → failing unit tests → implementation.
 8. **License:** MIT OR Apache-2.0. Copyright: "Rajesh Pillai - Algorisys Technologies"
    (use the same in `[workspace.package] authors`).
-9. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+9. **Architecture doc is kept current.** `docs/architecture.md` and its diagram must be updated in
+   the same change as any design decision that affects them (rule in AGENTS.md).
+10. **Name: Tantu** (was dkui). Chosen over YappyUI, Vayra and keeping dkui: short, has a story
+    (the thread metaphor stands for composition, not multithreading), and doesn't tie the brand to
+    Rust or a backend. Room for an ecosystem: Tantu Inspector, Studio, Themes, Gallery. Attribution
+    "by Algorisys". Crate prefix `tantu-`; golden-update env var `TANTU_UPDATE_GOLDENS`.
+11. **Public from the start** (2026-09-30), not at 0.1 as first planned. Repo: `algorisys-oss/tantu-rs`.
+12. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
 
@@ -51,9 +72,10 @@ _Last updated: 2026-09-29_
 | `584bb1d` | Adopted Clay ideas (incl. sizing vocabulary) |
 | `c02ae26` | Reverted to Flutter structure as the layout API; Clay for internals only |
 | `34c12e3` | Added HANDOFF.md and the rule to keep it updated |
-| _this commit_ | Set copyright holder to Rajesh Pillai - Algorisys Technologies |
+| `594513f` | Set copyright holder to Rajesh Pillai - Algorisys Technologies |
+| _this commit_ | Architecture doc + diagram (`docs/architecture.md`, `docs/architecture/`), rule to keep them current (AGENTS.md, CLAUDE.md); renamed project dkui → Tantu across all docs, README tagline; moved to new public repo `algorisys-oss/tantu-rs` |
 
-A commit can't contain its own hash, so the newest row says _this commit_. The next update replaces
+A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 0 in PLAN.md)
@@ -62,10 +84,12 @@ that with the real hash from `git log`.
    `license = "MIT OR Apache-2.0"`, `authors`), `rust-toolchain.toml`, empty crates per the AGENTS.md table.
 2. CI (GitHub Actions): fmt, clippy `-D warnings`, test on Linux/Windows/macOS.
 3. `docs/specs/TEMPLATE.md` and `docs/adr/` with ADRs 0001–0006.
-4. First spec → tests → code: `dkui-core` geometry (`Point`, `Size`, `Rect`, `Insets`, `Affine`, `Color`).
-5. Then `dkui-reactive` spec (signals, memos, effects, batching, disposal).
+4. First spec → tests → code: `tantu-core` geometry (`Point`, `Size`, `Rect`, `Insets`, `Affine`, `Color`).
+5. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
 
 ## Open questions
 
 - MSRV to pin (the local toolchain is rustc 1.95.0).
-- Is the `dkui` name available on crates.io? Check before the first publish.
+- Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the
+  first publish. Same for a domain / GitHub org name if wanted.
+- Archive or delete the old `algorisys-oss/dkui-rs` repo?

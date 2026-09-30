@@ -1,11 +1,11 @@
-# AGENTS.md — dkui-rs
+# AGENTS.md — tantu-rs
 
 Guidance for any coding agent (Claude Code, Codex, Cursor, etc.) working in this repository.
 Tool-specific notes live in `CLAUDE.md`; the roadmap lives in `PLAN.md`.
 
 ## What this project is
 
-**dkui** is a cross-platform desktop UI framework in Rust for building both large enterprise
+**Tantu** (`tantu`) is a cross-platform desktop UI framework in Rust for building both large enterprise
 applications (data grids, docking layouts, forms, thousands of widgets, accessibility, i18n) and
 general-purpose apps. It is inspired by [Knots](https://github.com/knots-ui/knots) (Zig) and Flutter.
 
@@ -18,6 +18,8 @@ Two non-negotiable design goals:
    Flutter's layout protocol (constraints go down, sizes go up, parent positions children).
 
 ## Architecture (the pipeline)
+
+Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 
 ```
  App code (widgets, signals)
@@ -56,32 +58,32 @@ Two non-negotiable design goals:
 
 | Crate | Responsibility | May depend on |
 |---|---|---|
-| `dkui-core` | geometry, color, ids, arena, errors | — |
-| `dkui-reactive` | signals, memos, effects, scheduler | core |
-| `dkui-scene` | `Scene` display list, `Renderer` trait, resource handles | core |
-| `dkui-text` | font loading, shaping, bidi, line breaking (parley/swash) | core, scene |
-| `dkui-layout` | `BoxConstraints` protocol, Flex/Stack/Wrap/Grid/Overlay algorithms, `TextMeasure` trait | core |
-| `dkui-view` | View/Element/RenderObject traits, reconciler, event dispatch, focus | core, reactive, scene, text, layout |
-| `dkui-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …) | view |
-| `dkui-theme` | design tokens, Material-ish + Fluent-ish default themes | view |
-| `dkui-a11y` | AccessKit tree generation | view |
-| `dkui-platform` | `Platform` trait: windows, input, clipboard, IME, dialogs, menus | core |
-| `dkui-platform-winit` | winit implementation | platform |
-| `dkui-render-wgpu` | GPU renderer (Vulkan/Metal/DX12/GL) | scene, text |
-| `dkui-render-soft` | CPU renderer via tiny-skia (fallback, CI, remote desktop) | scene, text |
-| `dkui-render-headless` | records Scenes, used by tests | scene |
-| `dkui-test` | widget tester, golden images, event simulation | view, render-soft, render-headless |
-| `dkui` | facade crate, `App` runner, prelude | everything above |
-| `examples/` | gallery, todo, enterprise dashboard, data grid stress test | dkui |
+| `tantu-core` | geometry, color, ids, arena, errors | — |
+| `tantu-reactive` | signals, memos, effects, scheduler | core |
+| `tantu-scene` | `Scene` display list, `Renderer` trait, resource handles | core |
+| `tantu-text` | font loading, shaping, bidi, line breaking (parley/swash) | core, scene |
+| `tantu-layout` | `BoxConstraints` protocol, Flex/Stack/Wrap/Grid/Overlay algorithms, `TextMeasure` trait | core |
+| `tantu-view` | View/Element/RenderObject traits, reconciler, event dispatch, focus | core, reactive, scene, text, layout |
+| `tantu-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …) | view |
+| `tantu-theme` | design tokens, Material-ish + Fluent-ish default themes | view |
+| `tantu-a11y` | AccessKit tree generation | view |
+| `tantu-platform` | `Platform` trait: windows, input, clipboard, IME, dialogs, menus | core |
+| `tantu-platform-winit` | winit implementation | platform |
+| `tantu-render-wgpu` | GPU renderer (Vulkan/Metal/DX12/GL) | scene, text |
+| `tantu-render-soft` | CPU renderer via tiny-skia (fallback, CI, remote desktop) | scene, text |
+| `tantu-render-headless` | records Scenes, used by tests | scene |
+| `tantu-test` | widget tester, golden images, event simulation | view, render-soft, render-headless |
+| `tantu` | facade crate, `App` runner, prelude | everything above |
+| `examples/` | gallery, todo, enterprise dashboard, data grid stress test | tantu |
 
-**Dependency rule (enforced in review):** nothing below `dkui-view` may know about widgets; nothing
-except `dkui-render-*` may depend on `wgpu`/`tiny-skia`; nothing except `dkui-platform-*` may depend
+**Dependency rule (enforced in review):** nothing below `tantu-view` may know about widgets; nothing
+except `tantu-render-*` may depend on `wgpu`/`tiny-skia`; nothing except `tantu-platform-*` may depend
 on `winit`. If you need to break this rule, stop and discuss.
 
 ## Authoring style we are aiming for
 
 ```rust
-use dkui::prelude::*;
+use tantu::prelude::*;
 
 fn counter() -> impl View {
     let count = signal(0);
@@ -95,7 +97,7 @@ fn counter() -> impl View {
     )
 }
 
-fn main() -> dkui::Result<()> {
+fn main() -> tantu::Result<()> {
     App::new().window(Window::new("Counter").size(400.0, 300.0), counter).run()
 }
 ```
@@ -104,7 +106,7 @@ fn main() -> dkui::Result<()> {
 - Reactive props accept either a value or a closure (`impl IntoProp<T>`).
 - Follow Flutter's names and semantics for layout widgets and their properties
   (`main_axis_alignment`, `cross_axis_alignment`, `main_axis_size`, `flex`, …), converted to
-  snake_case. Someone who knows Flutter should be able to read dkui code straight away.
+  snake_case. Someone who knows Flutter should be able to read Tantu code straight away.
 - Overlays (tooltips, menus, popovers, dialogs) go through `Overlay` + anchored positioning.
 - No macros are required to build UI. A `view!{}` DSL may come later as sugar, never as the only way.
 
@@ -112,9 +114,9 @@ fn main() -> dkui::Result<()> {
 
 - Rust edition 2024, stable toolchain, MSRV pinned in `rust-toolchain.toml`.
 - License: `MIT OR Apache-2.0`. Every crate sets `license = "MIT OR Apache-2.0"` (inherit via `[workspace.package]`).
-- `#![forbid(unsafe_code)]` in every crate except `dkui-render-*`, `dkui-platform-*`, and `dkui-core`
+- `#![forbid(unsafe_code)]` in every crate except `tantu-render-*`, `tantu-platform-*`, and `tantu-core`
   arena internals. Every `unsafe` block needs a `// SAFETY:` comment.
-- No `unwrap()`/`expect()` in library code paths reachable by users; return `dkui::Error` or handle.
+- No `unwrap()`/`expect()` in library code paths reachable by users; return `tantu::Error` or handle.
   `expect` is allowed for true invariants with a message explaining the invariant.
 - Public API: every public item has a doc comment; crate roots have an overview with an example.
 - Avoid allocation in the per-frame hot path (layout, paint, hit-test). Reuse buffers; use arenas
@@ -128,11 +130,11 @@ fn main() -> dkui::Result<()> {
 ```bash
 cargo build --workspace
 cargo test --workspace                     # unit + widget tests (headless, no GPU needed)
-cargo test -p dkui-test -- --ignored       # golden image tests (software renderer)
+cargo test -p tantu-test -- --ignored       # golden image tests (software renderer)
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all
 cargo run -p gallery                       # widget gallery example
-cargo bench -p dkui-layout                 # layout / reactive benchmarks
+cargo bench -p tantu-layout                 # layout / reactive benchmarks
 ```
 
 Before declaring a task done: `fmt`, `clippy -D warnings`, and `test` must pass for the crates you touched.
@@ -140,8 +142,8 @@ Before declaring a task done: `fmt`, `clippy -D warnings`, and `test` must pass 
 ## Testing expectations
 
 - Layout algorithms: pure unit tests on constraint → size/position results.
-- Widgets: `dkui-test::WidgetTester` (pump frames, simulate pointer/keyboard, query by key/semantics).
-- Rendering: golden PNGs via `dkui-render-soft`; update with `DKUI_UPDATE_GOLDENS=1`.
+- Widgets: `tantu-test::WidgetTester` (pump frames, simulate pointer/keyboard, query by key/semantics).
+- Rendering: golden PNGs via `tantu-render-soft`; update with `TANTU_UPDATE_GOLDENS=1`.
 - Reactive system: tests for glitch-freedom, disposal, and no leaks (count live nodes).
 - New widgets require: at least one behavior test, one golden, and a gallery entry.
 
@@ -193,3 +195,13 @@ test that reproduces the bug, then fix it.
   - open questions
 
   Read it first when starting a session.
+- **Keep the architecture doc current.** `docs/architecture.md` and its diagram
+  (`docs/architecture/tantu-architecture.svg`, plus the regenerated `.png`) describe the design.
+  Update them in the same change as any design decision that affects the architecture:
+  - a new, removed or renamed crate
+  - a changed dependency edge
+  - a change to the pipeline stages
+  - a new backend or platform shell
+  - a new or superseded ADR
+
+  A change that leaves them stale is not done.

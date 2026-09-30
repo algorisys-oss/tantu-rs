@@ -1,6 +1,14 @@
-# dkui
+# Tantu
 
-A cross-platform desktop UI framework for Rust, with a Flutter-style API and a renderer-agnostic core.
+**Compose once. Render your way.**
+
+Tantu is a cross-platform UI framework for Rust, designed around declarative widgets, fine-grained
+reactivity, and independent rendering backends. Its API is Flutter-style and its core is
+renderer-agnostic.
+
+*Tantu* (pronounced "tan-too") is Sanskrit for "thread": small pieces (widgets, state, layout,
+rendering) woven into something larger. The name is about composition, not multithreading.
+By Algorisys Technologies.
 
 > **Status: pre-alpha, design phase.** There is no usable code yet. The API shown below is the
 > target, not something you can run today. See [PLAN.md](PLAN.md) for the roadmap.
@@ -23,7 +31,7 @@ A cross-platform desktop UI framework for Rust, with a Flutter-style API and a r
 ## A taste of the API (planned)
 
 ```rust
-use dkui::prelude::*;
+use tantu::prelude::*;
 
 fn counter() -> impl View {
     let count = signal(0);
@@ -37,7 +45,7 @@ fn counter() -> impl View {
     )
 }
 
-fn main() -> dkui::Result<()> {
+fn main() -> tantu::Result<()> {
     App::new().window(Window::new("Counter").size(400.0, 300.0), counter).run()
 }
 ```
@@ -58,7 +66,7 @@ The crate breakdown and dependency rules are in [AGENTS.md](AGENTS.md).
 ## Inspiration and prior art
 
 - [Knots](https://github.com/knots-ui/knots): its UI engine is decoupled from windowing and graphics
-  APIs through a plain render packet. dkui keeps that idea but uses a retained, reactive tree instead
+  APIs through a plain render packet. Tantu keeps that idea but uses a retained, reactive tree instead
   of immediate mode.
 - [Flutter](https://flutter.dev): widget composition and the constraint-based layout protocol.
 - [Clay](https://github.com/nicbarker/clay): renderer-agnostic render commands, text measure caching,

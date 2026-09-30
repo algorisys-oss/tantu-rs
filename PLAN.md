@@ -1,4 +1,4 @@
-# PLAN.md — dkui roadmap
+# PLAN.md — Tantu roadmap
 
 ## Vision
 
@@ -8,7 +8,7 @@ utility app that starts fast and is a single small binary.
 
 ## What we take from Knots, and what we change
 
-| Knots (Zig) | dkui (Rust) | Why |
+| Knots (Zig) | Tantu (Rust) | Why |
 |---|---|---|
 | UI engine decoupled from window + GPU; emits `render.Packet` | Keep: UI emits a data-only `Scene`; `Renderer` trait consumes it | Core idea: same UI logic, many targets |
 | Immediate mode (rebuild every frame) | Retained element tree + fine-grained signals | Stable identity for focus/IME/a11y/animation; incremental work for huge UIs |
@@ -26,9 +26,9 @@ Flutter's.** Flutter's widget composition and constraint protocol can express an
 is the API we commit to. From Clay we take only implementation techniques that make that structure
 faster or more portable without changing how apps are written.
 
-| Clay (C) | dkui (Rust) | Why |
+| Clay (C) | Tantu (Rust) | Why |
 |---|---|---|
-| Text measured through a callback, with a word-level measure cache | Text layout goes through a `TextMeasure` trait with a cache keyed by (font, size, word) | Keeps `dkui-layout` independent of `dkui-text`; big win for grids and lists |
+| Text measured through a callback, with a word-level measure cache | Text layout goes through a `TextMeasure` trait with a cache keyed by (font, size, word) | Keeps `tantu-layout` independent of `tantu-text`; big win for grids and lists |
 | Render commands carry element `id`, `z_index`, bounding box; `Scissor`, `OverlayColor`, `Custom` | `Scene` commands carry element id + z-index; add overlay-color and custom (user-drawn) commands | Stable ids let retained backends diff commands; custom commands are the escape hatch for charts / 3D viewports |
 | Floating elements: 9-point attach anchors, offset, z-index, pointer capture or passthrough | Used as the anchoring options of Flutter-style `Overlay` + anchored positioning (`CompositedTransformTarget`/`Follower` equivalent) | Tooltips, menus, drop-downs and popovers share one positioning model |
 | Visibility culling on by default | Cull off-screen render objects before emitting `Scene` | Cheap win for large scroll areas |
@@ -50,7 +50,7 @@ faster or more portable without changing how apps are written.
    clips, transforms, glyph runs, images, custom commands and a damage region. Every command
    carries its element id and z-index, and off-screen content is culled. (ADR-0003)
 4. **Platform trait.** Windowing, input, IME, clipboard, DnD, menus, dialogs, tray are all behind
-   `dkui-platform`; winit is the default implementation. (ADR-0004)
+   `tantu-platform`; winit is the default implementation. (ADR-0004)
 5. **Text stack = parley + swash + fontique.** (ADR-0005)
 6. **Default GPU backend = wgpu; evaluate vello** for path-heavy content once it is stable enough. (ADR-0006)
 
@@ -60,26 +60,26 @@ faster or more portable without changing how apps are written.
 - [ ] Cargo workspace, `rust-toolchain.toml`, CI (fmt, clippy, test on Linux/Windows/macOS)
 - [ ] `docs/adr/` with ADRs 0001–0006
 - [ ] `docs/specs/` with a spec template (purpose, API, numbered rules, perf, open questions)
-- [ ] `dkui-core`: `Point/Size/Rect/Insets/Affine`, `Color`, `Id`, generational arena
-- [ ] `dkui-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
+- [ ] `tantu-core`: `Point/Size/Rect/Insets/Affine`, `Color`, `Id`, generational arena
+- [ ] `tantu-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
 - [ ] Reactive micro-benchmarks
 
 ### Phase 1 — Pixels on screen (weeks 3–5)
-- [ ] `dkui-scene`: command set (with element id + z-index), layers, clip stack, overlay color, custom commands, `Renderer` trait, image/font resource handles
-- [ ] `dkui-render-headless` (recording) and `dkui-render-soft` (tiny-skia → PNG)
-- [ ] `dkui-platform` trait + `dkui-platform-winit`: window, resize, DPI, pointer, keyboard
-- [ ] `dkui-render-wgpu`: rects, rounded rects, borders, shadows, clips, images
+- [ ] `tantu-scene`: command set (with element id + z-index), layers, clip stack, overlay color, custom commands, `Renderer` trait, image/font resource handles
+- [ ] `tantu-render-headless` (recording) and `tantu-render-soft` (tiny-skia → PNG)
+- [ ] `tantu-platform` trait + `tantu-platform-winit`: window, resize, DPI, pointer, keyboard
+- [ ] `tantu-render-wgpu`: rects, rounded rects, borders, shadows, clips, images
 - [ ] **Milestone:** a hand-built Scene renders identically in wgpu and software (golden diff)
 
 ### Phase 2 — Layout, views and text (weeks 6–10)
-- [ ] `dkui-layout`: `BoxConstraints` protocol, `RenderBox`-style trait for custom layouts; `Padding`, `Align`/`Center`, `SizedBox`, `ConstrainedBox`, `FractionallySizedBox`, `AspectRatio`, Flex (`Row`/`Column` with `Expanded`/`Flexible`/`Spacer`, main/cross-axis alignment, `spacing`), `Stack`/`Positioned`, `Wrap`, `LayoutBuilder`
+- [ ] `tantu-layout`: `BoxConstraints` protocol, `RenderBox`-style trait for custom layouts; `Padding`, `Align`/`Center`, `SizedBox`, `ConstrainedBox`, `FractionallySizedBox`, `AspectRatio`, Flex (`Row`/`Column` with `Expanded`/`Flexible`/`Spacer`, main/cross-axis alignment, `spacing`), `Stack`/`Positioned`, `Wrap`, `LayoutBuilder`
 - [ ] `TextMeasure` trait + word-level measure cache; visibility culling (techniques from Clay)
 - [ ] Layout benchmark: 10k render objects, target < 1 ms full layout
-- [ ] `dkui-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries
-- [ ] `dkui-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
+- [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries
+- [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons
-- [ ] `dkui` facade + `App` runner; `counter` example matching the snippet in AGENTS.md
-- [ ] `dkui-test::WidgetTester` (pump, tap, type, find by key)
+- [ ] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md
+- [ ] `tantu-test::WidgetTester` (pump, tap, type, find by key)
 - [ ] **Milestone:** counter + layout demo run on Linux (Wayland + X11), Windows and macOS
 
 ### Phase 3 — Core widget set and interaction (weeks 11–16)
@@ -88,9 +88,9 @@ faster or more portable without changing how apps are written.
 - [ ] Widgets: Text, RichText, Button, IconButton, Checkbox, Radio, Switch, Slider, TextField (with IME, selection, undo), Image, Icon, Divider, Tooltip
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
 - [ ] Virtualized `ListView` (100k items at 60fps)
-- [ ] `dkui-theme`: design tokens, light/dark, density, live theme switching
+- [ ] `tantu-theme`: design tokens, light/dark, density, live theme switching
 - [ ] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
-- [ ] `dkui-a11y`: AccessKit tree for every standard widget
+- [ ] `tantu-a11y`: AccessKit tree for every standard widget
 - [ ] `examples/gallery`
 
 ### Phase 4 — Enterprise features (weeks 17–26)
@@ -111,7 +111,7 @@ faster or more portable without changing how apps are written.
 - [ ] Inspector / devtools (element tree, layout bounds, signals graph), drawn as ordinary Scene commands so it works on every renderer
 - [ ] Optional `view!{}` macro DSL as sugar
 - [ ] Packaging guide (MSI/MSIX, .app/.dmg + notarization, AppImage/Flatpak/deb)
-- [ ] Docs site + book, API stabilisation, 0.1 release, **make repo public**
+- [ ] Docs site + book, API stabilisation, 0.1 release
 
 ### Later / exploratory
 - Web target (wgpu on WebGPU + canvas platform shell), which the Scene/Platform split makes possible;
