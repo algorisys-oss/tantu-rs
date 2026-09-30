@@ -9,8 +9,7 @@ _Last updated: 2026-09-30_
 
 The project was renamed from **dkui** to **Tantu**. Every doc says Tantu and every crate name uses
 the `tantu-` prefix. The folder is now `~/lab/rust/tantu-rs`, and the code lives in a new **public**
-GitHub repo, `algorisys-oss/tantu-rs`. The old private repo `algorisys-oss/dkui-rs` still exists
-with the history up to `594513f`. Archive or delete it when convenient.
+GitHub repo, `algorisys-oss/tantu-rs`, with the full history.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -20,8 +19,7 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** pre-Phase 0. There are only docs so far, no Rust code or Cargo workspace yet.
-- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`. The old private
-  repo `algorisys-oss/dkui-rs` is superseded.
+- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
   - `CLAUDE.md`: Claude Code notes (imports AGENTS.md and PLAN.md)
@@ -73,7 +71,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `c02ae26` | Reverted to Flutter structure as the layout API; Clay for internals only |
 | `34c12e3` | Added HANDOFF.md and the rule to keep it updated |
 | `594513f` | Set copyright holder to Rajesh Pillai - Algorisys Technologies |
-| _this commit_ | Architecture doc + diagram (`docs/architecture.md`, `docs/architecture/`), rule to keep them current (AGENTS.md, CLAUDE.md); renamed project dkui → Tantu across all docs, README tagline; moved to new public repo `algorisys-oss/tantu-rs` |
+| `a2c71a4` | Architecture doc + diagram (`docs/architecture.md`, `docs/architecture/`), rule to keep them current (AGENTS.md, CLAUDE.md); renamed project dkui → Tantu across all docs, README tagline; moved to new public repo `algorisys-oss/tantu-rs` |
+| _this commit_ | Removed references to the old repo from HANDOFF.md |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -92,4 +91,3 @@ that with the real hash from `git log`.
 - MSRV to pin (the local toolchain is rustc 1.95.0).
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the
   first publish. Same for a domain / GitHub org name if wanted.
-- Archive or delete the old `algorisys-oss/dkui-rs` repo?
