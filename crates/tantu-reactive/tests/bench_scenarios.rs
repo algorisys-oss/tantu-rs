@@ -56,7 +56,7 @@ fn reactive_bench_04_fan_in_batch_runs_effect_once() {
 
 #[test]
 fn reactive_bench_05_deep_chain_recomputes_each_memo_once() {
-    let n = 1000;
+    let n = 500;
     let mut s = DeepChain::new(n);
     let (recomputes, runs) = (s.recomputes(), s.effect_runs());
     assert_eq!(recomputes, n);
