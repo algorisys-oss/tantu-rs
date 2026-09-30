@@ -75,8 +75,8 @@ Each rule describes one scenario and what its test checks after `new(n)` and som
 - **REACTIVE-BENCH-04:** `FanIn::step` writes all `n` signals inside one `batch`. The effect runs
   exactly once per step, and the memo equals the sum of the signals.
 - **REACTIVE-BENCH-05:** `DeepChain::step` writes the head of the chain. Every memo recomputes
-  exactly once per step, and the effect sees `head + n`. Chains of at least 1 000 memos work on
-  the default test thread stack (2 MiB).
+  exactly once per step, and the effect sees `head + n`. Chains of at least 500 memos work on the
+  default test thread stack (2 MiB) in a debug build.
 - **REACTIVE-BENCH-06:** `Diamond::step` writes the source once. Each of the `n` middle memos and
   the sum memo recompute exactly once per step, and the effect runs exactly once and never sees a
   mix of old and new values (glitch-freedom).
@@ -100,6 +100,8 @@ machine, find out why before merging.
 
 ## Open questions
 
-- Nested memos recurse, so very deep chains are limited by the thread stack. REACTIVE-BENCH-05
-  makes 1 000 levels the floor. An iterative update is deferred until a real widget tree needs
-  more.
+- Nested memos recurse, so very deep chains are limited by the thread stack. Measured on a 2 MiB
+  stack: about 1 200 levels in a debug build (~1.7 KB per level) and about 4 000 in release
+  (~450 B per level); the 8 MiB main thread allows four times that. REACTIVE-BENCH-05 makes 500
+  levels in debug the floor (it first said 1 000, which debug builds miss). Real memo chains are a
+  few dozen levels deep, so an iterative update is deferred until a real widget tree needs more.
