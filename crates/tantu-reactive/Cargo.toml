@@ -8,6 +8,8 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+autobenches = false
+
 [lints]
 workspace = true
 
