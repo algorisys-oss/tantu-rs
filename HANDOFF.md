@@ -11,7 +11,8 @@ Phase 0 is under way. On `main`: the Cargo workspace skeleton, CI (green on Linu
 macOS), the spec template, ADRs 0001–0006, the one-commit-per-step workflow rule and the
 spec-coverage check (`cargo xtask spec-coverage`, also a CI job), and `tantu-core`, now complete:
 geometry (`Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine`), `Color`, and `Id` with the
-generational `Arena<T>`. The next item is `tantu-reactive`, starting with its spec.
+generational `Arena<T>`, and `tantu-reactive` (signals, memos, effects, batch, scopes). The last
+Phase 0 item is the reactive micro-benchmarks.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -23,7 +24,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **Phase:** Phase 0 (Foundations). The workspace skeleton exists: 16 empty crates under `crates/`
   (the AGENTS.md table), with the internal dependency edges from that table already declared.
   `tantu-core` is complete: geometry, color and arena modules (specs in `docs/specs/core/`,
-  all Implemented). The other crates are still empty.
+  all Implemented). `tantu-reactive` is implemented (spec `docs/specs/reactive/signals.md`,
+  Implemented). The other crates are still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -124,7 +126,20 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
       `#![forbid(unsafe_code)]`, and the AGENTS.md exception for it was removed.
     - Freed slots are reused LIFO. A slot whose generation would overflow is retired, never
       reused. Stale and foreign ids return `None`, never panic; no `Index` impls.
-20. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+20. **Reactive shape** (2026-09-30, spec `docs/specs/reactive/signals.md`, decided in autopilot):
+    - An explicit `Runtime` per app/window, entered with `Runtime::enter`; a thread-local stack
+      records the current one, so view code writes `signal(0)` with no context argument.
+    - `Copy` handles (`Signal`, `Memo`, `Effect`, `Scope`): arena `Id` + runtime id, 16 bytes.
+      A handle never resolves in another runtime.
+    - Push-pull, glitch-free graph (clean/check/dirty, as in Reactively/Leptos). Memos are lazy
+      with `PartialEq` cut-off; `Signal::set` always notifies. Effects run synchronously when the
+      write or outermost `batch` ends; a frame scheduler is left to `tantu-view`.
+    - Ownership: nodes belong to the scope or computation that created them; re-runs dispose
+      the previous run's nodes; `on_cleanup` runs children first, then in registration order.
+    - **ADR 0007**: reads of disposed handles panic, `try_*` reads return `None`, writes are
+      ignored. It supersedes ADR 0001's "no panics in release builds", which `get() -> T` can't
+      meet. Review it; it was decided without you.
+21. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
 
@@ -158,17 +173,19 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `eade771` | impl: named, documented constants for the sRGB transfer function and 8-bit scale in `color.rs` (no behavior change) |
 | `2d8ebb2` | spec: tantu-core `Id` and generational arena (CORE-ARENA-01..17); `tantu-core` unsafe exception dropped from AGENTS.md |
 | `1b92306` | test: tantu-core arena, stubs + 20 tests + doctest (19 tests and the doctest failing on `todo!()`) |
-| _this commit_ | impl: tantu-core `Id` and `Arena`; spec Implemented, PLAN.md `tantu-core` ticked |
+| `ce0ee6e` | impl: tantu-core `Id` and `Arena`; spec Implemented, PLAN.md `tantu-core` ticked |
+| `03fff8e` | spec: tantu-reactive (REACTIVE-SIG-01..23); ADR 0007 on disposed handles |
+| `f58406a` | test: tantu-reactive, stubs + 43 tests (42 failing on `todo!()`) + doctest |
+| _this commit_ | impl: tantu-reactive runtime, signals, memos, effects, scopes; spec Implemented, PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 0 in PLAN.md)
 
-1. `docs/specs/reactive/...` for `tantu-reactive` (`Signal`, `Memo`, `Effect`, batching, scoped
-   disposal, glitch-freedom, live-node counting for leak tests), built on `tantu_core::Arena`.
-   Stop for review before tests. Split the PLAN.md item first if it is too big for one spec.
-2. Then the reactive micro-benchmarks.
+1. Reactive micro-benchmarks (`docs/specs/reactive/benchmarks.md`): fan-out, fan-in, deep
+   chain, diamonds, memo cut-off, scope churn.
+2. Then Phase 1, starting with the `tantu-scene` spec.
 
 ## Open questions
 

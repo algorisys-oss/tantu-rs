@@ -1,6 +1,6 @@
 # Signals, memos and effects
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-reactive`
 - **Plan item:** Phase 0, "`tantu-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal,
   and tests for glitch-freedom"

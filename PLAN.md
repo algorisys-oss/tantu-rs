@@ -65,7 +65,7 @@ faster or more portable without changing how apps are written.
   - [x] geometry: `Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine` (spec `docs/specs/core/geometry.md`)
   - [x] `Color` (spec `docs/specs/core/color.md`)
   - [x] `Id` and generational arena (spec `docs/specs/core/arena.md`)
-- [ ] `tantu-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
+- [x] `tantu-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
 - [ ] Reactive micro-benchmarks
 
 ### Phase 1 — Pixels on screen (weeks 3–5)
