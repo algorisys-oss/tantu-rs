@@ -286,9 +286,11 @@ Affine
   positive scales it equals the exactly transformed rect.
 - **CORE-GEOM-27:** `determinant` is `a·d − b·c`.
 - **CORE-GEOM-28:** `inverse` is `None` when the determinant is 0 or not finite, or when any
-  coefficient of the result would not be finite. Otherwise `A * A.inverse()` and
-  `A.inverse() * A` equal `IDENTITY` within 1e-5 per coefficient, for transforms whose
-  coefficients are within ±1e4 and whose determinant is at least 1e-4 in magnitude.
+  coefficient of the result would not be finite. Otherwise, for any composition of a rotation, a
+  scale with factors between 0.1 and 10 (possibly non-uniform) and a translation with components
+  within ±1000, both `A * A.inverse()` and `A.inverse() * A` match `IDENTITY` within 1e-4 on
+  `a`–`d` and within 1e-4 × max(1, |e|, |f|) on `e` and `f` (`e`, `f` being `A`'s translation).
+  No accuracy is promised for ill-conditioned transforms: in `f32` it can't be.
 
 ## Performance and allocation
 
@@ -308,3 +310,8 @@ Resolved (2026-09-30):
    straight away. `PLAN.md` updated to match.
 3. **Rect representation.** Edges (`left, top, right, bottom`) like Flutter, which makes
    intersection, union and clipping direct, with `origin()` and `size()` accessors.
+4. **Accuracy of `Affine::inverse` (CORE-GEOM-28).** The first wording promised identity within
+   1e-5 for any coefficients within ±1e4 and |det| ≥ 1e-4. That allows condition numbers near
+   1e12, which `f32` can't meet. Found while writing the tests; the rule now covers
+   well-conditioned transforms (rotation, scale 0.1–10, translation within ±1000), with a
+   tolerance on `e`/`f` relative to the translation's size.
