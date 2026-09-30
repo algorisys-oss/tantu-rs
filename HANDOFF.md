@@ -7,8 +7,7 @@ _Last updated: 2026-09-30_
 
 ## Resume here (session of 2026-09-30)
 
-Phase 0 has started. The Cargo workspace skeleton and CI are on branch `phase0/workspace-skeleton`
-(pushed, not yet merged). fmt, clippy `-D warnings`,
+Phase 0 has started. The Cargo workspace skeleton and CI are merged into `main`. fmt, clippy `-D warnings`,
 test and doc all pass locally on Linux with Rust 1.85.1. CI has not run on GitHub yet, so the
 Phase 0 checkbox in `PLAN.md` stays unticked until the first CI run is green on all three OSes.
 
@@ -76,7 +75,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     `clippy.toml`). `#![forbid(unsafe_code)]` in every crate except `tantu-core`,
     `tantu-platform-winit` and `tantu-render-*`. Facade features: `wgpu`, `winit`, `default-theme`
     (default) and `soft`. `Cargo.lock` is committed.
-14. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+14. **No PRs for now.** Rajesh is the only developer: do feature work on a branch, then
+    fast-forward merge into `main` and push. CI runs on the push to `main`.
+15. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
 
@@ -91,15 +92,16 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `594513f` | Set copyright holder to Rajesh Pillai - Algorisys Technologies |
 | `a2c71a4` | Architecture doc + diagram (`docs/architecture.md`, `docs/architecture/`), rule to keep them current (AGENTS.md, CLAUDE.md); renamed project dkui → Tantu across all docs, README tagline; moved to new public repo `algorisys-oss/tantu-rs` |
 | `9703361` | Removed references to the old repo from HANDOFF.md |
-| _this commit_ | Phase 0: Cargo workspace skeleton (16 crates), `rust-toolchain.toml` (1.85), shared lints, CI workflow |
+| `f3b4adb` | Phase 0: Cargo workspace skeleton (16 crates), `rust-toolchain.toml` (1.85), shared lints, CI workflow |
+| _this commit_ | Merged the workspace skeleton into `main`; no-PR workflow noted |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 0 in PLAN.md)
 
-1. Commit the workspace skeleton, push the branch and open a PR. Once CI is green on all three OSes,
-   tick "Cargo workspace, rust-toolchain.toml, CI" in `PLAN.md` and merge.
+1. Check the first CI run on `main`. Once it is green on all three OSes, tick "Cargo workspace,
+   rust-toolchain.toml, CI" in `PLAN.md`.
 2. `docs/specs/TEMPLATE.md` and `docs/adr/` with ADRs 0001–0006.
 3. First spec → tests → code: `tantu-core` geometry (`Point`, `Size`, `Rect`, `Insets`, `Affine`, `Color`).
 4. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
