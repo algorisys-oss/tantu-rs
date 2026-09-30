@@ -10,8 +10,8 @@ _Last updated: 2026-09-30_
 Phase 0 is under way. On `main`: the Cargo workspace skeleton, CI (green on Linux, Windows and
 macOS), the spec template, ADRs 0001–0006, the one-commit-per-step workflow rule and the
 spec-coverage check (`cargo xtask spec-coverage`, also a CI job), and the first feature code:
-`tantu-core` geometry (`Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine`). The next item is
-`tantu-core` `Color`, starting with its spec.
+`tantu-core` geometry (`Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine`) and `Color`. The
+next item is `tantu-core` `Id` and generational arena, starting with its spec.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -22,8 +22,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phase 0 (Foundations). The workspace skeleton exists: 16 empty crates under `crates/`
   (the AGENTS.md table), with the internal dependency edges from that table already declared.
-  `tantu-core` has the geometry module (spec `docs/specs/core/geometry.md`, Implemented); the
-  other crates are still empty.
+  `tantu-core` has the geometry and color modules (specs `docs/specs/core/geometry.md` and
+  `color.md`, both Implemented); the other crates are still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -105,7 +105,16 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     - `Affine::inverse` is computed in f64, but whether a transform is invertible follows the f32
       `determinant()`, so the two agree. Its accuracy is only promised for well-conditioned
       transforms (CORE-GEOM-28 was corrected when writing the tests).
-18. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+18. **Color shape** (2026-09-30, spec `docs/specs/core/color.md`):
+    - `Color { r, g, b, a: f32 }`, sRGB-encoded with straight alpha, 16 bytes, stored as given.
+      Chosen over packed `u8` for banding-free animation, wgpu's float input and room for wide
+      gamut (Flutter made the same move in 3.27).
+    - Packed form is Flutter's `0xAARRGGBB` only (`from_argb32`/`to_argb32`); no CSS-order variant.
+    - sRGB ↔ linear conversion lives in `tantu-core` (`to_linear`/`from_linear`, returning and
+      taking `[f32; 4]`) so every renderer uses the same function. Both map 0 and 1 exactly
+      (encoding is evaluated in f64 for that).
+    - Named palettes belong to `tantu-theme`, gradients and blend modes to the Scene.
+19. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
 
@@ -131,17 +140,21 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `19cd9ed` | spec: tantu-core geometry (CORE-GEOM-01..29); PLAN.md tantu-core item split into geometry, color, id + arena |
 | `bdeb293` | spec: realistic accuracy promise for `Affine::inverse` (CORE-GEOM-28) |
 | `3e43794` | test: tantu-core geometry, stubs + 31 tests (30 failing on `todo!()`) |
-| _this commit_ | impl: tantu-core geometry; spec Implemented, PLAN.md ticked |
+| `67c8680` | impl: tantu-core geometry; spec Implemented, PLAN.md ticked |
+| `7c8006e` | spec: tantu-core `Color` (CORE-COLOR-01..15) |
+| `5ca4f17` | test: tantu-core `Color`, stubs + 16 tests (15 failing on `todo!()`) |
+| `7ffce33` | spec: exact 0/1 endpoints for `Color::from_linear` (CORE-COLOR-14) |
+| _this commit_ | impl: tantu-core `Color`; spec Implemented, PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 0 in PLAN.md)
 
-1. `docs/specs/core/color.md` (`Color`: representation, color space, constructors, alpha), then
-   stop for review before tests.
-2. Then `arena.md` (`Id`, generational arena) the same way.
-3. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
+1. `docs/specs/core/arena.md` (`Id`, generational arena: handle layout, generation overflow,
+   iteration order, the one place `tantu-core` may use `unsafe`), then stop for review before
+   tests. After it, tick the parent `tantu-core` item in PLAN.md.
+2. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
 
 ## Open questions
 

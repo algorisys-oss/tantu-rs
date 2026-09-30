@@ -1,6 +1,6 @@
 # Color
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-core`
 - **Plan item:** Phase 0, "`tantu-core` → `Color`"
 - **Related:** [ADR 0003](../../adr/0003-scene-as-the-renderer-contract.md) (Scene),
