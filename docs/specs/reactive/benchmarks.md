@@ -1,0 +1,105 @@
+# Reactive micro-benchmarks
+
+- **Status:** Agreed
+- **Crate:** `tantu-reactive` (benches and tests only; no library API)
+- **Plan item:** Phase 0, "Reactive micro-benchmarks"
+- **Related:** [signals](signals.md) (the API under test),
+  [ADR 0001](../../adr/0001-retained-tree-and-fine-grained-reactivity.md)
+
+## Purpose
+
+Measure the cost of the reactive runtime on the graph shapes a UI produces, so regressions show up
+and later work (the view layer, the data grid) has baseline numbers to design against. The
+benchmarks are for maintainers; apps never see them.
+
+Each benchmark runs a **scenario**: a small reactive graph plus one repeatable step. The same
+scenarios are also run by ordinary tests that check they do what their name says. A benchmark
+that silently measures the wrong thing (an effect that never runs, a batch that isn't one) is
+worse than none.
+
+## Scope
+
+In scope:
+
+- Eight scenarios covering node churn, plain reads and writes, fan-out, fan-in, deep chains,
+  diamonds, memo cut-off and scope churn.
+- A `cargo bench -p tantu-reactive` harness (criterion) that times each scenario's step at a
+  few sizes.
+- Correctness tests for every scenario, run by `cargo test`.
+- Baseline timings recorded in this spec.
+
+Out of scope:
+
+- Timing assertions in tests or CI. Shared CI runners are too noisy; numbers are compared by hand.
+- Comparisons with other reactive libraries.
+- Layout benchmarks (Phase 2, `tantu-layout`).
+
+## Public API
+
+None. Scenarios live in `crates/tantu-reactive/benches/scenarios.rs` and are included as a module
+by both the bench target (`benches/reactive.rs`) and the test target (`tests/bench_scenarios.rs`).
+Each scenario is a struct that owns its `Runtime`, built by `new(n)` (setup, not timed) and
+driven by `step()` (timed). Scenarios expose counters so tests can check them.
+
+```rust
+/// Creates `n` signals, `n` memos and `n` effects in a scope, then disposes the scope.
+pub struct CreateDispose { /* ... */ }
+/// `n` get/set round trips on one signal with no subscribers.
+pub struct GetSet { /* ... */ }
+/// One signal read by `n` effects.
+pub struct FanOut { /* ... */ }
+/// `n` signals summed by one memo, read by one effect; the step writes all of them in a batch.
+pub struct FanIn { /* ... */ }
+/// A chain of `n` memos, each adding 1 to the previous, with an effect on the last one.
+pub struct DeepChain { /* ... */ }
+/// One signal, `n` memos reading it, one memo summing those, one effect on the sum.
+pub struct Diamond { /* ... */ }
+/// One signal, one memo that ignores most changes, `n` effects on the memo.
+pub struct Cutoff { /* ... */ }
+/// Mounts and unmounts `n` child scopes, each with a signal, memo, effect and cleanup.
+pub struct ScopeChurn { /* ... */ }
+```
+
+## Behavior
+
+Each rule describes one scenario and what its test checks after `new(n)` and some `step()`s.
+
+- **REACTIVE-BENCH-01:** `CreateDispose::step` creates `n` signals, `n` memos (each reading its
+  signal) and `n` effects (each reading its memo) inside a fresh scope, then disposes the scope.
+  Every effect runs once per step, and after each step `Runtime::node_count` is back to its value
+  before the step.
+- **REACTIVE-BENCH-02:** `GetSet::step` does `n` round trips of `set(get() + 1)` on a signal with
+  no subscribers. After `k` steps the signal holds `k * n`.
+- **REACTIVE-BENCH-03:** `FanOut::step` writes the source once. Each of the `n` effects runs
+  exactly once per step and sees the new value.
+- **REACTIVE-BENCH-04:** `FanIn::step` writes all `n` signals inside one `batch`. The effect runs
+  exactly once per step, and the memo equals the sum of the signals.
+- **REACTIVE-BENCH-05:** `DeepChain::step` writes the head of the chain. Every memo recomputes
+  exactly once per step, and the effect sees `head + n`. Chains of at least 1 000 memos work on
+  the default test thread stack (2 MiB).
+- **REACTIVE-BENCH-06:** `Diamond::step` writes the source once. Each of the `n` middle memos and
+  the sum memo recompute exactly once per step, and the effect runs exactly once and never sees a
+  mix of old and new values (glitch-freedom).
+- **REACTIVE-BENCH-07:** `Cutoff::step` writes the source with a value the memo maps to its
+  current output. The memo recomputes once and none of the `n` effects run.
+- **REACTIVE-BENCH-08:** `ScopeChurn::step` mounts `n` child scopes under a parent, then disposes
+  the parent. Every child's effect runs once and every cleanup runs once per step, and after each
+  step `Runtime::node_count` is back to its value before the step.
+
+## Performance and allocation
+
+The sizes benchmarked are `n` = 10, 100 and 1 000 (100 000 for `GetSet`). Baselines, on the
+machine named, in release mode:
+
+| Scenario | n | Time per step |
+|---|---|---|
+| _to be filled by the `impl:` commit_ | | |
+
+No targets are enforced in Phase 0. When a number regresses by more than about 20 % on the same
+machine, find out why before merging.
+
+## Open questions
+
+- Nested memos recurse, so very deep chains are limited by the thread stack. REACTIVE-BENCH-05
+  makes 1 000 levels the floor. An iterative update is deferred until a real widget tree needs
+  more.
