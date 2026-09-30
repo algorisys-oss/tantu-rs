@@ -15,6 +15,8 @@ Plan → Spec → Unit tests → Implementation workflow in `AGENTS.md`.
 - **Status** moves from **Draft** to **Agreed** (reviewed, tests can be written) to
   **Implemented** (code and tests match the spec). If implementation shows the spec is wrong,
   update the spec and tests first.
+- **Coverage.** `cargo xtask spec-coverage` (run in CI) fails if a spec marked Agreed or
+  Implemented has a rule with no test named after it. Draft specs are skipped.
 - **Commits.** The spec, the failing tests and the implementation are separate commits
   (`spec:`, `test:`, `impl:`); see `AGENTS.md` → "One commit per step".
 

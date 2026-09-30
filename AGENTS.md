@@ -75,6 +75,7 @@ Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 | `tantu-test` | widget tester, golden images, event simulation | view, render-soft, render-headless |
 | `tantu` | facade crate, `App` runner, prelude | everything above |
 | `examples/` | gallery, todo, enterprise dashboard, data grid stress test | tantu |
+| `xtask` | dev tooling, not published: `cargo xtask spec-coverage` | — (std only; nothing depends on it) |
 
 **Dependency rule (enforced in review):** nothing below `tantu-view` may know about widgets; nothing
 except `tantu-render-*` may depend on `wgpu`/`tiny-skia`; nothing except `tantu-platform-*` may depend
@@ -135,6 +136,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all
 cargo run -p gallery                       # widget gallery example
 cargo bench -p tantu-layout                 # layout / reactive benchmarks
+cargo xtask spec-coverage                  # every rule of an agreed spec has a test (also in CI)
 ```
 
 Before declaring a task done: `fmt`, `clippy -D warnings`, and `test` must pass for the crates you touched.
@@ -174,7 +176,7 @@ code**: library crates, examples, tests helpers and dev tooling (`xtask`) alike.
 
 Done means all of the following:
 - the spec matches the code
-- every spec rule has a test
+- every spec rule has a test (`cargo xtask spec-coverage` passes)
 - `fmt`, `clippy -D warnings` and `test` pass for the touched crates
 - the `PLAN.md` checkbox is ticked
 

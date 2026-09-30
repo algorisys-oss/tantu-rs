@@ -1,6 +1,6 @@
 # Spec coverage check
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `xtask` (dev tooling, not published)
 - **Plan item:** Phase 0, "Spec-coverage check in CI (`cargo xtask spec-coverage`)"
 - **Related:** [`AGENTS.md`](../../../AGENTS.md) → "Development workflow";
