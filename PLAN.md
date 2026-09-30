@@ -60,6 +60,7 @@ faster or more portable without changing how apps are written.
 - [x] Cargo workspace, `rust-toolchain.toml`, CI (fmt, clippy, test on Linux/Windows/macOS)
 - [x] `docs/adr/` with ADRs 0001–0006
 - [x] `docs/specs/` with a spec template (purpose, API, numbered rules, perf, open questions)
+- [ ] Spec-coverage check in CI (`cargo xtask spec-coverage`): every rule of an agreed spec has a test
 - [ ] `tantu-core`: `Point/Size/Rect/Insets/Affine`, `Color`, `Id`, generational arena
 - [ ] `tantu-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
 - [ ] Reactive micro-benchmarks
