@@ -150,7 +150,8 @@ Before declaring a task done: `fmt`, `clippy -D warnings`, and `test` must pass 
 ## Development workflow: Plan → Spec → Unit tests → Implementation
 
 We combine spec-driven development with TDD. Every feature goes through these four steps in order.
-Do not skip ahead: no implementation without a spec and failing tests.
+Do not skip ahead: no implementation without a spec and failing tests. This applies to **all
+code**: library crates, examples, tests helpers and dev tooling (`xtask`) alike.
 
 1. **Plan.** Find the item in `PLAN.md` for the current phase. Don't start later-phase work. If the
    item is missing or too big, update `PLAN.md` first, splitting it into items that each fit one spec.
@@ -180,13 +181,30 @@ Done means all of the following:
 Bug fixes follow the same loop in miniature: add the missing rule to the spec, write a failing
 test that reproduces the bug, then fix it.
 
+### One commit per step
+
+The history must show that the steps happened in order. Each item lands as separate commits:
+
+1. `spec: <item>`: the spec, with status **Agreed**, plus any `PLAN.md` change.
+2. `test: <item>`: the tests, plus signatures or `todo!()` stubs so they compile. The item's tests
+   **fail** at this commit. Put the failing test summary in the commit message.
+3. `impl: <item>`: the implementation. All tests pass.
+
+Refactors with the tests green are further `impl:` commits. If implementation shows the spec is
+wrong, add a new `spec:` commit (and `test:` commit) before continuing; don't fold spec changes
+into an `impl:` commit. A bug fix is a `test:` commit with the failing reproduction, then a `fix:`
+commit (plus a `spec:` commit first if a rule was missing).
+
+The three commits are pushed together, so CI checks the tip and the failing `test:` commit never
+breaks `main` on its own. Changes with no behavior (docs, CI config, formatting) use `docs:` or
+`chore:`.
+
 ## General rules
 
 - Keep changes within one crate where possible; respect the dependency rule above.
-- Prefer small, reviewable commits. A commit may contain spec + tests + implementation for one
-  item, but they must be written in that order.
+- Prefer small, reviewable commits, one workflow step per commit (see "One commit per step").
 - If a design decision here seems wrong, raise it. Do not silently diverge.
-- **Keep `HANDOFF.md` current.** Every commit that gets pushed must include an updated
+- **Keep `HANDOFF.md` current.** The last commit of every push must include an updated
   `HANDOFF.md`, covering:
   - current state and phase
   - decisions made

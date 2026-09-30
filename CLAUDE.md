@@ -11,7 +11,9 @@
 - Always follow the **Plan → Spec → Unit tests → Implementation** workflow in `AGENTS.md`. When
   asked to "implement X", first check for `docs/specs/.../X.md`. If there isn't one, write the spec
   and stop for review before writing tests or code, unless the user says to go straight through.
-  Show the failing test run before implementing.
+  Show the failing test run before implementing. This applies to all code, including dev tooling.
+- Commit each workflow step separately (`spec:`, `test:`, `impl:`), as described in `AGENTS.md` →
+  "One commit per step". Never combine them in one commit.
 - Before editing a crate, read its `lib.rs` module docs and the relevant section of `AGENTS.md`.
 - After changes, run `cargo fmt --all`, `cargo clippy -p <crate> --all-targets -- -D warnings`
   and `cargo test -p <crate>`. Report failures verbatim; don't paper over them.
@@ -27,5 +29,6 @@
 - Record significant design decisions as ADRs in `docs/adr/`. If a decision in `AGENTS.md` needs
   to change, propose it first rather than making the change unilaterally.
 - Do not commit or push unless asked. Branch off `main` for feature work.
-- At the start of a session, read `HANDOFF.md`. Before every commit/push, update `HANDOFF.md`
-  (state, decisions, commit log row, next steps, open questions) and include it in the same commit.
+- At the start of a session, read `HANDOFF.md`. Before every push, update `HANDOFF.md`
+  (state, decisions, commit log rows, next steps, open questions) and include it in the last commit
+  of the push.

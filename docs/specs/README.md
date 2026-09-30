@@ -15,5 +15,7 @@ Plan → Spec → Unit tests → Implementation workflow in `AGENTS.md`.
 - **Status** moves from **Draft** to **Agreed** (reviewed, tests can be written) to
   **Implemented** (code and tests match the spec). If implementation shows the spec is wrong,
   update the spec and tests first.
+- **Commits.** The spec, the failing tests and the implementation are separate commits
+  (`spec:`, `test:`, `impl:`); see `AGENTS.md` → "One commit per step".
 
 Decisions that reach beyond one feature go in an ADR (`docs/adr/`), and the spec links to it.
