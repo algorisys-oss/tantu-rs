@@ -1,6 +1,6 @@
 # Geometry
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-core`
 - **Plan item:** Phase 0, "`tantu-core` → geometry"
 - **Related:** [ADR 0002](../../adr/0002-flutter-structure-and-layout-protocol.md) (layout

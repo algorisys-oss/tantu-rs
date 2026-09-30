@@ -23,63 +23,69 @@ impl Point {
     pub const ZERO: Point = Point { x: 0.0, y: 0.0 };
 
     /// A point at (x, y).
+    #[inline]
     pub const fn new(x: f32, y: f32) -> Self {
-        let _ = (x, y);
-        todo!()
+        Point { x, y }
     }
 
     /// The vector from the origin to this point.
+    #[inline]
     pub const fn to_vec2(self) -> Vec2 {
-        todo!()
+        Vec2 {
+            x: self.x,
+            y: self.y,
+        }
     }
 
     /// True if both coordinates are finite.
+    #[inline]
     pub fn is_finite(self) -> bool {
-        todo!()
+        self.x.is_finite() && self.y.is_finite()
     }
 }
 
 impl Default for Point {
+    #[inline]
     fn default() -> Self {
-        todo!()
+        Point::ZERO
     }
 }
 
 impl Add<Vec2> for Point {
     type Output = Point;
+    #[inline]
     fn add(self, rhs: Vec2) -> Point {
-        let _ = rhs;
-        todo!()
+        Point::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
 impl Sub<Vec2> for Point {
     type Output = Point;
+    #[inline]
     fn sub(self, rhs: Vec2) -> Point {
-        let _ = rhs;
-        todo!()
+        Point::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
 impl Sub for Point {
     type Output = Vec2;
+    #[inline]
     fn sub(self, rhs: Point) -> Vec2 {
-        let _ = rhs;
-        todo!()
+        Vec2::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
 impl AddAssign<Vec2> for Point {
+    #[inline]
     fn add_assign(&mut self, rhs: Vec2) {
-        let _ = rhs;
-        todo!()
+        *self = *self + rhs;
     }
 }
 
 impl SubAssign<Vec2> for Point {
+    #[inline]
     fn sub_assign(&mut self, rhs: Vec2) {
-        let _ = rhs;
-        todo!()
+        *self = *self - rhs;
     }
 }
 
@@ -97,75 +103,83 @@ impl Vec2 {
     pub const ZERO: Vec2 = Vec2 { x: 0.0, y: 0.0 };
 
     /// A vector (x, y).
+    #[inline]
     pub const fn new(x: f32, y: f32) -> Self {
-        let _ = (x, y);
-        todo!()
+        Vec2 { x, y }
     }
 
     /// The point at this offset from the origin.
+    #[inline]
     pub const fn to_point(self) -> Point {
-        todo!()
+        Point {
+            x: self.x,
+            y: self.y,
+        }
     }
 
     /// Euclidean length.
+    #[inline]
     pub fn length(self) -> f32 {
-        todo!()
+        self.x.hypot(self.y)
     }
 
     /// True if both components are finite.
+    #[inline]
     pub fn is_finite(self) -> bool {
-        todo!()
+        self.x.is_finite() && self.y.is_finite()
     }
 }
 
 impl Default for Vec2 {
+    #[inline]
     fn default() -> Self {
-        todo!()
+        Vec2::ZERO
     }
 }
 
 impl Add for Vec2 {
     type Output = Vec2;
+    #[inline]
     fn add(self, rhs: Vec2) -> Vec2 {
-        let _ = rhs;
-        todo!()
+        Vec2::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
 impl Sub for Vec2 {
     type Output = Vec2;
+    #[inline]
     fn sub(self, rhs: Vec2) -> Vec2 {
-        let _ = rhs;
-        todo!()
+        Vec2::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
 impl Neg for Vec2 {
     type Output = Vec2;
+    #[inline]
     fn neg(self) -> Vec2 {
-        todo!()
+        Vec2::new(-self.x, -self.y)
     }
 }
 
 impl Mul<f32> for Vec2 {
     type Output = Vec2;
+    #[inline]
     fn mul(self, rhs: f32) -> Vec2 {
-        let _ = rhs;
-        todo!()
+        Vec2::new(self.x * rhs, self.y * rhs)
     }
 }
 
 impl AddAssign for Vec2 {
+    #[inline]
     fn add_assign(&mut self, rhs: Vec2) {
-        let _ = rhs;
-        todo!()
+        *self = *self + rhs;
     }
 }
 
 impl SubAssign for Vec2 {
+    #[inline]
     fn sub_assign(&mut self, rhs: Vec2) {
-        let _ = rhs;
-        todo!()
+        *self = *self - rhs;
     }
 }
 
@@ -193,42 +207,46 @@ impl Size {
     };
 
     /// A size of width × height, stored as given.
+    #[inline]
     pub const fn new(width: f32, height: f32) -> Self {
-        let _ = (width, height);
-        todo!()
+        Size { width, height }
     }
 
     /// True if the size has no area: either side is ≤ 0 or NaN.
+    #[inline]
     pub fn is_empty(self) -> bool {
-        todo!()
+        !(self.width > 0.0 && self.height > 0.0)
     }
 
     /// True if both sides are finite.
+    #[inline]
     pub fn is_finite(self) -> bool {
-        todo!()
+        self.width.is_finite() && self.height.is_finite()
     }
 
     /// Component-wise minimum. A NaN side yields the other size's side.
+    #[inline]
     pub fn min(self, other: Size) -> Size {
-        let _ = other;
-        todo!()
+        Size::new(self.width.min(other.width), self.height.min(other.height))
     }
 
     /// Component-wise maximum. A NaN side yields the other size's side.
+    #[inline]
     pub fn max(self, other: Size) -> Size {
-        let _ = other;
-        todo!()
+        Size::new(self.width.max(other.width), self.height.max(other.height))
     }
 
     /// A rect with this size at the origin.
+    #[inline]
     pub const fn to_rect(self) -> Rect {
-        todo!()
+        Rect::from_ltrb(0.0, 0.0, self.width, self.height)
     }
 }
 
 impl Default for Size {
+    #[inline]
     fn default() -> Self {
-        todo!()
+        Size::ZERO
     }
 }
 
@@ -258,106 +276,160 @@ impl Rect {
     };
 
     /// From edges, stored as given (not reordered).
+    #[inline]
     pub const fn from_ltrb(left: f32, top: f32, right: f32, bottom: f32) -> Self {
-        let _ = (left, top, right, bottom);
-        todo!()
+        Rect {
+            left,
+            top,
+            right,
+            bottom,
+        }
     }
 
     /// From the top-left corner and a size.
+    #[inline]
     pub fn from_ltwh(left: f32, top: f32, width: f32, height: f32) -> Self {
-        let _ = (left, top, width, height);
-        todo!()
+        Rect::from_ltrb(left, top, left + width, top + height)
     }
 
     /// From the top-left corner and a size.
+    #[inline]
     pub fn from_origin_size(origin: Point, size: Size) -> Self {
-        let _ = (origin, size);
-        todo!()
+        Rect::from_ltwh(origin.x, origin.y, size.width, size.height)
     }
 
     /// `right - left` (negative if the edges are reversed).
+    #[inline]
     pub fn width(self) -> f32 {
-        todo!()
+        self.right - self.left
     }
 
     /// `bottom - top` (negative if the edges are reversed).
+    #[inline]
     pub fn height(self) -> f32 {
-        todo!()
+        self.bottom - self.top
     }
 
     /// Width and height.
+    #[inline]
     pub fn size(self) -> Size {
-        todo!()
+        Size::new(self.width(), self.height())
     }
 
     /// The top-left corner.
+    #[inline]
     pub const fn origin(self) -> Point {
-        todo!()
+        Point::new(self.left, self.top)
     }
 
     /// The center point.
+    #[inline]
     pub fn center(self) -> Point {
-        todo!()
+        Point::new(
+            (self.left + self.right) * 0.5,
+            (self.top + self.bottom) * 0.5,
+        )
     }
 
     /// True if the rect has no area: width or height ≤ 0, or any edge NaN.
+    #[inline]
     pub fn is_empty(self) -> bool {
-        todo!()
+        !(self.width() > 0.0 && self.height() > 0.0)
     }
 
     /// True if all edges are finite.
+    #[inline]
     pub fn is_finite(self) -> bool {
-        todo!()
+        self.left.is_finite()
+            && self.top.is_finite()
+            && self.right.is_finite()
+            && self.bottom.is_finite()
     }
 
     /// True if `point` is inside. Left and top edges are inside, right and bottom are not.
+    #[inline]
     pub fn contains(self, point: Point) -> bool {
-        let _ = point;
-        todo!()
+        // Comparisons with NaN are false, so NaN points and empty (or reversed) rects fail here.
+        self.left <= point.x && point.x < self.right && self.top <= point.y && point.y < self.bottom
     }
 
     /// True if the two rects share an area greater than zero.
+    #[inline]
     pub fn overlaps(self, other: Rect) -> bool {
-        let _ = other;
-        todo!()
+        !self.is_empty()
+            && !other.is_empty()
+            && self.left < other.right
+            && other.left < self.right
+            && self.top < other.bottom
+            && other.top < self.bottom
     }
 
     /// The shared area, or `None` if they don't overlap.
+    #[inline]
     pub fn intersect(self, other: Rect) -> Option<Rect> {
-        let _ = other;
-        todo!()
+        if !self.overlaps(other) {
+            return None;
+        }
+        Some(Rect::from_ltrb(
+            self.left.max(other.left),
+            self.top.max(other.top),
+            self.right.min(other.right),
+            self.bottom.min(other.bottom),
+        ))
     }
 
     /// The smallest rect containing both. Empty rects are ignored; if both are empty, returns
     /// `self`.
+    #[inline]
     pub fn union(self, other: Rect) -> Rect {
-        let _ = other;
-        todo!()
+        if other.is_empty() {
+            return self;
+        }
+        if self.is_empty() {
+            return other;
+        }
+        Rect::from_ltrb(
+            self.left.min(other.left),
+            self.top.min(other.top),
+            self.right.max(other.right),
+            self.bottom.max(other.bottom),
+        )
     }
 
     /// Moved by `offset`.
+    #[inline]
     pub fn translate(self, offset: Vec2) -> Rect {
-        let _ = offset;
-        todo!()
+        Rect::from_ltrb(
+            self.left + offset.x,
+            self.top + offset.y,
+            self.right + offset.x,
+            self.bottom + offset.y,
+        )
     }
 
     /// Grown by `delta` on every side.
+    #[inline]
     pub fn inflate(self, delta: f32) -> Rect {
-        let _ = delta;
-        todo!()
+        Rect::from_ltrb(
+            self.left - delta,
+            self.top - delta,
+            self.right + delta,
+            self.bottom + delta,
+        )
     }
 
     /// Shrunk by `delta` on every side. Not clamped: deflating past the center gives an empty
     /// rect with reversed edges.
+    #[inline]
     pub fn deflate(self, delta: f32) -> Rect {
-        let _ = delta;
-        todo!()
+        self.inflate(-delta)
     }
 }
 
 impl Default for Rect {
+    #[inline]
     fn default() -> Self {
-        todo!()
+        Rect::ZERO
     }
 }
 
@@ -385,69 +457,99 @@ impl EdgeInsets {
     };
 
     /// The same inset on all four sides.
+    #[inline]
     pub const fn all(value: f32) -> Self {
-        let _ = value;
-        todo!()
+        EdgeInsets::from_ltrb(value, value, value, value)
     }
 
     /// `horizontal` on left and right, `vertical` on top and bottom.
+    #[inline]
     pub const fn symmetric(horizontal: f32, vertical: f32) -> Self {
-        let _ = (horizontal, vertical);
-        todo!()
+        EdgeInsets::from_ltrb(horizontal, vertical, horizontal, vertical)
     }
 
     /// From the four sides.
+    #[inline]
     pub const fn from_ltrb(left: f32, top: f32, right: f32, bottom: f32) -> Self {
-        let _ = (left, top, right, bottom);
-        todo!()
+        EdgeInsets {
+            left,
+            top,
+            right,
+            bottom,
+        }
     }
 
     /// `left + right`.
+    #[inline]
     pub fn horizontal(self) -> f32 {
-        todo!()
+        self.left + self.right
     }
 
     /// `top + bottom`.
+    #[inline]
     pub fn vertical(self) -> f32 {
-        todo!()
+        self.top + self.bottom
     }
 
     /// `size` minus the insets, never below zero on either side (a NaN side becomes 0).
+    #[inline]
     pub fn deflate_size(self, size: Size) -> Size {
-        let _ = size;
-        todo!()
+        // `f32::max` returns the non-NaN operand, so a NaN side becomes 0.
+        Size::new(
+            (size.width - self.horizontal()).max(0.0),
+            (size.height - self.vertical()).max(0.0),
+        )
     }
 
     /// `size` plus the insets.
+    #[inline]
     pub fn inflate_size(self, size: Size) -> Size {
-        let _ = size;
-        todo!()
+        Size::new(
+            size.width + self.horizontal(),
+            size.height + self.vertical(),
+        )
     }
 
     /// `rect` with each edge moved inward by its inset. Not clamped.
+    #[inline]
     pub fn deflate_rect(self, rect: Rect) -> Rect {
-        let _ = rect;
-        todo!()
+        Rect::from_ltrb(
+            rect.left + self.left,
+            rect.top + self.top,
+            rect.right - self.right,
+            rect.bottom - self.bottom,
+        )
     }
 
     /// `rect` with each edge moved outward by its inset. Not clamped.
+    #[inline]
     pub fn inflate_rect(self, rect: Rect) -> Rect {
-        let _ = rect;
-        todo!()
+        Rect::from_ltrb(
+            rect.left - self.left,
+            rect.top - self.top,
+            rect.right + self.right,
+            rect.bottom + self.bottom,
+        )
     }
 }
 
 impl Default for EdgeInsets {
+    #[inline]
     fn default() -> Self {
-        todo!()
+        EdgeInsets::ZERO
     }
 }
 
 impl Add for EdgeInsets {
     type Output = EdgeInsets;
+    #[inline]
     fn add(self, rhs: EdgeInsets) -> EdgeInsets {
-        let _ = rhs;
-        todo!()
+        EdgeInsets::from_ltrb(
+            self.left + rhs.left,
+            self.top + rhs.top,
+            self.right + rhs.right,
+            self.bottom + rhs.bottom,
+        )
     }
 }
 
@@ -467,88 +569,137 @@ impl Affine {
     };
 
     /// From coefficients `[a, b, c, d, e, f]`.
+    #[inline]
     pub const fn new(coeffs: [f32; 6]) -> Self {
-        let _ = coeffs;
-        todo!()
+        Affine { coeffs }
     }
 
     /// The coefficients `[a, b, c, d, e, f]`.
+    #[inline]
     pub const fn coeffs(self) -> [f32; 6] {
-        todo!()
+        self.coeffs
     }
 
     /// Translation by `offset`.
+    #[inline]
     pub const fn translate(offset: Vec2) -> Self {
-        let _ = offset;
-        todo!()
+        Affine::new([1.0, 0.0, 0.0, 1.0, offset.x, offset.y])
     }
 
     /// Uniform scale about the origin.
+    #[inline]
     pub const fn scale(s: f32) -> Self {
-        let _ = s;
-        todo!()
+        Affine::new([s, 0.0, 0.0, s, 0.0, 0.0])
     }
 
     /// Scale about the origin by `sx` horizontally and `sy` vertically.
+    #[inline]
     pub const fn scale_non_uniform(sx: f32, sy: f32) -> Self {
-        let _ = (sx, sy);
-        todo!()
+        Affine::new([sx, 0.0, 0.0, sy, 0.0, 0.0])
     }
 
     /// Rotation about the origin by `radians`. With y pointing down, a positive angle turns
     /// clockwise on screen.
+    #[inline]
     pub fn rotate(radians: f32) -> Self {
-        let _ = radians;
-        todo!()
+        let (sin, cos) = radians.sin_cos();
+        Affine::new([cos, sin, -sin, cos, 0.0, 0.0])
     }
 
     /// `a·d − b·c`.
+    #[inline]
     pub fn determinant(self) -> f32 {
-        todo!()
+        let [a, b, c, d, ..] = self.coeffs;
+        a * d - b * c
     }
 
     /// The inverse, or `None` if the transform can't be inverted: the determinant is 0 or not
     /// finite, or the result would have a non-finite coefficient.
+    #[inline]
     pub fn inverse(self) -> Option<Affine> {
-        todo!()
+        // Invertibility follows the f32 `determinant`, so the two always agree. The inverse is
+        // computed in f64 for accuracy, and the f32 result is checked for overflow.
+        let det32 = self.determinant();
+        if det32 == 0.0 || !det32.is_finite() {
+            return None;
+        }
+        let [a, b, c, d, e, f] = self.coeffs.map(f64::from);
+        let det = a * d - b * c;
+        let inv = [
+            d / det,
+            -b / det,
+            -c / det,
+            a / det,
+            (c * f - d * e) / det,
+            (b * e - a * f) / det,
+        ]
+        .map(|x| x as f32);
+        let inverse = Affine::new(inv);
+        inverse.is_finite().then_some(inverse)
     }
 
     /// Applies the linear part only (no translation), for offsets and directions.
+    #[inline]
     pub fn transform_vec(self, v: Vec2) -> Vec2 {
-        let _ = v;
-        todo!()
+        let [a, b, c, d, ..] = self.coeffs;
+        Vec2::new(a * v.x + c * v.y, b * v.x + d * v.y)
     }
 
     /// The smallest axis-aligned rect containing the transformed corners of `rect`.
+    #[inline]
     pub fn transform_rect_bbox(self, rect: Rect) -> Rect {
-        let _ = rect;
-        todo!()
+        let corners = [
+            self * Point::new(rect.left, rect.top),
+            self * Point::new(rect.right, rect.top),
+            self * Point::new(rect.left, rect.bottom),
+            self * Point::new(rect.right, rect.bottom),
+        ];
+        let mut bbox = Rect::from_ltrb(corners[0].x, corners[0].y, corners[0].x, corners[0].y);
+        for p in &corners[1..] {
+            bbox.left = bbox.left.min(p.x);
+            bbox.top = bbox.top.min(p.y);
+            bbox.right = bbox.right.max(p.x);
+            bbox.bottom = bbox.bottom.max(p.y);
+        }
+        bbox
     }
 
     /// True if all coefficients are finite.
+    #[inline]
     pub fn is_finite(self) -> bool {
-        todo!()
+        self.coeffs.iter().all(|c| c.is_finite())
     }
 }
 
 impl Default for Affine {
+    #[inline]
     fn default() -> Self {
-        todo!()
+        Affine::IDENTITY
     }
 }
 
 impl Mul for Affine {
     type Output = Affine;
+    #[inline]
     fn mul(self, rhs: Affine) -> Affine {
-        let _ = rhs;
-        todo!()
+        let [a1, b1, c1, d1, e1, f1] = self.coeffs;
+        let [a2, b2, c2, d2, e2, f2] = rhs.coeffs;
+        Affine::new([
+            a1 * a2 + c1 * b2,
+            b1 * a2 + d1 * b2,
+            a1 * c2 + c1 * d2,
+            b1 * c2 + d1 * d2,
+            a1 * e2 + c1 * f2 + e1,
+            b1 * e2 + d1 * f2 + f1,
+        ])
     }
 }
 
 impl Mul<Point> for Affine {
     type Output = Point;
+    #[inline]
     fn mul(self, rhs: Point) -> Point {
-        let _ = rhs;
-        todo!()
+        let [a, b, c, d, e, f] = self.coeffs;
+        Point::new(a * rhs.x + c * rhs.y + e, b * rhs.x + d * rhs.y + f)
     }
 }

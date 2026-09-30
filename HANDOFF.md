@@ -9,8 +9,9 @@ _Last updated: 2026-09-30_
 
 Phase 0 is under way. On `main`: the Cargo workspace skeleton, CI (green on Linux, Windows and
 macOS), the spec template, ADRs 0001–0006, the one-commit-per-step workflow rule and the
-spec-coverage check (`cargo xtask spec-coverage`, also a CI job). The next item is `tantu-core`,
-starting with the geometry spec.
+spec-coverage check (`cargo xtask spec-coverage`, also a CI job), and the first feature code:
+`tantu-core` geometry (`Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine`). The next item is
+`tantu-core` `Color`, starting with its spec.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -20,8 +21,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phase 0 (Foundations). The workspace skeleton exists: 16 empty crates under `crates/`
-  (the AGENTS.md table), with the internal dependency edges from that table already declared. No
-  feature code yet.
+  (the AGENTS.md table), with the internal dependency edges from that table already declared.
+  `tantu-core` has the geometry module (spec `docs/specs/core/geometry.md`, Implemented); the
+  other crates are still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -93,7 +95,17 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     commit). `cargo xtask spec-coverage` (in CI) fails when a rule of an Agreed/Implemented spec has
     no test named after it (`LAYOUT-FLEX-03` → `layout_flex_03` or `layout_flex_03_*`). `xtask` is
     dev tooling: in the AGENTS.md table, not in the architecture diagram.
-17. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+17. **Geometry shape** (2026-09-30, spec `docs/specs/core/geometry.md`):
+    - `Point` (where) and `Vec2` (how far) are separate types, unlike Flutter's single `Offset`.
+      The parent-to-child offset in layout is a `Vec2`.
+    - `EdgeInsets`, Flutter's name, not `Insets`.
+    - `Rect` stores edges (`left, top, right, bottom`) like Flutter.
+    - Values are stored as given: no clamping, no reordering, nothing panics, NaN propagates. The
+      one exception is `EdgeInsets::deflate_size`, which clamps to 0 as layout needs.
+    - `Affine::inverse` is computed in f64, but whether a transform is invertible follows the f32
+      `determinant()`, so the two agree. Its accuracy is only promised for well-conditioned
+      transforms (CORE-GEOM-28 was corrected when writing the tests).
+18. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
 
@@ -115,17 +127,20 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `c3aa616` | docs: one-commit-per-step rule (AGENTS.md, CLAUDE.md, specs README) |
 | `0678f59` | spec: spec-coverage check (XTASK-COV-01..18), PLAN.md item |
 | `ba79621` | test: spec-coverage check, 20 failing tests |
-| _this commit_ | impl: `xtask` spec-coverage check, CI job, AGENTS.md row/commands |
+| `8f51517` | impl: `xtask` spec-coverage check, CI job, AGENTS.md row/commands |
+| `19cd9ed` | spec: tantu-core geometry (CORE-GEOM-01..29); PLAN.md tantu-core item split into geometry, color, id + arena |
+| `bdeb293` | spec: realistic accuracy promise for `Affine::inverse` (CORE-GEOM-28) |
+| `3e43794` | test: tantu-core geometry, stubs + 31 tests (30 failing on `todo!()`) |
+| _this commit_ | impl: tantu-core geometry; spec Implemented, PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 0 in PLAN.md)
 
-1. Split the `tantu-core` PLAN.md item into geometry, color, and id + arena. Then write
-   `docs/specs/core/geometry.md` (`Point`, `Vec2`, `Size`, `Rect`, `Insets`, `Affine`) and stop
-   for review before tests.
-2. Then `color.md` and `arena.md` the same way.
+1. `docs/specs/core/color.md` (`Color`: representation, color space, constructors, alpha), then
+   stop for review before tests.
+2. Then `arena.md` (`Id`, generational arena) the same way.
 3. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
 
 ## Open questions

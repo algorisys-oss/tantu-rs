@@ -562,6 +562,9 @@ fn core_geom_27_affine_determinant() {
 #[test]
 fn core_geom_28_affine_inverse_none_when_not_invertible() {
     assert_eq!(Affine::scale(0.0).inverse(), None);
+    // the f32 determinant underflows to 0
+    assert_eq!(Affine::scale(1e-30).determinant(), 0.0);
+    assert_eq!(Affine::scale(1e-30).inverse(), None);
     assert_eq!(Affine::new([1.0, 2.0, 2.0, 4.0, 5.0, 6.0]).inverse(), None);
     assert_eq!(Affine::new([NAN, 0.0, 0.0, 1.0, 0.0, 0.0]).inverse(), None);
     assert_eq!(Affine::new([INF, 0.0, 0.0, 1.0, 0.0, 0.0]).inverse(), None);
