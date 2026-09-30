@@ -618,3 +618,44 @@ impl Inner {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{effect, signal};
+
+    /// Subscriber lists hold each subscriber once, however often dependencies change.
+    #[test]
+    fn reactive_sig_14_subscriber_lists_do_not_grow() {
+        let rt = Runtime::new();
+        rt.enter(|| {
+            let flip = signal(false);
+            let a = signal(0);
+            let b = signal(0);
+            effect(move || {
+                if flip.get() {
+                    b.get();
+                    a.get();
+                    a.get();
+                } else {
+                    a.get();
+                    b.get();
+                    b.get();
+                }
+            });
+            for i in 0..50 {
+                flip.set(i % 2 == 0);
+                a.set(i);
+            }
+        });
+        let graph = rt.inner.graph.borrow();
+        // flip, a and b have one subscriber each (the effect); the effect and root have none.
+        let mut lens: Vec<usize> = graph
+            .nodes
+            .iter()
+            .map(|(_, n)| n.subscribers.len())
+            .collect();
+        lens.sort_unstable();
+        assert_eq!(lens, [0, 0, 1, 1, 1]);
+    }
+}

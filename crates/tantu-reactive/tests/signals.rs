@@ -434,6 +434,44 @@ fn reactive_sig_14_memo_dependencies_are_dynamic() {
 }
 
 #[test]
+fn reactive_sig_14_reordered_and_repeated_reads_keep_dependencies() {
+    Runtime::new().enter(|| {
+        let flip = signal(false);
+        let a = signal(0);
+        let b = signal(0);
+        let c = signal(0);
+        let runs = Count::default();
+        let r = runs.clone();
+        effect(move || {
+            r.inc();
+            if flip.get() {
+                b.get();
+                a.get();
+                b.get();
+            } else {
+                a.get();
+                a.get();
+                b.get();
+                c.get();
+            }
+        });
+        for i in 0..10 {
+            flip.set(i % 2 == 0);
+        }
+        assert_eq!(runs.get(), 11);
+        flip.set(true);
+        a.set(1);
+        b.set(1);
+        assert_eq!(runs.get(), 14, "a and b are read in both branches");
+        c.set(1);
+        assert_eq!(runs.get(), 14, "c is not read when flipped");
+        flip.set(false);
+        c.set(2);
+        assert_eq!(runs.get(), 16);
+    });
+}
+
+#[test]
 fn reactive_sig_15_diamond_is_glitch_free() {
     Runtime::new().enter(|| {
         let s = signal(1);
