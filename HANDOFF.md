@@ -9,9 +9,9 @@ _Last updated: 2026-09-30_
 
 Phase 0 is under way. On `main`: the Cargo workspace skeleton, CI (green on Linux, Windows and
 macOS), the spec template, ADRs 0001–0006, the one-commit-per-step workflow rule and the
-spec-coverage check (`cargo xtask spec-coverage`, also a CI job), and the first feature code:
-`tantu-core` geometry (`Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine`) and `Color`. The
-next item is `tantu-core` `Id` and generational arena, starting with its spec.
+spec-coverage check (`cargo xtask spec-coverage`, also a CI job), and `tantu-core`, now complete:
+geometry (`Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine`), `Color`, and `Id` with the
+generational `Arena<T>`. The next item is `tantu-reactive`, starting with its spec.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -22,8 +22,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phase 0 (Foundations). The workspace skeleton exists: 16 empty crates under `crates/`
   (the AGENTS.md table), with the internal dependency edges from that table already declared.
-  `tantu-core` has the geometry and color modules (specs `docs/specs/core/geometry.md` and
-  `color.md`, both Implemented); the other crates are still empty.
+  `tantu-core` is complete: geometry, color and arena modules (specs in `docs/specs/core/`,
+  all Implemented). The other crates are still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -79,8 +79,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     `[workspace.dependencies]` and each crate depends only on what the AGENTS.md table allows.
     Shared lints: `missing_docs`, `unsafe_op_in_unsafe_fn`, `clippy::undocumented_unsafe_blocks`,
     `clippy::unwrap_used`, `clippy::print_stdout`/`print_stderr` (unwrap/print allowed in tests via
-    `clippy.toml`). `#![forbid(unsafe_code)]` in every crate except `tantu-core`,
-    `tantu-platform-winit` and `tantu-render-*`. Facade features: `wgpu`, `winit`, `default-theme`
+    `clippy.toml`). `#![forbid(unsafe_code)]` in every crate except `tantu-platform-*` and
+    `tantu-render-*` (`tantu-core` lost its exception with the arena, decision 19). Facade features: `wgpu`, `winit`, `default-theme`
     (default) and `soft`. `Cargo.lock` is committed.
 14. **No PRs for now.** Rajesh is the only developer: do feature work on a branch, then
     fast-forward merge into `main` and push. CI runs on the push to `main`.
@@ -114,7 +114,17 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
       taking `[f32; 4]`) so every renderer uses the same function. Both map 0 and 1 exactly
       (encoding is evaluated in f64 for that).
     - Named palettes belong to `tantu-theme`, gradients and blend modes to the Scene.
-19. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+19. **Arena shape** (2026-09-30, spec `docs/specs/core/arena.md`):
+    - One untyped `Id { index: u32, generation: NonZeroU32 }` (8 bytes, `Option<Id>` too).
+      Crates wrap it in newtypes (`ElementId(Id)`) for type safety.
+    - Stable `to_bits`: generation in the high 32 bits, index in the low 32 bits, never 0. Used
+      for Scene element ids and AccessKit node ids.
+    - Written in-house, no `slotmap` (`tantu-core` stays dependency-free) and no `unsafe`: slots
+      are a `Vec` of an enum, `get_pair_mut` uses `split_at_mut`. `tantu-core` is
+      `#![forbid(unsafe_code)]`, and the AGENTS.md exception for it was removed.
+    - Freed slots are reused LIFO. A slot whose generation would overflow is retired, never
+      reused. Stale and foreign ids return `None`, never panic; no `Index` impls.
+20. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
 
 ## Commit log
 
@@ -145,17 +155,20 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `5ca4f17` | test: tantu-core `Color`, stubs + 16 tests (15 failing on `todo!()`) |
 | `7ffce33` | spec: exact 0/1 endpoints for `Color::from_linear` (CORE-COLOR-14) |
 | `712a1cb` | impl: tantu-core `Color`; spec Implemented, PLAN.md ticked |
-| _this commit_ | impl: named, documented constants for the sRGB transfer function and 8-bit scale in `color.rs` (no behavior change) |
+| `eade771` | impl: named, documented constants for the sRGB transfer function and 8-bit scale in `color.rs` (no behavior change) |
+| `2d8ebb2` | spec: tantu-core `Id` and generational arena (CORE-ARENA-01..17); `tantu-core` unsafe exception dropped from AGENTS.md |
+| `1b92306` | test: tantu-core arena, stubs + 20 tests + doctest (19 tests and the doctest failing on `todo!()`) |
+| _this commit_ | impl: tantu-core `Id` and `Arena`; spec Implemented, PLAN.md `tantu-core` ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 0 in PLAN.md)
 
-1. `docs/specs/core/arena.md` (`Id`, generational arena: handle layout, generation overflow,
-   iteration order, the one place `tantu-core` may use `unsafe`), then stop for review before
-   tests. After it, tick the parent `tantu-core` item in PLAN.md.
-2. Then `tantu-reactive` spec (signals, memos, effects, batching, disposal).
+1. `docs/specs/reactive/...` for `tantu-reactive` (`Signal`, `Memo`, `Effect`, batching, scoped
+   disposal, glitch-freedom, live-node counting for leak tests), built on `tantu_core::Arena`.
+   Stop for review before tests. Split the PLAN.md item first if it is too big for one spec.
+2. Then the reactive micro-benchmarks.
 
 ## Open questions
 

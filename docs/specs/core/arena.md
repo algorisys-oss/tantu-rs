@@ -1,6 +1,6 @@
 # Id and generational arena
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-core`
 - **Plan item:** Phase 0, "`tantu-core` → `Id` and generational arena"
 - **Related:** [ADR 0001](../../adr/0001-retained-tree-and-fine-grained-reactivity.md) (elements
