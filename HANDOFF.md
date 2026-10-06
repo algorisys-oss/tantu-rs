@@ -7,9 +7,10 @@ _Last updated: 2026-10-06_
 
 ## Resume here (session of 2026-10-06, later)
 
-**Phase 1: `tantu-scene`, the headless and software renderers, and the platform layer
-(`tantu-platform`, `tantu-platform-winit`) are done.** Left in Phase 1: `tantu-render-wgpu` and
-the golden-diff milestone. Specs, all Implemented:
+**Phase 1: everything but the milestone is done**: `tantu-scene`, the headless, software and
+wgpu renderers, the platform layer (`tantu-platform`, `tantu-platform-winit`) and a window demo.
+**Run `cargo run -p scene-window`** to see an animated, hand-built Scene drawn by wgpu in a
+window. Left in Phase 1: the golden-diff milestone (wgpu vs. software). Specs, all Implemented:
 
 - `docs/specs/scene/scene.md` and `docs/specs/scene/renderer.md` (now with the shared
   `RenderReport::for_scene` counting, SCENE-RENDER-04..08)
@@ -19,6 +20,9 @@ the golden-diff milestone. Specs, all Implemented:
 - `docs/specs/platform/platform.md` (PLATFORM-TYPES-01..06, PLATFORM-FAKE-01..10)
 - `docs/specs/platform-winit/shell.md` (PLATFORM-WINIT-01..12; the real-window test runs with
   `TANTU_WINDOW_TESTS=1 cargo test -p tantu-platform-winit --test window`)
+- `docs/specs/render-wgpu/renderer.md` (RENDER-WGPU-01..17; tests skip without a GPU adapter
+  unless `TANTU_REQUIRE_GPU=1`, which Linux CI sets with lavapipe installed)
+- `docs/specs/examples/scene-window.md` (SCENE-WINDOW-01..03)
 
 The render-soft and platform open questions were **decided in autopilot** (the user said "your
 pick and continue"). Render-soft: no text until Phase 2 (glyph runs count as `missing_fonts`), tiny-skia types in the
@@ -31,8 +35,8 @@ Also added: the `code-to-docs` skill (`.claude/skills/code-to-docs/`), which gen
 interactive documentation page at `docs/interactive/index.html` (gitignored). Run it with
 `/code-to-docs`.
 
-Next: `tantu-render-wgpu` (spec first), then the Phase 1 milestone. Start on a new branch off
-`main` (e.g. `phase1/wgpu`).
+Next: the Phase 1 milestone (spec first): render the reference Scenes with wgpu and diff them
+against the software goldens. Start on a new branch off `main` (e.g. `phase1/milestone`).
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -42,16 +46,17 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phase 0 (Foundations) is done; Phase 1 (Pixels on screen) is in progress:
-  `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform` and
-  `tantu-platform-winit` are done. Left in Phase 1: `tantu-render-wgpu` and the golden-diff
-  milestone. The workspace skeleton exists: 16 empty crates under `crates/`
+  `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform`,
+  `tantu-platform-winit`, `tantu-render-wgpu` and `examples/scene-window` are done. Left in
+  Phase 1: the golden-diff milestone. The workspace skeleton exists: 16 empty crates under `crates/`
   (the AGENTS.md table), with the internal dependency edges from that table already declared.
   `tantu-core` is complete: geometry, color and arena modules (specs in `docs/specs/core/`,
   all Implemented). `tantu-reactive` is implemented (specs `docs/specs/reactive/signals.md` and
   `benchmarks.md`, both Implemented; `cargo bench -p tantu-reactive`). `tantu-scene` is
   implemented (see decisions 23 and 24), and so are `tantu-render-headless` and
   `tantu-render-soft` (decisions 25 and 26), and `tantu-platform` with `tantu-platform-winit`
-  (decision 28). The other crates are still empty.
+  (decision 28), `tantu-render-wgpu` (decision 29) and the `scene-window` demo (decision 30).
+  The other crates are still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -100,9 +105,10 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     Rust or a backend. Room for an ecosystem: Tantu Inspector, Studio, Themes, Gallery. Attribution
     "by Algorisys". Crate prefix `tantu-`; golden-update env var `TANTU_UPDATE_GOLDENS`.
 11. **Public from the start** (2026-09-30), not at 0.1 as first planned. Repo: `algorisys-oss/tantu-rs`.
-12. **MSRV = Rust 1.85** (the first release with edition 2024), pinned in `rust-toolchain.toml`, so
-    local and CI builds run the MSRV itself. `rust-version` in `Cargo.toml` must match. Raise both
-    together when a dependency needs a newer compiler (wgpu may be the first to force this).
+12. **MSRV = Rust 1.87** (was 1.85, the first release with edition 2024; raised on 2026-10-06
+    for wgpu 30), pinned in `rust-toolchain.toml`, so local and CI builds run the MSRV itself.
+    `rust-version` in `Cargo.toml` must match. Raise both together when a dependency needs a
+    newer compiler.
 13. **Workspace setup:** crates live in `crates/<name>`. Internal crates are declared once in
     `[workspace.dependencies]` and each crate depends only on what the AGENTS.md table allows.
     Shared lints: `missing_docs`, `unsafe_op_in_unsafe_fn`, `clippy::undocumented_unsafe_blocks`,
@@ -262,6 +268,28 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
       transitively; accepted (winit drawing its own title bars). Synthetic key events dropped.
     - Window tests need the main thread: `tests/window.rs` with `harness = false`, opt-in via
       `TANTU_WINDOW_TESTS=1`. Passed locally on Wayland and X11; not run in CI.
+29. **wgpu renderer** (2026-10-06, spec `docs/specs/render-wgpu/renderer.md`, open questions
+    decided in autopilot):
+    - wgpu 30 (MSRV 1.87), `pollster`; `new_offscreen` (readback via `snapshot`) and
+      `for_window` (any raw-window-handle 0.6 window, so no dependency on the platform crates;
+      the platform's `SurfaceTarget` passes straight in). wgpu's env vars apply (`WGPU_BACKEND`).
+    - Rules are the software renderer's, restated; the tests reuse its pixel probes. Passed on
+      Vulkan (Intel Iris Xe), Vulkan (llvmpipe) and GL locally. Linux CI installs lavapipe and
+      sets `TANTU_REQUIRE_GPU=1`; Windows/macOS run the tests only if an adapter is found.
+    - Rendering: a frame is planned (ops + instance data) then encoded in order. Rounded-rect
+      SDF quads for fills and strokes, Evan Wallace's closed-form blurred rounded rect for
+      shadows, R8 clip masks (parent × clip), layer offscreens with source-atop overlay,
+      `Rgba8Unorm`/non-sRGB surfaces so blending matches the software renderer.
+    - Anti-aliasing width comes from the derivatives of the local position (the distance's own
+      gradient jumps at corners and left fully covered corner pixels at 85 %).
+    - Validation errors are caught (`on_uncaptured_error`) and returned from `render`.
+    - Custom handlers get device, queue, encoder, target view, transform and a scissor-sized
+      clip box.
+30. **scene-window demo** (2026-10-06, spec `docs/specs/examples/scene-window.md`): the first
+    runnable example; depends on the crates directly until the facade exists (agreed with the
+    user as a Phase 1 exception to "examples depend only on `tantu`"). Workspace members now
+    include `examples/*`. Its frame from wgpu and from the software renderer differ in 0.14 % of
+    pixels by more than 8 levels.
 
 ## Commit log
 
@@ -334,20 +362,28 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `f049a73` | impl: tantu-platform types and `FakePlatform` |
 | `f025907` | test: tantu-platform-winit, 8 failing conversion tests + opt-in window test |
 | `754fd93` | impl: tantu-platform-winit shell; PLAN.md platform item ticked |
-| _this commit_ | docs: HANDOFF.md for the end of the platform item |
+| `89f6cba` | docs: HANDOFF.md for the end of the platform item |
+| `b5d8997` | chore: MSRV and toolchain 1.87 (for wgpu 30) |
+| `adee517` | spec: tantu-render-wgpu (RENDER-WGPU-01..17); PLAN.md demo item |
+| `76ddc5c` | test: wgpu renderer, 17 failing tests |
+| `af293d6` | spec: wgpu anti-aliasing width and backend selection notes |
+| `26c2176` | impl: tantu-render-wgpu |
+| `09ad152` | chore: lavapipe and `TANTU_REQUIRE_GPU=1` in Linux CI |
+| `d774f96` | spec: scene-window demo (SCENE-WINDOW-01..03) |
+| `caa9a2c` | test: scene-window, 3 failing tests |
+| `18b09b0` | impl: scene-window demo |
+| _this commit_ | docs: HANDOFF.md for the wgpu renderer and the demo |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 1 in PLAN.md)
 
-1. `tantu-render-wgpu` (spec first): rects, rounded rects, borders, shadows, clips, images,
-   layers, from a `SurfaceTarget` or an offscreen texture. wgpu's MSRV may force a toolchain bump
-   (decision 12). GPU tests may not run in CI; an offscreen-texture readback test can run where a
-   GPU or a software adapter (lavapipe/WARP) exists.
-2. The Phase 1 milestone: render the five reference Scenes from
-   `crates/tantu-render-soft/tests/goldens.rs` with wgpu and diff them against the soft goldens.
-3. Then Phase 2 starts with `tantu-layout`.
+1. The Phase 1 milestone (spec first): render the five reference Scenes from
+   `crates/tantu-render-soft/tests/goldens.rs` (and the demo frame) with wgpu and diff them
+   against the soft goldens. Exact equality isn't possible (anti-aliasing and blur differ); the
+   spec needs a tolerance and an allowed fraction of differing edge pixels.
+2. Then Phase 2 starts with `tantu-layout`.
 
 ## Open questions
 
@@ -356,8 +392,13 @@ that with the real hash from `git log`.
   but the AGENTS.md table lists only `scene, text` for the render crates, and the code-to-docs
   skill flags it. Proposal: say in AGENTS.md that every crate may depend on `tantu-core`, or add
   `core` to those rows. Needs your OK (AGENTS.md changes are proposed first).
-- **Autopilot decisions to review:** decisions 26 (render-soft) and 28 (platform), as well as
-  20/21 and ADR 0007.
+- **Autopilot decisions to review:** decisions 26 (render-soft), 28 (platform) and 29 (wgpu), as
+  well as 20/21 and ADR 0007.
+- **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
+  copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
+  `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
+  change.
+- **`tantu-render-wgpu` also depends on `tantu-core` directly** (same question as above).
 - **CLAUDE.md mention of the skill** (proposed, not applied): "`/code-to-docs`
   (`.claude/skills/code-to-docs/`) generates the interactive docs page
   `docs/interactive/index.html` from the repo (read-only; it reports spec-coverage and
