@@ -192,8 +192,10 @@ Not rules; they explain how the rules are met.
   format such as `Bgra8Unorm`) so blending happens on sRGB-encoded values, as in the software
   renderer and Flutter. Colors and images are premultiplied before upload.
 - **Shapes.** Fills, strokes and shadows are instanced quads whose fragment shader evaluates a
-  rounded-rect signed distance in the shape's local space; coverage comes from the distance over
-  its screen-space derivative (about one pixel of anti-aliasing). Strokes are the difference of
+  rounded-rect signed distance in the shape's local space; coverage is the distance divided by
+  the size of a device pixel in local units (from the screen-space derivatives of the local
+  position, which are exact under affine transforms; the distance's own gradient jumps at
+  corners and made fully covered corner pixels come out at 85 %). Strokes are the difference of
   the outer and inner shapes. Shadows use the closed-form Gaussian of a blurred rounded rect
   (Evan Wallace's approximation).
 - **Clips.** Each open clip has an `R8Unorm` coverage mask the size of the target: the parent mask
@@ -203,6 +205,8 @@ Not rules; they explain how the rules are met.
   a source-atop blend and the texture is composited with the layer opacity.
 - **Huge coordinates.** Device-space positions are clamped to ±2^24, like the software renderer.
 - **Batching.** Consecutive shapes are batched into one draw until a scope or pipeline change.
+- **Backend choice.** wgpu's environment variables apply (`WGPU_BACKEND=vulkan|gl|metal|dx12`,
+  and so on). Tests were run on Vulkan (Intel and llvmpipe) and GL.
 
 ## Performance and allocation
 
