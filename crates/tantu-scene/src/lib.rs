@@ -9,6 +9,9 @@
 //! layers are scopes (`push_*` … `pop`); [`SceneBuilder::finish`] orders entries by z-index
 //! within each scope. The spec is `docs/specs/scene/scene.md`.
 //!
+//! Backends implement [`Renderer`] and look the Scene's image and font handles up in
+//! [`Resources`] (spec `docs/specs/scene/renderer.md`).
+//!
 //! ```
 //! use tantu_core::{Color, Rect, Size};
 //! use tantu_scene::{Clip, Command, Scene};
@@ -29,6 +32,8 @@
 
 pub mod command;
 pub mod handles;
+pub mod renderer;
+pub mod resources;
 pub mod scene;
 
 pub use command::{
@@ -36,4 +41,6 @@ pub use command::{
     ImageSampling, Layer, RoundedRect,
 };
 pub use handles::{CustomKind, ElementId, FontId, ImageId};
+pub use renderer::{RenderError, RenderReport, Renderer};
+pub use resources::{FontData, ImageData, ResourceError, Resources};
 pub use scene::{Damage, Scene, SceneBuilder, SceneError};
