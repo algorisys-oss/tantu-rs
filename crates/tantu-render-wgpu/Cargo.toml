@@ -12,5 +12,11 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+tantu-core = { workspace = true }
 tantu-scene = { workspace = true }
 tantu-text = { workspace = true }
+wgpu = "30.0.1"
+# Blocks on wgpu's async adapter, device and buffer-mapping requests.
+pollster = "0.4.0"
+raw-window-handle = "0.6.2"
+
