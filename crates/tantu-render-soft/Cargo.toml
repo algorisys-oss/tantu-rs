@@ -12,5 +12,10 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+tantu-core = { workspace = true }
 tantu-scene = { workspace = true }
 tantu-text = { workspace = true }
+# CPU rasterizer. PNG support off: `png` below does lossless straight-alpha I/O.
+tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd"] }
+png = "0.18.1"
+
