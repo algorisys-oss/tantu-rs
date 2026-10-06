@@ -407,8 +407,8 @@ and golden tests in their own specs.
   glyphs, custom bytes, damage rects or scope depth than an earlier frame does not allocate.
 - `finish` is O(n) when no scope has entries with different z-indexes, O(n log n) otherwise. The
   sort's scratch space is kept in the Scene.
-- `size_of::<Entry>()` should stay at or below 64 bytes; checked by a test, but not a promise to
-  users.
+- `size_of::<Entry>()` should stay at or below 96 bytes (88 on 64-bit targets: `BoxShadow`, the
+  largest command, is 64 bytes on its own); checked by a test, but not a promise to users.
 
 ## Open questions
 
@@ -427,6 +427,11 @@ Resolved (2026-10-06, the proposals were accepted):
    Scene snapshots in tests need it. `FORMAT_VERSION` exists from the start.
 5. **Unbalanced scopes.** `finish` auto-closes and returns `Err` (always renderable, bug still
    visible), rather than a `debug_assert!`.
+
+Resolved later (2026-10-06):
+
+8. **Entry size budget** (found while writing the tests): 64 bytes was not reachable without
+   boxing commands, since `BoxShadow` alone is 64 bytes. The budget is now 96.
 
 Deferred:
 
