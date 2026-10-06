@@ -13,3 +13,6 @@ workspace = true
 
 [dependencies]
 tantu-core = { workspace = true }
+# Window and display handles for renderers (wgpu, softbuffer, AccessKit take these).
+raw-window-handle = "0.6.2"
+
