@@ -29,6 +29,7 @@
 
 #![forbid(unsafe_code)]
 
+mod blur;
 mod diff;
 mod png_io;
 mod renderer;

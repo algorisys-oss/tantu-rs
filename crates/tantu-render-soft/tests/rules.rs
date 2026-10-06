@@ -210,7 +210,7 @@ fn checker_image() -> ImageData {
             255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 128,
         ],
     )
-    .unwrap()
+    .expect("2×2 RGBA8")
 }
 
 #[test]

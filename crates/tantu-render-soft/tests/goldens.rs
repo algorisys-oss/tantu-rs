@@ -185,7 +185,7 @@ fn golden_clips_and_transforms() {
         b.fill_rect(r(0.0, 0.0, 100.0, 100.0), Color::from_rgb8(250, 230, 200));
         b.push_transform(Affine::translate(Vec2::new(50.0, 50.0)));
         for i in 0..6 {
-            b.push_transform(Affine::rotate(i as f32 * 0.5236));
+            b.push_transform(Affine::rotate(i as f32 * std::f32::consts::FRAC_PI_6));
             b.push_clip(Clip::Rect(r(0.0, -4.0, 60.0, 8.0)));
             b.fill_rect(
                 r(5.0, -10.0, 50.0, 20.0),

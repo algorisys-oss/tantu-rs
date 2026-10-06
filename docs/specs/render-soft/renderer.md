@@ -1,6 +1,6 @@
 # Software renderer (tiny-skia)
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-render-soft`
 - **Plan item:** Phase 1, "`tantu-render-soft`: tiny-skia renderer, PNG output, golden-image
   helpers"
