@@ -79,7 +79,7 @@ faster or more portable without changing how apps are written.
 - [x] `tantu-platform` trait + `tantu-platform-winit`: window, resize, DPI, pointer, keyboard
   - [x] `tantu-platform`: `Platform` trait, window/input event types, `FakePlatform` for tests (spec `docs/specs/platform/platform.md`)
   - [x] `tantu-platform-winit`: winit 0.30 shell, event conversion, window handles for renderers (spec `docs/specs/platform-winit/shell.md`)
-- [ ] `tantu-render-wgpu`: rects, rounded rects, borders, shadows, clips, images (spec `docs/specs/render-wgpu/renderer.md`)
+- [x] `tantu-render-wgpu`: rects, rounded rects, borders, shadows, clips, images (spec `docs/specs/render-wgpu/renderer.md`)
 - [ ] `examples/scene-window`: Phase 1 demo, a hand-built Scene drawn in a winit window with wgpu (depends on the crates directly until the `tantu` facade exists in Phase 2)
 - [ ] **Milestone:** a hand-built Scene renders identically in wgpu and software (golden diff)
 

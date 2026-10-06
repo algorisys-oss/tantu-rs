@@ -1,6 +1,6 @@
 # GPU renderer (wgpu)
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-render-wgpu`
 - **Plan item:** Phase 1, "`tantu-render-wgpu`: rects, rounded rects, borders, shadows, clips,
   images"

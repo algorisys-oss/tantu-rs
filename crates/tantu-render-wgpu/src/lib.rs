@@ -26,6 +26,7 @@
 
 #![forbid(unsafe_code)]
 
+mod gpu;
 mod renderer;
 
 pub use renderer::{CreateError, CustomCanvas, CustomHandler, WgpuRenderer};

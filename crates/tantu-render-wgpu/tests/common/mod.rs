@@ -21,6 +21,7 @@ pub fn scene(w: f32, h: f32, paint: impl FnOnce(&mut SceneBuilder<'_>)) -> Scene
 
 /// An offscreen renderer, or `None` (test skipped) when there is no GPU adapter, unless
 /// `TANTU_REQUIRE_GPU=1` asks for a failure instead.
+#[allow(clippy::print_stderr)] // A helper, not a #[test]: say why the test did nothing.
 pub fn gpu(w: u32, h: u32) -> Option<WgpuRenderer> {
     match WgpuRenderer::new_offscreen(w, h) {
         Ok(renderer) => Some(renderer),
