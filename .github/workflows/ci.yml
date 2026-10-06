@@ -38,6 +38,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2
+      # Mesa's lavapipe: a software Vulkan driver, so the wgpu tests run (and must run) on Linux.
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers
+          echo "TANTU_REQUIRE_GPU=1" >> "$GITHUB_ENV"
+          echo "WGPU_BACKEND=vulkan" >> "$GITHUB_ENV"
       - run: cargo test --workspace --all-features
 
   spec-coverage:
