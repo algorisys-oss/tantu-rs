@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use crate::handles::CustomKind;
 use crate::resources::Resources;
 use crate::scene::Scene;
 
@@ -24,6 +25,22 @@ impl RenderReport {
     /// True if every count is 0.
     pub fn is_clean(&self) -> bool {
         *self == RenderReport::default()
+    }
+
+    /// The report every renderer gives for `scene` with `resources`, before any
+    /// backend-specific failures (an image that couldn't be uploaded, a font that couldn't be
+    /// parsed), which the backend adds on top. `handles_custom` says whether the renderer has a
+    /// handler for a kind.
+    ///
+    /// Non-finite transforms and clips hide their scope; draw commands with non-finite values
+    /// are invalid; then missing images and fonts and unhandled custom kinds are counted. Does
+    /// not allocate.
+    pub fn for_scene(
+        scene: &Scene,
+        resources: &Resources,
+        handles_custom: &dyn Fn(CustomKind) -> bool,
+    ) -> RenderReport {
+        todo!()
     }
 }
 
