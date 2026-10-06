@@ -5,21 +5,28 @@ whole history. Update this file in every commit (see `AGENTS.md` → General rul
 
 _Last updated: 2026-10-06_
 
-## Resume here (session of 2026-10-06)
+## Resume here (session of 2026-10-06, later)
 
-**Phase 1 has started; `tantu-scene` is done.** The PLAN.md item was split in two, each with
-its own spec, both Implemented:
+**Phase 1: `tantu-scene`, `tantu-render-headless` and `tantu-render-soft` are done.** Specs, all
+Implemented:
 
-- `docs/specs/scene/scene.md`: the `Scene` display list and `SceneBuilder` (SCENE-SCENE-01..24)
-- `docs/specs/scene/renderer.md`: `Resources`, `ImageData`/`FontData`, the `Renderer` trait,
-  `RenderReport`/`RenderError` (SCENE-RES-01..10, SCENE-RENDER-01..03)
+- `docs/specs/scene/scene.md` and `docs/specs/scene/renderer.md` (now with the shared
+  `RenderReport::for_scene` counting, SCENE-RENDER-04..08)
+- `docs/specs/render-headless/recorder.md` (RENDER-HEADLESS-01..10)
+- `docs/specs/render-soft/renderer.md` (RENDER-SOFT-01..26, five golden PNGs in
+  `crates/tantu-render-soft/tests/goldens/`, refreshed with `TANTU_UPDATE_GOLDENS=1`)
 
-Both specs also hold a normative, unnumbered section (drawing semantics, renderer contract)
-that the renderer specs must turn into numbered rules and golden tests. The next item is
-`tantu-render-headless` and `tantu-render-soft`, starting with a spec, which stops for review.
+The render-soft open questions were **decided in autopilot** (the user said "your pick and
+continue"): no text until Phase 2 (glyph runs count as `missing_fonts`), tiny-skia types in the
+custom-handler API, goldens in plain `cargo test` with tolerance 2, device-space blur sigma,
+target-sized layer offscreens. Review them (decision 26).
 
-The branch `phase1/scene` was fast-forward merged into `main` and pushed. Start the next item
-on a new branch off `main` (e.g. `phase1/render-soft`).
+Also added: the `code-to-docs` skill (`.claude/skills/code-to-docs/`), which generates an
+interactive documentation page at `docs/interactive/index.html` (gitignored). Run it with
+`/code-to-docs`.
+
+Next: `tantu-platform` + `tantu-platform-winit` (spec first, stops for review unless the user
+says otherwise). Start on a new branch off `main` (e.g. `phase1/platform`).
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -28,13 +35,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **Name:** **Tantu** (pronounced "tan-too", Sanskrit for "thread"). Tagline: *Compose once. Render
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
-- **Phase:** Phase 0 (Foundations) is done; Phase 1 (Pixels on screen) is in progress, with
-  `tantu-scene` done (specs `docs/specs/scene/scene.md` and `renderer.md`, both Implemented). The workspace skeleton exists: 16 empty crates under `crates/`
+- **Phase:** Phase 0 (Foundations) is done; Phase 1 (Pixels on screen) is in progress:
+  `tantu-scene`, `tantu-render-headless` and `tantu-render-soft` are done. Left in Phase 1: the
+  platform crates, `tantu-render-wgpu` and the golden-diff milestone. The workspace skeleton exists: 16 empty crates under `crates/`
   (the AGENTS.md table), with the internal dependency edges from that table already declared.
   `tantu-core` is complete: geometry, color and arena modules (specs in `docs/specs/core/`,
   all Implemented). `tantu-reactive` is implemented (specs `docs/specs/reactive/signals.md` and
   `benchmarks.md`, both Implemented; `cargo bench -p tantu-reactive`). `tantu-scene` is
-  implemented (see decisions 23 and 24). The other crates are still empty.
+  implemented (see decisions 23 and 24), and so are `tantu-render-headless` and
+  `tantu-render-soft` (decisions 25 and 26). The other crates are still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -195,6 +204,36 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     - Custom-command handlers are registered per backend crate (they need the backend's API).
     - No in-place image updates (add a new image, remove the old one); revisit for video and
       canvases.
+    - **Shared counting** (amendment, agreed): `RenderReport::for_scene(scene, resources,
+      handles_custom)` gives every backend the same counts. Non-finite transforms/clips count
+      once and hide their scope; non-finite draws are invalid; then missing images, fonts and
+      unhandled custom kinds. Backends add their own failures on top.
+25. **Headless renderer** (2026-10-06, spec `docs/specs/render-headless/recorder.md`, agreed):
+    records a `RecordedFrame` (Scene copy, size, scale factor, resources revision, report) per
+    frame, keeps them until `take_frames`, `register_custom` marks kinds handled,
+    `fail_next_render` injects one error. Rule ids `RENDER-HEADLESS-NN` (and `RENDER-SOFT-NN`).
+    `#![forbid(unsafe_code)]` even though render crates are exempt.
+26. **Software renderer** (2026-10-06, spec `docs/specs/render-soft/renderer.md`, open questions
+    decided in autopilot):
+    - `tiny-skia` 0.12 (std + simd, no png-format; BSD-3-Clause) and `png` 0.18 for lossless
+      straight-alpha PNGs (tiny-skia's PNG path premultiplies and loses precision).
+    - Everything is rasterized in device space; points are clamped to ±2^24 px because tiny-skia
+      asserts on paths spanning ~±1e30.
+    - Box-shadow blur: three box blurs per axis on a padded mask (margin 3 sigma, capped at the
+      target size), sigma scaled by the transform's average scale.
+    - Layers draw into pooled target-sized offscreens; overlay color is a SourceAtop fill.
+    - No text in Phase 1: glyph runs with a present font count as `missing_fonts`.
+    - Custom handlers get `tiny_skia` types (re-exported as `tantu_render_soft::tiny_skia`).
+    - Goldens run in plain `cargo test`, tolerance 2, no differing pixels. A 1e-6 rad change
+      moved 9 pixel-boundary edge pixels by 14, so cross-architecture CI may need a small
+      differing-pixel allowance.
+    - Depends on `tantu-core` directly (see open questions).
+27. **code-to-docs skill** (2026-10-06): `.claude/skills/code-to-docs/` generates one
+    self-contained interactive HTML page (architecture and dependency graph, crate panels, spec
+    explorer with rule-to-test coverage, ADRs, roadmap, API search) from the repo, read-only.
+    Python helpers outside the Rust workspace; `verify.py` checks the page against
+    `cargo xtask spec-coverage` and `cargo metadata`. The page, `.claude/worktrees/` and
+    `.playwright-mcp/` are gitignored.
 
 ## Commit log
 
@@ -248,22 +287,45 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `eca7815` | spec: tantu-scene Renderer trait and resources (SCENE-RES-01..10, SCENE-RENDER-01..03) |
 | `ab6e0a0` | test: Renderer trait and resources, stubs + 13 failing tests |
 | `24f49df` | impl: Renderer trait and resources; spec Implemented, PLAN.md tantu-scene ticked |
-| _this commit_ | docs: HANDOFF.md for the end of the tantu-scene item |
+| `6d6e608` | docs: HANDOFF.md for the end of the tantu-scene item |
+| `ae77083` | spec: shared `RenderReport` counting (SCENE-RENDER-04..08); PLAN.md render item split in three |
+| `4202f9e` | test: shared counting, 5 failing tests |
+| `686f7b5` | impl: `RenderReport::for_scene` |
+| `da5b5a5` | spec: tantu-render-headless (RENDER-HEADLESS-01..10) |
+| `1fdb904` | test: headless renderer, 10 failing tests + doctest |
+| `b6e4c08` | test: compare a NaN-holding Scene by Debug output |
+| `10bdd22` | impl: tantu-render-headless |
+| `52782bf` | spec: tantu-render-soft (RENDER-SOFT-01..26), tiny-skia + png |
+| `191e5c9` | test: render-soft, 31 failing tests + doctest |
+| `123b868` | spec: device-space coordinate clamping (RENDER-SOFT-24) |
+| `33024eb` | impl: tantu-render-soft, five goldens; PLAN.md render item ticked |
+| `6e65b53` | chore: code-to-docs skill, .gitignore entries |
+| _this commit_ | docs: HANDOFF.md for the end of the render item |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 1 in PLAN.md)
 
-1. `tantu-render-headless` (records Scenes for tests) and `tantu-render-soft` (tiny-skia → PNG).
-   Probably one spec each; split the PLAN.md item first. The soft renderer's spec turns the
-   drawing semantics (scene.md) and the renderer contract (renderer.md) into numbered rules
-   with golden PNG tests. It adds `tiny-skia` (allowed only in `tantu-render-*`) and probably
-   `png` for goldens; check both against the dependency rule.
-2. Then `tantu-platform` + `tantu-platform-winit`, then `tantu-render-wgpu`, then the Phase 1
-   golden-diff milestone.
+1. `tantu-platform` (the `Platform` trait: windows, resize, DPI, pointer, keyboard; ADR 0004)
+   and `tantu-platform-winit`. Probably two specs. Window tests need a display; decide how CI
+   covers them (headless platform double, `#[ignore]`d smoke tests).
+2. `tantu-render-wgpu`, then the milestone: render the five reference Scenes from
+   `tantu-render-soft/tests/goldens.rs` in wgpu and diff them against the soft goldens. GPU tests
+   may not run in CI.
 
 ## Open questions
+
+- **AGENTS.md table vs. `tantu-core`.** `tantu-render-soft` depends on `tantu-core` directly (its
+  API uses `Rect`, `Affine`, `Color`). `docs/architecture.md` says core "sits under every crate",
+  but the AGENTS.md table lists only `scene, text` for the render crates, and the code-to-docs
+  skill flags it. Proposal: say in AGENTS.md that every crate may depend on `tantu-core`, or add
+  `core` to those rows. Needs your OK (AGENTS.md changes are proposed first).
+- **Autopilot decisions to review:** decision 26 (render-soft) as well as 20/21 and ADR 0007.
+- **CLAUDE.md mention of the skill** (proposed, not applied): "`/code-to-docs`
+  (`.claude/skills/code-to-docs/`) generates the interactive docs page
+  `docs/interactive/index.html` from the repo (read-only; it reports spec-coverage and
+  dependency-rule problems, it doesn't fix them)."
 
 - ADR 0007 (reads of disposed handles panic) and the reactive shape (decision 20) were decided in
   autopilot. Confirm or change them before `tantu-view` depends on them.
