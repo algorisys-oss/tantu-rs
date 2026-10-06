@@ -367,6 +367,7 @@ dependencies = [
 name = "tantu-render-headless"
 version = "0.0.0"
 dependencies = [
+ "tantu-core",
  "tantu-scene",
 ]
 

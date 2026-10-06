@@ -13,3 +13,6 @@ workspace = true
 
 [dependencies]
 tantu-scene = { workspace = true }
+
+[dev-dependencies]
+tantu-core = { workspace = true }
