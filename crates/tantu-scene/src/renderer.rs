@@ -2,6 +2,9 @@
 
 use std::fmt;
 
+use tantu_core::{Color, Rect};
+
+use crate::command::{Clip, Command, RoundedRect};
 use crate::handles::CustomKind;
 use crate::resources::Resources;
 use crate::scene::Scene;
@@ -40,8 +43,102 @@ impl RenderReport {
         resources: &Resources,
         handles_custom: &dyn Fn(CustomKind) -> bool,
     ) -> RenderReport {
-        todo!()
+        let mut report = RenderReport::default();
+        // Depth inside a scope hidden by a non-finite transform or clip; 0 when not hidden.
+        let mut hidden = 0usize;
+        for entry in scene.entries() {
+            let command = &entry.command;
+            if hidden > 0 {
+                match command {
+                    Command::PushClip(_) | Command::PushTransform(_) | Command::PushLayer(_) => {
+                        hidden += 1;
+                    }
+                    Command::PopClip | Command::PopTransform | Command::PopLayer => hidden -= 1,
+                    _ => {}
+                }
+                continue;
+            }
+            let valid = match command {
+                Command::PushTransform(transform) => transform.is_finite(),
+                Command::PushClip(clip) => match clip {
+                    Clip::Rect(rect) => rect.is_finite(),
+                    Clip::RoundedRect(shape) => rounded_rect_is_finite(shape),
+                },
+                Command::PushLayer(_)
+                | Command::PopClip
+                | Command::PopTransform
+                | Command::PopLayer => true,
+                Command::Fill { shape, color } => {
+                    rounded_rect_is_finite(shape) && color_is_finite(*color)
+                }
+                Command::Stroke {
+                    shape,
+                    width,
+                    color,
+                } => rounded_rect_is_finite(shape) && width.is_finite() && color_is_finite(*color),
+                Command::BoxShadow(shadow) => {
+                    rounded_rect_is_finite(&shadow.shape)
+                        && color_is_finite(shadow.color)
+                        && shadow.offset.is_finite()
+                        && shadow.blur_radius.is_finite()
+                        && shadow.spread_radius.is_finite()
+                }
+                Command::Image(image) => {
+                    image.dest.is_finite()
+                        && image.src.is_none_or(Rect::is_finite)
+                        && image.opacity.is_finite()
+                }
+                Command::GlyphRun(run) => {
+                    run.font_size.is_finite()
+                        && color_is_finite(run.color)
+                        && run.origin.is_finite()
+                        && scene
+                            .glyphs(run)
+                            .iter()
+                            .all(|g| g.x.is_finite() && g.y.is_finite())
+                }
+                Command::Custom(custom) => custom.bounds.is_finite(),
+            };
+            if !valid {
+                bump(&mut report.invalid_commands);
+                if matches!(command, Command::PushClip(_) | Command::PushTransform(_)) {
+                    hidden = 1;
+                }
+                continue;
+            }
+            match command {
+                Command::Image(image) if resources.image(image.image).is_none() => {
+                    bump(&mut report.missing_images);
+                }
+                Command::GlyphRun(run) if resources.font(run.font).is_none() => {
+                    bump(&mut report.missing_fonts);
+                }
+                Command::Custom(custom) if !handles_custom(custom.kind) => {
+                    bump(&mut report.unhandled_custom);
+                }
+                _ => {}
+            }
+        }
+        report
     }
+}
+
+/// Adds 1, saturating at `u32::MAX` (SCENE-RENDER-08).
+fn bump(count: &mut u32) {
+    *count = count.saturating_add(1);
+}
+
+fn color_is_finite(color: Color) -> bool {
+    color.r.is_finite() && color.g.is_finite() && color.b.is_finite() && color.a.is_finite()
+}
+
+fn rounded_rect_is_finite(shape: &RoundedRect) -> bool {
+    let radii = shape.radii;
+    shape.rect.is_finite()
+        && radii.top_left.is_finite()
+        && radii.top_right.is_finite()
+        && radii.bottom_right.is_finite()
+        && radii.bottom_left.is_finite()
 }
 
 /// Why a frame couldn't be rendered at all.

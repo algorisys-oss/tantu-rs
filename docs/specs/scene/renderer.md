@@ -1,6 +1,6 @@
 # Renderer trait and resources
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-scene`
 - **Plan item:** Phase 1, "`tantu-scene` → `Renderer` trait, image/font resource registry,
   custom-command handlers"

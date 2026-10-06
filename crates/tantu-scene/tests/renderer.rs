@@ -127,6 +127,9 @@ fn scene_with(paint: impl FnOnce(&mut SceneBuilder<'_>)) -> Scene {
     scene
 }
 
+/// Records some commands into a frame.
+type Paint = Box<dyn Fn(&mut SceneBuilder<'_>)>;
+
 fn no_custom(_: CustomKind) -> bool {
     false
 }
@@ -217,7 +220,7 @@ fn scene_render_05_non_finite_draw_commands_are_invalid() {
     };
 
     // Each closure records one draw command with one non-finite field.
-    let cases: Vec<Box<dyn Fn(&mut SceneBuilder<'_>)>> = vec![
+    let cases: Vec<Paint> = vec![
         Box::new(move |b| b.fill_rect(bad, Color::BLACK)),
         Box::new(move |b| {
             b.fill(

@@ -73,7 +73,7 @@ faster or more portable without changing how apps are written.
   - [x] `Scene` and its builder: command set (with element id + z-index), clip/transform/layer scopes, overlay color, glyph runs, custom commands, resource handle types, damage, culling query (spec `docs/specs/scene/scene.md`)
   - [x] `Renderer` trait, image/font resource registry, custom-command handlers (spec `docs/specs/scene/renderer.md`)
 - [ ] `tantu-render-headless` and `tantu-render-soft`:
-  - [ ] Shared `RenderReport` counting in `tantu-scene` (amends spec `docs/specs/scene/renderer.md`)
+  - [x] Shared `RenderReport` counting in `tantu-scene` (amends spec `docs/specs/scene/renderer.md`)
   - [ ] `tantu-render-headless`: recording renderer for tests (spec `docs/specs/render-headless/recorder.md`)
   - [ ] `tantu-render-soft`: tiny-skia renderer, PNG output, golden-image helpers (spec `docs/specs/render-soft/renderer.md`)
 - [ ] `tantu-platform` trait + `tantu-platform-winit`: window, resize, DPI, pointer, keyboard
