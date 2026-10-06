@@ -12,4 +12,13 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+tantu-core = { workspace = true }
 tantu-platform = { workspace = true }
+# Default features: X11, Wayland (loaded at run time), client-side decorations, rwh 0.6.
+winit = "0.30.13"
+
+# Opens a real window; needs the main thread, so it runs without the test harness.
+[[test]]
+name = "window"
+harness = false
+
