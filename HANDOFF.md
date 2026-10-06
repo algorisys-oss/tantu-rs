@@ -3,24 +3,23 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-09-30_
+_Last updated: 2026-10-06_
 
-## Resume here (session of 2026-09-30)
+## Resume here (session of 2026-10-06)
 
-**Phase 0 is complete.** On `main`: the Cargo workspace skeleton, CI (green on Linux, Windows and
-macOS), the spec template, ADRs 0001–0006, the one-commit-per-step workflow rule and the
-spec-coverage check (`cargo xtask spec-coverage`, also a CI job), and `tantu-core`, now complete:
-geometry (`Point`, `Vec2`, `Size`, `Rect`, `EdgeInsets`, `Affine`), `Color`, and `Id` with the
-generational `Arena<T>`, `tantu-reactive` (signals, memos, effects, batch, scopes) and its
-micro-benchmarks. The next item is Phase 1, starting with the `tantu-scene` spec.
+**Phase 1 has started; `tantu-scene` is done.** The PLAN.md item was split in two, each with
+its own spec, both Implemented:
 
-Everything in `tantu-reactive` and the benchmarks was decided in autopilot (the user asked for
-Phase 0 to be finished without stopping for review). Review decisions 20 and 21, and ADR 0007,
-before Phase 2 builds on them.
+- `docs/specs/scene/scene.md`: the `Scene` display list and `SceneBuilder` (SCENE-SCENE-01..24)
+- `docs/specs/scene/renderer.md`: `Resources`, `ImageData`/`FontData`, the `Renderer` trait,
+  `RenderReport`/`RenderError` (SCENE-RES-01..10, SCENE-RENDER-01..03)
 
-Paused here at the end of Phase 0 (2026-09-30). CI is green on `main`. The working branch
-`phase0/reactive` has been fast-forward merged and can be deleted; start Phase 1 on a new branch
-off `main` (e.g. `phase1/scene`). The first Phase 1 step is a spec, which stops for review.
+Both specs also hold a normative, unnumbered section (drawing semantics, renderer contract)
+that the renderer specs must turn into numbered rules and golden tests. The next item is
+`tantu-render-headless` and `tantu-render-soft`, starting with a spec, which stops for review.
+
+The branch `phase1/scene` was fast-forward merged into `main` and pushed. Start the next item
+on a new branch off `main` (e.g. `phase1/render-soft`).
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -29,12 +28,13 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **Name:** **Tantu** (pronounced "tan-too", Sanskrit for "thread"). Tagline: *Compose once. Render
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
-- **Phase:** Phase 0 (Foundations) is done; Phase 1 (Pixels on screen) is next. The workspace skeleton exists: 16 empty crates under `crates/`
+- **Phase:** Phase 0 (Foundations) is done; Phase 1 (Pixels on screen) is in progress, with
+  `tantu-scene` done (specs `docs/specs/scene/scene.md` and `renderer.md`, both Implemented). The workspace skeleton exists: 16 empty crates under `crates/`
   (the AGENTS.md table), with the internal dependency edges from that table already declared.
   `tantu-core` is complete: geometry, color and arena modules (specs in `docs/specs/core/`,
   all Implemented). `tantu-reactive` is implemented (specs `docs/specs/reactive/signals.md` and
-  `benchmarks.md`, both Implemented; `cargo bench -p tantu-reactive`). The other crates are
-  still empty.
+  `benchmarks.md`, both Implemented; `cargo bench -p tantu-reactive`). `tantu-scene` is
+  implemented (see decisions 23 and 24). The other crates are still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -161,6 +161,40 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     - Memo reads recurse: a chain overflows a 2 MiB stack at about 1 200 levels in debug and 4 000
       in release. The spec promises 500 in debug; an iterative update is deferred.
 22. (Looked at and dropped: Liferay's clayui.com. That was the wrong Clay.)
+23. **Scene shape** (2026-10-06, spec `docs/specs/scene/scene.md`, agreed):
+    - A reusable `Scene` recorded through `scene.begin(size) -> SceneBuilder`; `finish()` ends
+      the frame. A dropped builder leaves the Scene empty. Buffers are kept between frames, and
+      recording does not allocate once warm (checked with a counting allocator).
+    - Each `Entry` = command + `Option<ElementId>` + `z_index: i32`. Element id and z-index are
+      sticky builder state, restored by `pop`.
+    - Clip, transform and layer are scopes (`push_*`/`pop`). **Z-index orders siblings within a
+      scope** (CSS stacking contexts); a nested scope moves as one unit. Popups that must escape
+      a clip go through `Overlay` at the root, as in Flutter.
+    - Unbalanced scopes don't panic: `finish` auto-closes and returns `Err(SceneError)` with
+      counts; the Scene is always well-formed.
+    - Phase 1 commands: `Fill`/`Stroke` of a `RoundedRect` (zero radii = plain rect),
+      `BoxShadow` (Flutter's), `Image`, `GlyphRun` (glyphs in a side buffer), `Custom`
+      (kind + bounds + bytes in a side buffer). A layer = group opacity + optional overlay color
+      (source-atop). Gradients, paths, blend modes and inner shadows come later.
+    - `is_culled(bounds)` is a conservative query (transformed bounding box vs. clip bounding
+      boxes); recording never culls. Damage is `Full` or a list of rects.
+    - No serde yet; `Scene::FORMAT_VERSION = 1`.
+    - Two spec corrections while implementing: the `Entry` size budget is 96 bytes, not 64
+      (`BoxShadow` alone is 64), and `Scene::glyphs` only promises an empty slice for runs that
+      index past the buffer (a frame stamp would break Scene equality).
+24. **Renderer and resources shape** (2026-10-06, spec `docs/specs/scene/renderer.md`, agreed):
+    - `Resources` (one per app) holds `ImageData` (straight-alpha RGBA8 only) and `FontData`
+      (file bytes + face index, not parsed), with `Arc` buffers. Handles come from **one
+      process-wide atomic counter**, so they are unique across `Resources` and never reused.
+      `revision()` lets renderers prune their caches. No internal locking: the app runner
+      shares it (`Arc<RwLock<_>>`).
+    - `Renderer` is object-safe: `resize(width, height, scale_factor)` and
+      `render(&Scene, &Resources) -> Result<RenderReport, RenderError>`. Missing images, fonts,
+      custom handlers and invalid values are counted in `RenderReport`, not errors; `Err` is
+      only for target/backend failures.
+    - Custom-command handlers are registered per backend crate (they need the backend's API).
+    - No in-place image updates (add a new image, remove the old one); revisit for video and
+      canvases.
 
 ## Commit log
 
@@ -205,17 +239,29 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `13565b5` | test: reordered/repeated dependency reads and subscriber-list growth (pass on the old tracking) |
 | `1c2f2f7` | impl: dependency tracking without re-subscribing on every re-run (fixes quadratic fan-out/fan-in) |
 | `c1e019a` | impl: benchmark scenarios + criterion harness, baselines in the spec; Phase 0 ticked in PLAN.md |
-| _this commit_ | docs: HANDOFF.md refreshed for the next session |
+| `9aeba65` | docs: HANDOFF.md refreshed for the next session |
+| `6fd29d1` | spec: tantu-scene Scene and builder (SCENE-SCENE-01..24); PLAN.md tantu-scene item split in two |
+| `f01c8a3` | spec: `Entry` size budget of 96 bytes |
+| `5fa2047` | test: tantu-scene Scene and builder, stubs + 24 tests (23 failing on `todo!()`) + alloc test + doctest |
+| `c6a6f7e` | spec: `Scene::glyphs`/`custom_data` doc matches SCENE-SCENE-11 |
+| `8d204be` | impl: tantu-scene Scene and builder; spec Implemented |
+| `eca7815` | spec: tantu-scene Renderer trait and resources (SCENE-RES-01..10, SCENE-RENDER-01..03) |
+| `ab6e0a0` | test: Renderer trait and resources, stubs + 13 failing tests |
+| `24f49df` | impl: Renderer trait and resources; spec Implemented, PLAN.md tantu-scene ticked |
+| _this commit_ | docs: HANDOFF.md for the end of the tantu-scene item |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
-## Next steps (Phase 0 in PLAN.md)
+## Next steps (Phase 1 in PLAN.md)
 
-1. Phase 1: `docs/specs/scene/...` for `tantu-scene` (command set with element id + z-index,
-   layers, clip stack, overlay color, custom commands, `Renderer` trait, resource handles).
-   Split the PLAN.md item first if it is too big for one spec.
-2. Then `tantu-render-headless` and `tantu-render-soft`.
+1. `tantu-render-headless` (records Scenes for tests) and `tantu-render-soft` (tiny-skia → PNG).
+   Probably one spec each; split the PLAN.md item first. The soft renderer's spec turns the
+   drawing semantics (scene.md) and the renderer contract (renderer.md) into numbered rules
+   with golden PNG tests. It adds `tiny-skia` (allowed only in `tantu-render-*`) and probably
+   `png` for goldens; check both against the dependency rule.
+2. Then `tantu-platform` + `tantu-platform-winit`, then `tantu-render-wgpu`, then the Phase 1
+   golden-diff milestone.
 
 ## Open questions
 
@@ -223,6 +269,9 @@ that with the real hash from `git log`.
   autopilot. Confirm or change them before `tantu-view` depends on them.
 - `rust-toolchain.toml` has a local, uncommitted change (adds `rust-analyzer` to components).
   Commit it or drop it.
+- Glyph rendering in the soft renderer: tiny-skia has no text. Rasterizing glyphs needs a font
+  rasterizer (swash, per ADR 0005, or similar) in `tantu-render-soft`, or glyph runs are left
+  for Phase 2 and counted as `missing_fonts` until then. Decide in the render-soft spec.
 
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the
   first publish. Same for a domain / GitHub org name if wanted.
