@@ -1682,6 +1682,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "scene-window"
+version = "0.0.0"
+dependencies = [
+ "tantu-core",
+ "tantu-platform",
+ "tantu-platform-winit",
+ "tantu-render-soft",
+ "tantu-render-wgpu",
+ "tantu-scene",
+]
+
+[[package]]
 name = "scoped-tls"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

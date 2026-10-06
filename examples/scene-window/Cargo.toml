@@ -1,0 +1,25 @@
+[package]
+name = "scene-window"
+description = "Phase 1 demo: a hand-built Tantu Scene drawn with wgpu in a winit window."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# Phase 1 exception: examples normally depend only on the `tantu` facade, which arrives in
+# Phase 2 (spec docs/specs/examples/scene-window.md).
+[dependencies]
+tantu-core = { workspace = true }
+tantu-scene = { workspace = true }
+tantu-platform = { workspace = true }
+tantu-platform-winit = { workspace = true }
+tantu-render-wgpu = { workspace = true }
+
+[dev-dependencies]
+tantu-render-soft = { workspace = true }
