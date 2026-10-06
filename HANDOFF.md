@@ -7,26 +7,32 @@ _Last updated: 2026-10-06_
 
 ## Resume here (session of 2026-10-06, later)
 
-**Phase 1: `tantu-scene`, `tantu-render-headless` and `tantu-render-soft` are done.** Specs, all
-Implemented:
+**Phase 1: `tantu-scene`, the headless and software renderers, and the platform layer
+(`tantu-platform`, `tantu-platform-winit`) are done.** Left in Phase 1: `tantu-render-wgpu` and
+the golden-diff milestone. Specs, all Implemented:
 
 - `docs/specs/scene/scene.md` and `docs/specs/scene/renderer.md` (now with the shared
   `RenderReport::for_scene` counting, SCENE-RENDER-04..08)
 - `docs/specs/render-headless/recorder.md` (RENDER-HEADLESS-01..10)
 - `docs/specs/render-soft/renderer.md` (RENDER-SOFT-01..26, five golden PNGs in
   `crates/tantu-render-soft/tests/goldens/`, refreshed with `TANTU_UPDATE_GOLDENS=1`)
+- `docs/specs/platform/platform.md` (PLATFORM-TYPES-01..06, PLATFORM-FAKE-01..10)
+- `docs/specs/platform-winit/shell.md` (PLATFORM-WINIT-01..12; the real-window test runs with
+  `TANTU_WINDOW_TESTS=1 cargo test -p tantu-platform-winit --test window`)
 
-The render-soft open questions were **decided in autopilot** (the user said "your pick and
-continue"): no text until Phase 2 (glyph runs count as `missing_fonts`), tiny-skia types in the
+The render-soft and platform open questions were **decided in autopilot** (the user said "your
+pick and continue"). Render-soft: no text until Phase 2 (glyph runs count as `missing_fonts`), tiny-skia types in the
 custom-handler API, goldens in plain `cargo test` with tolerance 2, device-space blur sigma,
-target-sized layer offscreens. Review them (decision 26).
+target-sized layer offscreens. Platform: our own event types, logical positions and physical
+sizes, `CloseRequested` doesn't close, `FakePlatform` in `tantu-platform`, positive `y` scrolls
+down, winit 0.30.13, opt-in window tests. Review them (decisions 26 and 28).
 
 Also added: the `code-to-docs` skill (`.claude/skills/code-to-docs/`), which generates an
 interactive documentation page at `docs/interactive/index.html` (gitignored). Run it with
 `/code-to-docs`.
 
-Next: `tantu-platform` + `tantu-platform-winit` (spec first, stops for review unless the user
-says otherwise). Start on a new branch off `main` (e.g. `phase1/platform`).
+Next: `tantu-render-wgpu` (spec first), then the Phase 1 milestone. Start on a new branch off
+`main` (e.g. `phase1/wgpu`).
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -36,14 +42,16 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phase 0 (Foundations) is done; Phase 1 (Pixels on screen) is in progress:
-  `tantu-scene`, `tantu-render-headless` and `tantu-render-soft` are done. Left in Phase 1: the
-  platform crates, `tantu-render-wgpu` and the golden-diff milestone. The workspace skeleton exists: 16 empty crates under `crates/`
+  `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform` and
+  `tantu-platform-winit` are done. Left in Phase 1: `tantu-render-wgpu` and the golden-diff
+  milestone. The workspace skeleton exists: 16 empty crates under `crates/`
   (the AGENTS.md table), with the internal dependency edges from that table already declared.
   `tantu-core` is complete: geometry, color and arena modules (specs in `docs/specs/core/`,
   all Implemented). `tantu-reactive` is implemented (specs `docs/specs/reactive/signals.md` and
   `benchmarks.md`, both Implemented; `cargo bench -p tantu-reactive`). `tantu-scene` is
   implemented (see decisions 23 and 24), and so are `tantu-render-headless` and
-  `tantu-render-soft` (decisions 25 and 26). The other crates are still empty.
+  `tantu-render-soft` (decisions 25 and 26), and `tantu-platform` with `tantu-platform-winit`
+  (decision 28). The other crates are still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -234,6 +242,26 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     Python helpers outside the Rust workspace; `verify.py` checks the page against
     `cargo xtask spec-coverage` and `cargo metadata`. The page, `.claude/worktrees/` and
     `.playwright-mcp/` are gitignored.
+28. **Platform shape** (2026-10-06, specs `docs/specs/platform/platform.md` and
+    `docs/specs/platform-winit/shell.md`, open questions decided in autopilot):
+    - `Platform::run(self, &mut dyn PlatformHandler)`; the handler gets `started`,
+      `window_event` and `idle` with a `&mut dyn PlatformContext` (create/close windows, request
+      redraw, size, scale factor, title, `surface_target`, exit). winit's model: the shell owns
+      the loop.
+    - Tantu's own event types, Flutter/W3C-shaped: logical pointer positions, physical sizes in
+      `Resized`, `Key::Named`/`Character` (Space is `" "`), `Modifiers` as four bools, positive
+      wheel `y` scrolls down. Mouse only; IME, touch, clipboard, cursors come later.
+    - A new window always gets one `RedrawRequested`; read its size and scale factor from the
+      context (winit doesn't send an initial `Resized` everywhere). `CloseRequested` doesn't
+      close anything by itself.
+    - `SurfaceTarget = Arc<dyn WindowHandles>` (raw-window-handle 0.6), so `tantu-render-wgpu`
+      doesn't depend on the platform crates.
+    - `FakePlatform` (in `tantu-platform`) runs a handler against a script: coalesced redraw
+      rounds after each step, then `idle`, and a `FakeLog` of what the handler asked for.
+    - winit 0.30.13 with default features. Its Wayland decorations pull in tiny-skia 0.11
+      transitively; accepted (winit drawing its own title bars). Synthetic key events dropped.
+    - Window tests need the main thread: `tests/window.rs` with `harness = false`, opt-in via
+      `TANTU_WINDOW_TESTS=1`. Passed locally on Wayland and X11; not run in CI.
 
 ## Commit log
 
@@ -300,28 +328,36 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `123b868` | spec: device-space coordinate clamping (RENDER-SOFT-24) |
 | `33024eb` | impl: tantu-render-soft, five goldens; PLAN.md render item ticked |
 | `6e65b53` | chore: code-to-docs skill, .gitignore entries |
-| _this commit_ | docs: HANDOFF.md for the end of the render item |
+| `973ad62` | docs: HANDOFF.md for the end of the render item |
+| `181c490` | spec: tantu-platform trait and winit shell; PLAN.md platform item split in two |
+| `2ce952b` | test: tantu-platform, 16 failing tests + doctest |
+| `f049a73` | impl: tantu-platform types and `FakePlatform` |
+| `f025907` | test: tantu-platform-winit, 8 failing conversion tests + opt-in window test |
+| `754fd93` | impl: tantu-platform-winit shell; PLAN.md platform item ticked |
+| _this commit_ | docs: HANDOFF.md for the end of the platform item |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 1 in PLAN.md)
 
-1. `tantu-platform` (the `Platform` trait: windows, resize, DPI, pointer, keyboard; ADR 0004)
-   and `tantu-platform-winit`. Probably two specs. Window tests need a display; decide how CI
-   covers them (headless platform double, `#[ignore]`d smoke tests).
-2. `tantu-render-wgpu`, then the milestone: render the five reference Scenes from
-   `tantu-render-soft/tests/goldens.rs` in wgpu and diff them against the soft goldens. GPU tests
-   may not run in CI.
+1. `tantu-render-wgpu` (spec first): rects, rounded rects, borders, shadows, clips, images,
+   layers, from a `SurfaceTarget` or an offscreen texture. wgpu's MSRV may force a toolchain bump
+   (decision 12). GPU tests may not run in CI; an offscreen-texture readback test can run where a
+   GPU or a software adapter (lavapipe/WARP) exists.
+2. The Phase 1 milestone: render the five reference Scenes from
+   `crates/tantu-render-soft/tests/goldens.rs` with wgpu and diff them against the soft goldens.
+3. Then Phase 2 starts with `tantu-layout`.
 
 ## Open questions
 
-- **AGENTS.md table vs. `tantu-core`.** `tantu-render-soft` depends on `tantu-core` directly (its
-  API uses `Rect`, `Affine`, `Color`). `docs/architecture.md` says core "sits under every crate",
+- **AGENTS.md table vs. `tantu-core`.** `tantu-render-soft` (API uses `Rect`, `Affine`, `Color`)
+  and `tantu-platform-winit` (`Point`) depend on `tantu-core` directly. `docs/architecture.md` says core "sits under every crate",
   but the AGENTS.md table lists only `scene, text` for the render crates, and the code-to-docs
   skill flags it. Proposal: say in AGENTS.md that every crate may depend on `tantu-core`, or add
   `core` to those rows. Needs your OK (AGENTS.md changes are proposed first).
-- **Autopilot decisions to review:** decision 26 (render-soft) as well as 20/21 and ADR 0007.
+- **Autopilot decisions to review:** decisions 26 (render-soft) and 28 (platform), as well as
+  20/21 and ADR 0007.
 - **CLAUDE.md mention of the skill** (proposed, not applied): "`/code-to-docs`
   (`.claude/skills/code-to-docs/`) generates the interactive docs page
   `docs/interactive/index.html` from the repo (read-only; it reports spec-coverage and
