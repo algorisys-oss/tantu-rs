@@ -76,9 +76,9 @@ faster or more portable without changing how apps are written.
   - [x] Shared `RenderReport` counting in `tantu-scene` (amends spec `docs/specs/scene/renderer.md`)
   - [x] `tantu-render-headless`: recording renderer for tests (spec `docs/specs/render-headless/recorder.md`)
   - [x] `tantu-render-soft`: tiny-skia renderer, PNG output, golden-image helpers (spec `docs/specs/render-soft/renderer.md`)
-- [ ] `tantu-platform` trait + `tantu-platform-winit`: window, resize, DPI, pointer, keyboard
+- [x] `tantu-platform` trait + `tantu-platform-winit`: window, resize, DPI, pointer, keyboard
   - [x] `tantu-platform`: `Platform` trait, window/input event types, `FakePlatform` for tests (spec `docs/specs/platform/platform.md`)
-  - [ ] `tantu-platform-winit`: winit 0.30 shell, event conversion, window handles for renderers (spec `docs/specs/platform-winit/shell.md`)
+  - [x] `tantu-platform-winit`: winit 0.30 shell, event conversion, window handles for renderers (spec `docs/specs/platform-winit/shell.md`)
 - [ ] `tantu-render-wgpu`: rects, rounded rects, borders, shadows, clips, images
 - [ ] **Milestone:** a hand-built Scene renders identically in wgpu and software (golden diff)
 

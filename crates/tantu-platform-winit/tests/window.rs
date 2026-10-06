@@ -2,6 +2,9 @@
 //! "Testing"). winit needs the main thread, so this target runs without the test harness. It runs
 //! only with `TANTU_WINDOW_TESTS=1`; otherwise it reports that it was skipped.
 
+// Without the harness this `main` is the test runner, so it prints its own results.
+#![allow(clippy::print_stdout)]
+
 use std::process::ExitCode;
 
 use tantu_platform::raw_window_handle::{HasDisplayHandle, HasWindowHandle};

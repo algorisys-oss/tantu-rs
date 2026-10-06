@@ -1,21 +1,89 @@
 //! Conversions from winit's types to Tantu's (spec rules PLATFORM-WINIT-05..12).
 
-use tantu_core::Point;
+use tantu_core::{Point, Vec2};
 use tantu_platform::{
     ButtonState, Key, KeyEvent, KeyLocation, Modifiers, NamedKey, PhysicalSize, PointerButton,
-    ScrollDelta, WindowAttributes, WindowEvent,
+    PointerId, ScrollDelta, WindowAttributes, WindowEvent,
 };
 use winit::event::{ElementState, MouseButton, MouseScrollDelta};
 use winit::keyboard::ModifiersState;
 
 /// A winit logical key as a Tantu key.
 pub(crate) fn key(key: &winit::keyboard::Key) -> Key {
-    todo!()
+    use winit::keyboard::{Key as W, NamedKey as N};
+    match key {
+        W::Character(s) => Key::Character(s.to_string()),
+        W::Named(N::Space) => Key::Character(" ".to_owned()),
+        W::Named(n) => named(*n).map_or(Key::Unidentified, Key::Named),
+        W::Unidentified(_) | W::Dead(_) => Key::Unidentified,
+    }
+}
+
+/// The Tantu name for a winit named key, if Tantu has one.
+fn named(key: winit::keyboard::NamedKey) -> Option<NamedKey> {
+    use winit::keyboard::NamedKey as N;
+    Some(match key {
+        N::Enter => NamedKey::Enter,
+        N::Tab => NamedKey::Tab,
+        N::Backspace => NamedKey::Backspace,
+        N::Delete => NamedKey::Delete,
+        N::Escape => NamedKey::Escape,
+        N::Insert => NamedKey::Insert,
+        N::ArrowLeft => NamedKey::ArrowLeft,
+        N::ArrowRight => NamedKey::ArrowRight,
+        N::ArrowUp => NamedKey::ArrowUp,
+        N::ArrowDown => NamedKey::ArrowDown,
+        N::Home => NamedKey::Home,
+        N::End => NamedKey::End,
+        N::PageUp => NamedKey::PageUp,
+        N::PageDown => NamedKey::PageDown,
+        N::Shift => NamedKey::Shift,
+        N::Control => NamedKey::Control,
+        N::Alt => NamedKey::Alt,
+        N::Super => NamedKey::Super,
+        N::CapsLock => NamedKey::CapsLock,
+        N::ContextMenu => NamedKey::ContextMenu,
+        N::PrintScreen => NamedKey::PrintScreen,
+        N::Pause => NamedKey::Pause,
+        N::NumLock => NamedKey::NumLock,
+        N::ScrollLock => NamedKey::ScrollLock,
+        N::F1 => NamedKey::F1,
+        N::F2 => NamedKey::F2,
+        N::F3 => NamedKey::F3,
+        N::F4 => NamedKey::F4,
+        N::F5 => NamedKey::F5,
+        N::F6 => NamedKey::F6,
+        N::F7 => NamedKey::F7,
+        N::F8 => NamedKey::F8,
+        N::F9 => NamedKey::F9,
+        N::F10 => NamedKey::F10,
+        N::F11 => NamedKey::F11,
+        N::F12 => NamedKey::F12,
+        N::F13 => NamedKey::F13,
+        N::F14 => NamedKey::F14,
+        N::F15 => NamedKey::F15,
+        N::F16 => NamedKey::F16,
+        N::F17 => NamedKey::F17,
+        N::F18 => NamedKey::F18,
+        N::F19 => NamedKey::F19,
+        N::F20 => NamedKey::F20,
+        N::F21 => NamedKey::F21,
+        N::F22 => NamedKey::F22,
+        N::F23 => NamedKey::F23,
+        N::F24 => NamedKey::F24,
+        _ => return None,
+    })
 }
 
 /// A winit key location as a Tantu one.
 pub(crate) fn location(location: winit::keyboard::KeyLocation) -> KeyLocation {
-    todo!()
+    use winit::keyboard::KeyLocation as W;
+    match location {
+        W::Standard => KeyLocation::Standard,
+        W::Left => KeyLocation::Left,
+        W::Right => KeyLocation::Right,
+        W::Numpad => KeyLocation::Numpad,
+    }
 }
 
 /// A key press or release, from the parts of a winit `KeyEvent` (its constructor is private).
@@ -26,42 +94,84 @@ pub(crate) fn key_event(
     repeat: bool,
     text: Option<&str>,
 ) -> KeyEvent {
-    todo!()
+    KeyEvent {
+        key: key(logical_key),
+        location: location(key_location),
+        state: button_state(state),
+        repeat,
+        text: text.map(str::to_owned),
+    }
 }
 
 /// Held modifiers.
 pub(crate) fn modifiers(state: ModifiersState) -> Modifiers {
-    todo!()
+    Modifiers {
+        shift: state.shift_key(),
+        control: state.control_key(),
+        alt: state.alt_key(),
+        super_key: state.super_key(),
+    }
 }
 
 /// A mouse button.
 pub(crate) fn button(button: MouseButton) -> PointerButton {
-    todo!()
+    match button {
+        MouseButton::Left => PointerButton::Primary,
+        MouseButton::Right => PointerButton::Secondary,
+        MouseButton::Middle => PointerButton::Middle,
+        MouseButton::Back => PointerButton::Back,
+        MouseButton::Forward => PointerButton::Forward,
+        MouseButton::Other(n) => PointerButton::Other(n),
+    }
 }
 
 /// Pressed or released.
 pub(crate) fn button_state(state: ElementState) -> ButtonState {
-    todo!()
+    match state {
+        ElementState::Pressed => ButtonState::Pressed,
+        ElementState::Released => ButtonState::Released,
+    }
 }
 
 /// A wheel delta in Tantu's convention (positive `y` scrolls down), pixels made logical.
 pub(crate) fn scroll(delta: MouseScrollDelta, scale_factor: f32) -> ScrollDelta {
-    todo!()
+    // winit's positive deltas move the content right and down, revealing what is left and above;
+    // Tantu's (Flutter's, the DOM's) positive deltas reveal what is right and below.
+    match delta {
+        MouseScrollDelta::LineDelta(x, y) => ScrollDelta::Lines { x: -x, y: -y },
+        MouseScrollDelta::PixelDelta(p) => ScrollDelta::Pixels(Vec2::new(
+            -(p.x as f32) / scale_factor,
+            -(p.y as f32) / scale_factor,
+        )),
+    }
 }
 
 /// A physical position as a logical point.
 pub(crate) fn position(position: winit::dpi::PhysicalPosition<f64>, scale_factor: f32) -> Point {
-    todo!()
+    Point::new(
+        position.x as f32 / scale_factor,
+        position.y as f32 / scale_factor,
+    )
 }
 
 /// A physical size.
 pub(crate) fn size(size: winit::dpi::PhysicalSize<u32>) -> PhysicalSize {
-    todo!()
+    PhysicalSize::new(size.width, size.height)
 }
 
 /// winit window attributes for Tantu's.
 pub(crate) fn attributes(attributes: &WindowAttributes) -> winit::window::WindowAttributes {
-    todo!()
+    let logical =
+        |s: tantu_core::Size| winit::dpi::LogicalSize::new(s.width as f64, s.height as f64);
+    let mut a = winit::window::Window::default_attributes()
+        .with_title(attributes.title.clone())
+        .with_inner_size(logical(attributes.size))
+        .with_resizable(attributes.resizable)
+        .with_visible(attributes.visible);
+    if let Some(min) = attributes.min_size {
+        a = a.with_min_inner_size(logical(min));
+    }
+    a
 }
 
 /// A winit window event as a Tantu one, or `None` for events Tantu doesn't handle yet.
@@ -72,14 +182,58 @@ pub(crate) fn window_event(
     scale_factor: f32,
     pointer: &mut Point,
 ) -> Option<WindowEvent> {
-    todo!()
+    use winit::event::WindowEvent as W;
+    let mouse = PointerId::Mouse;
+    Some(match event {
+        W::CloseRequested => WindowEvent::CloseRequested,
+        W::Resized(s) => WindowEvent::Resized(size(s)),
+        W::ScaleFactorChanged { scale_factor, .. } => {
+            WindowEvent::ScaleFactorChanged(scale_factor as f32)
+        }
+        W::RedrawRequested => WindowEvent::RedrawRequested,
+        W::Focused(focused) => WindowEvent::Focused(focused),
+        W::CursorEntered { .. } => WindowEvent::PointerEntered { pointer: mouse },
+        W::CursorLeft { .. } => WindowEvent::PointerLeft { pointer: mouse },
+        W::CursorMoved { position: p, .. } => {
+            *pointer = position(p, scale_factor);
+            WindowEvent::PointerMoved {
+                pointer: mouse,
+                position: *pointer,
+            }
+        }
+        W::MouseInput {
+            state, button: b, ..
+        } => WindowEvent::PointerButton {
+            pointer: mouse,
+            button: button(b),
+            state: button_state(state),
+            position: *pointer,
+        },
+        W::MouseWheel { delta, .. } => WindowEvent::Wheel {
+            pointer: mouse,
+            delta: scroll(delta, scale_factor),
+            position: *pointer,
+        },
+        W::ModifiersChanged(m) => WindowEvent::ModifiersChanged(modifiers(m.state())),
+        // Keys held when focus arrives are replayed by winit; they must not type.
+        W::KeyboardInput {
+            is_synthetic: true, ..
+        } => return None,
+        W::KeyboardInput { event, .. } => WindowEvent::Keyboard(key_event(
+            &event.logical_key,
+            event.location,
+            event.state,
+            event.repeat,
+            event.text.as_deref(),
+        )),
+        _ => return None,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tantu_core::{Size, Vec2};
-    use tantu_platform::PointerId;
+    use tantu_core::Size;
     use winit::dpi::{LogicalSize, PhysicalPosition, Size as WinitSize};
     use winit::event::{DeviceId, TouchPhase, WindowEvent as W};
     use winit::keyboard::{Key as WKey, KeyLocation as WLoc, NamedKey as WNamed, SmolStr};

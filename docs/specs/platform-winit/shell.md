@@ -1,6 +1,6 @@
 # winit platform shell
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-platform-winit`
 - **Plan item:** Phase 1, "`tantu-platform-winit`: winit 0.30 shell, event conversion, window
   handles for renderers"
