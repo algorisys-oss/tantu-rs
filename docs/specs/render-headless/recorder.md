@@ -1,6 +1,6 @@
 # Headless recording renderer
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-render-headless`
 - **Plan item:** Phase 1, "`tantu-render-headless`: recording renderer for tests"
 - **Related:** [ADR 0003](../../adr/0003-scene-as-the-renderer-contract.md),

@@ -74,7 +74,7 @@ faster or more portable without changing how apps are written.
   - [x] `Renderer` trait, image/font resource registry, custom-command handlers (spec `docs/specs/scene/renderer.md`)
 - [ ] `tantu-render-headless` and `tantu-render-soft`:
   - [x] Shared `RenderReport` counting in `tantu-scene` (amends spec `docs/specs/scene/renderer.md`)
-  - [ ] `tantu-render-headless`: recording renderer for tests (spec `docs/specs/render-headless/recorder.md`)
+  - [x] `tantu-render-headless`: recording renderer for tests (spec `docs/specs/render-headless/recorder.md`)
   - [ ] `tantu-render-soft`: tiny-skia renderer, PNG output, golden-image helpers (spec `docs/specs/render-soft/renderer.md`)
 - [ ] `tantu-platform` trait + `tantu-platform-winit`: window, resize, DPI, pointer, keyboard
 - [ ] `tantu-render-wgpu`: rects, rounded rects, borders, shadows, clips, images

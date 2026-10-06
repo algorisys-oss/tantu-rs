@@ -55,7 +55,10 @@ pub struct RecordedFrame {
 impl RecordedFrame {
     /// The entries painted for `element`, in paint order.
     pub fn entries_for(&self, element: ElementId) -> impl Iterator<Item = &Entry> + '_ {
-        self.scene.entries().iter().filter(move |_| todo!())
+        self.scene
+            .entries()
+            .iter()
+            .filter(move |entry| entry.element == Some(element))
     }
 }
 
@@ -74,53 +77,67 @@ pub struct HeadlessRenderer {
 impl HeadlessRenderer {
     /// A renderer with a `width × height` physical-pixel target, scale factor 1, no frames.
     pub fn new(width: u32, height: u32) -> HeadlessRenderer {
-        todo!()
+        HeadlessRenderer {
+            width,
+            height,
+            scale_factor: 1.0,
+            custom: HashSet::new(),
+            pending_error: None,
+            frames: Vec::new(),
+            frame_count: 0,
+        }
     }
 
     /// Current target width and height in physical pixels.
     pub fn size(&self) -> (u32, u32) {
-        todo!()
+        (self.width, self.height)
     }
 
     /// Current scale factor.
     pub fn scale_factor(&self) -> f32 {
-        todo!()
+        self.scale_factor
     }
 
     /// Treat `kind` as having a handler: its custom commands are not counted as unhandled.
     pub fn register_custom(&mut self, kind: CustomKind) {
-        todo!()
+        self.custom.insert(kind);
     }
 
     /// Make the next `render` call return `Err(error)` and record nothing.
     pub fn fail_next_render(&mut self, error: RenderError) {
-        todo!()
+        self.pending_error = Some(error);
     }
 
     /// Frames recorded and not yet taken, oldest first.
     pub fn frames(&self) -> &[RecordedFrame] {
-        todo!()
+        &self.frames
     }
 
     /// The most recent frame not yet taken.
     pub fn last_frame(&self) -> Option<&RecordedFrame> {
-        todo!()
+        self.frames.last()
     }
 
     /// Removes and returns the frames recorded so far, oldest first.
     pub fn take_frames(&mut self) -> Vec<RecordedFrame> {
-        todo!()
+        std::mem::take(&mut self.frames)
     }
 
     /// Frames recorded since creation, including taken ones.
     pub fn frame_count(&self) -> u64 {
-        todo!()
+        self.frame_count
     }
 }
 
 impl Renderer for HeadlessRenderer {
     fn resize(&mut self, width: u32, height: u32, scale_factor: f32) {
-        todo!()
+        self.width = width;
+        self.height = height;
+        self.scale_factor = if scale_factor.is_finite() && scale_factor > 0.0 {
+            scale_factor
+        } else {
+            1.0
+        };
     }
 
     fn render(
@@ -128,6 +145,23 @@ impl Renderer for HeadlessRenderer {
         scene: &Scene,
         resources: &Resources,
     ) -> Result<RenderReport, RenderError> {
-        todo!()
+        if let Some(error) = self.pending_error.take() {
+            return Err(error);
+        }
+        let report = if self.width == 0 || self.height == 0 {
+            RenderReport::default()
+        } else {
+            RenderReport::for_scene(scene, resources, &|kind| self.custom.contains(&kind))
+        };
+        self.frames.push(RecordedFrame {
+            scene: scene.clone(),
+            width: self.width,
+            height: self.height,
+            scale_factor: self.scale_factor,
+            resources_revision: resources.revision(),
+            report,
+        });
+        self.frame_count += 1;
+        Ok(report)
     }
 }
