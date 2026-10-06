@@ -23,7 +23,7 @@ pub struct RenderReport {
 impl RenderReport {
     /// True if every count is 0.
     pub fn is_clean(&self) -> bool {
-        todo!()
+        *self == RenderReport::default()
     }
 }
 
@@ -42,13 +42,20 @@ pub enum RenderError {
 
 impl fmt::Display for RenderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        match self {
+            RenderError::TargetLost => f.write_str("render target lost or outdated"),
+            RenderError::OutOfMemory => f.write_str("renderer out of memory"),
+            RenderError::Backend(e) => write!(f, "renderer backend error: {e}"),
+        }
     }
 }
 
 impl std::error::Error for RenderError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        todo!()
+        match self {
+            RenderError::Backend(e) => Some(e.as_ref()),
+            RenderError::TargetLost | RenderError::OutOfMemory => None,
+        }
     }
 }
 

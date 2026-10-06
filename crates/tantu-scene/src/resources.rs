@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::handles::{FontId, ImageId};
 
@@ -22,28 +23,47 @@ impl ImageData {
         height: u32,
         pixels: impl Into<Arc<[u8]>>,
     ) -> Result<ImageData, ResourceError> {
-        todo!()
+        let expected = (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|n| n.checked_mul(4))
+            .filter(|_| width > 0 && height > 0)
+            .ok_or(ResourceError::InvalidImageSize { width, height })?;
+        let pixels = pixels.into();
+        if pixels.len() != expected {
+            return Err(ResourceError::PixelDataLength {
+                expected,
+                actual: pixels.len(),
+            });
+        }
+        Ok(ImageData {
+            width,
+            height,
+            pixels,
+        })
     }
 
     /// Width in pixels, ≥ 1.
     pub fn width(&self) -> u32 {
-        todo!()
+        self.width
     }
 
     /// Height in pixels, ≥ 1.
     pub fn height(&self) -> u32 {
-        todo!()
+        self.height
     }
 
     /// The pixels, `width · height · 4` bytes.
     pub fn pixels(&self) -> &[u8] {
-        todo!()
+        &self.pixels
     }
 }
 
 impl fmt::Debug for ImageData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        f.debug_struct("ImageData")
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .finish_non_exhaustive()
     }
 }
 
@@ -58,23 +78,30 @@ pub struct FontData {
 impl FontData {
     /// Fails only for empty `bytes`.
     pub fn new(bytes: impl Into<Arc<[u8]>>, index: u32) -> Result<FontData, ResourceError> {
-        todo!()
+        let bytes = bytes.into();
+        if bytes.is_empty() {
+            return Err(ResourceError::EmptyFontData);
+        }
+        Ok(FontData { bytes, index })
     }
 
     /// The font file.
     pub fn bytes(&self) -> &[u8] {
-        todo!()
+        &self.bytes
     }
 
     /// Face index within a collection; 0 for a single-face file.
     pub fn index(&self) -> u32 {
-        todo!()
+        self.index
     }
 }
 
 impl fmt::Debug for FontData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        f.debug_struct("FontData")
+            .field("len", &self.bytes.len())
+            .field("index", &self.index)
+            .finish_non_exhaustive()
     }
 }
 
@@ -101,11 +128,29 @@ pub enum ResourceError {
 
 impl fmt::Display for ResourceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        match *self {
+            ResourceError::InvalidImageSize { width, height } => {
+                write!(f, "invalid image size {width}×{height}")
+            }
+            ResourceError::PixelDataLength { expected, actual } => {
+                write!(f, "image pixel data is {actual} bytes, expected {expected}")
+            }
+            ResourceError::EmptyFontData => f.write_str("font data is empty"),
+        }
     }
 }
 
 impl std::error::Error for ResourceError {}
+
+/// Source of image and font handles: unique in the process, never reused (SCENE-RES-06). Holds
+/// no data. Starts at 1 because handles are non-zero.
+static NEXT_HANDLE: AtomicU64 = AtomicU64::new(1);
+
+/// A new handle value, never returned before in this process.
+fn next_handle() -> u64 {
+    // Relaxed is enough: only uniqueness matters, not ordering with other memory.
+    NEXT_HANDLE.fetch_add(1, Ordering::Relaxed)
+}
 
 /// The images and fonts a Scene's handles refer to.
 ///
@@ -121,42 +166,54 @@ pub struct Resources {
 impl Resources {
     /// No resources, revision 0.
     pub fn new() -> Resources {
-        todo!()
+        Resources::default()
     }
 
     /// Stores an image and returns its handle.
     pub fn add_image(&mut self, image: ImageData) -> ImageId {
-        todo!()
+        let id =
+            ImageId::from_raw(next_handle()).expect("handle counter starts at 1 and never wraps");
+        self.images.insert(id, image);
+        self.revision += 1;
+        id
     }
 
     /// The image for `id`, or `None` if it was removed or never added here.
     pub fn image(&self, id: ImageId) -> Option<&ImageData> {
-        todo!()
+        self.images.get(&id)
     }
 
     /// Removes and returns the image for `id`.
     pub fn remove_image(&mut self, id: ImageId) -> Option<ImageData> {
-        todo!()
+        let image = self.images.remove(&id)?;
+        self.revision += 1;
+        Some(image)
     }
 
     /// Stores a font face and returns its handle.
     pub fn add_font(&mut self, font: FontData) -> FontId {
-        todo!()
+        let id =
+            FontId::from_raw(next_handle()).expect("handle counter starts at 1 and never wraps");
+        self.fonts.insert(id, font);
+        self.revision += 1;
+        id
     }
 
     /// The font for `id`, or `None` if it was removed or never added here.
     pub fn font(&self, id: FontId) -> Option<&FontData> {
-        todo!()
+        self.fonts.get(&id)
     }
 
     /// Removes and returns the font for `id`.
     pub fn remove_font(&mut self, id: FontId) -> Option<FontData> {
-        todo!()
+        let font = self.fonts.remove(&id)?;
+        self.revision += 1;
+        Some(font)
     }
 
     /// Increases whenever an image or font is added or removed. Renderers compare it with the
     /// value they last saw to know when to re-check their caches.
     pub fn revision(&self) -> u64 {
-        todo!()
+        self.revision
     }
 }
