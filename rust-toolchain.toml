@@ -1,6 +1,6 @@
 # The pinned toolchain is also the MSRV (AGENTS.md). Keep in sync with
 # `workspace.package.rust-version` in Cargo.toml.
 [toolchain]
-channel = "1.85"
+channel = "1.87"
 components = ["rustfmt", "clippy"]
 profile = "minimal"
