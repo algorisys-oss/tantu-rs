@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tantu Docs</title>
+<meta name="description" content="Interactive documentation for the Tantu UI framework, generated from the repository.">
+<style>
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --surface-2: #f2f0eb; --border: #dedad2;
+  --text: #1d1c1a; --muted: #6b665e; --accent: #8a4b14; --accent-soft: #f5e7d8;
+  --ok: #24733f; --ok-soft: #e1f2e6; --warn: #8a6400; --warn-soft: #fbf0cf;
+  --bad: #b3261e; --bad-soft: #fbe3e1; --edge: #b9b3a8; --code-bg: #f2f0eb;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161513; --surface: #1f1e1b; --surface-2: #292724; --border: #3a3733;
+    --text: #ece9e3; --muted: #a39d93; --accent: #e8a36a; --accent-soft: #3a2a1b;
+    --ok: #74c98f; --ok-soft: #1c3324; --warn: #e2c060; --warn-soft: #362d14;
+    --bad: #f08a80; --bad-soft: #3d1f1c; --edge: #5c5750; --code-bg: #292724;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161513; --surface: #1f1e1b; --surface-2: #292724; --border: #3a3733;
+  --text: #ece9e3; --muted: #a39d93; --accent: #e8a36a; --accent-soft: #3a2a1b;
+  --ok: #74c98f; --ok-soft: #1c3324; --warn: #e2c060; --warn-soft: #362d14;
+  --bad: #f08a80; --bad-soft: #3d1f1c; --edge: #5c5750; --code-bg: #292724;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--sans); overflow-x: hidden; }
+a { color: var(--accent); }
+code, pre { font-family: var(--mono); font-size: 0.88em; }
+code { background: var(--code-bg); padding: 0.05em 0.3em; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+header.top { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--border); }
+.bar { max-width: 1120px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 17px; margin-right: auto; }
+.brand small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; max-width: 100%; }
+nav.tabs a { text-decoration: none; color: var(--muted); padding: 6px 10px; border-radius: 6px; white-space: nowrap; }
+nav.tabs a[aria-current="page"] { color: var(--text); background: var(--surface-2); font-weight: 600; }
+button, select, input { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+button { cursor: pointer; }
+main { max-width: 1120px; margin: 0 auto; padding: 20px 16px 60px; }
+section[hidden] { display: none; }
+h1 { font-size: 26px; margin: 0 0 4px; } h2 { font-size: 20px; margin: 28px 0 10px; } h3 { font-size: 16px; margin: 18px 0 6px; }
+.muted { color: var(--muted); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.card b { display: block; font-size: 22px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+.badge { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); } .badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.bad { background: var(--bad-soft); color: var(--bad); } .badge.acc { background: var(--accent-soft); color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; color: var(--text); }
+.chip.bad { border-color: var(--bad); color: var(--bad); }
+.progress { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--ok); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.filters input[type=search] { flex: 1 1 220px; min-width: 0; }
+details { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; }
+details > summary { cursor: pointer; padding: 10px 14px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+details > .body { padding: 0 14px 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-top: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; }
+.tablewrap { overflow-x: auto; }
+.rule-id { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.loc { font-family: var(--mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.svgwrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+.svgwrap svg { display: block; min-width: 640px; width: 100%; height: auto; }
+svg text { fill: var(--text); font: 13px var(--sans); }
+svg .node rect { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.5; }
+svg .node.impl rect { fill: var(--ok-soft); stroke: var(--ok); }
+svg .node.sel rect { stroke: var(--accent); stroke-width: 3; }
+svg .node.dim { opacity: 0.35; }
+svg .node { cursor: pointer; }
+svg .node:focus { outline: none; } svg .node:focus rect { stroke: var(--accent); stroke-width: 3; }
+svg .edge { fill: none; stroke: var(--edge); stroke-width: 1.3; }
+svg .edge.hi { stroke: var(--accent); stroke-width: 2.2; }
+svg .edge.bad { stroke: var(--bad); stroke-dasharray: 5 3; }
+svg .edge.dim { opacity: 0.15; }
+svg .stage rect { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+svg .stage.side rect { stroke-dasharray: 4 3; }
+svg .stage.sel rect { fill: var(--accent-soft); stroke-width: 3; }
+svg .flow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+svg #arrow path { fill: var(--muted); }
+svg .small { font-size: 11px; fill: var(--muted); }
+.item { border-top: 1px solid var(--border); padding: 8px 0; }
+.item .sig { display: block; margin-top: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.md p { margin: 6px 0; } .md ul, .md ol { padding-left: 22px; margin: 6px 0; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 8px 0; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; border: 1px solid var(--border); }
+.issues li { margin: 4px 0; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 14px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; }
+footer { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 16px; }
+@media (max-width: 600px) {
+  h1 { font-size: 22px; } .kv { grid-template-columns: 1fr; }
+  header.top { position: static; } #gitinfo { display: none; }
+  table.rules tr { display: block; border-top: 1px solid var(--border); padding: 6px 0; }
+  table.rules td { display: block; border: 0; padding: 2px 0; }
+  table.rules tr:first-child { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <div class="brand">Tantu <small id="gitinfo"></small></div>
+    <button id="theme" type="button" aria-label="Toggle colour theme">Theme</button>
+  </div>
+  <div class="bar" style="padding-top:0">
+    <nav class="tabs" aria-label="Sections">
+      <a href="#overview">Overview</a><a href="#architecture">Architecture</a><a href="#specs">Specs</a>
+      <a href="#adrs">ADRs</a><a href="#roadmap">Roadmap</a><a href="#api">API</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section id="overview"></section>
+  <section id="architecture" hidden></section>
+  <section id="specs" hidden></section>
+  <section id="adrs" hidden></section>
+  <section id="roadmap" hidden></section>
+  <section id="api" hidden></section>
+</main>
+<footer id="foot"></footer>
+<script>
+const DATA = /*__TANTU_DATA__*/null;
+
+// Pipeline stages mirror the diagram in AGENTS.md -> "Architecture (the pipeline)".
+const STAGES = [
+  { id: "app", label: "App code", sub: "widgets, signals", x: 20, y: 30, crates: ["tantu", "tantu-widgets", "tantu-theme", "tantu-reactive"] },
+  { id: "view", label: "View tree", sub: "declarative", x: 180, y: 30, crates: ["tantu-view", "tantu-widgets"] },
+  { id: "element", label: "Element tree", sub: "identity + state", x: 340, y: 30, crates: ["tantu-view", "tantu-core", "tantu-reactive"] },
+  { id: "render", label: "Render tree", sub: "layout, paint", x: 500, y: 30, crates: ["tantu-view", "tantu-layout", "tantu-text"] },
+  { id: "scene", label: "Scene", sub: "display list", x: 660, y: 30, crates: ["tantu-scene"] },
+  { id: "renderer", label: "Renderer", sub: "wgpu / soft / headless", x: 820, y: 30, crates: ["tantu-render-wgpu", "tantu-render-soft", "tantu-render-headless"] },
+  { id: "platform", label: "Platform", sub: "events, hit-test, IME", x: 340, y: 140, side: true, crates: ["tantu-platform", "tantu-platform-winit"] },
+  { id: "a11y", label: "AccessKit tree", sub: "a11y", x: 660, y: 140, side: true, crates: ["tantu-a11y"] },
+  { id: "test", label: "Tests", sub: "WidgetTester, goldens", x: 820, y: 140, side: true, crates: ["tantu-test"] },
+];
+const FLOWS = [["app","view"],["view","element"],["element","render"],["render","scene"],["scene","renderer"],["platform","element"],["render","a11y"]];
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const crateByName = new Map((DATA ? DATA.crates : []).map((c) => [c.name, c]));
+
+// ---------- minimal markdown (headings, lists, tables, code, inline) ----------
+function inline(s) {
+  const parts = String(s).split(/(`[^`]*`)/);
+  return parts.map((p) => {
+    if (p.startsWith("`") && p.endsWith("`") && p.length > 1) return "<code>" + esc(p.slice(1, -1)) + "</code>";
+    let t = esc(p);
+    t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, text, href) =>
+      /^https?:/.test(href) ? `<a href="${href}" target="_blank" rel="noopener">${text}</a>` : `<span title="${href}">${text}</span>`);
+    t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/~~([^~]+)~~/g, "<del>$1</del>");
+    t = t.replace(/(^|[\s(])_([^_]+)_(?=[\s).,;:]|$)/g, "$1<em>$2</em>").replace(/(^|[\s(])\*([^*\s][^*]*)\*(?=[\s).,;:]|$)/g, "$1<em>$2</em>");
+    return t;
+  }).join("");
+}
+function md(src) {
+  const lines = String(src || "").split("\n"); const out = []; let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^\s*```/.test(line)) {
+      const buf = []; i++;
+      while (i < lines.length && !/^\s*```/.test(lines[i])) buf.push(lines[i++]);
+      i++; out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>"); continue;
+    }
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { const n = Math.min(6, h[1].length + 2); out.push(`<h${n}>${inline(h[2])}</h${n}>`); i++; continue; }
+    if (/^\s*\|/.test(line)) {
+      const rows = []; while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]);
+      const cells = (r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      const body = rows.filter((r) => !/^\s*\|[\s:|-]+\|\s*$/.test(r));
+      out.push('<div class="tablewrap"><table>' + body.map((r, k) => "<tr>" + cells(r).map((c) => k === 0 ? `<th>${inline(c)}</th>` : `<td>${inline(c)}</td>`).join("") + "</tr>").join("") + "</table></div>");
+      continue;
+    }
+    if (/^\s*([-*]|\d+\.)\s+/.test(line)) {
+      const ordered = /^\s*\d+\./.test(line); const items = [];
+      while (i < lines.length && lines[i].trim() !== "" && !/^\s*```/.test(lines[i])) {
+        const m = lines[i].match(/^(\s*)([-*]|\d+\.)\s+(.*)$/);
+        if (m) items.push({ depth: Math.floor(m[1].length / 2), text: m[3] });
+        else if (items.length) items[items.length - 1].text += " " + lines[i].trim();
+        i++;
+      }
+      const tag = ordered ? "ol" : "ul";
+      out.push(`<${tag}>` + items.map((it) => `<li style="margin-left:${it.depth * 18}px">${inline(it.text.replace(/^\[( |x)\]\s*/, (m, c) => c === "x" ? "✓ " : "☐ "))}</li>`).join("") + `</${tag}>`);
+      continue;
+    }
+    if (line.trim() === "") { i++; continue; }
+    const buf = [];
+    while (i < lines.length && lines[i].trim() !== "" && !/^\s*(```|#|\||[-*]\s|\d+\.\s)/.test(lines[i])) buf.push(lines[i++]);
+    if (!buf.length) buf.push(lines[i++]);
+    out.push("<p>" + inline(buf.join(" ")) + "</p>");
+  }
+  return '<div class="md">' + out.join("") + "</div>";
+}
+
+// ---------- theme ----------
+function applyTheme(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+try { applyTheme(localStorage.getItem("tantu-docs-theme")); } catch (e) {}
+$("#theme").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = dark ? "light" : "dark"; applyTheme(next);
+  try { localStorage.setItem("tantu-docs-theme", next); } catch (e) {}
+});
+
+// ---------- overview ----------
+function renderOverview() {
+  const c = DATA.counts, p = DATA.plan, h = DATA.handoff;
+  const cur = p.phases.find((x) => x.title === p.current_phase);
+  const issues = [...DATA.coverage.problems.map((x) => `${esc(x.path)}: ${esc(x.message)}`), ...DATA.violations.map((v) => `<code>${esc(v.crate)}</code>: ${esc(v.message)}`)];
+  $("#overview").innerHTML = `
+    <h1>Tantu</h1>
+    <p class="muted">Generated from the repository at ${esc(DATA.git.branch)} @ <code>${esc(DATA.git.commit)}</code>${DATA.git.dirty ? " (with uncommitted changes)" : ""}, ${esc(DATA.generated_at)}.</p>
+    <div class="cards">
+      <div class="card"><b>${c.implemented_crates} / ${c.crates}</b><span class="muted">crates with an API</span></div>
+      <div class="card"><b>${c.pub_items}</b><span class="muted">public items</span></div>
+      <div class="card"><b>${c.specs}</b><span class="muted">specs</span></div>
+      <div class="card"><b>${c.covered_rules} / ${c.active_rules}</b><span class="muted">rules with tests</span></div>
+      <div class="card"><b>${c.adrs}</b><span class="muted">ADRs</span></div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Current phase: ${esc(p.current_phase || "none open")}</h3>
+      ${cur ? `<div class="progress" role="img" aria-label="${cur.done} of ${cur.total} items done"><span style="width:${cur.total ? 100 * cur.done / cur.total : 0}%"></span></div><p class="muted">${cur.done} of ${cur.total} items done. <a href="#roadmap">Roadmap</a></p>` : ""}
+    </div>
+    <h2>What Tantu is</h2>${md(DATA.overview.what)}
+    <h2>Authoring style</h2>${md(DATA.overview.authoring)}
+    <h2>${esc(h.resume_title || "Where the project stands")}</h2>
+    <p class="muted">From HANDOFF.md, last updated ${esc(h.last_updated)}.</p>${md(h.resume)}
+    <h3>Next steps</h3>${md(h.next_steps)}
+    <h3>Open questions</h3>${md(h.open_questions)}
+    <h2>Consistency checks</h2>
+    <div class="panel">${issues.length ? `<ul class="issues">${issues.map((x) => `<li>${x}</li>`).join("")}</ul>` : `<p>No problems: every rule of an Agreed or Implemented spec has a test, and every crate's dependencies match the AGENTS.md table.</p>`}</div>`;
+}
+
+// ---------- architecture ----------
+function layers() {
+  const crates = DATA.crates.filter((c) => !c.tooling); const memo = {};
+  const depth = (n, seen = new Set()) => {
+    if (n in memo) return memo[n]; if (seen.has(n)) return 0; seen.add(n);
+    const c = crateByName.get(n); const ds = c ? c.deps.filter((d) => crateByName.has(d)) : [];
+    return (memo[n] = ds.length ? 1 + Math.max(...ds.map((d) => depth(d, seen))) : 0);
+  };
+  const by = []; crates.forEach((c) => { const d = depth(c.name); (by[d] = by[d] || []).push(c); });
+  return by.filter(Boolean);
+}
+let selected = null;
+function renderArchitecture() {
+  const L = layers(); const W = 1000, rowH = 86, nodeH = 44;
+  const maxN = Math.max(...L.map((l) => l.length)); const nodeW = Math.min(180, (W - 40) / maxN - 16);
+  const pos = {};
+  L.forEach((layer, d) => {
+    const y = 20 + (L.length - 1 - d) * rowH; const total = layer.length * nodeW + (layer.length - 1) * 16; let x = (W - total) / 2;
+    layer.forEach((c) => { pos[c.name] = { x, y }; x += nodeW + 16; });
+  });
+  const H = 20 + L.length * rowH;
+  let edges = "";
+  DATA.crates.forEach((c) => c.deps.forEach((d) => {
+    if (!pos[c.name] || !pos[d]) return;
+    const a = pos[c.name], b = pos[d]; const x1 = a.x + nodeW / 2, y1 = a.y + nodeH, x2 = b.x + nodeW / 2, y2 = b.y;
+    const bad = c.allowed && !c.allowed.includes(d);
+    edges += `<path class="edge${bad ? " bad" : ""}" data-from="${esc(c.name)}" data-to="${esc(d)}" d="M${x1},${y1} C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2}"><title>${esc(c.name)} → ${esc(d)}${bad ? " (not allowed by AGENTS.md)" : ""}</title></path>`;
+  }));
+  const nodes = Object.entries(pos).map(([n, p]) => {
+    const c = crateByName.get(n);
+    return `<g class="node${c.status === "implemented" ? " impl" : ""}" data-crate="${esc(n)}" tabindex="0" role="button" aria-label="${esc(n)}, ${c.status}">
+      <rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" rx="8"/>
+      <text x="${p.x + nodeW / 2}" y="${p.y + 19}" text-anchor="middle">${esc(n.replace(/^tantu-/, ""))}</text>
+      <text class="small" x="${p.x + nodeW / 2}" y="${p.y + 35}" text-anchor="middle">${c.status === "implemented" ? c.items.length + " pub items" : "placeholder"}</text></g>`;
+  }).join("");
+  const sw = 150, sh = 56; const sp = Object.fromEntries(STAGES.map((s) => [s.id, s]));
+  const flows = FLOWS.map(([a, b]) => {
+    const A = sp[a], B = sp[b];
+    if (A.y === B.y) return `<path class="flow" d="M${A.x + sw},${A.y + sh / 2} L${B.x - 4},${B.y + sh / 2}"/>`;
+    if (A.y > B.y) return `<path class="flow" d="M${A.x + sw / 2},${A.y} L${B.x + sw / 2},${B.y + sh + 4}"/>`;
+    return `<path class="flow" d="M${A.x + sw / 2},${A.y + sh} L${B.x + sw / 2},${B.y - 4}"/>`;
+  }).join("");
+  const stages = STAGES.map((s) => `<g class="node stage${s.side ? " side" : ""}" data-stage="${s.id}" tabindex="0" role="button" aria-label="${esc(s.label)} stage">
+    <rect x="${s.x}" y="${s.y}" width="${sw}" height="${sh}" rx="8"/>
+    <text x="${s.x + sw / 2}" y="${s.y + 24}" text-anchor="middle">${esc(s.label)}</text>
+    <text class="small" x="${s.x + sw / 2}" y="${s.y + 42}" text-anchor="middle">${esc(s.sub)}</text></g>`).join("");
+  const tooling = DATA.crates.filter((c) => c.tooling);
+  $("#architecture").innerHTML = `
+    <h1>Architecture</h1>
+    <p class="muted">The pipeline from AGENTS.md. Click a stage to highlight its crates, or a crate to open its panel.</p>
+    <div class="svgwrap"><svg viewBox="0 0 1000 220" role="group" aria-label="Pipeline">
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      ${flows}${stages}</svg></div>
+    <h2>Crates and their dependencies</h2>
+    <div class="legend"><span><i style="background:var(--ok-soft);border-color:var(--ok)"></i>has a public API</span><span><i style="background:var(--surface-2)"></i>placeholder</span><span>lines point from a crate to what it depends on (Cargo.toml); dashed red = not allowed by AGENTS.md</span></div>
+    <div class="svgwrap"><svg id="graph" viewBox="0 0 ${W} ${H}" role="group" aria-label="Crate dependency graph">${edges}${nodes}</svg></div>
+    ${tooling.length ? `<p class="muted">Dev tooling, not part of the pipeline: ${tooling.map((c) => `<button class="chip" data-crate="${esc(c.name)}">${esc(c.name)}</button>`).join(" ")}</p>` : ""}
+    <div id="cratepanel"></div>`;
+  $("#architecture").addEventListener("click", archClick);
+  $("#architecture").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); archClick(e); } });
+  if (selected) showCrate(selected, false);
+}
+function archClick(e) {
+  const n = e.target.closest("[data-crate]"); const s = e.target.closest("[data-stage]");
+  if (n) { location.hash = "#crate/" + n.dataset.crate; return; }
+  if (s) highlightStage(s.dataset.stage);
+  const sp = e.target.closest("[data-spec]"); if (sp) { location.hash = "#spec/" + sp.dataset.spec; }
+}
+function highlightStage(id) {
+  const st = STAGES.find((s) => s.id === id); const set = new Set(st.crates);
+  document.querySelectorAll("#architecture .stage").forEach((g) => g.classList.toggle("sel", g.dataset.stage === id));
+  document.querySelectorAll("#graph .node").forEach((g) => g.classList.toggle("dim", !set.has(g.dataset.crate)));
+  document.querySelectorAll("#graph .edge").forEach((p) => p.classList.toggle("dim", !(set.has(p.dataset.from) && set.has(p.dataset.to))));
+  $("#cratepanel").innerHTML = `<div class="panel"><h3 style="margin-top:0">${esc(st.label)}</h3><p class="muted">Crates in this stage:</p><div class="chips">${st.crates.filter((c) => crateByName.has(c)).map((c) => `<button class="chip" data-crate="${esc(c)}">${esc(c)}</button>`).join("")}</div></div>`;
+}
+function showCrate(name, scroll = true) {
+  const c = crateByName.get(name); if (!c) return; selected = name;
+  document.querySelectorAll("#architecture .stage").forEach((g) => g.classList.remove("sel"));
+  document.querySelectorAll("#graph .node").forEach((g) => { g.classList.toggle("sel", g.dataset.crate === name); g.classList.remove("dim"); });
+  document.querySelectorAll("#graph .edge").forEach((p) => { p.classList.remove("dim"); p.classList.toggle("hi", p.dataset.from === name || p.dataset.to === name); });
+  const chip = (d, bad) => `<button class="chip${bad ? " bad" : ""}" data-crate="${esc(d)}">${esc(d)}</button>`;
+  const usedBy = DATA.crates.filter((x) => x.deps.includes(name)).map((x) => x.name);
+  const byKind = {};
+  c.items.forEach((it) => (byKind[it.kind] = byKind[it.kind] || []).push(it));
+  const order = ["struct", "enum", "trait", "type", "fn", "method", "const", "static", "mod", "use", "union"];
+  $("#cratepanel").innerHTML = `<div class="panel">
+    <h2 style="margin-top:0">${esc(c.name)} <span class="badge ${c.status === "implemented" ? "ok" : ""}">${esc(c.status)}</span></h2>
+    <p>${inline(c.description)}</p>
+    <dl class="kv">
+      <dt>Responsibility</dt><dd>${c.responsibility ? inline(c.responsibility) : '<span class="badge bad">not in AGENTS.md</span>'}</dd>
+      <dt>May depend on</dt><dd><div class="chips">${c.allowed && c.allowed.length ? c.allowed.map((d) => chip(d)).join("") : "nothing"}</div></dd>
+      <dt>Depends on</dt><dd><div class="chips">${c.deps.length ? c.deps.map((d) => chip(d, c.allowed && !c.allowed.includes(d))).join("") : "nothing internal"}</div></dd>
+      <dt>Used by</dt><dd><div class="chips">${usedBy.length ? usedBy.map((d) => chip(d)).join("") : "nothing"}</div></dd>
+      <dt>External deps</dt><dd>${c.external_deps.length ? c.external_deps.map((d) => `<code>${esc(d)}</code>`).join(" ") : "none"}</dd>
+      <dt>Dev deps</dt><dd>${[...c.dev_deps, ...c.dev_external_deps].map((d) => `<code>${esc(d)}</code>`).join(" ") || "none"}</dd>
+      <dt>Specs</dt><dd>${c.specs.length ? c.specs.map((s) => `<a href="#spec/${esc(s)}">${esc(s)}</a>`).join("<br>") : "none yet"}</dd>
+      <dt>Size</dt><dd>${c.src_lines} lines in <code>${esc(c.dir)}/src</code>, ${c.test_count} <code>#[test]</code> functions</dd>
+    </dl>
+    ${c.doc ? `<details><summary>Crate documentation (<code>lib.rs</code>)</summary><div class="body">${md(c.doc.replace(/^#\s.*\n?/, ""))}</div></details>` : ""}
+    <h3>Public items (${c.items.length})</h3>
+    ${c.items.length ? order.filter((k) => byKind[k]).map((k) => `<details${["struct", "enum", "trait", "fn"].includes(k) ? " open" : ""}><summary><strong>${k}</strong> <span class="muted">${byKind[k].length}</span></summary><div class="body">${byKind[k].map(itemHtml).join("")}</div></details>`).join("") : '<p class="muted">None yet.</p>'}
+  </div>`;
+  if (scroll) $("#cratepanel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function itemHtml(it) {
+  return `<div class="item"><code>${esc(it.path)}</code> <span class="badge">${esc(it.kind)}</span> <span class="loc">${esc(it.file)}:${it.line}</span>
+    <code class="sig">${esc(it.signature)}</code>${it.summary ? `<div>${inline(it.summary)}</div>` : '<div class="muted">No doc comment.</div>'}</div>`;
+}
+
+// ---------- specs ----------
+function renderSpecs() {
+  const areas = [...new Set(DATA.specs.map((s) => s.area))];
+  $("#specs").innerHTML = `<h1>Spec explorer</h1>
+    <p class="muted">Every spec in <code>docs/specs/</code>. A rule counts as tested when a function is named after it (<code>CORE-GEOM-03</code> → <code>core_geom_03</code> or <code>core_geom_03_*</code>), the same check as <code>cargo xtask spec-coverage</code>.</p>
+    <div class="filters">
+      <input type="search" id="spec-q" placeholder="Search rules, ids, tests…" aria-label="Search specs">
+      <select id="spec-area" aria-label="Crate"><option value="">All crates</option>${areas.map((a) => `<option>${esc(a)}</option>`).join("")}</select>
+      <select id="spec-status" aria-label="Status"><option value="">Any status</option><option>Draft</option><option>Agreed</option><option>Implemented</option></select>
+      <select id="spec-cov" aria-label="Coverage"><option value="">All rules</option><option value="missing">Rules without a test</option></select>
+    </div><div id="spec-count" class="muted"></div><div id="spec-list"></div>`;
+  ["spec-q", "spec-area", "spec-status", "spec-cov"].forEach((id) => $("#" + id).addEventListener("input", filterSpecs));
+  filterSpecs();
+}
+function filterSpecs(openPath) {
+  const q = $("#spec-q").value.trim().toLowerCase(), area = $("#spec-area").value, st = $("#spec-status").value, cov = $("#spec-cov").value;
+  let shownRules = 0;
+  const html = DATA.specs.filter((s) => (!area || s.area === area) && (!st || s.status === st)).map((s) => {
+    const rules = s.rules.filter((r) => {
+      if (cov === "missing" && (r.removed || r.tests.length)) return false;
+      if (!q) return true;
+      return (r.id + " " + r.text + " " + r.tests.map((t) => t.name).join(" ") + " " + s.title).toLowerCase().includes(q);
+    });
+    if ((q || cov) && !rules.length) return "";
+    shownRules += rules.length;
+    const active = s.rules.filter((r) => !r.removed), covered = active.filter((r) => r.tests.length).length;
+    const stCls = s.status === "Implemented" ? "ok" : s.status === "Agreed" ? "acc" : s.status === "Draft" ? "warn" : "bad";
+    const open = openPath === s.path || q || cov;
+    return `<details id="spec-${esc(s.path)}" ${open ? "open" : ""}><summary><strong>${esc(s.title)}</strong>
+      <span class="badge ${stCls}">${esc(s.status || "no status")}</span><span class="badge">${covered}/${active.length} tested</span><span class="loc">${esc(s.path)}</span></summary>
+      <div class="body"><p class="muted">${s.meta["Crate"] ? "Crate " + inline(s.meta["Crate"]) + ". " : ""}${s.meta["Plan item"] ? "Plan item: " + inline(s.meta["Plan item"]) : ""}</p>
+      <div class="tablewrap"><table class="rules"><tr><th>Rule</th><th>Behavior</th><th>Tests</th></tr>
+      ${rules.map((r) => `<tr><td class="rule-id">${r.removed ? "<del>" + esc(r.id) + "</del>" : esc(r.id)}<div class="loc">line ${r.line}</div></td><td>${inline(r.text)}</td>
+        <td>${r.removed ? '<span class="badge">removed</span>' : r.tests.length ? r.tests.map((t) => `<div><code>${esc(t.name)}</code><div class="loc">${esc(t.file)}:${t.line}</div></div>`).join("") : '<span class="badge bad">no test</span>'}</td></tr>`).join("")}
+      </table></div></div></details>`;
+  }).join("");
+  $("#spec-list").innerHTML = html || '<p class="muted">Nothing matches.</p>';
+  $("#spec-count").textContent = `${shownRules} rule(s) shown.`;
+}
+
+// ---------- ADRs ----------
+function renderAdrs() {
+  $("#adrs").innerHTML = `<h1>Architecture decision records</h1><p class="muted">From <code>docs/adr/</code>.</p>` +
+    DATA.adrs.map((a) => `<details id="adr-${a.number}"><summary><strong>${esc(a.title)}</strong>
+      <span class="badge ${a.status_word === "Accepted" ? "ok" : a.status_word === "Proposed" ? "warn" : a.status_word === "Superseded" ? "bad" : ""}">${esc(a.status_word || "?")}</span>
+      <span class="loc">${esc(a.date)}</span></summary><div class="body"><p class="muted">Status: ${inline(a.status)}<br>${esc(a.file)}</p>${md(a.body)}</div></details>`).join("");
+}
+
+// ---------- roadmap ----------
+function renderRoadmap() {
+  const p = DATA.plan;
+  $("#roadmap").innerHTML = `<h1>Roadmap</h1><p class="muted">Phases from <code>PLAN.md</code>.</p>${md(p.vision)}` +
+    p.phases.map((ph) => `<div class="panel"><h3 style="margin-top:0">${esc(ph.title)} ${ph.title === p.current_phase ? '<span class="badge acc">current</span>' : ""}</h3>
+      ${ph.total ? `<div class="progress" role="img" aria-label="${ph.done} of ${ph.total} done"><span style="width:${100 * ph.done / ph.total}%"></span></div><p class="muted">${ph.done} of ${ph.total} items done</p>` : ""}
+      <ul style="list-style:none;padding-left:0">${ph.items.map((it) => `<li style="margin:4px 0 4px ${it.depth * 22}px">${it.done ? '<span class="badge ok">done</span>' : '<span class="badge">todo</span>'} ${inline(it.text)}</li>`).join("")}</ul>
+      ${ph.notes.length ? `<ul>${ph.notes.map((n) => `<li>${inline(n)}</li>`).join("")}</ul>` : ""}</div>`).join("") +
+    `<h2>Success criteria for 0.1</h2>${md(p.success)}<h2>Risks</h2>${md(p.risks)}`;
+}
+
+// ---------- API search ----------
+const ALL_ITEMS = DATA ? DATA.crates.flatMap((c) => c.items) : [];
+function renderApi() {
+  const crates = DATA.crates.filter((c) => c.items.length).map((c) => c.name);
+  const kinds = [...new Set(ALL_ITEMS.map((i) => i.kind))].sort();
+  $("#api").innerHTML = `<h1>API search</h1><p class="muted">${ALL_ITEMS.length} public items, read from the source of every crate.</p>
+    <div class="filters"><input type="search" id="api-q" placeholder="Search names, signatures, docs…" aria-label="Search the API">
+    <select id="api-crate" aria-label="Crate"><option value="">All crates</option>${crates.map((c) => `<option>${esc(c)}</option>`).join("")}</select>
+    <select id="api-kind" aria-label="Kind"><option value="">All kinds</option>${kinds.map((k) => `<option>${esc(k)}</option>`).join("")}</select></div>
+    <div id="api-count" class="muted"></div><div id="api-list"></div>`;
+  ["api-q", "api-crate", "api-kind"].forEach((id) => $("#" + id).addEventListener("input", filterApi));
+  filterApi();
+}
+function filterApi() {
+  const q = $("#api-q").value.trim().toLowerCase(), cr = $("#api-crate").value, k = $("#api-kind").value;
+  const scored = ALL_ITEMS.filter((i) => (!cr || i.crate === cr) && (!k || i.kind === k)).map((i) => {
+    if (!q) return [1, i];
+    const p = i.path.toLowerCase(), n = i.name.toLowerCase();
+    const s = n === q ? 4 : p.includes(q) ? 3 : i.signature.toLowerCase().includes(q) ? 2 : i.doc.toLowerCase().includes(q) ? 1 : 0;
+    return [s, i];
+  }).filter(([s]) => s > 0).sort((a, b) => b[0] - a[0]);
+  const shown = scored.slice(0, 200);
+  $("#api-count").textContent = `${scored.length} match(es)${scored.length > 200 ? ", showing 200" : ""}.`;
+  $("#api-list").innerHTML = shown.map(([, i]) => `<details><summary><code>${esc(i.path)}</code><span class="badge">${esc(i.kind)}</span><a href="#crate/${esc(i.crate)}" class="loc">${esc(i.crate)}</a></summary>
+    <div class="body"><code class="sig">${esc(i.signature)}</code><div class="loc">${esc(i.file)}:${i.line}</div>${i.doc ? md(i.doc) : '<p class="muted">No doc comment.</p>'}</div></details>`).join("");
+}
+
+// ---------- routing ----------
+function route() {
+  const h = decodeURIComponent(location.hash.slice(1)) || "overview";
+  let tab = h.split("/")[0];
+  if (tab === "crate") tab = "architecture";
+  if (tab === "spec") tab = "specs";
+  if (!["overview", "architecture", "specs", "adrs", "roadmap", "api"].includes(tab)) tab = "overview";
+  document.querySelectorAll("main > section").forEach((s) => (s.hidden = s.id !== tab));
+  document.querySelectorAll("nav.tabs a").forEach((a) => {
+    if (a.getAttribute("href") === "#" + tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  });
+  if (h.startsWith("crate/")) showCrate(h.slice(6));
+  else if (h.startsWith("spec/")) { const path = h.slice(5); $("#spec-q").value = ""; $("#spec-cov").value = ""; $("#spec-area").value = ""; $("#spec-status").value = ""; filterSpecs(path); const el = document.getElementById("spec-" + path); if (el) el.scrollIntoView({ block: "start" }); }
+  else window.scrollTo(0, 0);
+}
+
+if (!DATA) {
+  $("#overview").innerHTML = "<h1>Tantu docs</h1><p>This is the template. Generate the page with the code-to-docs skill (collect.py) to fill it.</p>";
+} else {
+  $("#gitinfo").textContent = `${DATA.git.branch} @ ${DATA.git.commit}`;
+  $("#foot").textContent = `Generated ${DATA.generated_at} from ${DATA.git.branch} @ ${DATA.git.commit}. Do not edit by hand; regenerate with the code-to-docs skill.`;
+  renderOverview(); renderArchitecture(); renderSpecs(); renderAdrs(); renderRoadmap(); renderApi();
+  addEventListener("hashchange", route); route();
+}
+</script>
+</body>
+</html>
