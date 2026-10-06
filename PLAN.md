@@ -70,7 +70,7 @@ faster or more portable without changing how apps are written.
 
 ### Phase 1 — Pixels on screen (weeks 3–5)
 - [ ] `tantu-scene`:
-  - [ ] `Scene` and its builder: command set (with element id + z-index), clip/transform/layer scopes, overlay color, glyph runs, custom commands, resource handle types, damage, culling query (spec `docs/specs/scene/scene.md`)
+  - [x] `Scene` and its builder: command set (with element id + z-index), clip/transform/layer scopes, overlay color, glyph runs, custom commands, resource handle types, damage, culling query (spec `docs/specs/scene/scene.md`)
   - [ ] `Renderer` trait, image/font resource registry, custom-command handlers (spec `docs/specs/scene/renderer.md`)
 - [ ] `tantu-render-headless` (recording) and `tantu-render-soft` (tiny-skia → PNG)
 - [ ] `tantu-platform` trait + `tantu-platform-winit`: window, resize, DPI, pointer, keyboard

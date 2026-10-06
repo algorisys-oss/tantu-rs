@@ -79,8 +79,8 @@ fn assert_well_formed(entries: &[Entry]) {
 
 /// A frame using every kind of command.
 fn record_everything(scene: &mut Scene) {
-    let font = FontId::from_raw(7).unwrap();
-    let image = ImageId::from_raw(9).unwrap();
+    let font = FontId::from_raw(7).expect("7 is not 0");
+    let image = ImageId::from_raw(9).expect("9 is not 0");
     let mut b = scene.begin(SIZE);
     b.set_element(el(1));
     b.push_layer(Layer {
@@ -135,7 +135,7 @@ fn record_everything(scene: &mut Scene) {
     b.pop();
     b.pop();
     b.add_damage(rect(0.0, 0.0, 10.0, 10.0));
-    b.finish().unwrap();
+    b.finish().expect("scopes are balanced");
 }
 
 // ---- Recording ---------------------------------------------------------------------------

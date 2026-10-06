@@ -29,7 +29,12 @@ impl BorderRadius {
     /// The same radius on every corner.
     #[inline]
     pub const fn circular(radius: f32) -> BorderRadius {
-        todo!()
+        BorderRadius {
+            top_left: radius,
+            top_right: radius,
+            bottom_right: radius,
+            bottom_left: radius,
+        }
     }
 }
 
@@ -46,13 +51,16 @@ impl RoundedRect {
     /// A plain rect (zero radii).
     #[inline]
     pub const fn from_rect(rect: Rect) -> RoundedRect {
-        todo!()
+        RoundedRect {
+            rect,
+            radii: BorderRadius::ZERO,
+        }
     }
 
     /// A rect with radii.
     #[inline]
     pub const fn new(rect: Rect, radii: BorderRadius) -> RoundedRect {
-        todo!()
+        RoundedRect { rect, radii }
     }
 }
 
@@ -76,7 +84,10 @@ pub struct Layer {
 
 impl Default for Layer {
     fn default() -> Self {
-        todo!()
+        Layer {
+            opacity: 1.0,
+            overlay_color: None,
+        }
     }
 }
 

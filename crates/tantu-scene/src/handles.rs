@@ -14,20 +14,23 @@ impl ElementId {
     /// From a raw value; `None` for 0.
     #[inline]
     pub const fn from_raw(raw: u64) -> Option<ElementId> {
-        todo!()
+        match NonZeroU64::new(raw) {
+            Some(raw) => Some(ElementId(raw)),
+            None => None,
+        }
     }
 
     /// The raw value, never 0.
     #[inline]
     pub const fn to_raw(self) -> u64 {
-        todo!()
+        self.0.get()
     }
 }
 
 impl From<Id> for ElementId {
     #[inline]
     fn from(id: Id) -> Self {
-        todo!()
+        ElementId(NonZeroU64::new(id.to_bits()).expect("Id::to_bits is never 0"))
     }
 }
 
@@ -39,13 +42,16 @@ impl ImageId {
     /// From a raw value; `None` for 0.
     #[inline]
     pub const fn from_raw(raw: u64) -> Option<ImageId> {
-        todo!()
+        match NonZeroU64::new(raw) {
+            Some(raw) => Some(ImageId(raw)),
+            None => None,
+        }
     }
 
     /// The raw value, never 0.
     #[inline]
     pub const fn to_raw(self) -> u64 {
-        todo!()
+        self.0.get()
     }
 }
 
@@ -57,13 +63,16 @@ impl FontId {
     /// From a raw value; `None` for 0.
     #[inline]
     pub const fn from_raw(raw: u64) -> Option<FontId> {
-        todo!()
+        match NonZeroU64::new(raw) {
+            Some(raw) => Some(FontId(raw)),
+            None => None,
+        }
     }
 
     /// The raw value, never 0.
     #[inline]
     pub const fn to_raw(self) -> u64 {
-        todo!()
+        self.0.get()
     }
 }
 

@@ -1,6 +1,6 @@
 # Scene and scene builder
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-scene`
 - **Plan item:** Phase 1, "`tantu-scene` → `Scene` and its builder"
 - **Related:** [ADR 0003](../../adr/0003-scene-as-the-renderer-contract.md) (Scene as the renderer

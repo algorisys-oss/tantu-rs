@@ -39,7 +39,7 @@ static GLOBAL: Counting = Counting;
 /// A frame with `n` elements, each in nested scopes, with glyphs, custom data, damage and
 /// varied z-indexes (so `finish` has to sort).
 fn record(scene: &mut Scene, n: u64, glyphs: &[Glyph], data: &[u8]) {
-    let font = FontId::from_raw(1).unwrap();
+    let font = FontId::from_raw(1).expect("1 is not 0");
     let mut b = scene.begin(Size::new(800.0, 600.0));
     for i in 0..n {
         b.set_element(ElementId::from_raw(i + 1));
@@ -58,7 +58,7 @@ fn record(scene: &mut Scene, n: u64, glyphs: &[Glyph], data: &[u8]) {
         b.pop();
         b.pop();
     }
-    b.finish().unwrap();
+    b.finish().expect("scopes are balanced");
 }
 
 #[test]
