@@ -2,5 +2,5 @@
 # `workspace.package.rust-version` in Cargo.toml.
 [toolchain]
 channel = "1.87"
-components = ["rustfmt", "clippy"]
+components = ["rustfmt", "clippy", "rust-analyzer"]
 profile = "minimal"

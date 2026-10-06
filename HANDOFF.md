@@ -10,7 +10,7 @@ _Last updated: 2026-10-06_
 Paused at the end of the day on 2026-10-06 with `main` at the commit below and CI green on Linux,
 Windows and macOS. All 17 wgpu renderer tests ran (none skipped) on all three CI runners: on
 lavapipe on Linux, and on whatever adapter wgpu finds on the Windows and macOS runners. No branch
-is open. The local `rust-toolchain.toml` still has the uncommitted `rust-analyzer` component.
+is open. The working tree is clean.
 
 
 **Phase 1: everything but the milestone is done**: `tantu-scene`, the headless, software and
@@ -379,7 +379,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `caa9a2c` | test: scene-window, 3 failing tests |
 | `18b09b0` | impl: scene-window demo |
 | `0383fe6` | docs: HANDOFF.md for the wgpu renderer and the demo |
-| _this commit_ | docs: HANDOFF.md, paused for the day (CI green, wgpu tests ran on all runners) |
+| `cbd2141` | docs: HANDOFF.md, paused for the day (CI green, wgpu tests ran on all runners) |
+| _this commit_ | chore: `rust-analyzer` in the pinned toolchain's components; HANDOFF.md |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -413,8 +414,6 @@ that with the real hash from `git log`.
 
 - ADR 0007 (reads of disposed handles panic) and the reactive shape (decision 20) were decided in
   autopilot. Confirm or change them before `tantu-view` depends on them.
-- `rust-toolchain.toml` has a local, uncommitted change (adds `rust-analyzer` to components).
-  Commit it or drop it.
 - Glyph rendering in the soft renderer: tiny-skia has no text. Rasterizing glyphs needs a font
   rasterizer (swash, per ADR 0005, or similar) in `tantu-render-soft`, or glyph runs are left
   for Phase 2 and counted as `missing_fonts` until then. Decide in the render-soft spec.
