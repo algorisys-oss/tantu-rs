@@ -5,7 +5,13 @@ whole history. Update this file in every commit (see `AGENTS.md` → General rul
 
 _Last updated: 2026-10-06_
 
-## Resume here (session of 2026-10-06, later)
+## Resume here (session of 2026-10-06, paused for the day)
+
+Paused at the end of the day on 2026-10-06 with `main` at the commit below and CI green on Linux,
+Windows and macOS. All 17 wgpu renderer tests ran (none skipped) on all three CI runners: on
+lavapipe on Linux, and on whatever adapter wgpu finds on the Windows and macOS runners. No branch
+is open. The local `rust-toolchain.toml` still has the uncommitted `rust-analyzer` component.
+
 
 **Phase 1: everything but the milestone is done**: `tantu-scene`, the headless, software and
 wgpu renderers, the platform layer (`tantu-platform`, `tantu-platform-winit`) and a window demo.
@@ -372,7 +378,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `d774f96` | spec: scene-window demo (SCENE-WINDOW-01..03) |
 | `caa9a2c` | test: scene-window, 3 failing tests |
 | `18b09b0` | impl: scene-window demo |
-| _this commit_ | docs: HANDOFF.md for the wgpu renderer and the demo |
+| `0383fe6` | docs: HANDOFF.md for the wgpu renderer and the demo |
+| _this commit_ | docs: HANDOFF.md, paused for the day (CI green, wgpu tests ran on all runners) |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
