@@ -1,6 +1,6 @@
 # Renderer trait and resources
 
-- **Status:** Implemented
+- **Status:** Agreed
 - **Crate:** `tantu-scene`
 - **Plan item:** Phase 1, "`tantu-scene` → `Renderer` trait, image/font resource registry,
   custom-command handlers"
@@ -140,6 +140,10 @@ pub struct RenderReport {
 impl RenderReport {
     /// True if every count is 0.
     pub fn is_clean(&self) -> bool;
+    /// The report every renderer gives for `scene` with `resources`, before any backend-specific
+    /// failures (an image that couldn't be uploaded, a font that couldn't be parsed), which the
+    /// backend adds on top. `handles_custom` says whether the renderer has a handler for a kind.
+    pub fn for_scene(scene: &Scene, resources: &Resources, handles_custom: &dyn Fn(CustomKind) -> bool) -> RenderReport;
 }
 
 /// Why a frame couldn't be rendered at all.
@@ -204,6 +208,27 @@ Renderer types
 - **SCENE-RENDER-03:** `RenderError` and `ResourceError` have non-empty `Display` messages;
   `RenderError::Backend(e)` returns `e` from `source()`.
 
+Shared report counting (`RenderReport::for_scene`)
+
+- **SCENE-RENDER-04:** Entries are examined in order. A `PushTransform` with a non-finite
+  coefficient, or a `PushClip` with a non-finite edge or radius, adds 1 to `invalid_commands`, and
+  every entry inside that scope (up to its matching pop) is skipped without being examined.
+  `PushLayer` and pop entries are never counted.
+- **SCENE-RENDER-05:** A draw command (`Fill`, `Stroke`, `BoxShadow`, `Image`, `GlyphRun`,
+  `Custom`) with any non-finite `f32` field adds 1 to `invalid_commands` and is not examined
+  further. The fields are: every rect edge and radius; colors; stroke width; shadow offset, blur
+  and spread; image `src`, `dest` and `opacity`; glyph run `font_size` and `origin`, and the `x`
+  and `y` of each of its glyphs (`Scene::glyphs`); custom `bounds`.
+- **SCENE-RENDER-06:** Otherwise an `Image` whose handle `resources.image` doesn't find adds 1 to
+  `missing_images`, a `GlyphRun` whose font `resources.font` doesn't find adds 1 to
+  `missing_fonts`, and a `Custom` command for which `handles_custom(kind)` is false adds 1 to
+  `unhandled_custom`.
+- **SCENE-RENDER-07:** Nothing else is counted: empty or reversed rects, transparent colors,
+  negative widths or radii, zero or NaN layer opacity, and a glyph run with no glyphs are all
+  valid (they draw nothing or are clamped, per the drawing semantics).
+- **SCENE-RENDER-08:** Counts saturate at `u32::MAX`. `for_scene` never panics and does not
+  allocate.
+
 ## Renderer contract
 
 What every `Renderer` implementation must do. No rule ids here: each renderer's spec turns these
@@ -220,8 +245,11 @@ into numbered rules and tests (headless and soft in Phase 1, wgpu with the golde
    `Ok(RenderReport::default())`.
 4. **Missing resources are not errors.** An `Image` or `GlyphRun` whose handle isn't in
    `resources`, a `Custom` command with no handler, and a draw command with non-finite values
-   each draw nothing and add 1 to the matching `RenderReport` count. The frame continues. Only
-   failures of the target or the backend itself return `Err`.
+   each draw nothing and are counted in the `RenderReport`. The frame continues. Only failures of
+   the target or the backend itself return `Err`. The report is
+   `RenderReport::for_scene(scene, resources, handles_custom)` (SCENE-RENDER-04..08), plus 1 for
+   each image or font the backend itself couldn't use, so every backend reports the same counts
+   for the same input.
 5. **No panics.** `render` never panics, for any Scene and any `Resources`.
 6. **Caches follow the revision.** A renderer may cache uploaded images and loaded fonts by
    handle. When `resources.revision()` differs from the last one it saw, it drops cache entries
@@ -260,3 +288,9 @@ Resolved (2026-10-06, the proposals were accepted):
    share it (`Arc<RwLock<Resources>>` across windows). No internal locking.
 5. **Report detail.** Counts only, so `render` doesn't allocate. Backends log details with
    `tracing`, once per handle or kind, not every frame.
+
+Resolved with the shared-counting amendment (2026-10-06, the proposal was accepted):
+
+6. **Shared counting.** `RenderReport::for_scene` in `tantu-scene`, used by every renderer, so headless, soft and wgpu report the same counts for the same Scene (and headless
+   test results predict real backends). A non-finite layer overlay color is not counted (the
+   overlay is ignored); the soft renderer spec will say so in its drawing rules.
