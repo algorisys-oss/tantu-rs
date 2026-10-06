@@ -228,7 +228,10 @@ Custom commands and invalid values
 - **RENDER-SOFT-23:** Commands `RenderReport::for_scene` counts as invalid draw nothing, and nothing
   inside a scope opened by a non-finite transform or clip is drawn (custom handlers included).
 - **RENDER-SOFT-24:** `render` never panics, including for huge or tiny coordinates, huge blur
-  radii, deep nesting of scopes and layers, and images far larger than the target.
+  radii, deep nesting of scopes and layers, and images far larger than the target. To get there,
+  geometry is rasterized in device pixels with coordinates clamped to ±2^24 (tiny-skia's
+  fixed-point scan converter fails on paths spanning about ±1e30): content within the target is
+  unchanged, and only shapes reaching beyond 16.7 million pixels from it may be bent.
 
 PNG and image diff
 
@@ -284,3 +287,13 @@ work continued; review these):
    visible difference.
 5. **Layer offscreens are target-sized** for now (scene.md deferred question 7).
 6. **Presenting to a window** (softbuffer) is out of scope here, decided with the platform crates.
+
+Found while implementing (2026-10-06):
+
+7. **Huge coordinates.** tiny-skia's scan converter hits a debug assertion for paths spanning
+   about ±1e30 device pixels. Paths are now transformed to device space by the renderer and their
+   points clamped to ±2^24 (RENDER-SOFT-24).
+8. **Goldens and exact pixel-boundary edges.** Changing a rotation by 1e-6 radians moved 9 edge
+   pixels of a golden by up to 14, where edges sit exactly on pixel boundaries. If CI on another
+   architecture disagrees for the same reason, allow a small number of differing pixels instead
+   of none.
