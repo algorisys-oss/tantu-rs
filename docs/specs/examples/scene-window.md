@@ -1,6 +1,6 @@
 # Phase 1 demo: a Scene in a window
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `scene-window` (`examples/scene-window`)
 - **Plan item:** Phase 1, "`examples/scene-window`: Phase 1 demo"
 - **Related:** [scene](../scene/scene.md), [wgpu renderer](../render-wgpu/renderer.md),
