@@ -17,13 +17,19 @@ pub enum PlatformError {
 
 impl fmt::Display for PlatformError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        match self {
+            PlatformError::Unsupported(what) => write!(f, "not supported by this platform: {what}"),
+            PlatformError::Os(e) => write!(f, "platform error: {e}"),
+        }
     }
 }
 
 impl std::error::Error for PlatformError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        todo!()
+        match self {
+            PlatformError::Os(e) => Some(e.as_ref()),
+            PlatformError::Unsupported(_) => None,
+        }
     }
 }
 

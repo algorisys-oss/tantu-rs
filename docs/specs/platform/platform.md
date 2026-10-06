@@ -1,6 +1,6 @@
 # Platform trait and window/input events
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-platform`
 - **Plan item:** Phase 1, "`tantu-platform`: `Platform` trait, window/input event types,
   `FakePlatform` for tests"

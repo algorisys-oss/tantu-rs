@@ -9,12 +9,12 @@ pub struct WindowId(u64);
 impl WindowId {
     /// From a raw value.
     pub const fn from_raw(raw: u64) -> WindowId {
-        todo!()
+        WindowId(raw)
     }
 
     /// The raw value.
     pub const fn to_raw(self) -> u64 {
-        todo!()
+        self.0
     }
 }
 
@@ -36,13 +36,28 @@ impl PhysicalSize {
     /// `width / scale_factor` × `height / scale_factor` logical pixels. A scale factor that is
     /// not finite or not positive counts as 1.
     pub fn to_logical(self, scale_factor: f32) -> Size {
-        todo!()
+        let s = valid_scale(scale_factor);
+        Size::new(self.width as f32 / s, self.height as f32 / s)
     }
 
     /// `size × scale_factor`, rounded to whole pixels and clamped to `0..=u32::MAX` (negative
     /// and NaN give 0). A scale factor that is not finite or not positive counts as 1.
     pub fn from_logical(size: Size, scale_factor: f32) -> PhysicalSize {
-        todo!()
+        let s = valid_scale(scale_factor);
+        // `as u32` saturates (and maps NaN to 0), which is the clamping wanted here.
+        PhysicalSize::new(
+            (size.width * s).round() as u32,
+            (size.height * s).round() as u32,
+        )
+    }
+}
+
+/// `scale_factor`, or 1 if it is not finite or not positive.
+fn valid_scale(scale_factor: f32) -> f32 {
+    if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
     }
 }
 
@@ -64,27 +79,39 @@ pub struct WindowAttributes {
 impl WindowAttributes {
     /// Title `title`, size 800 × 600, no minimum size, resizable, visible.
     pub fn new(title: impl Into<String>) -> WindowAttributes {
-        todo!()
+        WindowAttributes {
+            title: title.into(),
+            size: Size::new(800.0, 600.0),
+            min_size: None,
+            resizable: true,
+            visible: true,
+        }
     }
 
     /// Sets the initial inner size in logical pixels.
     pub fn size(self, width: f32, height: f32) -> Self {
-        todo!()
+        WindowAttributes {
+            size: Size::new(width, height),
+            ..self
+        }
     }
 
     /// Sets the smallest inner size in logical pixels.
     pub fn min_size(self, width: f32, height: f32) -> Self {
-        todo!()
+        WindowAttributes {
+            min_size: Some(Size::new(width, height)),
+            ..self
+        }
     }
 
     /// Sets whether the user can resize the window.
     pub fn resizable(self, resizable: bool) -> Self {
-        todo!()
+        WindowAttributes { resizable, ..self }
     }
 
     /// Sets whether the window is shown when created.
     pub fn visible(self, visible: bool) -> Self {
-        todo!()
+        WindowAttributes { visible, ..self }
     }
 }
 
@@ -167,7 +194,7 @@ impl Modifiers {
 
     /// True if no modifier is held.
     pub fn is_empty(self) -> bool {
-        todo!()
+        self == Modifiers::NONE
     }
 }
 
