@@ -234,9 +234,11 @@ impl Scene {
     pub fn size(&self) -> Size;
     /// The recorded entries, in paint order (later entries draw on top).
     pub fn entries(&self) -> &[Entry];
-    /// The glyphs of `run`. Empty if `run` didn't come from this Scene's current frame.
+    /// The glyphs of `run`, a run from this Scene's current frame. For any other run the
+    /// result is unspecified (but never a panic): empty if it indexes past the buffer.
     pub fn glyphs(&self, run: &GlyphRun) -> &[Glyph];
-    /// The bytes of `custom`. Empty if `custom` didn't come from this Scene's current frame.
+    /// The bytes of `custom`, a custom command from this Scene's current frame. For any other
+    /// one the result is unspecified (but never a panic): empty if it indexes past the buffer.
     pub fn custom_data(&self, custom: &CustomDraw) -> &[u8];
     /// The damage region.
     pub fn damage(&self) -> Damage<'_>;
@@ -318,7 +320,9 @@ Glyph runs and custom data
   same bytes.
 - **SCENE-SCENE-11:** `glyphs` and `custom_data` return an empty slice, never panic, for a run or
   custom command that doesn't index into this Scene's current buffers (from another Scene, or
-  from an earlier frame after the buffers shrank).
+  from an earlier frame after the buffers shrank). A run or custom command from elsewhere that
+  happens to index inside the buffers reads whatever is there; renderers only pass the Scene's
+  own entries.
 
 Z-index and scopes
 
@@ -432,6 +436,11 @@ Resolved later (2026-10-06):
 
 8. **Entry size budget** (found while writing the tests): 64 bytes was not reachable without
    boxing commands, since `BoxShadow` alone is 64 bytes. The budget is now 96.
+
+9. **Reading glyphs of a foreign run** (found while implementing): the API doc promised an
+   empty slice for any run not from the current frame. Detecting that needs a frame stamp in
+   each run, which would make two identically recorded Scenes unequal (SCENE-SCENE-23). The doc
+   now matches SCENE-SCENE-11: empty only when the run indexes past the buffer.
 
 Deferred:
 
