@@ -130,7 +130,8 @@ fn render_headless_05_zero_size_target() {
         let frame = renderer.last_frame().expect("still recorded");
         assert_eq!((frame.width, frame.height), (w, h));
         assert_eq!(frame.report, RenderReport::default());
-        assert_eq!(frame.scene, scene);
+        // The Scene holds a NaN on purpose, so compare its Debug output (NaN != NaN).
+        assert_eq!(format!("{:?}", frame.scene), format!("{scene:?}"));
     }
 }
 
