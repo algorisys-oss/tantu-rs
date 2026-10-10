@@ -19,5 +19,7 @@
 #![forbid(unsafe_code)]
 
 mod constraints;
+mod tree;
 
 pub use constraints::BoxConstraints;
+pub use tree::{IntrinsicChildren, LayoutChildren, LayoutId, LayoutTree, RenderBox, TreeError};
