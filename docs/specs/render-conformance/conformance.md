@@ -219,19 +219,26 @@ pub fn match_images(
 ### The reference set
 
 - **RENDER-CONF-08:** `reference_scenes()` holds exactly `shapes_and_strokes`, `shadows`, `images`,
-  `clips_and_transforms` and `layers`, in that order, with unique names, each at 200 × 200 and
+  `clips_and_transforms`, `layers` and `text` (added in Phase 2, RENDER-CONF-14), in that order, with unique names, each at 200 × 200 and
   scale factor 2 (a 100 × 100 logical frame). `reference_scene(name)` finds each of them and
   returns `None` for any other name.
 - **RENDER-CONF-09:** Each reference Scene records a frame of its logical size with balanced scopes,
   and `RenderReport::for_scene` on it and its resources is clean. Recording twice gives equal
-  Scenes, except that image handles differ (each recording adds its images to a new
-  `Resources`, and handles are never reused), with equal images behind them. Each golden decodes to an image of the scene's target size.
+  Scenes, except that image and font handles differ (each recording adds its images and fonts
+  to a new `Resources`, and handles are never reused), with equal data behind them. Each golden decodes to an image of the scene's target size.
 - **RENDER-CONF-10:** `check` returns `match_images(golden, actual, tolerance)`, or
   `Err(GoldenError::SizeMismatch)` with both sizes when they differ.
 - **RENDER-CONF-11:** The software renderer reproduces every golden within tolerance 2 per channel
   with no differing pixels (`diff_images`), as before the move. With `TANTU_UPDATE_GOLDENS=1`
   it writes them to `golden_path()` instead. (The software renderer's golden tests, now taking
   the Scenes and goldens from this crate.)
+
+- **RENDER-CONF-14:** The `text` reference Scene draws glyph runs in Liberation Sans (embedded
+  in the crate with its SIL OFL 1.1 license; `record()` adds it to the returned `Resources`): an
+  18 px "Tantu" and a 10 px "Ag 0.5px" with fixed glyph ids and positions (captured once from
+  `tantu_text::TextSystem`, so the Scene doesn't depend on shaping), and the 10 px run again
+  under a 1.5× scale, on a white background. Its golden is rendered by the software renderer
+  like the others.
 
 ### The milestone
 
