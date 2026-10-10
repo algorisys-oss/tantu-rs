@@ -7,6 +7,15 @@ _Last updated: 2026-10-10_
 
 ## Resume here (session of 2026-10-10)
 
+**Phase 2 is done (2026-10-10).** Every PLAN.md item is ticked, and the milestone is met:
+`cargo run -p counter` and `cargo run -p layout-demo` run on Linux Wayland and X11, Windows and
+macOS. CI is green on all three OSes. **Next: Phase 3**, starting with its first item, the
+focus system, keyboard navigation and shortcuts (spec first: it needs keyboard events through
+the view tree, and it is where "type" in `WidgetTester` lands). Review items from Phase 2 are
+listed under Open questions and in decisions 33 to 43.
+
+The history of the session follows.
+
 **Phase 1 is done. Phase 2: `tantu-layout` (all layouts), text measurement (ADR 0010) and the
 layout benchmark are done** (10k-node full layout in 635 µs, target < 1 ms). Specs in
 `docs/specs/layout/` are all Implemented.
@@ -52,11 +61,8 @@ layout-demo`). Running it in a real window found a bug, fixed in a `spec:`/`test
 surface. Each window now has a background color (`Window::background`, default white).
 **The Phase 2 milestone is met** (ticked 2026-10-10): `counter` and `layout-demo` run on
 Linux Wayland and X11 (checked by the agent) and on Windows and macOS (checked by the user).
-Left in Phase 2: the `tantu-text` parent item. **Waiting for the user:**
-`docs/specs/text/scripts.md` is a Draft. Bidi already works and only needs rules. Per-character
-font fallback doesn't work without system fonts (a character missing from the style's and
-default families is a missing-glyph box even when another registered font has it). The fix
-proposed: the family stack lists every registered family. Three open questions.
+Then the `tantu-text` parent item: `docs/specs/text/scripts.md` (bidi rules; per-character
+font fallback through every registered family, a bug fixed in `aa4809b`). Phase 2 is done.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -65,7 +71,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **Name:** **Tantu** (pronounced "tan-too", Sanskrit for "thread"). Tagline: *Compose once. Render
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
-- **Phase:** Phases 0 (Foundations) and 1 (Pixels on screen) are done; Phase 2 (Layout, views
+- **Phase:** Phases 0, 1 and 2 are done (Phase 2 on 2026-10-10); Phase 3 (core widget set and
+  interaction) is next. Earlier detail: Phase 2 (Layout, views
   and text) is in progress: `tantu-layout` (constraints, layout tree, all Flutter layout
   objects in scope, text measurement, benchmarks) is done. Phase 1 delivered:
   `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform`,
@@ -456,6 +463,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     background element (fills with `Window::background`, default `Color::WHITE`), so the color
     is part of the Scene (renderer-independent, visible in goldens) rather than a renderer clear
     color.
+43. **Bidi and font fallback** (2026-10-10, spec `docs/specs/text/scripts.md`, the draft's
+    proposals): bidi needed only rules (parley handles it). Fallback order: the style's family,
+    the default family, the other registered families in registration order, then system
+    fallback. Noto Sans Hebrew (OFL 1.1) is a second test font. CJK and Thai segmentation
+    (parley's `complex-scripts`) is deferred to Phase 4 i18n. A debug build printed an ICU4X
+    "No segmentation model" message to stderr for Japanese; find where it comes from then.
 
 ## Commit log
 
@@ -674,7 +687,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `6a3e5b0` | fix: windows paint their background color |
 | `548dc60` | docs: HANDOFF.md for the layout demo and the background fix |
 | `af7b73c` | docs: Phase 2 milestone ticked (user checked Windows and macOS) |
-| _this commit_ | docs: draft bidi and font fallback spec for review; PLAN.md sub-item |
+| `893bfae` | docs: draft bidi and font fallback spec for review; PLAN.md sub-item |
+| `6247bd6` | spec: bidi and font fallback (TEXT-SCRIPT-01..04) |
+| `c3e4fb5` | test: bidi and font fallback, 1 failing test |
+| `aa4809b` | fix: per-character font fallback through every registered family; Phase 2 done |
+| _this commit_ | docs: HANDOFF.md for the end of Phase 2 |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -683,8 +700,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. The `tantu-text` parent item: rules (and tests) for bidi and font fallback, then Phase 2 is
-   done and Phase 3 starts.
+3. Phase 2 is done. Phase 3 starts with the focus system, keyboard navigation and shortcuts.
 
 ## Open questions
 
