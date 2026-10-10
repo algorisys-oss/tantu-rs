@@ -2310,6 +2310,7 @@ version = "0.0.0"
 dependencies = [
  "png",
  "tantu-core",
+ "tantu-layout",
  "tantu-render-conformance",
  "tantu-scene",
  "tantu-text",

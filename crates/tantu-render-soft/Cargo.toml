@@ -23,3 +23,5 @@ png = "0.18.1"
 [dev-dependencies]
 # Reference Scenes and goldens (spec docs/specs/render-conformance/conformance.md).
 tantu-render-conformance = { workspace = true }
+# TextStyleKey, for the glyph-run tests (tests/text.rs).
+tantu-layout = { workspace = true }

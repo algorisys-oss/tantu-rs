@@ -82,3 +82,14 @@ fn text_raster_04_cache() {
     assert!(!Arc::ptr_eq(&a, &c));
     assert_eq!(*a, *c);
 }
+
+#[test]
+fn text_raster_05_readable() {
+    let (id, data) = font();
+    let mut r = GlyphRasterizer::new();
+    assert!(r.readable(id, &data));
+    assert!(r.readable(id, &data));
+    let junk = FontData::new(vec![0u8; 64], 0).expect("non-empty");
+    let junk_id = FontId::from_raw(9).expect("non-zero");
+    assert!(!r.readable(junk_id, &junk));
+}

@@ -112,6 +112,13 @@ impl GlyphRasterizer {
         }))
     }
 
+    /// True if `data` can be read as a font (cached per `font`), so a renderer can tell an
+    /// unusable font from a glyph without an outline.
+    pub fn readable(&mut self, font: FontId, data: &FontData) -> bool {
+        let _ = (font, data);
+        todo!()
+    }
+
     /// Number of cached masks (absent glyphs included).
     pub fn len(&self) -> usize {
         self.current.len() + self.old.len()
