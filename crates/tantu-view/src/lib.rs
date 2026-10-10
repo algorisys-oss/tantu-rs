@@ -39,12 +39,14 @@
 
 mod dynamic;
 mod frame;
+mod layout_builder;
 mod paint;
 mod prop;
 mod tree;
 
 pub use dynamic::{Dyn, For, Show};
 pub use frame::{ElementMut, FrameReport};
+pub use layout_builder::LayoutBuilder;
 pub use paint::{NoPaint, Paint, PaintCx};
 pub use prop::{IntoProp, Prop};
 pub use tantu_scene::ElementId;
