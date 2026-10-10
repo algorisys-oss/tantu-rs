@@ -117,6 +117,9 @@ impl LayoutChildren<'_> {
     pub fn layout_ignoring_size(&mut self, index: usize, constraints: BoxConstraints);
     /// Sets child `index`'s offset from this node's top-left corner.
     pub fn set_offset(&mut self, index: usize, offset: Vec2);
+    /// The child's size from its last layout (`Size::ZERO` if it was never laid out or the
+    /// index is out of range), so a layout can position children after sizing them all.
+    pub fn size(&self, index: usize) -> Size;
     /// The child's parent data, if it has some of type `T`.
     pub fn parent_data<T: Any>(&self, index: usize) -> Option<&T>;
     /// The child's intrinsic sizes (see `LayoutTree::min_intrinsic_width`).
@@ -297,6 +300,10 @@ on the next ones.
   `==`) changes nothing, marks nothing and returns false. With a different value or a different
   type it replaces the layout object, keeps children and parent data, marks the node (as
   `mark_needs_layout`) and returns true. An unknown id returns false.
+
+- **LAYOUT-TREE-19:** Inside `perform_layout`, `children.size(i)` is child `i`'s size from its last
+  layout (the size `layout(i, …)` returned in this pass, if it was laid out in it), and
+  `Size::ZERO` for a child never laid out or an index out of range.
 
 ### Robustness
 
