@@ -15,9 +15,10 @@ first item is split in three (PLAN.md). **Keyboard events and focus are done**
 dispatch to the focused path, Tab traversal in tree order, focus changes, focus on press, the
 runner forwarding keys, `WidgetTester::press_key`/`focus`. **Shortcuts and commands
 are done** (`docs/specs/view/shortcuts.md`): intents, `Shortcuts`, `Actions`,
-`SingleActivator` (with `primary()`), `ViewTree::invoke`. **Waiting for the user:**
-`docs/specs/widgets/button-keyboard.md` is a Draft (focusable buttons, Space/Enter activation,
-Material 3 focus outline; three open questions). Review items from Phase 2 are
+`SingleActivator` (with `primary()`), `ViewTree::invoke`. **`Button` keyboard
+activation and its focus indicator are done** (`docs/specs/widgets/button-keyboard.md`), so
+**Phase 3's first item (focus, keyboard navigation, shortcuts) is done**. Next in PLAN.md order:
+`Overlay` and anchored positioning. Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -486,6 +487,10 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     enabled until menus; bindings are tried per element in the bubble phase before that
     element's key handlers, so capture handlers can intercept first. An element holds one
     `Keyed` key; an outer `Keyed` on the same element replaces an inner one.
+46. **Button keyboard** (2026-10-10, spec `docs/specs/widgets/button-keyboard.md`, the draft's
+    proposals): Material 3 focus outline (3 px, 2 px outside) and 10 % focus layer; activation
+    on press (not release), repeats ignored; indicator whenever focused. **Review:**
+    VIEW-FOCUS-08 `ElementMut::set_focusable`, added so a disabled button leaves traversal.
 
 ## Commit log
 
@@ -722,7 +727,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `55560ee` | test: shortcuts fixture keeps the field's own key |
 | `c349569` | impl: shortcuts and commands |
 | `e27fbea` | docs: HANDOFF.md for shortcuts and commands |
-| _this commit_ | docs: draft Button keyboard spec for review |
+| `6a0018b` | docs: draft Button keyboard spec for review |
+| `b91b405` | spec: Button keyboard activation and focus indicator (WIDGETS-BUTTON-05..07, VIEW-FOCUS-08) |
+| `a883753` | test: Button keyboard activation and focus indicator, 4 failing tests |
+| `f54d9a7` | test: WIDGETS-BUTTON-06 counts the ignored repeat that bubbles on |
+| `a9094bf` | impl: Button keyboard activation and focus indicator |
+| _this commit_ | docs: HANDOFF.md for Button keyboard activation |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -731,7 +741,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: `Button` keyboard activation and focus indicator.
+3. Phase 3: `Overlay` and anchored positioning (spec first).
 
 ## Open questions
 
