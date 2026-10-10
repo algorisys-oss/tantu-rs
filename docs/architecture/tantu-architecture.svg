@@ -33,7 +33,7 @@
   <path class="edge" d="M700,210 L700,268"/>
   <text class="lbl" x="712" y="244">build</text>
   <path class="edge" d="M700,350 L700,408"/>
-  <text class="lbl" x="712" y="384">reconcile (keyed)</text>
+  <text class="lbl" x="712" y="384">build once · regions reconcile by key</text>
   <path class="edge" d="M700,490 L700,548"/>
   <text class="lbl" x="712" y="524">create / update render objects</text>
   <path class="edge" d="M585,650 L585,718"/>
@@ -109,13 +109,13 @@
   <!-- View tree -->
   <rect class="pipe" x="470" y="270" width="460" height="80" rx="10"/>
   <text class="t" x="700" y="298">View tree</text>
-  <text class="b" x="700" y="318">cheap declarative descriptions (like Flutter Widgets)</text>
+  <text class="b" x="700" y="318">one-shot builders · components run once</text>
   <text class="c" x="700" y="338">tantu-view</text>
 
   <!-- Element tree -->
   <rect class="pipe" x="470" y="410" width="460" height="80" rx="10"/>
   <text class="t" x="700" y="438">Element tree</text>
-  <text class="b" x="700" y="458">retained · identity + state · arena-backed · dirty tracking</text>
+  <text class="b" x="700" y="458">retained · arena · render + region elements · reactive scopes</text>
   <text class="c" x="700" y="478">tantu-view</text>
 
   <!-- Render tree -->

@@ -36,17 +36,20 @@ inkscape "$PWD/docs/architecture/tantu-architecture.svg" \
 | Stage | Crate | What it is |
 |---|---|---|
 | App code | user crate, `tantu-widgets`, `tantu-theme` | Functions returning `impl View`, built with builders; state kept in signals |
-| View tree | `tantu-view` | Cheap, short-lived descriptions of the UI, like Flutter `Widget`s |
-| Element tree | `tantu-view` | Retained nodes in an arena. Each has a stable identity, holds state, and tracks whether it is dirty |
+| View tree | `tantu-view` | Cheap, one-shot descriptions of the UI, consumed when they build their elements; components are functions that run once ([ADR-0011](adr/0011-view-layer.md)) |
+| Element tree | `tantu-view` | Retained nodes in an arena (`ViewTree`, one per window). Render elements own a layout node and a paint behavior; region elements hold dynamic content. Each has a stable identity and a reactive scope |
 | Render tree | `tantu-layout` (layout tree) + `tantu-view` (paint, hit-test) | `RenderBox`-style layout objects in a `LayoutTree` arena owned by `tantu-layout`; `tantu-view` keeps them in step with elements and paints and hit-tests from their geometry ([ADR-0009](adr/0009-layout-tree-in-tantu-layout.md)) |
 | Scene | `tantu-scene` | Flat, serializable, versioned list of draw commands. Each command carries an element id and z-index |
 | Renderer | `tantu-scene` (trait), `tantu-render-*` | Draws a Scene. Never calls back into the UI |
 
-**Build.** App code produces a View tree. Views are values, so building them is cheap.
+**Build.** App code produces a View tree once: components are plain functions that run once
+(ADR-0011), and each view is consumed when it builds its element. Reactive props (closures)
+become effects that update one property of one element when their signals change.
 
-**Reconcile.** The reconciler matches new views against existing elements, by key where one is
-given and by position otherwise. Matched elements keep their identity, so focus, IME state,
-scroll position, animations and accessibility nodes survive a rebuild.
+**Reconcile.** Only dynamic content rebuilds: `Dyn`, `Show` and `For` are region elements that
+re-run their view closure when their signals change. `For` matches new items to existing
+elements by key, so matched elements keep their identity (focus, IME state, scroll position,
+animations and accessibility nodes survive); the rest are built or disposed.
 
 **Layout.** Render objects run Flutter's protocol: a parent passes `BoxConstraints` down, the child
 returns a `Size`, and the parent sets the child's offset. Relayout boundaries stop a change from
@@ -76,7 +79,8 @@ signals inside closures. When a signal changes, only the elements that read it a
 There is no whole-subtree `setState`. One frame looks like this:
 
 ```
-signal write → dependent elements marked dirty → rebuild those views → reconcile
+signal write → reactive-prop effects queue updates (regions queue rebuilds) → frame:
+  apply updates (layout objects via LayoutTree::set) → rebuild regions (keyed)
   → relayout (bounded by relayout boundaries) → repaint → Scene → Renderer
 ```
 
@@ -162,6 +166,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Every renderer is checked against shared reference Scenes and goldens | [ADR-0008](adr/0008-renderer-conformance-suite.md) |
 | The layout tree (layout objects, caching, relayout boundaries) lives in `tantu-layout` | [ADR-0009](adr/0009-layout-tree-in-tantu-layout.md) |
 | Paragraph-level `TextMeasure` passed into the layout pass; `RenderParagraph` in `tantu-layout`; word cache in `tantu-text` | [ADR-0010](adr/0010-text-measurement-in-layout.md) |
+| Run-once components, render and region elements, queued updates applied per frame | [ADR-0011](adr/0011-view-layer.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).

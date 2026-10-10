@@ -93,7 +93,12 @@ faster or more portable without changing how apps are written.
   - [x] `RenderWrap` (spec `docs/specs/layout/wrap.md`)
 - [x] `TextMeasure`, `MeasureCache` and `RenderParagraph`; the measurer passed into the layout pass (spec `docs/specs/layout/text.md`, ADR 0010)
 - [x] Layout benchmark: 10k render objects, target < 1 ms full layout (635 µs; spec `docs/specs/layout/benchmarks.md`)
-- [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries; `LayoutBuilder` (it builds views during layout, so it needs the element tree); visibility culling while painting (technique from Clay; `Scene::is_culled` exists)
+- [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries; `LayoutBuilder` (it builds views during layout, so it needs the element tree); visibility culling while painting (technique from Clay; `Scene::is_culled` exists). Design: ADR 0011
+  - [ ] View tree: `View`/`AnyView`, `BuildCx`, `ViewTree` (runtime, element arena, layout tree), render and region elements, element scopes, removal (spec `docs/specs/view/tree.md`)
+  - [ ] Paint: `Paint` trait, `PaintCx`, traversal with offsets and element ids, culling (spec `docs/specs/view/paint.md`)
+  - [ ] Reactive props and frames: `Prop<T>`, the update queue, `ViewTree::frame` (apply, layout, paint), needs-frame notification (spec `docs/specs/view/frame.md`)
+  - [ ] Dynamic content: `Dyn`, `Show`, `For` with keyed reconciliation (spec `docs/specs/view/dynamic.md`)
+  - [ ] `LayoutBuilder` (spec `docs/specs/view/layout-builder.md`)
 - [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons
 - [ ] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md

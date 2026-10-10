@@ -18,6 +18,7 @@ instead.
 | [0008](0008-renderer-conformance-suite.md) | Renderer conformance suite | Accepted |
 | [0009](0009-layout-tree-in-tantu-layout.md) | The layout tree lives in `tantu-layout` | Accepted |
 | [0010](0010-text-measurement-in-layout.md) | Text measurement in layout | Accepted |
+| [0011](0011-view-layer.md) | The view layer: run-once components over a retained element arena | Accepted (partly decided by the agent; review) |
 
 ## Writing a new ADR
 
