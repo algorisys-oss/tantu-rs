@@ -167,6 +167,9 @@ const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/goldens/counter
 fn test_wt_06_goldens() {
     let mut tester = WidgetTester::with_size(240.0, 120.0, counter);
     tester.matches_golden(GOLDEN);
+    if std::env::var_os("TANTU_UPDATE_GOLDENS").is_some() {
+        return; // writing goldens: the checks below would overwrite this one
+    }
     // A different frame doesn't match.
     tester.hover(&Finder::key("inc"));
     let mismatch = catch_unwind(AssertUnwindSafe(|| tester.matches_golden(GOLDEN)));
