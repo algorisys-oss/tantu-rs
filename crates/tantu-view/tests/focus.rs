@@ -446,3 +446,53 @@ fn view_focus_08_set_focusable() {
     frame(&mut tree);
     assert!(tree.focus(toggle));
 }
+
+#[test]
+fn view_focus_09_focus_within() {
+    let log = Log::default();
+    let l = log.clone();
+    let mut tree = ViewTree::new(move || {
+        let mut col = node("col", &l);
+        col.column = true;
+        let l2 = l.clone();
+        col.child(Keyed::new("a", node("a", &l).focusable(TRAVERSABLE)))
+            .child(Keyed::new(
+                "group",
+                Within(
+                    node("g", &l)
+                        .child(Keyed::new("x", node("x", &l).focusable(TRAVERSABLE)))
+                        .child(Keyed::new("y", node("y", &l).focusable(TRAVERSABLE))),
+                    l2,
+                ),
+            ))
+    });
+    let find = |tree: &ViewTree, k: &str| tree.find_key(&Key::from(k))[0];
+    let (a, x, y) = (find(&tree, "a"), find(&tree, "x"), find(&tree, "y"));
+    let take = |log: &Log| std::mem::take(&mut *log.borrow_mut());
+    tree.focus(a);
+    take(&log);
+    tree.focus(x);
+    assert_eq!(take(&log), ["a false", "x true", "within true"]);
+    tree.focus(y);
+    assert_eq!(take(&log), ["x false", "y true"]);
+    tree.focus(a);
+    assert_eq!(take(&log), ["y false", "a true", "within false"]);
+    tree.focus(x);
+    take(&log);
+    tree.unfocus();
+    assert_eq!(take(&log), ["x false", "within false"]);
+}
+
+/// Logs focus entering and leaving `child`'s subtree.
+struct Within<V>(V, Log);
+
+impl<V: View> View for Within<V> {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = self.0.build(cx);
+        let log = self.1;
+        cx.on_focus_within(id, move |inside| {
+            log.borrow_mut().push(format!("within {inside}"));
+        });
+        id
+    }
+}

@@ -183,6 +183,13 @@ impl BuildCx<'_> {
         }
     }
 
+    /// Calls `handler(true)` when the focus moves into `element`'s subtree and `handler(false)`
+    /// when it leaves it.
+    pub fn on_focus_within(&mut self, element: ElementId, handler: impl Fn(bool) + 'static) {
+        let _ = (element, handler);
+        todo!()
+    }
+
     /// Calls `handler(true)` when `element` gains focus and `handler(false)` when it loses it.
     pub fn on_focus_change(&mut self, element: ElementId, handler: impl Fn(bool) + 'static) {
         if self.tree.contains(element) {

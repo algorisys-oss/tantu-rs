@@ -27,8 +27,10 @@
 
 mod basic;
 mod layout;
+mod tooltip;
 
 pub use basic::{Button, Text};
+pub use tooltip::Tooltip;
 
 pub use layout::{
     Align, Center, Column, ConstrainedBox, Expanded, Flexible, Padding, Positioned, Row, SizedBox,
