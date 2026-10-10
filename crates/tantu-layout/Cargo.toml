@@ -8,6 +8,8 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+autobenches = false
+
 [lints]
 workspace = true
 
@@ -15,3 +17,11 @@ workspace = true
 tantu-core = { workspace = true }
 # Diagnostics (AGENTS.md: `tracing`, never `println!`). Already in the workspace through wgpu.
 tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+# Benchmark harness (spec docs/specs/layout/benchmarks.md), as in tantu-reactive.
+criterion = { version = "0.7.0", default-features = false }
+
+[[bench]]
+name = "layout"
+harness = false
