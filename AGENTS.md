@@ -78,6 +78,9 @@ Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 | `examples/` | gallery, todo, enterprise dashboard, data grid stress test | tantu |
 | `xtask` | dev tooling, not published: `cargo xtask spec-coverage` | — (std only; nothing depends on it) |
 
+Every crate may also depend on `tantu-core` (geometry, color, ids, arena), which sits under
+everything; the table lists only the other edges.
+
 **Dependency rule (enforced in review):** nothing below `tantu-view` may know about widgets; nothing
 except `tantu-render-*` may depend on `wgpu`/`tiny-skia`; nothing except `tantu-platform-*` may depend
 on `winit`. If you need to break this rule, stop and discuss.

@@ -7,27 +7,17 @@ _Last updated: 2026-10-10_
 
 ## Resume here (session of 2026-10-10)
 
-**Phase 1 is done. Phase 2: the `tantu-layout` item is done** (ADR 0009, all specs in
-`docs/specs/layout/` Implemented):
+**Phase 1 is done. Phase 2: `tantu-layout` (all layouts), text measurement (ADR 0010) and the
+layout benchmark are done** (10k-node full layout in 635 µs, target < 1 ms). Specs in
+`docs/specs/layout/` are all Implemented.
 
-- `constraints.md` (LAYOUT-CONS-01..17): `BoxConstraints`.
-- `tree.md` (LAYOUT-TREE-01..19): `LayoutTree`, `RenderBox`, caching, relayout boundaries,
-  intrinsics, `set()`, `LayoutChildren::size`.
-- `single-child.md` (LAYOUT-SINGLE-01..15): `Alignment`, `RenderPadding`,
-  `RenderPositionedBox`, `RenderConstrainedBox`, `RenderFractionallySizedBox`,
-  `RenderAspectRatio`.
-- `flex.md` (LAYOUT-FLEX-01..14): `RenderFlex`, `FlexParentData`.
-- `stack.md` (LAYOUT-STACK-01..08): `RenderStack`, `StackParentData`.
-- `wrap.md` (LAYOUT-WRAP-01..09): `RenderWrap`.
+The user is away for ~5 hours from 2026-10-10 and asked the agent to continue and push at each
+milestone, deciding forks with the recommended option and marking them for review (decision
+34). Their answers before leaving: components **run once with fine-grained reactive props**
+(Solid/Leptos style), order **as PLAN.md** (tantu-view, then tantu-text, events, facade,
+WidgetTester), and AGENTS.md now says every crate may depend on `tantu-core`.
 
-The flex, stack and wrap open questions were **decided by the agent** (the user said "your
-pick"); review them (decision 33).
-
-Next: the `TextMeasure` trait and word-level measure cache (spec first; the API shape needs the
-user's call). Visibility culling is planned to move to the `tantu-view` paint item. Then the
-10k-node layout benchmark, then `tantu-view`.
-
-`cargo run -p scene-window` still shows the Phase 1 demo.
+Next: the `tantu-view` design (ADR + PLAN.md split), then its specs.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -37,8 +27,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phases 0 (Foundations) and 1 (Pixels on screen) are done; Phase 2 (Layout, views
-  and text) is in progress: the `tantu-layout` item is done (constraints, layout tree and all
-  Flutter layout objects in its scope). Phase 1 delivered:
+  and text) is in progress: `tantu-layout` (constraints, layout tree, all Flutter layout
+  objects in scope, text measurement, benchmarks) is done. Phase 1 delivered:
   `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform`,
   `tantu-platform-winit`, `tantu-render-wgpu`, `examples/scene-window` and the milestone
   (`tantu-render-conformance`, decision 31). The workspace has 17 crates under `crates/`
@@ -64,7 +54,7 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     `[workspace.dependencies]`, shared lints in `[workspace.lints]`)
   - `rust-toolchain.toml`: pins Rust 1.85, which is also the MSRV; `clippy.toml`
   - `crates/`: one directory per crate; `crates/tantu` is the facade
-  - `docs/adr/`: ADRs 0001–0009 plus `README.md` (index, template, how to supersede)
+  - `docs/adr/`: ADRs 0001–0010 plus `README.md` (index, template, how to supersede)
   - `docs/specs/`: `TEMPLATE.md` and `README.md` (location, rule-id and test-name conventions)
   - `.github/workflows/ci.yml`: fmt, clippy + rustdoc (`-D warnings`), test on Linux/Windows/macOS,
     spec coverage
@@ -338,6 +328,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
       `child.size`).
     - Directional variants (RTL start/end) are deferred to Phase 4.
 
+34. **Text measurement and benchmarks** (2026-10-10): ADR 0010 (the user's three choices:
+    paragraph-level `TextMeasure` cached in layout, the measurer passed into the layout pass,
+    `RenderParagraph` in `tantu-layout`); spec `text.md` (two-generation cache, `max_lines` in
+    the key, `TextStyleKey(u64)`, agreed); spec `benchmarks.md` (baselines recorded; "leaves count
+    their own layouts" decided by the agent). **Autonomy:** the user, going away, chose "decide
+    and mark for review" for architecture-level forks and asked for a push at each milestone.
+    **Reactivity model for `tantu-view`:** components run once; reactive props are fine-grained
+    effects; dynamic parts are explicit reactive views reconciled by key (the user's choice).
+
 ## Commit log
 
 | Commit | Summary |
@@ -453,33 +452,34 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `b3d7e28` | spec: wrap layout (LAYOUT-WRAP-01..09) |
 | `e5a528d` | test: wrap layout, 9 failing tests |
 | `7cdbc63` | impl: wrap layout; PLAN.md `tantu-layout` item ticked |
-| _this commit_ | docs: HANDOFF.md for the end of the `tantu-layout` item |
+| `7d2a9c0` | docs: HANDOFF.md for the end of the `tantu-layout` item |
+| `201c12b` | spec: TextMeasure, MeasureCache and RenderParagraph (LAYOUT-TEXT-01..10); ADR 0010 |
+| `ebde600` | test: text measurement, 10 failing tests |
+| `818b633` | impl: TextMeasure, MeasureCache and RenderParagraph |
+| `0f6eb86` | spec: layout benchmarks (LAYOUT-BENCH-01..05) |
+| `37e8e3a` | test: layout benchmarks, 5 failing tests |
+| `94839cb` | impl: layout benchmarks; 10k-node full layout in 635 µs |
+| _this commit_ | docs: AGENTS.md (every crate may depend on tantu-core); HANDOFF.md |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 2 in PLAN.md)
 
-1. `TextMeasure` trait + word-level measure cache (spec first; ask the user about the API
-   shape). Move visibility culling to the `tantu-view` paint item in PLAN.md.
-2. Layout benchmark: 10k render objects, full layout under 1 ms.
-3. `tantu-view` (View/Element traits, reconciliation, dirty tracking, paint, `LayoutBuilder`).
-4. When `tantu-text` lands, add text reference Scenes to `tantu-render-conformance`.
+1. `tantu-view` design: ADR (views, elements, run-once components, reactive props, keyed
+   dynamic children, layout-node ownership, paint with culling) and a PLAN.md split into specs.
+2. `tantu-view` specs, tests, implementation.
+3. `tantu-text` (parley; implements `TextMeasure`), event dispatch, the `tantu` facade with the
+   counter example, `WidgetTester`.
 
 ## Open questions
 
-- **AGENTS.md table vs. `tantu-core`.** `tantu-render-soft` (API uses `Rect`, `Affine`, `Color`)
-  and `tantu-platform-winit` (`Point`) depend on `tantu-core` directly. `docs/architecture.md` says core "sits under every crate",
-  but the AGENTS.md table lists only `scene, text` for the render crates, and the code-to-docs
-  skill flags it. Proposal: say in AGENTS.md that every crate may depend on `tantu-core`, or add
-  `core` to those rows. Needs your OK (AGENTS.md changes are proposed first).
 - **Autopilot decisions to review:** decisions 26 (render-soft), 28 (platform) and 29 (wgpu), as
   well as 20/21 and ADR 0007.
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
   change.
-- **`tantu-render-wgpu` also depends on `tantu-core` directly** (same question as above).
 - **CLAUDE.md mention of the skill** (proposed, not applied): "`/code-to-docs`
   (`.claude/skills/code-to-docs/`) generates the interactive docs page
   `docs/interactive/index.html` from the repo (read-only; it reports spec-coverage and
