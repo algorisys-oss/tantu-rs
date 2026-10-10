@@ -140,6 +140,9 @@ impl WidgetTester {
   one: the innermost such element on the hit path) focuses it before the pointer handlers run.
 - **VIEW-FOCUS-07:** Removing the focused element (or an ancestor) clears the focus and calls
   its `on_focus_change(false)`. Removing elements drops their key and focus handlers.
+- **VIEW-FOCUS-08:** `ElementMut::set_focusable(Some(options) | None)` changes focusability
+  after building; `None` clears the element's focus. (Added with
+  [Button keyboard activation](../widgets/button-keyboard.md).)
 - **FACADE-APP-11:** The runner converts `WindowEvent::Keyboard` to a `KeyEvent` with the
   current modifiers (tracked from `ModifiersChanged`) and dispatches it to the window's tree.
   Named keys map one to one, `Character` keys keep their text, and modifier keys and
