@@ -36,3 +36,6 @@ tantu-theme = { workspace = true, optional = true }
 tantu-render-wgpu = { workspace = true, optional = true }
 tantu-render-soft = { workspace = true, optional = true }
 tantu-platform-winit = { workspace = true, optional = true }
+
+[dev-dependencies]
+tantu-render-headless = { workspace = true }

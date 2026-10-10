@@ -2233,6 +2233,7 @@ dependencies = [
  "tantu-platform",
  "tantu-platform-winit",
  "tantu-reactive",
+ "tantu-render-headless",
  "tantu-render-soft",
  "tantu-render-wgpu",
  "tantu-scene",
