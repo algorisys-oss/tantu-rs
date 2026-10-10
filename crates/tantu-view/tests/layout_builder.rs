@@ -216,48 +216,38 @@ impl View for Padded {
     }
 }
 
-/// Gives its child one more pixel of width than the child had last time: constraints that
-/// never settle.
-struct Grower;
+/// `depth` LayoutBuilders nested inside each other, counting builder calls.
+struct Nest(u32, Rc<Cell<u32>>);
 
-impl RenderBox for Grower {
-    fn perform_layout(&mut self, c: BoxConstraints, children: &mut LayoutChildren<'_>) -> Size {
-        let previous = children.size(0).width;
-        if !children.is_empty() {
-            children.layout(0, loose(previous + 1.0, 100.0));
-            children.set_offset(0, Vec2::ZERO);
-        }
-        c.smallest()
-    }
-}
-
-struct Growing(AnyView);
-
-impl View for Growing {
+impl View for Nest {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let id = cx.render(Grower, [self.0]);
-        // Always lay out again, so the builder keeps seeing new constraints.
-        let _ = id;
-        id
+        let (depth, calls) = (self.0, self.1);
+        LayoutBuilder::new(move |c| {
+            calls.set(calls.get() + 1);
+            if depth == 0 {
+                AnyView::new(Fill(c.max_width))
+            } else {
+                AnyView::new(Nest(depth - 1, calls.clone()))
+            }
+        })
+        .build(cx)
     }
 }
 
 #[test]
 fn view_lb_05_round_limit() {
-    let builds = Rc::new(Cell::new(0));
+    // Each nesting level is built one round after its parent, so 20 levels need 20 rounds;
+    // one layout call allows 16.
+    let calls = Rc::new(Cell::new(0));
     let mut tree = {
-        let builds = builds.clone();
-        ViewTree::new(move || {
-            let builds = builds.clone();
-            Growing(AnyView::new(LayoutBuilder::new(move |c| {
-                builds.set(builds.get() + 1);
-                Fill(c.max_width)
-            })))
-        })
+        let calls = calls.clone();
+        ViewTree::new(move || Nest(20, calls))
     };
     tree.layout(loose(800.0, 600.0), &mut NoTextMeasure);
-    assert!(builds.get() <= 17, "{} builds", builds.get());
-    assert!(builds.get() >= 2);
+    assert_eq!(calls.get(), 16);
+    // The next call carries on.
+    tree.layout(loose(800.0, 600.0), &mut NoTextMeasure);
+    assert!(calls.get() > 16, "{}", calls.get());
 }
 
 /// A box exactly `width` wide.
