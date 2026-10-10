@@ -190,7 +190,8 @@ pub fn match_images(
 ### The comparison
 
 - **RENDER-CONF-01:** `match_images` returns `None` when the two images have different widths or
-  heights, and never panics, including for 0 × 0 images (which match, with no edge pixels).
+  heights, and never panics. (`ImageData` is at least 1 × 1; a 1 × 1 image has no neighbours,
+  so it has no edge pixels.)
 - **RENDER-CONF-02:** Pixels are compared premultiplied: each color channel becomes
   `round(c × a / 255)`. The difference of two pixels is the largest absolute difference over the
   premultiplied red, green and blue and the alpha. So two fully transparent pixels never
@@ -223,7 +224,8 @@ pub fn match_images(
   returns `None` for any other name.
 - **RENDER-CONF-09:** Each reference Scene records a frame of its logical size with balanced scopes,
   and `RenderReport::for_scene` on it and its resources is clean. Recording twice gives equal
-  Scenes. Each golden decodes to an image of the scene's target size.
+  Scenes, except that image handles differ (each recording adds its images to a new
+  `Resources`, and handles are never reused), with equal images behind them. Each golden decodes to an image of the scene's target size.
 - **RENDER-CONF-10:** `check` returns `match_images(golden, actual, tolerance)`, or
   `Err(GoldenError::SizeMismatch)` with both sizes when they differ.
 - **RENDER-CONF-11:** The software renderer reproduces every golden within tolerance 2 per channel
