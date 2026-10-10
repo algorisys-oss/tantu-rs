@@ -17,8 +17,10 @@ runner forwarding keys, `WidgetTester::press_key`/`focus`. **Shortcuts and comma
 are done** (`docs/specs/view/shortcuts.md`): intents, `Shortcuts`, `Actions`,
 `SingleActivator` (with `primary()`), `ViewTree::invoke`. **`Button` keyboard
 activation and its focus indicator are done** (`docs/specs/widgets/button-keyboard.md`), so
-**Phase 3's first item (focus, keyboard navigation, shortcuts) is done**. Next in PLAN.md order:
-`Overlay` and anchored positioning. Review items from Phase 2 are
+**Phase 3's first item (focus, keyboard navigation, shortcuts) is done**. **Waiting for the user:**
+`docs/specs/view/overlay.md` is a Draft (an overlay layer per window, a declarative
+`OverlayPortal`, `Anchor` with target/follower `Alignment` points, offset, flip, clamp,
+z-index, pointer passthrough, `on_outside_press`; four open questions). Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -732,7 +734,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `a883753` | test: Button keyboard activation and focus indicator, 4 failing tests |
 | `f54d9a7` | test: WIDGETS-BUTTON-06 counts the ignored repeat that bubbles on |
 | `a9094bf` | impl: Button keyboard activation and focus indicator |
-| _this commit_ | docs: HANDOFF.md for Button keyboard activation |
+| `d410de0` | docs: HANDOFF.md for Button keyboard activation |
+| _this commit_ | docs: draft overlay spec for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
