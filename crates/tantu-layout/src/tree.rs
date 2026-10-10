@@ -7,7 +7,7 @@ use std::fmt;
 
 use tantu_core::{Arena, Id, Size, Vec2};
 
-use crate::BoxConstraints;
+use crate::{BoxConstraints, TextMeasure};
 
 /// A node in a [`LayoutTree`]. `Copy`, 8 bytes; stale after the node is removed (never reused).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -154,6 +154,11 @@ impl LayoutChildren<'_> {
         }
     }
 
+    /// The pass's text measurer (ADR 0010).
+    pub fn text(&mut self) -> &mut dyn TextMeasure {
+        todo!()
+    }
+
     /// The child's size from its last layout (`Size::ZERO` if it was never laid out or the
     /// index is out of range), so a layout can position children after sizing them all.
     pub fn size(&self, index: usize) -> Size {
@@ -202,6 +207,11 @@ pub struct IntrinsicChildren<'a> {
 }
 
 impl IntrinsicChildren<'_> {
+    /// The query's text measurer (ADR 0010).
+    pub fn text(&mut self) -> &mut dyn TextMeasure {
+        todo!()
+    }
+
     /// Number of children.
     pub fn len(&self) -> usize {
         self.tree.children(self.parent).len()
@@ -253,6 +263,45 @@ enum Intrinsic {
     MaxHeight,
 }
 
+/// A layout tree borrowed together with a text measurer (ADR 0010), from
+/// [`LayoutTree::with_text`].
+pub struct LayoutSession<'a> {
+    tree: &'a mut LayoutTree,
+    text: &'a mut dyn TextMeasure,
+}
+
+impl LayoutSession<'_> {
+    /// As [`LayoutTree::layout`], with the session's measurer.
+    pub fn layout(&mut self, root: LayoutId, constraints: BoxConstraints) -> Size {
+        let _ = (root, constraints, &self.tree, &self.text);
+        todo!()
+    }
+
+    /// As [`LayoutTree::min_intrinsic_width`], with the session's measurer.
+    pub fn min_intrinsic_width(&mut self, id: LayoutId, height: f32) -> f32 {
+        let _ = (id, height);
+        todo!()
+    }
+
+    /// As [`LayoutTree::max_intrinsic_width`], with the session's measurer.
+    pub fn max_intrinsic_width(&mut self, id: LayoutId, height: f32) -> f32 {
+        let _ = (id, height);
+        todo!()
+    }
+
+    /// As [`LayoutTree::min_intrinsic_height`], with the session's measurer.
+    pub fn min_intrinsic_height(&mut self, id: LayoutId, width: f32) -> f32 {
+        let _ = (id, width);
+        todo!()
+    }
+
+    /// As [`LayoutTree::max_intrinsic_height`], with the session's measurer.
+    pub fn max_intrinsic_height(&mut self, id: LayoutId, width: f32) -> f32 {
+        let _ = (id, width);
+        todo!()
+    }
+}
+
 /// One node: its layout object, structure and last layout.
 struct Node {
     /// The layout object; `None` only while it is running (taken out of the arena so it can
@@ -296,6 +345,14 @@ impl fmt::Debug for LayoutTree {
 }
 
 impl LayoutTree {
+    /// A session that runs layout passes and intrinsic queries with `text` as the text
+    /// context. [`LayoutTree::layout`] and the tree's intrinsic methods use
+    /// [`NoTextMeasure`](crate::NoTextMeasure).
+    pub fn with_text<'a>(&'a mut self, text: &'a mut dyn TextMeasure) -> LayoutSession<'a> {
+        let _ = text;
+        todo!()
+    }
+
     /// An empty tree.
     pub fn new() -> Self {
         LayoutTree::default()

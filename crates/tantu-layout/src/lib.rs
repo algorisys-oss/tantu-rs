@@ -43,6 +43,7 @@ mod constraints;
 mod flex;
 mod single_child;
 mod stack;
+mod text;
 mod tree;
 mod wrap;
 
@@ -56,5 +57,11 @@ pub use single_child::{
     RenderPositionedBox,
 };
 pub use stack::{RenderStack, StackFit, StackParentData};
-pub use tree::{IntrinsicChildren, LayoutChildren, LayoutId, LayoutTree, RenderBox, TreeError};
+pub use text::{
+    MeasureCache, NoTextMeasure, RenderParagraph, TextMeasure, TextMetrics, TextStyleKey,
+    TextWidthBasis,
+};
+pub use tree::{
+    IntrinsicChildren, LayoutChildren, LayoutId, LayoutSession, LayoutTree, RenderBox, TreeError,
+};
 pub use wrap::{RenderWrap, WrapAlignment, WrapCrossAlignment};
