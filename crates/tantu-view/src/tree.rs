@@ -5,9 +5,12 @@ use std::any::Any;
 use std::rc::Rc;
 
 use tantu_core::{Affine, Arena, Id, Rect, Size, Vec2};
-use tantu_layout::{BoxConstraints, LayoutChildren, LayoutId, LayoutTree, RenderBox, TextMeasure};
+use tantu_layout::{
+    BoxConstraints, LayoutChildren, LayoutId, LayoutTree, RenderBox, TextMeasure, TextStyleKey,
+};
 use tantu_reactive::{Runtime, Scope};
 use tantu_scene::{ElementId, SceneBuilder};
+use tantu_text::{TextStyle, TextStyles};
 
 use crate::events::EventState;
 use crate::frame::Shared;
@@ -122,6 +125,12 @@ impl BuildCx<'_> {
         }
     }
 
+    /// The key for `style` in the tree's style table.
+    pub fn text_style(&mut self, style: TextStyle) -> TextStyleKey {
+        let _ = style;
+        todo!()
+    }
+
     /// The current parent element.
     pub fn parent(&self) -> ElementId {
         self.parent
@@ -224,6 +233,18 @@ impl ViewTree {
             tree.sync_layout_children(root);
         });
         tree
+    }
+
+    /// Like [`new`](Self::new), with `styles` as the tree's style table (pass the text
+    /// system's, so keys built here mean the same styles when measured and painted).
+    pub fn with_text_styles<V: View>(styles: TextStyles, app: impl FnOnce() -> V) -> Self {
+        let _ = (styles, app);
+        todo!()
+    }
+
+    /// The tree's style table ([`new`](Self::new) creates an empty one of its own).
+    pub fn text_styles(&self) -> &TextStyles {
+        todo!()
     }
 
     /// The implicit root render element; the app's view is built under it.

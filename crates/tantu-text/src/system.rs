@@ -177,6 +177,17 @@ impl TextSystem {
         TextStyleKey(index as u64)
     }
 
+    /// The system's style table (a clone of the handle).
+    pub fn styles(&self) -> crate::TextStyles {
+        todo!()
+    }
+
+    /// Uses `styles` as the system's table instead of its own.
+    pub fn with_styles(self, styles: crate::TextStyles) -> Self {
+        let _ = styles;
+        todo!()
+    }
+
     /// The style behind `key`.
     pub fn text_style(&self, key: TextStyleKey) -> Option<&TextStyle> {
         usize::try_from(key.0).ok().and_then(|i| self.styles.get(i))
