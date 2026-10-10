@@ -13,10 +13,10 @@ macOS. CI is green on all three OSes. **Phase 3 has started** on branch `phase3/
 first item is split in three (PLAN.md). **Keyboard events and focus are done**
 (`docs/specs/view/focus.md`, the user said "continue" on the draft): focusable elements, key
 dispatch to the focused path, Tab traversal in tree order, focus changes, focus on press, the
-runner forwarding keys, `WidgetTester::press_key`/`focus`. **Waiting for the user:**
-`docs/specs/view/shortcuts.md` is a Draft (Flutter's intents, `Shortcuts`, `Actions`,
-`SingleActivator`, `ViewTree::invoke`; four open questions). Then `Button` keyboard activation
-and its focus indicator. Review items from Phase 2 are
+runner forwarding keys, `WidgetTester::press_key`/`focus`. **Shortcuts and commands
+are done** (`docs/specs/view/shortcuts.md`): intents, `Shortcuts`, `Actions`,
+`SingleActivator` (with `primary()`), `ViewTree::invoke`. Next: `Button` keyboard activation and
+its focus indicator (amends `docs/specs/widgets/basic.md`). Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -480,6 +480,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     focus per window, no scopes; with nothing focused, keys go to the root's handlers; a key
     event counts as handled when any handler ran (as for pointers), and Tab moves focus unless a
     handler returned `Stop`.
+45. **Shortcuts and commands** (2026-10-10, spec `docs/specs/view/shortcuts.md`, the draft's
+    proposals): Flutter's three parts; exact modifiers, characters without case; actions always
+    enabled until menus; bindings are tried per element in the bubble phase before that
+    element's key handlers, so capture handlers can intercept first. An element holds one
+    `Keyed` key; an outer `Keyed` on the same element replaces an inner one.
 
 ## Commit log
 
@@ -710,7 +715,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `d384d4a` | test: focus fixture registers root key handlers from the top view |
 | `3cd7918` | impl: keyboard events and focus |
 | `16dd666` | docs: HANDOFF.md for keyboard events and focus |
-| _this commit_ | docs: draft shortcuts spec for review |
+| `98d74db` | docs: draft shortcuts spec for review |
+| `89f861e` | spec: shortcuts and commands (VIEW-SHORT-01..06) |
+| `6f2fa3e` | test: shortcuts and commands, stubs + 6 failing tests |
+| `55560ee` | test: shortcuts fixture keeps the field's own key |
+| `c349569` | impl: shortcuts and commands |
+| _this commit_ | docs: HANDOFF.md for shortcuts and commands |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -719,7 +729,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: shortcuts and commands, then `Button` keyboard activation.
+3. Phase 3: `Button` keyboard activation and focus indicator.
 
 ## Open questions
 
