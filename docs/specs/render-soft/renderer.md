@@ -37,9 +37,9 @@ In scope:
 
 Out of scope (and where it goes):
 
-- Drawing glyph runs. Phase 1's command list for backends (PLAN.md, the wgpu item) has no text;
-  rasterizing glyphs (swash, ADR 0005) comes with `tantu-text` in Phase 2. Until then every
-  glyph run counts as a font this backend couldn't use (RENDER-SOFT-04). See open question 1.
+- Color glyphs, hinting, and exact glyph shapes under rotation or skew (glyphs are drawn upright
+  at their transformed positions, RENDER-SOFT-28). Glyph runs are drawn since Phase 2 with
+  `tantu_text::GlyphRasterizer` (RENDER-SOFT-27).
 - Presenting to a window (softbuffer or similar): with the platform crates, later in Phase 1 or
   Phase 2.
 - Partial repaint using damage, layer bounds, multithreaded rasterization: Phase 5.
@@ -154,7 +154,8 @@ Target and frame
 - **RENDER-SOFT-04:** `render` returns `Ok` with
   `RenderReport::for_scene(scene, resources, <kind has a registered handler>)`, plus 1 in
   `missing_fonts` for every glyph run that `for_scene` counted as neither invalid nor missing
-  (this backend draws no text yet). Glyph runs draw nothing.
+  whose font data this backend can't read as a font (`GlyphRasterizer::readable`); such runs
+  draw nothing. (Amended in Phase 2: before glyph drawing, every such run counted.)
 - **RENDER-SOFT-05:** With a 0 width or height, `render` draws nothing and returns
   `Ok(RenderReport::default())`.
 - **RENDER-SOFT-06:** Scene coordinates are multiplied by the scale factor: at scale 2, a fill of
@@ -235,6 +236,18 @@ Custom commands and invalid values
 
 PNG and image diff
 
+- **RENDER-SOFT-27:** Glyph runs with a readable font are drawn: each glyph's mask comes from
+  `GlyphRasterizer::mask` at the run's font size times the device scale (the scale factor times
+  the transform's average scale), with the fractional part of its device x as the subpixel
+  offset; it is placed at the glyph's device position (the run origin plus the glyph offset,
+  through the current transform and scale factor), its left edge at `floor(x) + mask.left` and
+  its top at `round(y) + mask.top`, and composited source-over in the run's color with alpha
+  times coverage. Clips and layers apply as for fills. For "H" at 40 px in black on white, some
+  pixels inside the glyph's box are dark and pixels away from it stay white; at scale 2 the
+  glyph is about twice as tall.
+- **RENDER-SOFT-28:** Glyphs follow transforms by position: a translated run moves by the
+  translation; under rotation or skew each glyph is drawn upright at its transformed position
+  (an approximation). Glyphs whose mask lies outside the target draw nothing, and nothing panics.
 - **RENDER-SOFT-25:** `decode_png(&encode_png(&img)?)` equals `img` for every straight-alpha RGBA8
   image, semi-transparent pixels included. `decode_png` of an RGB, gray or gray-alpha 8-bit PNG
   gives the matching RGBA8 pixels (alpha 255 where the PNG has none). Bytes that are not a PNG
@@ -272,7 +285,7 @@ tolerance. This renderer produces them.
 Resolved (2026-10-06, decided in autopilot: the user asked for the proposals to be taken and the
 work continued; review these):
 
-1. **Text.** No glyph rendering in Phase 1 (the PLAN.md backend items and the milestone don't
+1. **Text** (resolved in Phase 2 by RENDER-SOFT-27/28). No glyph rendering in Phase 1 (the PLAN.md backend items and the milestone don't
    include text). Glyph runs count as `missing_fonts` (RENDER-SOFT-04) so missing text is
    visible in reports. Rasterizing with swash comes with `tantu-text` in Phase 2, together with a
    bundled OFL test font.

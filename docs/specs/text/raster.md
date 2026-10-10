@@ -67,6 +67,9 @@ impl GlyphRasterizer {
     /// per em, shifted right by `subpixel_x` (its fraction is rounded to a quarter pixel). `None`
     /// for a glyph with no outline (a space), an unusable font or size.
     pub fn mask(&mut self, font: FontId, data: &FontData, glyph: u32, size: f32, subpixel_x: f32) -> Option<Arc<GlyphMask>>;
+    /// True if `data` can be read as a font (cached per `font`), so a renderer can tell an
+    /// unusable font from a glyph without an outline.
+    pub fn readable(&mut self, font: FontId, data: &FontData) -> bool;
     /// Number of cached masks (absent glyphs included).
     pub fn len(&self) -> usize;
     pub fn is_empty(&self) -> bool;
@@ -93,6 +96,9 @@ Tests use Liberation Sans (the committed test font).
   equal mask (the same `Arc`) without rasterizing again; `len` counts the cached entries
   (including `None` results); `clear` empties the cache. The cache keeps two generations of up to
   4 096 entries each, like the other caches.
+
+- **TEXT-RASTER-05:** `readable(font, data)` is true for Liberation Sans and false for bytes that
+  aren't a font; the answer is cached per `font` (asking again doesn't parse again).
 
 ## Performance and allocation
 
