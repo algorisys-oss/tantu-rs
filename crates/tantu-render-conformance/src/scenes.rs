@@ -2,10 +2,10 @@
 //! into a 200 × 200 target. Changing one means regenerating its golden with
 //! `TANTU_UPDATE_GOLDENS=1 cargo test -p tantu-render-soft --test goldens`.
 
-use tantu_core::{Affine, Color, Rect, Size, Vec2};
+use tantu_core::{Affine, Color, Point, Rect, Size, Vec2};
 use tantu_scene::{
-    BorderRadius, BoxShadow, Clip, ImageData, ImageDraw, ImageSampling, Layer, Resources,
-    RoundedRect, Scene, SceneBuilder,
+    BorderRadius, BoxShadow, Clip, FontData, Glyph, ImageData, ImageDraw, ImageSampling, Layer,
+    Resources, RoundedRect, Scene, SceneBuilder,
 };
 
 use crate::reference::ReferenceScene;
@@ -26,12 +26,13 @@ macro_rules! reference {
 }
 
 /// The reference Scenes, in the order of the spec (RENDER-CONF-08).
-pub(crate) static REFERENCE_SCENES: [ReferenceScene; 5] = [
+pub(crate) static REFERENCE_SCENES: [ReferenceScene; 6] = [
     reference!(shapes_and_strokes),
     reference!(shadows),
     reference!(images),
     reference!(clips_and_transforms),
     reference!(layers),
+    reference!(text),
 ];
 
 fn r(l: f32, t: f32, w: f32, h: f32) -> Rect {
@@ -217,6 +218,49 @@ fn layers(_resources: &mut Resources) -> Scene {
         });
         b.fill_rect(r(70.0, 15.0, 25.0, 25.0), BLUE);
         b.pop();
+        b.pop();
+    })
+}
+
+/// Liberation Sans Regular (SIL Open Font License 1.1, see `fonts/LICENSE-OFL.txt`).
+const LIBERATION_SANS: &[u8] = include_bytes!("../fonts/LiberationSans-Regular.ttf");
+
+/// "Tantu" at 18 px: (glyph id, x, y) from `tantu_text::TextSystem`, frozen here so the Scene
+/// doesn't depend on shaping (RENDER-CONF-14).
+const TANTU: [(u32, f32, f32); 5] = [
+    (55, 0.0, 16.0),
+    (68, 9.0, 16.0),
+    (81, 19.0107, 16.0),
+    (87, 29.0215, 16.0),
+    (88, 34.0225, 16.0),
+];
+
+/// "Ag 0.5px" at 10 px.
+const SMALL: [(u32, f32, f32); 8] = [
+    (36, 0.0, 9.0),
+    (74, 6.6699, 9.0),
+    (3, 12.2314, 9.0),
+    (19, 15.0098, 9.0),
+    (17, 20.5713, 9.0),
+    (24, 23.3496, 9.0),
+    (83, 28.9111, 9.0),
+    (91, 34.4727, 9.0),
+];
+
+fn glyphs(data: &[(u32, f32, f32)]) -> Vec<Glyph> {
+    data.iter().map(|&(id, x, y)| Glyph { id, x, y }).collect()
+}
+
+fn text(resources: &mut Resources) -> Scene {
+    let font = resources
+        .add_font(FontData::new(LIBERATION_SANS, 0).expect("the embedded font is not empty"));
+    let (tantu, small) = (glyphs(&TANTU), glyphs(&SMALL));
+    golden_scene(|b| {
+        b.fill_rect(r(0.0, 0.0, 100.0, 100.0), Color::WHITE);
+        b.glyph_run(font, 18.0, Color::BLACK, Point::new(6.0, 8.0), &tantu);
+        b.glyph_run(font, 10.0, BLUE, Point::new(6.0, 40.0), &small);
+        b.push_transform(Affine::translate(Vec2::new(6.0, 60.0)) * Affine::scale(1.5));
+        b.glyph_run(font, 10.0, RED, Point::ZERO, &small);
         b.pop();
     })
 }
