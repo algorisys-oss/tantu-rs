@@ -34,9 +34,10 @@ coverage masks shared by both renderers. **The software renderer draws text**
 renderer** (RENDER-WGPU-18/19, a shelf-packed R8 glyph atlas; checked on Intel Vulkan and
 lavapipe, output matches the software renderer). **The glyph-rasterization item is done**,
 including a `text` reference Scene and golden (RENDER-CONF-14) that every backend is checked
-against. Next: event dispatch (hit-testing, bubbling/capture, pointer capture, cursors), then
-the `tantu` facade with the counter example (needs minimal `Text`/`Button`/layout widgets),
-`WidgetTester`.
+against. **Waiting for the user:** `docs/specs/view/events.md` is a Draft (event dispatch: own
+`PointerEvent` type, capture/bubble with `Stop`, pointer capture, hover, cursors; three open
+questions). After it's agreed: its tests and implementation, then the `tantu` facade with the
+counter example (needs minimal `Text`/`Button`/layout widgets), `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -564,7 +565,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `9ef307a` | test: text reference Scene, 2 failing tests |
 | `a0afa0c` | test: RENDER-CONF-08's unknown-name examples no longer include `text` |
 | `c6d7a2f` | impl: text reference Scene and golden; PLAN.md glyph item ticked |
-| _this commit_ | docs: HANDOFF.md for the text reference Scene |
+| `b2cf088` | docs: HANDOFF.md for the text reference Scene |
+| `f387d8b` | docs: draft event-dispatch spec for review |
+| _this commit_ | docs: HANDOFF.md, waiting on the event-dispatch review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
