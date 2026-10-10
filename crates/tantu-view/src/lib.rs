@@ -37,7 +37,9 @@
 
 #![forbid(unsafe_code)]
 
+mod paint;
 mod tree;
 
+pub use paint::{NoPaint, Paint, PaintCx};
 pub use tantu_scene::ElementId;
 pub use tree::{AnyView, BuildCx, ElementKind, View, ViewTree};

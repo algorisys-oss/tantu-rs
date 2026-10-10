@@ -7,7 +7,9 @@ use std::rc::Rc;
 use tantu_core::{Arena, Id, Size, Vec2};
 use tantu_layout::{BoxConstraints, LayoutChildren, LayoutId, LayoutTree, RenderBox, TextMeasure};
 use tantu_reactive::{Runtime, Scope};
-use tantu_scene::ElementId;
+use tantu_scene::{ElementId, SceneBuilder};
+
+use crate::Paint;
 
 /// A description of part of the UI that builds its element(s) once, when consumed.
 pub trait View: 'static {
@@ -97,6 +99,13 @@ impl BuildCx<'_> {
             Some(layout) => self.tree.layout.set_parent_data(layout, Some(data)),
             None => false,
         }
+    }
+
+    /// Gives a render element its paint behavior (replacing the previous one). Returns false
+    /// for a region or an unknown id.
+    pub fn set_paint(&mut self, element: ElementId, paint: impl Paint) -> bool {
+        let _ = (element, paint);
+        todo!()
     }
 
     /// The current parent element.
@@ -288,6 +297,13 @@ impl ViewTree {
             Some(root) => self.layout.with_text(text).layout(root, constraints),
             None => Size::ZERO,
         }
+    }
+
+    /// Paints the whole tree into `scene` (an open builder for the window's Scene), using the
+    /// geometry of the last layout pass.
+    pub fn paint(&self, scene: &mut SceneBuilder<'_>) {
+        let _ = scene;
+        todo!()
     }
 
     /// Runs `f` with the tree's runtime current (to read or write signals from outside).
