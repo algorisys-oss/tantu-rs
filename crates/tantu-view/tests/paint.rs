@@ -297,8 +297,9 @@ fn view_paint_02_traversal_scopes_and_ids() {
         [
             Affine::translate(Vec2::ZERO),
             Affine::translate(Vec2::ZERO),
-            Affine::translate(Vec2::ZERO),
-            Affine::translate(Vec2::new(0.0, 5.0)),
+            // The column centers its 10-wide children in 800: x = 395.
+            Affine::translate(Vec2::new(395.0, 0.0)),
+            Affine::translate(Vec2::new(395.0, 5.0)),
         ]
     );
     // b's z-index didn't leak: everything else is at 0.
