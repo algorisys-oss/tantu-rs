@@ -1,6 +1,6 @@
 # Button: keyboard activation and focus indicator
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-widgets`
 - **Plan item:** Phase 3, "Focus system, keyboard navigation, shortcuts/command registry" →
   "`Button`: Space/Enter activation when focused, focus indicator"

@@ -9,8 +9,8 @@ use tantu_view::reactive::{effect, signal};
 use tantu_view::scene::{BorderRadius, RoundedRect};
 use tantu_view::text::TextStyle;
 use tantu_view::{
-    AnyView, BuildCx, CursorIcon, ElementId, Handled, IntoProp, Paint, PaintCx, ParagraphPaint,
-    Phase, PointerButton, PointerKind, Prop, View,
+    AnyView, BuildCx, CursorIcon, ElementId, FocusOptions, Handled, IntoProp, LogicalKey, NamedKey,
+    Paint, PaintCx, ParagraphPaint, Phase, PointerButton, PointerKind, Prop, View,
 };
 
 use crate::{Align, Padding};
@@ -123,7 +123,7 @@ impl View for Button {
             Prop::Value(value) => Rc::new(move || value),
             Prop::Dynamic(f) => Rc::from(f),
         };
-        let (hovered, pressed) = (signal(false), signal(false));
+        let (hovered, pressed, focused) = (signal(false), signal(false), signal(false));
         // Becoming disabled clears hover and press (WIDGETS-BUTTON-03).
         {
             let enabled = Rc::clone(&enabled);
@@ -163,8 +163,39 @@ impl View for Button {
             id,
             ButtonPaint {
                 state: ButtonState::Idle,
+                focused: false,
             },
         );
+        // Focusable while enabled (WIDGETS-BUTTON-05); a click doesn't focus it.
+        {
+            let enabled = Rc::clone(&enabled);
+            cx.bind(id, Prop::Dynamic(Box::new(move || enabled())), |e, on| {
+                e.set_focusable(on.then_some(FocusOptions::default()));
+            });
+        }
+        cx.on_focus_change(id, move |is_focused| focused.set(is_focused));
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || focused.get())),
+            |e, focused| {
+                e.update_paint::<ButtonPaint>(|p| p.focused = focused);
+            },
+        );
+        // Space and Enter press a focused, enabled button (WIDGETS-BUTTON-06).
+        {
+            let (enabled, on_press) = (Rc::clone(&enabled), self.on_press.clone());
+            cx.on_key(id, Phase::Bubble, move |k| {
+                let activates = matches!(&k.event.key, LogicalKey::Named(NamedKey::Enter))
+                    || k.event.key == LogicalKey::Character(" ".into());
+                if !(k.event.pressed && !k.event.repeat && activates && enabled()) {
+                    return Handled::Continue;
+                }
+                if let Some(on_press) = &on_press {
+                    on_press();
+                }
+                Handled::Stop
+            });
+        }
         let state = {
             let enabled = Rc::clone(&enabled);
             move || {
@@ -230,6 +261,7 @@ enum ButtonState {
 /// Fills the button's rounded background for its state.
 struct ButtonPaint {
     state: ButtonState,
+    focused: bool,
 }
 
 /// `color` with `alpha` white over it (source-over in sRGB).
@@ -245,15 +277,32 @@ fn over_white(color: Color, alpha: f32) -> Color {
 
 impl Paint for ButtonPaint {
     fn paint(&self, cx: &mut PaintCx<'_, '_>) {
-        let color = match self.state {
-            ButtonState::Idle => PRIMARY,
-            ButtonState::Hovered => over_white(PRIMARY, 0.08),
-            ButtonState::Pressed => over_white(PRIMARY, 0.12),
-            ButtonState::Disabled => DISABLED_FILL,
-        };
         let size = cx.size();
         let rect = Rect::from_ltwh(0.0, 0.0, size.width, size.height);
+        let layer = match self.state {
+            ButtonState::Disabled => None,
+            ButtonState::Idle => Some(0.0f32),
+            ButtonState::Hovered => Some(0.08),
+            ButtonState::Pressed => Some(0.12),
+        };
+        let color = match layer {
+            // The strongest state layer wins; focus is 10 % (WIDGETS-BUTTON-07).
+            Some(layer) => over_white(PRIMARY, layer.max(if self.focused { 0.10 } else { 0.0 })),
+            None => DISABLED_FILL,
+        };
         cx.scene()
             .fill(RoundedRect::new(rect, BorderRadius::circular(20.0)), color);
+        if self.focused && layer.is_some() {
+            // A 3 px outline 2 to 5 px outside the bounds (a stroke lies inside its shape).
+            cx.scene().stroke(
+                RoundedRect::new(rect.inflate(5.0), BorderRadius::circular(25.0)),
+                3.0,
+                PRIMARY,
+            );
+        }
+    }
+
+    fn overflow(&self) -> f32 {
+        5.0
     }
 }

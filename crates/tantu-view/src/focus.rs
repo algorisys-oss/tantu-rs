@@ -196,8 +196,20 @@ impl crate::ElementMut<'_> {
     /// Makes the element focusable with `options`, or unfocusable with `None` (clearing its
     /// focus if it had it).
     pub fn set_focusable(&mut self, options: Option<FocusOptions>) {
-        let _ = options;
-        todo!()
+        let id = self.id;
+        match options {
+            Some(options) => {
+                if self.tree.contains(id) {
+                    self.tree.focus_state.focusables.insert(id, options);
+                }
+            }
+            None => {
+                if self.tree.focus_state.focused == Some(id) {
+                    self.tree.set_focus(None);
+                }
+                self.tree.focus_state.focusables.remove(&id);
+            }
+        }
     }
 }
 
