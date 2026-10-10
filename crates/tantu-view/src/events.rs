@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use tantu_core::{Point, Vec2};
+use tantu_core::{Point, Size, Vec2};
 use tantu_scene::ElementId;
 
 use crate::tree::Kind;
@@ -123,6 +123,8 @@ pub struct PointerCx<'a> {
     pub local: Point,
     /// The phase it is delivered in.
     pub phase: Phase,
+    /// The element's size from the last layout (`Size::ZERO` if never laid out).
+    pub size: Size,
 }
 
 impl BuildCx<'_> {
@@ -283,6 +285,7 @@ impl ViewTree {
             element: id,
             local: Point::new(event.position.x - origin.x, event.position.y - origin.y),
             phase,
+            size: Size::ZERO,
         };
         for (_, handler) in handlers.iter().filter(|(p, _)| *p == phase) {
             *ran = true;

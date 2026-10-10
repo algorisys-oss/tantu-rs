@@ -416,3 +416,33 @@ fn view_event_06_removal() {
         f.send(PointerKind::Up(PointerButton::Other(9)), x, y);
     }
 }
+
+#[test]
+fn view_event_07_handler_sees_the_size() {
+    let sizes: Rc<RefCell<Vec<Size>>> = Rc::default();
+    struct Sized(Rc<RefCell<Vec<Size>>>);
+    impl View for Sized {
+        fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+            let id = cx.render(RenderConstrainedBox::sized(Some(100.0), Some(50.0)), []);
+            let sizes = self.0;
+            cx.on_pointer(id, Phase::Bubble, move |p| {
+                sizes.borrow_mut().push(p.size);
+                Handled::Continue
+            });
+            id
+        }
+    }
+    let mut tree = {
+        let sizes = sizes.clone();
+        ViewTree::new(move || Sized(sizes))
+    };
+    tree.layout(
+        BoxConstraints::loose(Size::new(200.0, 200.0)),
+        &mut NoTextMeasure,
+    );
+    tree.dispatch_pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(10.0, 10.0),
+    });
+    assert_eq!(*sizes.borrow(), [Size::new(100.0, 50.0)]);
+}
