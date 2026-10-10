@@ -46,6 +46,9 @@ jobs:
           echo "TANTU_REQUIRE_GPU=1" >> "$GITHUB_ENV"
           echo "WGPU_BACKEND=vulkan" >> "$GITHUB_ENV"
       - run: cargo test --workspace --all-features
+      # The facade without its default backends (FACADE-APP-08: `run` reports Unsupported).
+      - if: runner.os == 'Linux'
+        run: cargo test -p tantu --no-default-features
 
   spec-coverage:
     runs-on: ubuntu-latest
