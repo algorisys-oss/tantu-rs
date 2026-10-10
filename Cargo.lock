@@ -2241,6 +2241,7 @@ dependencies = [
  "tantu-theme",
  "tantu-view",
  "tantu-widgets",
+ "tracing",
 ]
 
 [[package]]

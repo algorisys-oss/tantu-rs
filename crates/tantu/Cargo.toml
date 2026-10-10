@@ -36,6 +36,8 @@ tantu-theme = { workspace = true, optional = true }
 tantu-render-wgpu = { workspace = true, optional = true }
 tantu-render-soft = { workspace = true, optional = true }
 tantu-platform-winit = { workspace = true, optional = true }
+# Diagnostics (AGENTS.md: `tracing`), as in the other crates.
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 tantu-render-headless = { workspace = true }

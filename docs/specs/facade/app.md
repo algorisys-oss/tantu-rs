@@ -1,6 +1,6 @@
 # The `tantu` facade and app runner
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu`
 - **Plan item:** Phase 2, `tantu` facade → "`tantu` facade"
 - **Related:** [ADR 0004](../../adr/0004-platform-trait.md), [ADR 0011](../../adr/0011-view-layer.md),
