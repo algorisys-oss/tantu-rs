@@ -38,9 +38,12 @@ against. **Event dispatch is done** (`docs/specs/view/events.md`, VIEW-EVENT-01.
 said "continue" on the draft, taking its proposals). The user said "continue" on the facade drafts (2026-10-10), taking their proposals. **Done
 since:** shared text styles (`docs/specs/text/styles.md`), layout widgets
 (`docs/specs/widgets/layout.md`) and `Text`/`Button` (`docs/specs/widgets/basic.md`), all
-Implemented. Next: the `tantu` facade (`docs/specs/facade/app.md`, Draft with agreed
-proposals: mark Agreed in its `spec:` commit), then `examples/counter`
-(`docs/specs/examples/counter.md`), then `WidgetTester`.
+Implemented, **and so are the `tantu` facade (`docs/specs/facade/app.md`) and
+`examples/counter` (`docs/specs/examples/counter.md`): the facade item is done.** `cargo run
+-p counter` opens the AGENTS.md counter (its `main.rs` is the snippet, checked by a test);
+checked on Wayland with wgpu (no errors logged) and offscreen after scripted clicks. Next:
+`tantu-test::WidgetTester` (spec first), then the Phase 2 milestone (counter + a layout demo on
+Linux Wayland/X11, Windows, macOS).
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -416,6 +419,18 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
       `on_press` on a primary release inside (`PointerCx::size`, VIEW-EVENT-07); a centered
       `Align` (factors 1) keeps the label centered. New widgets lack the goldens and gallery
       entries AGENTS.md asks for: the gallery is a Phase 3 item; add both then.
+40. **Facade and counter** (2026-10-10; proposals taken when the user said "continue",
+    additions while agreeing marked for review): `App` (windows, fonts, `without_system_fonts`),
+    `run` (winit + wgpu; `Unsupported` without those features), `run_with`, and **`App::handler`
+    → `AppHandler`** (a `PlatformHandler`, so tests use `FakePlatform::run_logged` and other
+    shells can drive it; review). One `TextSystem` + `Resources` per app; redraws by polling
+    `needs_frame()` after events and at idle; 40 px per wheel line; Back/Forward as
+    `Other(3)`/`Other(4)`; `TargetLost` retried. **FACADE-APP-09** (review): the first
+    registered font's family becomes the default family (generic families find no registered
+    font). CI also runs `cargo test -p tantu --no-default-features`. `examples/counter`:
+    `main.rs` is the AGENTS.md snippet, compared ignoring whitespace (rustfmt splits its last
+    chain); tests `include!` it in a module; the example lists the workspace lints minus
+    `missing_docs` (the snippet has no crate docs); `tantu-render-headless` as a dev-dependency.
 
 ## Commit log
 
@@ -608,7 +623,16 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `d109e27` | spec: Text and Button (WIDGETS-TEXT, WIDGETS-BUTTON, VIEW-EVENT-07) |
 | `36c5397` | test: Text and Button, stubs + 7 failing tests |
 | `58edd71` | impl: Text and Button |
-| _this commit_ | docs: HANDOFF.md for the widgets |
+| `e6354c5` | docs: HANDOFF.md for the widgets |
+| `8e78e6b` | spec: the tantu facade and app runner (FACADE-APP-01..09) |
+| `8936752` | test: the tantu facade, stubs + 9 failing tests |
+| `3dca84a` | test: FACADE-APP-03 finds the button with a transform stack |
+| `59303ae` | impl: the tantu facade and app runner |
+| `af04a04` | chore: CI tests the facade without default features |
+| `a999bf2` | spec: examples/counter (COUNTER-01..02) |
+| `b0d9eb4` | test: examples/counter, stub + 2 failing tests |
+| `e0eea67` | impl: examples/counter is the AGENTS.md snippet |
+| _this commit_ | docs: HANDOFF.md for the facade and the counter |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -617,7 +641,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. The `tantu` facade with the counter example, `WidgetTester`.
+3. `WidgetTester`, then the Phase 2 milestone.
 
 ## Open questions
 
