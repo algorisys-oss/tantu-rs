@@ -107,8 +107,8 @@ fn glyph_ids(frame: &RecordedFrame) -> Vec<u32> {
 fn facade_app_01_windows_trees_and_renderers() {
     let recorders = Recorders::default();
     let app = App::new()
-        .window(Window::new("A").size(200.0, 100.0), || SizedBox::shrink())
-        .window(Window::new("B").size(300.0, 150.0), || SizedBox::shrink());
+        .window(Window::new("A").size(200.0, 100.0), SizedBox::shrink)
+        .window(Window::new("B").size(300.0, 150.0), SizedBox::shrink);
     let (log, handler) = run(app, FakePlatform::new().scale_factor(2.0), &recorders);
     let titles: Vec<&str> = log
         .windows
@@ -132,7 +132,7 @@ fn facade_app_01_windows_trees_and_renderers() {
 
     // A failing renderer ends the run with its error.
     let mut handler = App::new()
-        .window(Window::new("A"), || SizedBox::shrink())
+        .window(Window::new("A"), SizedBox::shrink)
         .handler(|_, _| Err(Error::Renderer("no GPU".into())));
     let log = FakePlatform::new().run_logged(&mut handler);
     assert!(log.exited);
@@ -172,14 +172,18 @@ fn button(state: ButtonState, x: f32, y: f32) -> WindowEvent {
 
 /// Where the counter's button is: under the text, centered (found from the first frame).
 fn button_center(frame: &RecordedFrame) -> Point {
-    // The button fills a rounded rect; its element's transform holds the offset. Take the
-    // first fill, in the button's own coordinates, plus the frame's translation for it.
-    let mut offset = Vec2::ZERO;
+    // The button's fill is the first one, in its own coordinates; add the translations of
+    // the transform scopes open around it.
+    let mut stack = vec![Vec2::ZERO];
     for entry in frame.scene.entries() {
+        let offset = *stack.last().expect("the base offset stays");
         match &entry.command {
             Command::PushTransform(t) => {
                 let [_, _, _, _, e, f] = t.coeffs();
-                offset = offset + Vec2::new(e, f);
+                stack.push(offset + Vec2::new(e, f));
+            }
+            Command::PopTransform => {
+                stack.pop();
             }
             Command::Fill { shape, .. } => {
                 let r = shape.rect;
@@ -223,7 +227,7 @@ fn facade_app_04_resize_and_scale() {
     let platform = FakePlatform::new()
         .event(0, WindowEvent::Resized(PhysicalSize::new(600, 300)))
         .event(0, WindowEvent::ScaleFactorChanged(2.0));
-    let app = App::new().window(Window::new("A").size(200.0, 100.0), || SizedBox::shrink());
+    let app = App::new().window(Window::new("A").size(200.0, 100.0), SizedBox::shrink);
     run(app, platform, &recorders);
     let renderer = recorders.get(0);
     let renderer = renderer.borrow();
@@ -364,7 +368,7 @@ fn facade_app_06_closing() {
 fn facade_app_07_render_errors() {
     // A lost target is retried.
     let recorders = Recorders::default();
-    let app = App::new().window(Window::new("A"), || SizedBox::shrink());
+    let app = App::new().window(Window::new("A"), SizedBox::shrink);
     let mut handler =
         app.handler(recorders.factory(|r| r.fail_next_render(RenderError::TargetLost)));
     let log = FakePlatform::new().run_logged(&mut handler);
@@ -373,7 +377,7 @@ fn facade_app_07_render_errors() {
     assert!(handler.finish().is_ok());
 
     // Any other error ends the run.
-    let app = App::new().window(Window::new("A"), || SizedBox::shrink());
+    let app = App::new().window(Window::new("A"), SizedBox::shrink);
     let mut handler =
         app.handler(Recorders::default().factory(|r| r.fail_next_render(RenderError::OutOfMemory)));
     let log = FakePlatform::new().run_logged(&mut handler);
@@ -387,9 +391,7 @@ fn facade_app_07_render_errors() {
 #[test]
 #[cfg(not(all(feature = "winit", feature = "wgpu")))]
 fn facade_app_08_run_needs_winit_and_wgpu() {
-    let result = App::new()
-        .window(Window::new("A"), || SizedBox::shrink())
-        .run();
+    let result = App::new().window(Window::new("A"), SizedBox::shrink).run();
     assert!(matches!(result, Err(Error::Unsupported(_))));
 }
 
