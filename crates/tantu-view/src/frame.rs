@@ -177,6 +177,30 @@ pub struct FrameReport {
 }
 
 impl ViewTree {
+    /// Applies the queued updates present now (not ones they queue) inside the runtime;
+    /// returns how many applied something.
+    fn apply_queue(&mut self) -> usize {
+        let pending = std::mem::take(&mut *self.shared.queue.borrow_mut());
+        let mut applied = 0;
+        let runtime = Rc::clone(&self.runtime);
+        runtime.enter(|| {
+            for update in pending {
+                applied += usize::from(update(self));
+            }
+        });
+        applied
+    }
+
+    /// Applies updates queued by the tree itself during layout (`LayoutBuilder` rebuilds),
+    /// leaving the frame request as it was when nothing else is pending.
+    pub(crate) fn apply_internal_updates(&mut self) {
+        let requested = self.shared.needs_frame.get();
+        self.apply_queue();
+        if !requested && self.shared.queue.borrow().is_empty() {
+            self.shared.needs_frame.set(false);
+        }
+    }
+
     /// True when something changed since the last frame.
     pub fn needs_frame(&self) -> bool {
         self.shared.needs_frame.get()
@@ -199,14 +223,7 @@ impl ViewTree {
     ) -> FrameReport {
         // Cleared first, so values queued while applying ask for the next frame.
         self.shared.needs_frame.set(false);
-        let pending = std::mem::take(&mut *self.shared.queue.borrow_mut());
-        let mut applied = 0;
-        let runtime = Rc::clone(&self.runtime);
-        runtime.enter(|| {
-            for update in pending {
-                applied += usize::from(update(self));
-            }
-        });
+        let applied = self.apply_queue();
         let size = self.layout(constraints, text);
         let window = constraints.biggest();
         let scene_size = if window.is_finite() { window } else { size };

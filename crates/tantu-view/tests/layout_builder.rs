@@ -3,7 +3,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use tantu_core::{Size, Vec2};
+use tantu_core::Size;
 use tantu_layout::{
     BoxConstraints, LayoutChildren, LayoutId, NoTextMeasure, RenderBox, RenderConstrainedBox,
 };

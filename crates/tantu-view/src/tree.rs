@@ -10,6 +10,7 @@ use tantu_reactive::{Runtime, Scope};
 use tantu_scene::{ElementId, SceneBuilder};
 
 use crate::frame::Shared;
+use crate::layout_builder::LayoutBuilderRecord;
 use crate::paint::Children;
 use crate::{NoPaint, Paint, PaintCx};
 
@@ -169,6 +170,9 @@ impl RenderBox for RootBox {
     }
 }
 
+/// How many rebuild rounds one `ViewTree::layout` call allows for `LayoutBuilder`s.
+const LAYOUT_BUILDER_ROUNDS: usize = 16;
+
 /// The arena id behind an element id.
 pub(crate) fn arena_id(id: ElementId) -> Option<Id> {
     Id::from_bits(id.to_raw())
@@ -181,6 +185,7 @@ pub struct ViewTree {
     root: Option<ElementId>,
     pub(crate) runtime: Rc<Runtime>,
     pub(crate) shared: Rc<Shared>,
+    pub(crate) layout_builders: Vec<LayoutBuilderRecord>,
 }
 
 impl ViewTree {
@@ -193,6 +198,7 @@ impl ViewTree {
             root: None,
             runtime: Rc::new(Runtime::new()),
             shared: Rc::default(),
+            layout_builders: Vec::new(),
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {
@@ -307,6 +313,26 @@ impl ViewTree {
     /// Runs a layout pass over the whole tree with `constraints` for the root (the window) and
     /// `text` as the text measurer; returns the root's size.
     pub fn layout(&mut self, constraints: BoxConstraints, text: &mut dyn TextMeasure) -> Size {
+        let mut size = self.layout_pass(constraints, &mut *text);
+        // LayoutBuilders whose constraints changed rebuild, then lay out again (VIEW-LB-02, -05).
+        for _ in 0..LAYOUT_BUILDER_ROUNDS {
+            if !self.sync_layout_builders() {
+                return size;
+            }
+            self.apply_internal_updates();
+            size = self.layout_pass(constraints, &mut *text);
+        }
+        if self.layout_builders_pending() {
+            tracing::warn!(
+                "LayoutBuilder content still changing after {LAYOUT_BUILDER_ROUNDS} rounds; \
+                 keeping the last round's content"
+            );
+        }
+        size
+    }
+
+    /// One layout pass from the root.
+    fn layout_pass(&mut self, constraints: BoxConstraints, text: &mut dyn TextMeasure) -> Size {
         match self.layout_id(self.root()) {
             Some(root) => self.layout.with_text(text).layout(root, constraints),
             None => Size::ZERO,
