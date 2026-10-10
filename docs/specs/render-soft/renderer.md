@@ -246,16 +246,17 @@ PNG and image diff
 
 ## Golden tests
 
-This crate's tests also render a few reference Scenes (one per area: shapes and strokes,
-shadows, images, clips and transforms, layers) and compare them with PNGs in
-`crates/tantu-render-soft/tests/goldens/` using `diff_images` with tolerance 2 and no differing
-pixels allowed. With `TANTU_UPDATE_GOLDENS=1` the tests write the PNGs instead of comparing. A
-missing golden fails the test with a message naming the env var. These are regular tests (not
-`#[ignore]`): they run in a few milliseconds. The tolerance covers SIMD rounding differences
-between x86-64 and arm64 CI runners.
+This crate's tests also render the reference Scenes (one per area: shapes and strokes, shadows,
+images, clips and transforms, layers) and compare them with their goldens using `diff_images`
+with tolerance 2 and no differing pixels allowed. With `TANTU_UPDATE_GOLDENS=1` the tests write
+the PNGs instead of comparing. These are regular tests (not `#[ignore]`): they run in a few
+milliseconds. The tolerance covers SIMD rounding differences between x86-64 and arm64 CI runners.
 
 Goldens are not rules; they catch anti-aliasing and blur regressions the probe-based rules
-can't. The same reference Scenes will be reused for the Phase 1 milestone (wgpu vs. soft).
+can't. Since the Phase 1 milestone, the reference Scenes and their PNGs live in
+`tantu-render-conformance` (spec [`render-conformance/conformance.md`](../render-conformance/conformance.md),
+RENDER-CONF-11), where every other backend is checked against them with a cross-backend
+tolerance. This renderer produces them.
 
 ## Performance and allocation
 

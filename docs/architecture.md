@@ -1,6 +1,6 @@
 # Tantu architecture
 
-_Last updated: 2026-09-30. This is a living document. Update it, and the diagram, in the same
+_Last updated: 2026-10-10. This is a living document. Update it, and the diagram, in the same
 change as any design decision that affects it (see the rule in `AGENTS.md` → General rules)._
 
 This document explains how the pieces of Tantu fit together. `AGENTS.md` holds the rules
@@ -61,6 +61,13 @@ spreading up the tree. Intrinsic-size queries are opt-in. Layout widgets (`Row`,
 - `tantu-render-soft` renders on the CPU with tiny-skia. It is the fallback for VMs, RDP/Citrix and
   old GPUs, and it produces the golden PNGs in CI.
 - `tantu-render-headless` records Scenes so tests can assert on them.
+
+Every backend is tested against `tantu-render-conformance` ([ADR-0008](adr/0008-renderer-conformance-suite.md)):
+reference Scenes, their goldens (rendered by the software renderer and embedded in the crate) and
+an edge-aware image comparison. A backend renders each reference Scene and must match its golden
+within the cross-backend tolerance. Future backends (a browser backend on WebGPU or canvas, a
+painter for hosting Tantu inside eframe/egui) are held to the same check. The crate depends on no
+rasterizer, so using it doesn't pull in tiny-skia or wgpu.
 
 ## Reactivity
 
@@ -144,6 +151,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Text stack: parley + swash + fontique | [ADR-0005](adr/0005-text-stack-parley-swash-fontique.md) |
 | wgpu as default GPU backend | [ADR-0006](adr/0006-wgpu-as-the-default-gpu-backend.md) |
 | Reads of disposed signal handles panic, `try_*` reads and writes don't | [ADR-0007](adr/0007-using-disposed-reactive-handles.md) |
+| Every renderer is checked against shared reference Scenes and goldens | [ADR-0008](adr/0008-renderer-conformance-suite.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).

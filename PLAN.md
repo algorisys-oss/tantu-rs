@@ -81,7 +81,7 @@ faster or more portable without changing how apps are written.
   - [x] `tantu-platform-winit`: winit 0.30 shell, event conversion, window handles for renderers (spec `docs/specs/platform-winit/shell.md`)
 - [x] `tantu-render-wgpu`: rects, rounded rects, borders, shadows, clips, images (spec `docs/specs/render-wgpu/renderer.md`)
 - [x] `examples/scene-window`: Phase 1 demo, a hand-built Scene drawn in a winit window with wgpu (spec `docs/specs/examples/scene-window.md`; depends on the crates directly until the `tantu` facade exists in Phase 2)
-- [ ] **Milestone:** a hand-built Scene renders identically in wgpu and software (golden diff)
+- [ ] **Milestone:** a hand-built Scene renders the same in wgpu and software (golden diff within the cross-backend tolerance); reference Scenes and goldens in a renderer conformance crate every backend is tested against (spec `docs/specs/render-conformance/conformance.md`, ADR 0008)
 
 ### Phase 2 — Layout, views and text (weeks 6–10)
 - [ ] `tantu-layout`: `BoxConstraints` protocol, `RenderBox`-style trait for custom layouts; `Padding`, `Align`/`Center`, `SizedBox`, `ConstrainedBox`, `FractionallySizedBox`, `AspectRatio`, Flex (`Row`/`Column` with `Expanded`/`Flexible`/`Spacer`, main/cross-axis alignment, `spacing`), `Stack`/`Positioned`, `Wrap`, `LayoutBuilder`

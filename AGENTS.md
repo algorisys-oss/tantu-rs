@@ -72,6 +72,7 @@ Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 | `tantu-render-wgpu` | GPU renderer (Vulkan/Metal/DX12/GL) | scene, text |
 | `tantu-render-soft` | CPU renderer via tiny-skia (fallback, CI, remote desktop) | scene, text |
 | `tantu-render-headless` | records Scenes, used by tests | scene |
+| `tantu-render-conformance` | reference Scenes, embedded goldens and the cross-backend image comparison every renderer is tested against (ADR 0008) | core, scene |
 | `tantu-test` | widget tester, golden images, event simulation | view, render-soft, render-headless |
 | `tantu` | facade crate, `App` runner, prelude | everything above |
 | `examples/` | gallery, todo, enterprise dashboard, data grid stress test | tantu |

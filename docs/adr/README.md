@@ -15,6 +15,7 @@ instead.
 | [0005](0005-text-stack-parley-swash-fontique.md) | Text stack: parley, swash and fontique | Accepted |
 | [0006](0006-wgpu-as-the-default-gpu-backend.md) | wgpu as the default GPU backend | Accepted |
 | [0007](0007-using-disposed-reactive-handles.md) | Using disposed reactive handles | Accepted |
+| [0008](0008-renderer-conformance-suite.md) | Renderer conformance suite | Accepted |
 
 ## Writing a new ADR
 

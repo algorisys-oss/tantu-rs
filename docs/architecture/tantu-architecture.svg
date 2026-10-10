@@ -88,6 +88,11 @@
   <path class="side" d="M880,1178 L915,1122"/>
   <text class="lbl" x="738" y="1156">drives &amp; inspects</text>
 
+  <!-- conformance -->
+  <path class="side" d="M1235,1122 L1235,1142 L585,1142 L585,1124"/>
+  <path class="side" d="M1235,1142 L375,1142 L375,1124"/>
+  <text class="lbl" x="1052" y="1160">golden diff (tests)</text>
+
   <!-- ============ Boxes ============ -->
   <!-- facade -->
   <rect class="tool" x="30" y="120" width="330" height="90" rx="10"/>
@@ -157,6 +162,12 @@
   <text class="t" x="915" y="1058">tantu-render-headless</text>
   <text class="b" x="915" y="1080">records Scenes</text>
   <text class="b" x="915" y="1100">for tests and assertions</text>
+
+  <rect class="rend" x="1060" y="1030" width="350" height="90" rx="10"/>
+  <text class="t" x="1235" y="1056">tantu-render-conformance</text>
+  <text class="b" x="1235" y="1076">reference Scenes · embedded goldens</text>
+  <text class="b" x="1235" y="1094">edge-aware cross-backend comparison</text>
+  <text class="c" x="1235" y="1112">every backend, incl. future web / egui</text>
 
   <!-- Tester -->
   <rect class="tool" x="600" y="1180" width="420" height="70" rx="10"/>
