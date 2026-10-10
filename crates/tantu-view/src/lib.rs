@@ -45,7 +45,7 @@ mod frame;
 mod layout_builder;
 mod paint;
 mod prop;
-mod text;
+mod text_context;
 mod tree;
 
 pub use dynamic::{Dyn, For, Show};
@@ -55,5 +55,16 @@ pub use layout_builder::LayoutBuilder;
 pub use paint::{NoPaint, Paint, PaintCx};
 pub use prop::{IntoProp, Prop};
 pub use tantu_scene::ElementId;
-pub use text::{ParagraphPaint, SystemText, TextContext, TextPainter};
+
+/// `tantu-core`, re-exported so widget crates use the view layer's version.
+pub use tantu_core as core;
+/// `tantu-layout`, re-exported so widget crates use the view layer's version.
+pub use tantu_layout as layout;
+/// `tantu-reactive`, re-exported so widget crates use the view layer's version.
+pub use tantu_reactive as reactive;
+/// `tantu-scene`, re-exported so widget crates use the view layer's version.
+pub use tantu_scene as scene;
+/// `tantu-text`, re-exported so widget crates use the view layer's version.
+pub use tantu_text as text;
+pub use text_context::{ParagraphPaint, SystemText, TextContext, TextPainter};
 pub use tree::{AnyView, BuildCx, ElementKind, View, ViewTree};

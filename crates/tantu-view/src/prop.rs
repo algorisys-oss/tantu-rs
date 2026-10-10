@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use tantu_core::{Color, EdgeInsets, Point, Rect, Size, Vec2};
 use tantu_layout::{
-    Alignment, Axis, CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize, StackFit,
-    TextStyleKey, TextWidthBasis, WrapAlignment, WrapCrossAlignment,
+    Alignment, Axis, BoxConstraints, CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize,
+    StackFit, TextStyleKey, TextWidthBasis, WrapAlignment, WrapCrossAlignment,
 };
 use tantu_reactive::{Memo, Signal};
 
@@ -123,6 +123,7 @@ value_props!(
     WrapCrossAlignment,
     TextWidthBasis,
     TextStyleKey,
+    BoxConstraints,
 );
 
 impl IntoProp<Arc<str>> for &'static str {
