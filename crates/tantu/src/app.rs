@@ -5,13 +5,17 @@ use std::fmt;
 
 use tantu_core::{Color, Point, Vec2};
 use tantu_layout::BoxConstraints;
+use tantu_layout::RenderConstrainedBox;
 use tantu_platform::{
     ButtonState, Platform, PlatformContext, PlatformError, PlatformHandler, PointerButton,
     ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };
 use tantu_scene::{RenderError, Renderer, Resources, Scene};
 use tantu_text::{FontFamily, TextStyles, TextSystem};
-use tantu_view::{PointerEvent, PointerKind, SystemText, View, ViewTree};
+use tantu_view::{
+    AnyView, BuildCx, ElementId, Paint, PaintCx, PointerEvent, PointerKind, SystemText, View,
+    ViewTree,
+};
 
 /// Logical pixels scrolled per wheel line (FACADE-APP-05; Chromium's value).
 const PIXELS_PER_LINE: f32 = 40.0;
@@ -124,7 +128,13 @@ impl App {
     /// Opens `window` showing the view `content` builds. `content` runs once, when the window
     /// opens, with the window's reactive runtime current.
     pub fn window<V: View>(self, window: Window, content: impl FnOnce() -> V + 'static) -> Self {
-        let content: Content = Box::new(move |styles| ViewTree::with_text_styles(styles, content));
+        let background = window.background;
+        let content: Content = Box::new(move |styles| {
+            ViewTree::with_text_styles(styles, move || Background {
+                color: background,
+                content: AnyView::new(content()),
+            })
+        });
         let mut app = self;
         app.windows.push((window, content));
         app
@@ -210,6 +220,35 @@ impl App {
             factory: Box::new(renderer),
             error: None,
         }
+    }
+}
+
+/// The window's background under its content (FACADE-APP-10): a box that passes the window's
+/// constraints to the content and fills its bounds with `color`.
+struct Background {
+    color: Color,
+    content: AnyView,
+}
+
+impl View for Background {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(
+            RenderConstrainedBox::new(BoxConstraints::default()),
+            [self.content],
+        );
+        cx.set_paint(id, BackgroundPaint(self.color));
+        id
+    }
+}
+
+/// Fills the element's bounds.
+struct BackgroundPaint(Color);
+
+impl Paint for BackgroundPaint {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        let size = cx.size();
+        let rect = tantu_core::Rect::from_ltwh(0.0, 0.0, size.width, size.height);
+        cx.scene().fill_rect(rect, self.0);
     }
 }
 
