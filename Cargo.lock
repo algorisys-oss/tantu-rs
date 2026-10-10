@@ -2041,6 +2041,7 @@ dependencies = [
  "tantu-reactive",
  "tantu-scene",
  "tantu-text",
+ "tracing",
 ]
 
 [[package]]

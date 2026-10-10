@@ -17,3 +17,5 @@ tantu-reactive = { workspace = true }
 tantu-scene = { workspace = true }
 tantu-text = { workspace = true }
 tantu-layout = { workspace = true }
+# Diagnostics (AGENTS.md: `tracing`, never `println!`); already used by tantu-layout.
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
