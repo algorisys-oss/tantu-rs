@@ -17,6 +17,7 @@ instead.
 | [0007](0007-using-disposed-reactive-handles.md) | Using disposed reactive handles | Accepted |
 | [0008](0008-renderer-conformance-suite.md) | Renderer conformance suite | Accepted |
 | [0009](0009-layout-tree-in-tantu-layout.md) | The layout tree lives in `tantu-layout` | Accepted |
+| [0010](0010-text-measurement-in-layout.md) | Text measurement in layout | Accepted |
 
 ## Writing a new ADR
 

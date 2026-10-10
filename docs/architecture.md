@@ -86,7 +86,7 @@ Closures capture `Copy` signal handles and elements live in an arena addressed b
 ## Layout and text
 
 `tantu-layout` holds the constraint types and the layout algorithms (Flex, Stack, Wrap, Align, …).
-It measures text only through the `TextMeasure` trait, with a word-level measure cache, so it does
+It measures text only through the paragraph-level `TextMeasure` trait, cached by `MeasureCache`, so it does
 not depend on the text crate.
 
 Following [ADR-0009](adr/0009-layout-tree-in-tantu-layout.md), `tantu-layout` also owns the layout
@@ -161,6 +161,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Reads of disposed signal handles panic, `try_*` reads and writes don't | [ADR-0007](adr/0007-using-disposed-reactive-handles.md) |
 | Every renderer is checked against shared reference Scenes and goldens | [ADR-0008](adr/0008-renderer-conformance-suite.md) |
 | The layout tree (layout objects, caching, relayout boundaries) lives in `tantu-layout` | [ADR-0009](adr/0009-layout-tree-in-tantu-layout.md) |
+| Paragraph-level `TextMeasure` passed into the layout pass; `RenderParagraph` in `tantu-layout`; word cache in `tantu-text` | [ADR-0010](adr/0010-text-measurement-in-layout.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).

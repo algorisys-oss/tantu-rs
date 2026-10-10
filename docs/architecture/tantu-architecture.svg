@@ -186,7 +186,7 @@
   <rect class="svc" x="1060" y="450" width="350" height="110" rx="10"/>
   <text class="t" x="1235" y="478">Layout</text>
   <text class="b" x="1235" y="500">BoxConstraints · Flex · Stack · Wrap · Align …</text>
-  <text class="b" x="1235" y="520">TextMeasure trait + word-level measure cache</text>
+  <text class="b" x="1235" y="520">TextMeasure trait + paragraph measure cache</text>
   <text class="b" x="1235" y="538">(never depends on the text crate)</text>
   <text class="c" x="1235" y="554">tantu-layout</text>
 

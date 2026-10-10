@@ -28,7 +28,7 @@ faster or more portable without changing how apps are written.
 
 | Clay (C) | Tantu (Rust) | Why |
 |---|---|---|
-| Text measured through a callback, with a word-level measure cache | Text layout goes through a `TextMeasure` trait with a cache keyed by (font, size, word) | Keeps `tantu-layout` independent of `tantu-text`; big win for grids and lists |
+| Text measured through a callback, with a word-level measure cache | Text layout goes through a paragraph-level `TextMeasure` trait with a cache keyed by (text, style, width) and a one-line shortcut; the word-level cache lives inside `tantu-text`, where shaping happens (ADR 0010) | Keeps `tantu-layout` independent of `tantu-text`; big win for grids and lists; line breaking stays with the shaper, so bidi and CJK stay correct |
 | Render commands carry element `id`, `z_index`, bounding box; `Scissor`, `OverlayColor`, `Custom` | `Scene` commands carry element id + z-index; add overlay-color and custom (user-drawn) commands | Stable ids let retained backends diff commands; custom commands are the escape hatch for charts / 3D viewports |
 | Floating elements: 9-point attach anchors, offset, z-index, pointer capture or passthrough | Used as the anchoring options of Flutter-style `Overlay` + anchored positioning (`CompositedTransformTarget`/`Follower` equivalent) | Tooltips, menus, drop-downs and popovers share one positioning model |
 | Visibility culling on by default | Cull off-screen render objects before emitting `Scene` | Cheap win for large scroll areas |
@@ -91,9 +91,9 @@ faster or more portable without changing how apps are written.
   - [x] Flex: `RenderFlex` (`Row`/`Column`), flex parent data (`Expanded`/`Flexible`/`Spacer`), main/cross-axis alignment and size, `spacing`, overflow reporting (spec `docs/specs/layout/flex.md`)
   - [x] `RenderStack` with `Positioned` parent data (spec `docs/specs/layout/stack.md`)
   - [x] `RenderWrap` (spec `docs/specs/layout/wrap.md`)
-- [ ] `TextMeasure` trait + word-level measure cache; visibility culling (techniques from Clay)
+- [ ] `TextMeasure`, `MeasureCache` and `RenderParagraph`; the measurer passed into the layout pass (spec `docs/specs/layout/text.md`, ADR 0010)
 - [ ] Layout benchmark: 10k render objects, target < 1 ms full layout
-- [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries; `LayoutBuilder` (it builds views during layout, so it needs the element tree)
+- [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries; `LayoutBuilder` (it builds views during layout, so it needs the element tree); visibility culling while painting (technique from Clay; `Scene::is_culled` exists)
 - [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons
 - [ ] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md
