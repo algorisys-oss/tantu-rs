@@ -105,7 +105,7 @@ faster or more portable without changing how apps are written.
 - [ ] Glyph rasterization: `tantu-render-soft` (swash) and `tantu-render-wgpu` (glyph atlas); text reference Scenes in `tantu-render-conformance`
   - [x] Glyph rasterizer: swash coverage masks with quarter-pixel subpixel positioning, cached, shared by both renderers (spec `docs/specs/text/raster.md`)
   - [x] Glyph runs in `tantu-render-soft` (amends `docs/specs/render-soft/renderer.md`)
-  - [ ] Glyph runs in `tantu-render-wgpu` with a glyph atlas (amends `docs/specs/render-wgpu/renderer.md`)
+  - [x] Glyph runs in `tantu-render-wgpu` with a glyph atlas (amends `docs/specs/render-wgpu/renderer.md`)
   - [ ] A text reference Scene and golden in `tantu-render-conformance`
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons
 - [ ] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md

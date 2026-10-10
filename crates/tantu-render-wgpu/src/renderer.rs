@@ -6,16 +6,19 @@
 
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::Arc;
 
 use tantu_core::{Affine, Color, Rect};
 use tantu_scene::{
-    BorderRadius, BoxShadow, Clip, Command, CustomKind, ImageData, ImageDraw, ImageId,
-    ImageSampling, Layer, RenderError, RenderReport, Renderer, Resources, RoundedRect, Scene,
+    BorderRadius, BoxShadow, Clip, Command, CustomKind, FontData, FontId, Glyph, GlyphRun,
+    ImageData, ImageDraw, ImageId, ImageSampling, Layer, RenderError, RenderReport, Renderer,
+    Resources, RoundedRect, Scene,
 };
+use tantu_text::{GlyphMask, GlyphRasterizer};
 
 use crate::gpu::{
-    COLOR_FORMAT, Device, FULL_FLOATS, IMAGE_FLOATS, InstanceBuffer, MASK_FORMAT, Pipelines,
-    PixelTexture, SHAPE_FLOATS,
+    ATLAS_FORMAT, COLOR_FORMAT, Device, FULL_FLOATS, GLYPH_FLOATS, IMAGE_FLOATS, InstanceBuffer,
+    MASK_FORMAT, Pipelines, PixelTexture, SHAPE_FLOATS,
 };
 
 /// Why a renderer couldn't be created.
@@ -136,9 +139,186 @@ pub struct WgpuRenderer {
     shape_buffer: InstanceBuffer,
     image_buffer: InstanceBuffer,
     full_buffer: InstanceBuffer,
+    glyph_buffer: InstanceBuffer,
+    /// Glyph coverage masks (shared code with the software renderer).
+    glyphs: GlyphRasterizer,
+    /// The glyph atlas, created on first use.
+    atlas: Option<Atlas>,
+}
+
+/// Starting side of the glyph atlas, in texels.
+const ATLAS_START: u32 = 1024;
+/// Largest atlas side the renderer grows to (or the device's limit, if lower).
+const ATLAS_MAX: u32 = 8192;
+
+/// A shelf-packed `R8Unorm` texture of glyph masks (RENDER-WGPU-18, -19).
+struct Atlas {
+    texture: wgpu::Texture,
+    bind_group: wgpu::BindGroup,
+    side: u32,
+    /// Next free position on the current shelf, and the shelf's height so far.
+    x: u32,
+    y: u32,
+    shelf: u32,
+    /// Where each mask is, by its `Arc` address; `held` keeps those addresses from being reused.
+    slots: HashMap<usize, [u32; 4]>,
+    held: Vec<Arc<GlyphMask>>,
+}
+
+/// What finding a glyph in the atlas gave.
+enum GlyphSlot {
+    /// The glyph draws nothing (no outline, unusable size).
+    Nothing,
+    /// The atlas is full.
+    Full,
+    /// The mask and its atlas rect `[left, top, right, bottom]`.
+    At(Arc<GlyphMask>, [u32; 4]),
+}
+
+impl Atlas {
+    fn new(device: &wgpu::Device, pipelines: &Pipelines, side: u32) -> Atlas {
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("tantu glyph atlas"),
+            size: wgpu::Extent3d {
+                width: side,
+                height: side,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: ATLAS_FORMAT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("tantu glyph atlas"),
+            layout: &pipelines.image_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&pipelines.nearest),
+                },
+            ],
+        });
+        Atlas {
+            texture,
+            bind_group,
+            side,
+            x: 0,
+            y: 0,
+            shelf: 0,
+            slots: HashMap::new(),
+            held: Vec::new(),
+        }
+    }
+
+    /// Forgets every mask (the texture's old contents are overwritten as masks come back).
+    fn clear(&mut self) {
+        (self.x, self.y, self.shelf) = (0, 0, 0);
+        self.slots.clear();
+        self.held.clear();
+    }
+
+    /// The atlas rect of `mask`, uploading it if new; `None` if it doesn't fit.
+    fn insert(&mut self, queue: &wgpu::Queue, mask: &Arc<GlyphMask>) -> Option<[u32; 4]> {
+        let key = Arc::as_ptr(mask) as usize;
+        if let Some(rect) = self.slots.get(&key) {
+            return Some(*rect);
+        }
+        // One texel of padding keeps neighbours apart.
+        let (w, h) = (mask.width + 1, mask.height + 1);
+        if w > self.side || h > self.side {
+            return None;
+        }
+        if self.x + w > self.side {
+            self.y += self.shelf;
+            (self.x, self.shelf) = (0, 0);
+        }
+        if self.y + h > self.side {
+            return None;
+        }
+        let (x, y) = (self.x, self.y);
+        queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &self.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d { x, y, z: 0 },
+                aspect: wgpu::TextureAspect::All,
+            },
+            &mask.coverage,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(mask.width),
+                rows_per_image: Some(mask.height),
+            },
+            wgpu::Extent3d {
+                width: mask.width,
+                height: mask.height,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.x += w;
+        self.shelf = self.shelf.max(h);
+        let rect = [x, y, x + mask.width, y + mask.height];
+        self.slots.insert(key, rect);
+        self.held.push(Arc::clone(mask));
+        Some(rect)
+    }
 }
 
 impl WgpuRenderer {
+    /// The glyph's mask and atlas rect, creating the atlas on first use.
+    fn glyph_slot(
+        &mut self,
+        font: FontId,
+        data: &FontData,
+        glyph: u32,
+        size: f32,
+        x: f32,
+    ) -> GlyphSlot {
+        let Some(mask) = self.glyphs.mask(font, data, glyph, size, x) else {
+            return GlyphSlot::Nothing;
+        };
+        let atlas = self
+            .atlas
+            .get_or_insert_with(|| Atlas::new(&self.gpu.device, &self.pipelines, ATLAS_START));
+        match atlas.insert(&self.gpu.queue, &mask) {
+            Some(rect) => GlyphSlot::At(mask, rect),
+            None => GlyphSlot::Full,
+        }
+    }
+
+    /// Makes room after a frame overflowed the atlas: clear it the first time, then grow it.
+    /// Returns false when it can't grow any more.
+    fn make_atlas_room(&mut self, first: bool) -> bool {
+        let Some(atlas) = self.atlas.as_mut() else {
+            return false;
+        };
+        if first {
+            atlas.clear();
+            return true;
+        }
+        let limit = self
+            .gpu
+            .device
+            .limits()
+            .max_texture_dimension_2d
+            .min(ATLAS_MAX);
+        if atlas.side >= limit {
+            atlas.clear();
+            return false;
+        }
+        let side = (atlas.side * 2).min(limit);
+        self.atlas = Some(Atlas::new(&self.gpu.device, &self.pipelines, side));
+        true
+    }
+
     /// An offscreen `width × height` target (RGBA8, premultiplied alpha), scale factor 1, fully
     /// transparent. Blocks while wgpu finds an adapter and creates a device.
     pub fn new_offscreen(width: u32, height: u32) -> Result<WgpuRenderer, CreateError> {
@@ -240,6 +420,9 @@ impl WgpuRenderer {
             shape_buffer: InstanceBuffer::new("tantu shapes"),
             image_buffer: InstanceBuffer::new("tantu images"),
             full_buffer: InstanceBuffer::new("tantu full-screen"),
+            glyph_buffer: InstanceBuffer::new("tantu glyphs"),
+            glyphs: GlyphRasterizer::new(),
+            atlas: None,
         }
     }
 
@@ -485,9 +668,22 @@ impl Renderer for WgpuRenderer {
             RenderReport::for_scene(scene, resources, &|kind| handlers.contains_key(&kind));
         self.prune_images(resources);
 
-        // Step 1: plan.
-        let mut plan = Plan::new(self.scale_factor, (self.width, self.height));
-        plan.walk(scene, resources, self, &mut report);
+        // Step 1: plan. If the glyphs overflow the atlas, make room and plan again
+        // (RENDER-WGPU-19): clear it once, then grow it.
+        let mut attempt = 0;
+        let plan = loop {
+            let mut attempt_report = report;
+            let mut plan = Plan::new(self.scale_factor, (self.width, self.height));
+            plan.walk(scene, resources, self, &mut attempt_report);
+            if !plan.atlas_full || attempt >= 4 || !self.make_atlas_room(attempt == 0) {
+                if plan.atlas_full {
+                    tracing::warn!("glyph atlas full; some glyphs were not drawn");
+                }
+                report = attempt_report;
+                break plan;
+            }
+            attempt += 1;
+        };
 
         // Step 2: encode.
         self.ensure_textures(plan.max_mask_depth, plan.max_layer_depth);
@@ -498,6 +694,7 @@ impl Renderer for WgpuRenderer {
         self.shape_buffer.upload(device, queue, &plan.shapes);
         self.image_buffer.upload(device, queue, &plan.images);
         self.full_buffer.upload(device, queue, &plan.full);
+        self.glyph_buffer.upload(device, queue, &plan.glyphs);
 
         let frame = match &self.target {
             Target::Offscreen(_) => None,
@@ -549,6 +746,8 @@ impl Renderer for WgpuRenderer {
             shape_buffer: self.shape_buffer.buffer.as_ref(),
             image_buffer: self.image_buffer.buffer.as_ref(),
             full_buffer: self.full_buffer.buffer.as_ref(),
+            glyph_buffer: self.glyph_buffer.buffer.as_ref(),
+            atlas: self.atlas.as_ref().map(|a| &a.bind_group),
             size: (self.width, self.height),
         };
         for op in &plan.ops {
@@ -593,6 +792,13 @@ enum Op<'s> {
     ClearLayer(usize),
     /// Draw shape instances `start..end` with mask `mask` (0 = no clip).
     Shapes {
+        target: Surface,
+        mask: usize,
+        start: u32,
+        end: u32,
+    },
+    /// Draw glyph instances `start..end` from the atlas with mask `mask`.
+    Glyphs {
         target: Surface,
         mask: usize,
         start: u32,
@@ -643,6 +849,9 @@ struct Plan<'s> {
     shapes: Vec<f32>,
     images: Vec<f32>,
     full: Vec<f32>,
+    glyphs: Vec<f32>,
+    /// Some glyph didn't fit in the atlas.
+    atlas_full: bool,
     transform: Affine,
     transforms: Vec<Affine>,
     scopes: Vec<Scope>,
@@ -663,6 +872,8 @@ impl<'s> Plan<'s> {
             shapes: Vec::new(),
             images: Vec::new(),
             full: Vec::new(),
+            glyphs: Vec::new(),
+            atlas_full: false,
             transform: Affine::IDENTITY,
             transforms: Vec::new(),
             scopes: Vec::new(),
@@ -729,9 +940,14 @@ impl<'s> Plan<'s> {
                     }
                 }
                 Command::GlyphRun(run) => {
-                    // No text yet: a run with a present font is a font this backend can't use.
-                    if resources.font(run.font).is_some() {
-                        report.missing_fonts = report.missing_fonts.saturating_add(1);
+                    // A missing font was counted by `for_scene`; an unreadable one is ours
+                    // (RENDER-WGPU-04).
+                    if let Some(font) = resources.font(run.font) {
+                        if renderer.glyphs.readable(run.font, font) {
+                            self.glyph_run(run, scene.glyphs(run), font, renderer);
+                        } else {
+                            report.missing_fonts = report.missing_fonts.saturating_add(1);
+                        }
                     }
                 }
                 Command::Custom(custom) => {
@@ -750,6 +966,79 @@ impl<'s> Plan<'s> {
         }
         while !self.scopes.is_empty() {
             self.pop();
+        }
+    }
+
+    /// Adds a glyph run's glyphs as atlas instances (RENDER-WGPU-18, -19): each mask at device
+    /// size, placed at its device position, batched with the previous glyphs when possible.
+    fn glyph_run(
+        &mut self,
+        run: &GlyphRun,
+        glyphs: &[Glyph],
+        font: &FontData,
+        renderer: &mut WgpuRenderer,
+    ) {
+        let [a, b, c, d, e, f] = self.device_transform().coeffs();
+        let size = run.font_size * (a * d - b * c).abs().sqrt();
+        if !(size.is_finite() && size > 0.0) {
+            return;
+        }
+        let color = premultiplied(run.color);
+        let (width, height) = (self.size.0 as f32, self.size.1 as f32);
+        for glyph in glyphs {
+            let (lx, ly) = (run.origin.x + glyph.x, run.origin.y + glyph.y);
+            let (x, y) = (a * lx + c * ly + e, b * lx + d * ly + f);
+            if !(x.abs() < 16_777_216.0 && y.abs() < 16_777_216.0) {
+                continue;
+            }
+            let (mask, rect) = match renderer.glyph_slot(run.font, font, glyph.id, size, x) {
+                GlyphSlot::At(mask, rect) => (mask, rect),
+                GlyphSlot::Nothing => continue,
+                GlyphSlot::Full => {
+                    self.atlas_full = true;
+                    continue;
+                }
+            };
+            let left = x.floor() + mask.left as f32;
+            let top = y.round() + mask.top as f32;
+            let (right, bottom) = (left + mask.width as f32, top + mask.height as f32);
+            if left >= width || top >= height || right <= 0.0 || bottom <= 0.0 {
+                continue;
+            }
+            let start = (self.glyphs.len() / GLYPH_FLOATS) as u32;
+            self.glyphs.extend_from_slice(&[
+                left,
+                top,
+                right,
+                bottom,
+                rect[0] as f32,
+                rect[1] as f32,
+                rect[2] as f32,
+                rect[3] as f32,
+                color[0],
+                color[1],
+                color[2],
+                color[3],
+            ]);
+            let (target, mask_depth) = (self.surface(), self.clip_depth);
+            if let Some(Op::Glyphs {
+                target: t,
+                mask: m,
+                end,
+                ..
+            }) = self.ops.last_mut()
+            {
+                if *t == target && *m == mask_depth && *end == start {
+                    *end = start + 1;
+                    continue;
+                }
+            }
+            self.ops.push(Op::Glyphs {
+                target,
+                mask: mask_depth,
+                start,
+                end: start + 1,
+            });
         }
     }
 
@@ -1074,6 +1363,8 @@ struct Encode<'a> {
     shape_buffer: Option<&'a wgpu::Buffer>,
     image_buffer: Option<&'a wgpu::Buffer>,
     full_buffer: Option<&'a wgpu::Buffer>,
+    glyph_buffer: Option<&'a wgpu::Buffer>,
+    atlas: Option<&'a wgpu::BindGroup>,
     size: (u32, u32),
 }
 
@@ -1144,6 +1435,24 @@ impl Encode<'_> {
                 pass.set_pipeline(&self.pipelines.for_format(format).shape);
                 pass.set_bind_group(0, self.globals, &[]);
                 pass.set_bind_group(1, &self.mask(mask).bind_group, &[]);
+                pass.set_vertex_buffer(0, buffer.slice(..));
+                pass.draw(0..6, start..end);
+            }
+            Op::Glyphs {
+                target,
+                mask,
+                start,
+                end,
+            } => {
+                let (Some(buffer), Some(atlas)) = (self.glyph_buffer, self.atlas) else {
+                    return;
+                };
+                let (view, format) = self.view(target);
+                let mut pass = begin(encoder, view, wgpu::LoadOp::Load);
+                pass.set_pipeline(&self.pipelines.for_format(format).glyph);
+                pass.set_bind_group(0, self.globals, &[]);
+                pass.set_bind_group(1, &self.mask(mask).bind_group, &[]);
+                pass.set_bind_group(2, atlas, &[]);
                 pass.set_vertex_buffer(0, buffer.slice(..));
                 pass.draw(0..6, start..end);
             }

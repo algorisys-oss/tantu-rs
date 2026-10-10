@@ -2329,6 +2329,7 @@ dependencies = [
  "tantu-render-conformance",
  "tantu-scene",
  "tantu-text",
+ "tracing",
  "wgpu",
 ]
 

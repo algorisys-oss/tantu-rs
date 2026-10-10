@@ -214,6 +214,38 @@ fn fs_image(in: ImageOut) -> @location(0) vec4<f32> {
     return color * (in.extra.x * cov * mask_at(in.pos));
 }
 
+// ---- Glyphs ----------------------------------------------------------------------------------
+// One quad per glyph mask: a device-pixel rect, the mask's rect in the atlas (group 2, the image
+// texture slot) and a premultiplied color. Rects are pixel-aligned and 1:1 with atlas texels.
+
+struct GlyphIn {
+    @location(0) rect: vec4<f32>,
+    @location(1) uv: vec4<f32>,
+    @location(2) color: vec4<f32>,
+};
+
+struct GlyphOut {
+    @builtin(position) pos: vec4<f32>,
+    @location(0) uv: vec2<f32>,
+    @location(1) @interpolate(flat) color: vec4<f32>,
+};
+
+@vertex
+fn vs_glyph(@builtin(vertex_index) vi: u32, inst: GlyphIn) -> GlyphOut {
+    let corner = quad_corner(vi);
+    var out: GlyphOut;
+    out.pos = to_clip(mix(inst.rect.xy, inst.rect.zw, corner));
+    out.uv = mix(inst.uv.xy, inst.uv.zw, corner);
+    out.color = inst.color;
+    return out;
+}
+
+@fragment
+fn fs_glyph(in: GlyphOut) -> @location(0) vec4<f32> {
+    let coverage = textureLoad(image_tex, vec2<i32>(floor(in.uv)), 0).r;
+    return in.color * (coverage * mask_at(in.pos));
+}
+
 // ---- Full-screen passes: clip masks, layer overlay and composite -----------------------------
 
 struct FullIn {

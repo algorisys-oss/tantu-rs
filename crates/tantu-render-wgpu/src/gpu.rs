@@ -15,6 +15,10 @@ pub(crate) const SHAPE_FLOATS: usize = 22;
 pub(crate) const IMAGE_FLOATS: usize = 16;
 /// Floats per full-screen instance: four vec4 parameters.
 pub(crate) const FULL_FLOATS: usize = 16;
+/// Floats per glyph instance: device rect (4), atlas rect (4), premultiplied color (4).
+pub(crate) const GLYPH_FLOATS: usize = 12;
+/// Format of the glyph atlas (coverage).
+pub(crate) const ATLAS_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
 
 /// The adapter, device and queue, and errors wgpu reported instead of panicking.
 pub(crate) struct Device {
@@ -79,6 +83,7 @@ impl Device {
 pub(crate) struct ColorPipelines {
     pub(crate) shape: wgpu::RenderPipeline,
     pub(crate) image: wgpu::RenderPipeline,
+    pub(crate) glyph: wgpu::RenderPipeline,
     pub(crate) overlay: wgpu::RenderPipeline,
     pub(crate) composite: wgpu::RenderPipeline,
 }
@@ -142,6 +147,8 @@ const SHAPE_ATTRIBUTES: [wgpu::VertexAttribute; 6] = wgpu::vertex_attr_array![
 const IMAGE_ATTRIBUTES: [wgpu::VertexAttribute; 5] = wgpu::vertex_attr_array![
     0 => Float32x4, 1 => Float32x2, 2 => Float32x4, 3 => Float32x4, 4 => Float32x2
 ];
+const GLYPH_ATTRIBUTES: [wgpu::VertexAttribute; 3] =
+    wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4];
 const FULL_ATTRIBUTES: [wgpu::VertexAttribute; 4] = wgpu::vertex_attr_array![
     0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4
 ];
@@ -266,6 +273,15 @@ impl Pipelines {
                 "vs_image",
                 "fs_image",
                 instance_layout(&IMAGE_ATTRIBUTES, IMAGE_FLOATS),
+                format,
+                PREMULTIPLIED_OVER,
+            ),
+            // The atlas goes in the image slot (group 2), read with textureLoad.
+            glyph: pipeline(
+                &image_pipeline_layout,
+                "vs_glyph",
+                "fs_glyph",
+                instance_layout(&GLYPH_ATTRIBUTES, GLYPH_FLOATS),
                 format,
                 PREMULTIPLIED_OVER,
             ),
