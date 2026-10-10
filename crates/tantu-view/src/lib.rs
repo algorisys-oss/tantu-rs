@@ -41,6 +41,7 @@
 
 mod dynamic;
 mod events;
+mod focus;
 mod frame;
 mod keys;
 mod layout_builder;
@@ -51,6 +52,7 @@ mod tree;
 
 pub use dynamic::{Dyn, For, Show};
 pub use events::{CursorIcon, Handled, Phase, PointerButton, PointerCx, PointerEvent, PointerKind};
+pub use focus::{FocusOptions, KeyCx, KeyEvent, LogicalKey, Modifiers, NamedKey};
 pub use frame::{ElementMut, FrameReport};
 pub use keys::{Key, Keyed};
 pub use layout_builder::LayoutBuilder;

@@ -184,3 +184,46 @@ fn test_wt_06_goldens() {
         .unwrap_or_default();
     assert!(message.contains("missing.png"), "{message}");
 }
+
+/// A focusable box that counts Enter presses into the text below it.
+struct EnterCounter;
+
+impl tantu_view::View for EnterCounter {
+    fn build(self, cx: &mut tantu_view::BuildCx<'_>) -> tantu_view::ElementId {
+        use tantu_view::{FocusOptions, Handled, LogicalKey, NamedKey, Phase};
+        let count = signal(0u32);
+        let column = Column::new()
+            .child(Keyed::new("target", SizedBox::new(50.0, 20.0)))
+            .child(Text::new(move || format!("Enters: {}", count.get())))
+            .build(cx);
+        let target = cx.tree().children(column)[0];
+        cx.focusable(target, FocusOptions::default());
+        cx.on_key(target, Phase::Bubble, move |k| {
+            if k.event.pressed && k.event.key == LogicalKey::Named(NamedKey::Enter) {
+                count.update(|c| *c += 1);
+                Handled::Stop
+            } else {
+                Handled::Continue
+            }
+        });
+        column
+    }
+}
+
+#[test]
+fn test_wt_07_press_key_and_focus() {
+    use tantu_view::{LogicalKey, Modifiers, NamedKey};
+    let mut tester = WidgetTester::new(|| EnterCounter);
+    // Nothing focused: Enter reaches no handler.
+    tester.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    tester.find(&Finder::text("Enters: 0"));
+    tester.focus(&Finder::key("target"));
+    tester.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    tester.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    tester.find(&Finder::text("Enters: 2"));
+    // Focusing something that isn't focusable panics.
+    let not_focusable = catch_unwind(AssertUnwindSafe(|| {
+        tester.focus(&Finder::text("Enters: 2"))
+    }));
+    assert!(not_focusable.is_err());
+}

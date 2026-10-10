@@ -463,3 +463,84 @@ fn facade_app_10_windows_paint_a_background() {
         assert!(!drew_before);
     }
 }
+
+/// A box filling the window, focused on press, logging key presses as "key shift".
+struct KeyLogger(Rc<RefCell<Vec<String>>>);
+
+impl View for KeyLogger {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        use tantu::view::{FocusOptions, LogicalKey};
+        let id = cx.render(RenderConstrainedBox::expand(), []);
+        cx.focusable(
+            id,
+            FocusOptions {
+                traversable: true,
+                focus_on_press: true,
+            },
+        );
+        let log = self.0;
+        cx.on_key(id, Phase::Bubble, move |k| {
+            if k.event.pressed {
+                let key = match &k.event.key {
+                    LogicalKey::Named(named) => format!("{named:?}"),
+                    LogicalKey::Character(c) => c.to_string(),
+                };
+                log.borrow_mut()
+                    .push(format!("{key} {}", k.event.modifiers.shift));
+            }
+            Handled::Continue
+        });
+        id
+    }
+}
+
+fn key(key: tantu::platform::Key, state: ButtonState) -> WindowEvent {
+    WindowEvent::Keyboard(tantu::platform::KeyEvent {
+        key,
+        location: tantu::platform::KeyLocation::Standard,
+        state,
+        repeat: false,
+        text: None,
+    })
+}
+
+#[test]
+fn facade_app_11_keyboard_events_are_forwarded() {
+    use tantu::platform::{Key, Modifiers as PlatformModifiers, NamedKey as PlatformNamed};
+    let keys: Rc<RefCell<Vec<String>>> = Rc::default();
+    let k = keys.clone();
+    let app = App::new().window(Window::new("A").size(200.0, 100.0), move || KeyLogger(k));
+    let shift = PlatformModifiers {
+        shift: true,
+        ..PlatformModifiers::default()
+    };
+    let platform = FakePlatform::new()
+        // Focus the logger with a click.
+        .event(0, button(ButtonState::Pressed, 5.0, 5.0))
+        .event(0, button(ButtonState::Released, 5.0, 5.0))
+        .event(
+            0,
+            key(Key::Named(PlatformNamed::Enter), ButtonState::Pressed),
+        )
+        .event(0, WindowEvent::ModifiersChanged(shift))
+        .event(
+            0,
+            key(Key::Named(PlatformNamed::Shift), ButtonState::Pressed),
+        )
+        .event(0, key(Key::Character("A".into()), ButtonState::Pressed))
+        .event(0, key(Key::Named(PlatformNamed::F5), ButtonState::Pressed))
+        .event(0, key(Key::Unidentified, ButtonState::Pressed))
+        .event(
+            0,
+            WindowEvent::ModifiersChanged(PlatformModifiers::default()),
+        )
+        .event(
+            0,
+            key(Key::Named(PlatformNamed::ArrowLeft), ButtonState::Pressed),
+        );
+    run(app, platform, &Recorders::default());
+    assert_eq!(
+        *keys.borrow(),
+        ["Enter false", "A true", "F(5) true", "ArrowLeft false"]
+    );
+}

@@ -9,8 +9,8 @@ use tantu_view::layout::{BoxConstraints, RenderBox, RenderParagraph};
 use tantu_view::scene::{Renderer, Resources, Scene};
 use tantu_view::text::{FontFamily, TextSystem};
 use tantu_view::{
-    ElementId, ElementKind, Key, PointerButton, PointerEvent, PointerKind, SystemText, View,
-    ViewTree,
+    ElementId, ElementKind, Key, LogicalKey, Modifiers, PointerButton, PointerEvent, PointerKind,
+    SystemText, View, ViewTree,
 };
 
 /// Liberation Sans Regular (SIL Open Font License 1.1, see `fonts/LICENSE-OFL.txt`).
@@ -157,6 +157,19 @@ impl WidgetTester {
             position: center,
         });
         self.pump();
+    }
+
+    /// Presses and releases `key` (with `modifiers`) on the focused element, then pumps.
+    pub fn press_key(&mut self, key: LogicalKey, modifiers: Modifiers) {
+        let _ = (key, modifiers);
+        todo!()
+    }
+
+    /// Focuses the single element `finder` matches, then pumps (panics if it isn't
+    /// focusable).
+    pub fn focus(&mut self, finder: &Finder) {
+        let _ = finder;
+        todo!()
     }
 
     /// Dispatches a raw pointer event (no pump).
