@@ -20,8 +20,12 @@ WidgetTester), and AGENTS.md now says every crate may depend on `tantu-core`.
 Progress while the user is away: **the `tantu-view` item is done** (ADR 0011, five specs in
 `docs/specs/view/`, all Implemented): `tree.md` (VIEW-TREE-01..11), `paint.md`
 (VIEW-PAINT-01..06), `frame.md` (VIEW-FRAME-01..08), `dynamic.md` (VIEW-DYN-01..07),
-`layout-builder.md` (VIEW-LB-01..06). Next: `tantu-text` (parley), then event dispatch, the
-`tantu` facade with the counter example, `WidgetTester`.
+`layout-builder.md` (VIEW-LB-01..06). **`tantu-text`'s text system is done**
+(`docs/specs/text/system.md`, TEXT-SYS-01..09): parley 0.12 behind `TextMeasure`, glyph runs
+into Scenes. MSRV raised to 1.88 for parley (decision 12), and AGENTS.md now lets `tantu-text`
+depend on `tantu-layout` (decision 36, review). Next: "text in views" (frames that measure and
+paint text), then glyph rasterization in the renderers, event dispatch, the facade with the
+counter example, `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -360,6 +364,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     removes it; `For` keeps elements (and their first item value) for kept keys.
     `LayoutBuilder`: records its constraints; its content is a `Dyn` over a constraints signal;
     `ViewTree::layout` rebuilds after the pass and lays out again (bits comparison, 16 rounds).
+36. **Text system** (2026-10-10, spec `docs/specs/text/system.md`, decided by the agent while
+    the user was away; review): parley 0.12 (needs Rust 1.88: MSRV and toolchain raised in
+    `533335a`); `TextSystem::new()` (system fonts via fontique) or `without_system_fonts()`;
+    `register_font`; a default family used as the fallback in a two-entry family stack;
+    interned, sanitized `TextStyle`s as `TextStyleKey(index)`; shaped layouts cached by
+    (text, style), re-broken per width; `paint` emits one Scene glyph run per parley run with
+    fonts added to `Resources` once. **AGENTS.md change:** the `tantu-text` row may depend on
+    `layout` (for `TextMeasure`, as ADR 0010 says). Tests use a committed Liberation Sans
+    (OFL) so they don't depend on installed fonts.
 
 ## Commit log
 
@@ -506,7 +519,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `f818a3c` | test: LayoutBuilder, 7 failing tests |
 | `fcd06c4` | test: VIEW-LB-05 round limit with 20 nested builders |
 | `291923e` | impl: LayoutBuilder; PLAN.md `tantu-view` item ticked |
-| _this commit_ | docs: HANDOFF.md for the end of the `tantu-view` item |
+| `c7a43dd` | docs: HANDOFF.md for the end of the `tantu-view` item |
+| `533335a` | chore: MSRV and toolchain 1.88 (for parley) |
+| `5e54abb` | spec: text system (TEXT-SYS-01..09); AGENTS.md `tantu-text` may use `layout` |
+| `b35330c` | test: text system, 9 failing tests; Liberation Sans test font |
+| `dd60c6d` | impl: text system over parley |
+| _this commit_ | docs: HANDOFF.md for the text system |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -515,8 +533,9 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. `tantu-text` (parley; implements `TextMeasure`), event dispatch, the `tantu` facade with the
-   counter example, `WidgetTester`.
+3. Text in views (`docs/specs/view/text.md`), glyph rasterization (render-soft with swash,
+   render-wgpu with a glyph atlas, text reference Scenes), event dispatch, the `tantu` facade
+   with the counter example, `WidgetTester`.
 
 ## Open questions
 
@@ -539,6 +558,7 @@ that with the real hash from `git log`.
 - **Shadows with a radius over half a side** still use the quadrant approximation in the wgpu
   blur shader (Evan Wallace's closed form supports one radius per quadrant). Not covered by a
   reference Scene yet; check when shadows get a closer look.
+- **Review decision 36** (text system, the AGENTS.md `tantu-text` → `layout` edge, MSRV 1.88).
 - **Review ADR 0011 and the view-tree spec** (decided by the agent while the user was away,
   decision 35).
 - **Review the agent's decisions in the flex, stack and wrap specs** (decision 33).
