@@ -17,10 +17,10 @@ runner forwarding keys, `WidgetTester::press_key`/`focus`. **Shortcuts and comma
 are done** (`docs/specs/view/shortcuts.md`): intents, `Shortcuts`, `Actions`,
 `SingleActivator` (with `primary()`), `ViewTree::invoke`. **`Button` keyboard
 activation and its focus indicator are done** (`docs/specs/widgets/button-keyboard.md`), so
-**Phase 3's first item (focus, keyboard navigation, shortcuts) is done**. **Waiting for the user:**
-`docs/specs/view/overlay.md` is a Draft (an overlay layer per window, a declarative
-`OverlayPortal`, `Anchor` with target/follower `Alignment` points, offset, flip, clamp,
-z-index, pointer passthrough, `on_outside_press`; four open questions). Review items from Phase 2 are
+**Phase 3's first item (focus, keyboard navigation, shortcuts) is done**. **The overlay item is done** (`docs/specs/view/overlay.md`): an overlay
+layer per window, `OverlayPortal`, `Anchor` (target/follower `Alignment` points, offset, flip,
+clamp), z-index, passthrough, `on_outside_press`. Next in PLAN.md: the Phase 3 widget set
+(`Text`, `RichText`, `Button`, `IconButton`, `Checkbox`, ..., `Tooltip`), split into specs. Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -493,6 +493,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     proposals): Material 3 focus outline (3 px, 2 px outside) and 10 % focus layer; activation
     on press (not release), repeats ignored; indicator whenever focused. **Review:**
     VIEW-FOCUS-08 `ElementMut::set_focusable`, added so a disabled button leaves traversal.
+47. **Overlay** (2026-10-11, spec `docs/specs/view/overlay.md`, the draft's proposals):
+    declarative `OverlayPortal`; `Alignment` for both anchor points; flip vertically, then
+    horizontally, then clamp; one overlay layer per window, created lazily so trees without
+    overlays are unchanged; each overlay sits in a wrapper render element (so regions work as
+    content); placement runs after layout, with one extra pass when it changed.
 
 ## Commit log
 
@@ -735,7 +740,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `f54d9a7` | test: WIDGETS-BUTTON-06 counts the ignored repeat that bubbles on |
 | `a9094bf` | impl: Button keyboard activation and focus indicator |
 | `d410de0` | docs: HANDOFF.md for Button keyboard activation |
-| _this commit_ | docs: draft overlay spec for review |
+| `2f04b5e` | docs: draft overlay spec for review |
+| `bf722ec` | spec: overlay and anchored positioning (VIEW-OVERLAY-01..07) |
+| `c8e8cdf` | test: overlay and anchored positioning, stubs + 7 failing tests |
+| `e58b3d5` | impl: overlay and anchored positioning |
+| _this commit_ | docs: HANDOFF.md for the overlay |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -744,7 +753,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: `Overlay` and anchored positioning (spec first).
+3. Phase 3: the widget set (split into specs, `Tooltip` first as it uses the overlay).
 
 ## Open questions
 
