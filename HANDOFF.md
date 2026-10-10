@@ -15,8 +15,9 @@ first item is split in three (PLAN.md). **Keyboard events and focus are done**
 dispatch to the focused path, Tab traversal in tree order, focus changes, focus on press, the
 runner forwarding keys, `WidgetTester::press_key`/`focus`. **Shortcuts and commands
 are done** (`docs/specs/view/shortcuts.md`): intents, `Shortcuts`, `Actions`,
-`SingleActivator` (with `primary()`), `ViewTree::invoke`. Next: `Button` keyboard activation and
-its focus indicator (amends `docs/specs/widgets/basic.md`). Review items from Phase 2 are
+`SingleActivator` (with `primary()`), `ViewTree::invoke`. **Waiting for the user:**
+`docs/specs/widgets/button-keyboard.md` is a Draft (focusable buttons, Space/Enter activation,
+Material 3 focus outline; three open questions). Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -720,7 +721,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `6f2fa3e` | test: shortcuts and commands, stubs + 6 failing tests |
 | `55560ee` | test: shortcuts fixture keeps the field's own key |
 | `c349569` | impl: shortcuts and commands |
-| _this commit_ | docs: HANDOFF.md for shortcuts and commands |
+| `e27fbea` | docs: HANDOFF.md for shortcuts and commands |
+| _this commit_ | docs: draft Button keyboard spec for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

@@ -122,7 +122,7 @@ faster or more portable without changing how apps are written.
 - [ ] Focus system, keyboard navigation, shortcuts/command registry
   - [x] Keyboard events and focus: focusable elements, key dispatch to the focused path, Tab traversal, focus changes, the runner forwarding keys, `WidgetTester::press_key` (spec `docs/specs/view/focus.md`)
   - [x] Shortcuts and commands: Flutter's `Shortcuts`/`Actions`/`Intent` (spec `docs/specs/view/shortcuts.md`)
-  - [ ] `Button`: Space/Enter activation when focused, focus indicator (amends `docs/specs/widgets/basic.md`)
+  - [ ] `Button`: Space/Enter activation when focused, focus indicator (spec `docs/specs/widgets/button-keyboard.md`)
 - [ ] `Overlay` + anchored positioning (target/follower): 9-point anchors, offset, z-index, pointer passthrough, flip/clamp to window
 - [ ] Widgets: Text, RichText, Button, IconButton, Checkbox, Radio, Switch, Slider, TextField (with IME, selection, undo), Image, Icon, Divider, Tooltip
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
