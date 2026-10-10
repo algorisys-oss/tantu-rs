@@ -7,7 +7,7 @@ use std::fmt;
 
 use tantu_core::{Arena, Id, Size, Vec2};
 
-use crate::{BoxConstraints, TextMeasure};
+use crate::{BoxConstraints, NoTextMeasure, TextMeasure};
 
 /// A node in a [`LayoutTree`]. `Copy`, 8 bytes; stale after the node is removed (never reused).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -110,6 +110,7 @@ pub trait RenderBox: Any {
 pub struct LayoutChildren<'a> {
     tree: &'a mut LayoutTree,
     parent: LayoutId,
+    text: &'a mut dyn TextMeasure,
 }
 
 impl LayoutChildren<'_> {
@@ -132,7 +133,9 @@ impl LayoutChildren<'_> {
     /// depends on that size. `Size::ZERO` out of range.
     pub fn layout(&mut self, index: usize, constraints: BoxConstraints) -> Size {
         match self.tree.child(self.parent, index) {
-            Some(child) => self.tree.layout_node(child, constraints, true, false),
+            Some(child) => self
+                .tree
+                .layout_node(child, constraints, true, false, &mut *self.text),
             None => Size::ZERO,
         }
     }
@@ -141,7 +144,8 @@ impl LayoutChildren<'_> {
     /// relayout boundary).
     pub fn layout_ignoring_size(&mut self, index: usize, constraints: BoxConstraints) {
         if let Some(child) = self.tree.child(self.parent, index) {
-            self.tree.layout_node(child, constraints, false, false);
+            self.tree
+                .layout_node(child, constraints, false, false, &mut *self.text);
         }
     }
 
@@ -156,7 +160,7 @@ impl LayoutChildren<'_> {
 
     /// The pass's text measurer (ADR 0010).
     pub fn text(&mut self) -> &mut dyn TextMeasure {
-        todo!()
+        &mut *self.text
     }
 
     /// The child's size from its last layout (`Size::ZERO` if it was never laid out or the
@@ -177,26 +181,46 @@ impl LayoutChildren<'_> {
 
     /// The child's minimum intrinsic width at `height` (see [`LayoutTree::min_intrinsic_width`]).
     pub fn min_intrinsic_width(&mut self, index: usize, height: f32) -> f32 {
-        self.tree
-            .child_intrinsic(self.parent, index, Intrinsic::MinWidth, height)
+        self.tree.child_intrinsic(
+            self.parent,
+            index,
+            Intrinsic::MinWidth,
+            height,
+            &mut *self.text,
+        )
     }
 
     /// The child's maximum intrinsic width at `height`.
     pub fn max_intrinsic_width(&mut self, index: usize, height: f32) -> f32 {
-        self.tree
-            .child_intrinsic(self.parent, index, Intrinsic::MaxWidth, height)
+        self.tree.child_intrinsic(
+            self.parent,
+            index,
+            Intrinsic::MaxWidth,
+            height,
+            &mut *self.text,
+        )
     }
 
     /// The child's minimum intrinsic height at `width`.
     pub fn min_intrinsic_height(&mut self, index: usize, width: f32) -> f32 {
-        self.tree
-            .child_intrinsic(self.parent, index, Intrinsic::MinHeight, width)
+        self.tree.child_intrinsic(
+            self.parent,
+            index,
+            Intrinsic::MinHeight,
+            width,
+            &mut *self.text,
+        )
     }
 
     /// The child's maximum intrinsic height at `width`.
     pub fn max_intrinsic_height(&mut self, index: usize, width: f32) -> f32 {
-        self.tree
-            .child_intrinsic(self.parent, index, Intrinsic::MaxHeight, width)
+        self.tree.child_intrinsic(
+            self.parent,
+            index,
+            Intrinsic::MaxHeight,
+            width,
+            &mut *self.text,
+        )
     }
 }
 
@@ -204,12 +228,13 @@ impl LayoutChildren<'_> {
 pub struct IntrinsicChildren<'a> {
     tree: &'a mut LayoutTree,
     parent: LayoutId,
+    text: &'a mut dyn TextMeasure,
 }
 
 impl IntrinsicChildren<'_> {
     /// The query's text measurer (ADR 0010).
     pub fn text(&mut self) -> &mut dyn TextMeasure {
-        todo!()
+        &mut *self.text
     }
 
     /// Number of children.
@@ -231,26 +256,46 @@ impl IntrinsicChildren<'_> {
 
     /// The child's minimum intrinsic width at `height`; 0 out of range.
     pub fn min_intrinsic_width(&mut self, index: usize, height: f32) -> f32 {
-        self.tree
-            .child_intrinsic(self.parent, index, Intrinsic::MinWidth, height)
+        self.tree.child_intrinsic(
+            self.parent,
+            index,
+            Intrinsic::MinWidth,
+            height,
+            &mut *self.text,
+        )
     }
 
     /// The child's maximum intrinsic width at `height`.
     pub fn max_intrinsic_width(&mut self, index: usize, height: f32) -> f32 {
-        self.tree
-            .child_intrinsic(self.parent, index, Intrinsic::MaxWidth, height)
+        self.tree.child_intrinsic(
+            self.parent,
+            index,
+            Intrinsic::MaxWidth,
+            height,
+            &mut *self.text,
+        )
     }
 
     /// The child's minimum intrinsic height at `width`.
     pub fn min_intrinsic_height(&mut self, index: usize, width: f32) -> f32 {
-        self.tree
-            .child_intrinsic(self.parent, index, Intrinsic::MinHeight, width)
+        self.tree.child_intrinsic(
+            self.parent,
+            index,
+            Intrinsic::MinHeight,
+            width,
+            &mut *self.text,
+        )
     }
 
     /// The child's maximum intrinsic height at `width`.
     pub fn max_intrinsic_height(&mut self, index: usize, width: f32) -> f32 {
-        self.tree
-            .child_intrinsic(self.parent, index, Intrinsic::MaxHeight, width)
+        self.tree.child_intrinsic(
+            self.parent,
+            index,
+            Intrinsic::MaxHeight,
+            width,
+            &mut *self.text,
+        )
     }
 }
 
@@ -273,32 +318,31 @@ pub struct LayoutSession<'a> {
 impl LayoutSession<'_> {
     /// As [`LayoutTree::layout`], with the session's measurer.
     pub fn layout(&mut self, root: LayoutId, constraints: BoxConstraints) -> Size {
-        let _ = (root, constraints, &self.tree, &self.text);
-        todo!()
+        self.tree.layout_with(root, constraints, &mut *self.text)
     }
 
     /// As [`LayoutTree::min_intrinsic_width`], with the session's measurer.
     pub fn min_intrinsic_width(&mut self, id: LayoutId, height: f32) -> f32 {
-        let _ = (id, height);
-        todo!()
+        self.tree
+            .intrinsic(id, Intrinsic::MinWidth, height, &mut *self.text)
     }
 
     /// As [`LayoutTree::max_intrinsic_width`], with the session's measurer.
     pub fn max_intrinsic_width(&mut self, id: LayoutId, height: f32) -> f32 {
-        let _ = (id, height);
-        todo!()
+        self.tree
+            .intrinsic(id, Intrinsic::MaxWidth, height, &mut *self.text)
     }
 
     /// As [`LayoutTree::min_intrinsic_height`], with the session's measurer.
     pub fn min_intrinsic_height(&mut self, id: LayoutId, width: f32) -> f32 {
-        let _ = (id, width);
-        todo!()
+        self.tree
+            .intrinsic(id, Intrinsic::MinHeight, width, &mut *self.text)
     }
 
     /// As [`LayoutTree::max_intrinsic_height`], with the session's measurer.
     pub fn max_intrinsic_height(&mut self, id: LayoutId, width: f32) -> f32 {
-        let _ = (id, width);
-        todo!()
+        self.tree
+            .intrinsic(id, Intrinsic::MaxHeight, width, &mut *self.text)
     }
 }
 
@@ -349,8 +393,7 @@ impl LayoutTree {
     /// context. [`LayoutTree::layout`] and the tree's intrinsic methods use
     /// [`NoTextMeasure`](crate::NoTextMeasure).
     pub fn with_text<'a>(&'a mut self, text: &'a mut dyn TextMeasure) -> LayoutSession<'a> {
-        let _ = text;
-        todo!()
+        LayoutSession { tree: self, text }
     }
 
     /// An empty tree.
@@ -583,12 +626,7 @@ impl LayoutTree {
     /// Runs a layout pass over `root`'s subtree with `constraints` for `root`, and returns
     /// `root`'s size (`Size::ZERO` for an unknown id).
     pub fn layout(&mut self, root: LayoutId, constraints: BoxConstraints) -> Size {
-        if !self.contains(root) {
-            return Size::ZERO;
-        }
-        let size = self.layout_node(root, constraints, true, true);
-        self.flush_boundaries(root);
-        size
+        self.layout_with(root, constraints, &mut NoTextMeasure)
     }
 
     /// The node's size from its last layout; `None` if it was never laid out.
@@ -610,23 +648,23 @@ impl LayoutTree {
     /// The node's minimum intrinsic width at `height`, computed on demand and cached until the
     /// node or one of its descendants needs layout. 0 for an unknown id.
     pub fn min_intrinsic_width(&mut self, id: LayoutId, height: f32) -> f32 {
-        self.intrinsic(id, Intrinsic::MinWidth, height)
+        self.intrinsic(id, Intrinsic::MinWidth, height, &mut NoTextMeasure)
     }
 
     /// The node's maximum intrinsic width at `height` (cached like
     /// [`min_intrinsic_width`](Self::min_intrinsic_width)).
     pub fn max_intrinsic_width(&mut self, id: LayoutId, height: f32) -> f32 {
-        self.intrinsic(id, Intrinsic::MaxWidth, height)
+        self.intrinsic(id, Intrinsic::MaxWidth, height, &mut NoTextMeasure)
     }
 
     /// The node's minimum intrinsic height at `width` (cached).
     pub fn min_intrinsic_height(&mut self, id: LayoutId, width: f32) -> f32 {
-        self.intrinsic(id, Intrinsic::MinHeight, width)
+        self.intrinsic(id, Intrinsic::MinHeight, width, &mut NoTextMeasure)
     }
 
     /// The node's maximum intrinsic height at `width` (cached).
     pub fn max_intrinsic_height(&mut self, id: LayoutId, width: f32) -> f32 {
-        self.intrinsic(id, Intrinsic::MaxHeight, width)
+        self.intrinsic(id, Intrinsic::MaxHeight, width, &mut NoTextMeasure)
     }
 }
 
@@ -648,6 +686,21 @@ impl LayoutTree {
         out
     }
 
+    /// A layout pass with `text` as the text context.
+    fn layout_with(
+        &mut self,
+        root: LayoutId,
+        constraints: BoxConstraints,
+        text: &mut dyn TextMeasure,
+    ) -> Size {
+        if !self.contains(root) {
+            return Size::ZERO;
+        }
+        let size = self.layout_node(root, constraints, true, true, text);
+        self.flush_boundaries(root, text);
+        size
+    }
+
     /// Lays out one node, skipping it when it is clean and its constraints are unchanged.
     fn layout_node(
         &mut self,
@@ -655,6 +708,7 @@ impl LayoutTree {
         constraints: BoxConstraints,
         parent_uses_size: bool,
         is_root: bool,
+        text: &mut dyn TextMeasure,
     ) -> Size {
         let Some(node) = self.nodes.get_mut(id.0) else {
             return Size::ZERO;
@@ -678,6 +732,7 @@ impl LayoutTree {
             &mut LayoutChildren {
                 tree: self,
                 parent: id,
+                text,
             },
         );
         let size = constraints.constrain(raw);
@@ -703,7 +758,7 @@ impl LayoutTree {
 
     /// Lays out the queued dirty boundaries inside `root`'s subtree from their last
     /// constraints, top down. Entries outside the subtree stay queued; stale ones are dropped.
-    fn flush_boundaries(&mut self, root: LayoutId) {
+    fn flush_boundaries(&mut self, root: LayoutId, text: &mut dyn TextMeasure) {
         if self.dirty.is_empty() {
             return;
         }
@@ -747,7 +802,7 @@ impl LayoutTree {
             };
             let uses_size = !node.ignored_size;
             let is_root = id == root || node.parent.is_none();
-            self.layout_node(id, constraints, uses_size, is_root);
+            self.layout_node(id, constraints, uses_size, is_root, &mut *text);
         }
         // Entries queued again during the pass (none expected) are kept.
         dirty.append(&mut self.dirty);
@@ -775,15 +830,22 @@ impl LayoutTree {
         index: usize,
         kind: Intrinsic,
         arg: f32,
+        text: &mut dyn TextMeasure,
     ) -> f32 {
         match self.child(parent, index) {
-            Some(child) => self.intrinsic(child, kind, arg),
+            Some(child) => self.intrinsic(child, kind, arg, text),
             None => 0.0,
         }
     }
 
     /// A node's intrinsic size, from the cache or computed (NaN and negative reported as 0).
-    fn intrinsic(&mut self, id: LayoutId, kind: Intrinsic, arg: f32) -> f32 {
+    fn intrinsic(
+        &mut self,
+        id: LayoutId,
+        kind: Intrinsic,
+        arg: f32,
+        text: &mut dyn TextMeasure,
+    ) -> f32 {
         let bits = arg.to_bits();
         let Some(node) = self.nodes.get_mut(id.0) else {
             return 0.0;
@@ -801,6 +863,7 @@ impl LayoutTree {
         let mut children = IntrinsicChildren {
             tree: self,
             parent: id,
+            text,
         };
         let value = match kind {
             Intrinsic::MinWidth => render.min_intrinsic_width(arg, &mut children),

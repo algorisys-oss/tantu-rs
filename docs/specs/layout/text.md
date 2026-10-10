@@ -1,6 +1,6 @@
 # Text measurement and paragraphs
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-layout`
 - **Plan item:** Phase 2, "`TextMeasure`, `MeasureCache` and `RenderParagraph`"
 - **Related:** [ADR 0010](../../adr/0010-text-measurement-in-layout.md),

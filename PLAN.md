@@ -91,7 +91,7 @@ faster or more portable without changing how apps are written.
   - [x] Flex: `RenderFlex` (`Row`/`Column`), flex parent data (`Expanded`/`Flexible`/`Spacer`), main/cross-axis alignment and size, `spacing`, overflow reporting (spec `docs/specs/layout/flex.md`)
   - [x] `RenderStack` with `Positioned` parent data (spec `docs/specs/layout/stack.md`)
   - [x] `RenderWrap` (spec `docs/specs/layout/wrap.md`)
-- [ ] `TextMeasure`, `MeasureCache` and `RenderParagraph`; the measurer passed into the layout pass (spec `docs/specs/layout/text.md`, ADR 0010)
+- [x] `TextMeasure`, `MeasureCache` and `RenderParagraph`; the measurer passed into the layout pass (spec `docs/specs/layout/text.md`, ADR 0010)
 - [ ] Layout benchmark: 10k render objects, target < 1 ms full layout
 - [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries; `LayoutBuilder` (it builds views during layout, so it needs the element tree); visibility culling while painting (technique from Clay; `Scene::is_culled` exists)
 - [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
