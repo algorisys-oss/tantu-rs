@@ -37,11 +37,13 @@
 
 #![forbid(unsafe_code)]
 
+mod dynamic;
 mod frame;
 mod paint;
 mod prop;
 mod tree;
 
+pub use dynamic::{Dyn, For, Show};
 pub use frame::{ElementMut, FrameReport};
 pub use paint::{NoPaint, Paint, PaintCx};
 pub use prop::{IntoProp, Prop};
