@@ -1,6 +1,6 @@
 # Overlay and anchored positioning
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 3, "`Overlay` + anchored positioning (target/follower): 9-point anchors,
   offset, z-index, pointer passthrough, flip/clamp to window"
@@ -41,7 +41,7 @@ Out of scope (and where it goes):
 - Animated show and hide: Phase 3 animation.
 - Overlays in their own OS windows (native popups): later, with multi-window.
 
-## Public API (proposal)
+## Public API
 
 ```rust
 /// Where an overlay goes relative to its target (Flutter's follower, Clay's attach points).
@@ -99,7 +99,7 @@ impl<V: View> OverlayPortal<V> {
 }
 ```
 
-## Behavior (proposal)
+## Behavior
 
 - **VIEW-OVERLAY-01:** While visible, the overlay content is built under the overlay layer.
   It's laid out with loose window constraints and placed so that its `follower` point is at
@@ -125,14 +125,20 @@ impl<V: View> OverlayPortal<V> {
   after all content in traversal order, and keys reach a focused element in an overlay as
   usual.
 
-## Open questions (for the user)
+## Implementation notes
 
-1. **Declarative `OverlayPortal`** (visibility as a prop) rather than imperative
-   `Overlay::insert(entry)` / `entry.remove()`. Proposal: declarative, which fits run-once
-   components and signals. An imperative handle can wrap it later.
-2. **Anchoring with `Alignment` for both points** (9 named points, or anything in between), as
-   Flutter's `CompositedTransformFollower` does. Proposal: yes. Clay's 9-point attach is the
-   special case.
-3. **Flip vertically first, then horizontally, then clamp**, as menus usually do. Proposal: yes.
-4. **One overlay layer per window**, at the root; no nested `Overlay` widgets. Proposal: yes.
-   Nested overlays (e.g. inside a dialog) come with dialogs in Phase 4.
+- The overlay layer is a render element added as the root's last child the first time an
+  overlay shows, so trees without overlays are unchanged. It fills the window, lays its children
+  out with loose window constraints and places them at offsets kept in their parent data. It is
+  transparent to hit-testing itself.
+- Overlays are placed after each layout pass. When a placement changed, the layer is laid out
+  again (its children's layouts are cached).
+
+## Open questions
+
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **Declarative `OverlayPortal`.**
+2. **`Alignment` for both anchor points.**
+3. **Flip vertically, then horizontally, then clamp.**
+4. **One overlay layer per window.**
