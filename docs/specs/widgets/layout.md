@@ -1,6 +1,6 @@
 # Layout widgets
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-widgets`
 - **Plan item:** Phase 2, `tantu` facade → "Layout widgets"
 - **Related:** [ADR 0002](../../adr/0002-flutter-layout-protocol.md),
@@ -36,6 +36,15 @@ Out of scope:
   exist, so they follow in a small later spec, or when the gallery needs them.
 - Decorated boxes (`Container`, `DecoratedBox`) need a decoration model, and come with
   `tantu-theme` in Phase 3.
+
+## Dependencies
+
+`tantu-widgets` depends only on `tantu-view` (AGENTS.md). To reach the layout, text, reactive
+and scene types without new dependency edges, `tantu-view` re-exports the crates it depends on:
+`tantu_view::{core, layout, reactive, scene, text}`. This keeps every widget crate on the same
+versions as the view layer. `BoxConstraints` joins the `IntoProp` value types, so
+`ConstrainedBox`'s prop can be a value. Both are `tantu-view` additions. The agent added them
+while agreeing this spec. Review them.
 
 ## Public API
 
@@ -111,9 +120,9 @@ and a static prop adds no per-frame work.
 
 ## Open questions
 
-1. **Every layout prop is reactive (`IntoProp`)**, as AGENTS.md asks ("Reactive props accept
-   either a value or a closure"). Proposal: yes, through `bind` + `update_render`.
-2. **Parent-data props (`flex`, `Positioned` offsets) are plain values** in Phase 2. Reactive
-   parent data needs `ElementMut::update_parent_data`, which can come when an app needs it.
-3. **A region child of `Expanded` warns and is ignored**, where Flutter would throw. Proposal:
-   warn, and revisit when regions forward parent data.
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **Every layout prop is reactive** (`IntoProp`, through `bind` + `update_render`).
+2. **Parent-data props are plain values** in Phase 2.
+3. **A region child of `Expanded`/`Flexible`/`Positioned` logs a warning** and is built
+   unwrapped.
