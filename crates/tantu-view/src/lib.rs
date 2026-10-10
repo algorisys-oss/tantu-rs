@@ -37,9 +37,13 @@
 
 #![forbid(unsafe_code)]
 
+mod frame;
 mod paint;
+mod prop;
 mod tree;
 
+pub use frame::{ElementMut, FrameReport};
 pub use paint::{NoPaint, Paint, PaintCx};
+pub use prop::{IntoProp, Prop};
 pub use tantu_scene::ElementId;
 pub use tree::{AnyView, BuildCx, ElementKind, View, ViewTree};
