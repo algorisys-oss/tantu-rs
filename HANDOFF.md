@@ -35,9 +35,14 @@ renderer** (RENDER-WGPU-18/19, a shelf-packed R8 glyph atlas; checked on Intel V
 lavapipe, output matches the software renderer). **The glyph-rasterization item is done**,
 including a `text` reference Scene and golden (RENDER-CONF-14) that every backend is checked
 against. **Event dispatch is done** (`docs/specs/view/events.md`, VIEW-EVENT-01..06; the user
-said "continue" on the draft, taking its proposals). Next: the `tantu` facade and `App` runner
-with the counter example (needs minimal `Text`/`Button`/layout widgets and a frame loop that
-connects platform, view tree and renderer), then `WidgetTester`.
+said "continue" on the draft, taking its proposals). **Waiting for the user:** the facade item
+is split in five (PLAN.md), with Draft specs for review: `docs/specs/text/styles.md` (one
+style table shared by the text system and view trees, `BuildCx::text_style`, `TextStyle`
+presets), `docs/specs/widgets/layout.md`, `docs/specs/widgets/basic.md` (`Text`, `Button` with
+Material 3 filled-button look, `PointerCx::size`), `docs/specs/facade/app.md` (`App`,
+`Window`, `run`/`run_with`, runner rules) and `docs/specs/examples/counter.md` (the AGENTS.md
+snippet verbatim, checked by a test). Each has open questions with proposals. Then
+`WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -579,7 +584,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `19b77d9` | spec: event dispatch (VIEW-EVENT-01..06) |
 | `1ad5e1b` | test: event dispatch, stubs + 7 failing tests |
 | `d1b19b7` | impl: event dispatch in tantu-view |
-| _this commit_ | docs: HANDOFF.md for event dispatch |
+| `038eec0` | docs: HANDOFF.md for event dispatch |
+| `42db279` | docs: draft facade specs for review; PLAN.md facade item split in five |
+| _this commit_ | docs: HANDOFF.md, waiting on the facade spec review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
