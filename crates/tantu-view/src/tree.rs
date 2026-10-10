@@ -9,6 +9,7 @@ use tantu_layout::{BoxConstraints, LayoutChildren, LayoutId, LayoutTree, RenderB
 use tantu_reactive::{Runtime, Scope};
 use tantu_scene::{ElementId, SceneBuilder};
 
+use crate::events::EventState;
 use crate::frame::Shared;
 use crate::layout_builder::LayoutBuilderRecord;
 use crate::paint::Children;
@@ -186,6 +187,7 @@ pub struct ViewTree {
     pub(crate) runtime: Rc<Runtime>,
     pub(crate) shared: Rc<Shared>,
     pub(crate) layout_builders: Vec<LayoutBuilderRecord>,
+    pub(crate) events: EventState,
 }
 
 impl ViewTree {
@@ -199,6 +201,7 @@ impl ViewTree {
             runtime: Rc::new(Runtime::new()),
             shared: Rc::default(),
             layout_builders: Vec::new(),
+            events: EventState::default(),
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {
@@ -299,6 +302,7 @@ impl ViewTree {
         let mut stack = vec![id];
         while let Some(next) = stack.pop() {
             if let Some(e) = arena_id(next).and_then(|a| self.elements.remove(a)) {
+                self.events.forget(next);
                 stack.extend(e.children);
                 removed += 1;
             }
@@ -398,6 +402,11 @@ impl ViewTree {
     /// Runs `f` with the tree's runtime current (to read or write signals from outside).
     pub fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
         self.runtime.enter(f)
+    }
+
+    /// The element's kind, with its layout node and paint.
+    pub(crate) fn element_kind(&self, id: ElementId) -> Option<&Kind> {
+        self.element(id).map(|e| &e.kind)
     }
 
     fn element(&self, id: ElementId) -> Option<&Element> {

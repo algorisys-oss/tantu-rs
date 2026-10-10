@@ -2,7 +2,9 @@
 //!
 //! The view layer (ADR 0011): views are one-shot builders, components are functions that run
 //! once, and a [`ViewTree`] per window holds the retained elements, their reactive scopes and
-//! the window's layout tree. Specs: `docs/specs/view/`.
+//! the window's layout tree. Pointer events are hit-tested against the last layout and
+//! delivered to handlers in capture and bubble phases ([`ViewTree::dispatch_pointer`]).
+//! Specs: `docs/specs/view/`.
 //!
 //! ```
 //! use tantu_core::Size;

@@ -1,6 +1,6 @@
 # Event dispatch
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 2, "Event dispatch: hit-testing, bubbling/capture, pointer capture,
   cursor icons"
