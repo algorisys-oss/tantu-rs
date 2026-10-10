@@ -470,9 +470,12 @@ fn layout_tree_12_marking_stops_at_boundaries() {
     assert!(f.tree.needs_layout(f.a1) && f.tree.needs_layout(f.a) && f.tree.needs_layout(f.root));
 }
 
+/// Picks a node of the fixture.
+type Pick = fn(&Fixture) -> LayoutId;
+
 #[test]
 fn layout_tree_13_minimal_relayout() {
-    let cases: [(&[fn(&Fixture) -> LayoutId], &[&str]); 5] = [
+    let cases: [(&[Pick], &[&str]); 5] = [
         (&[|f| f.a1], &["root", "a", "a1"]),
         (&[|f| f.a2], &["root", "a", "a2"]),
         (&[|f| f.b11], &["b1", "b11"]),

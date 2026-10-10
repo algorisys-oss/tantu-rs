@@ -13,3 +13,5 @@ workspace = true
 
 [dependencies]
 tantu-core = { workspace = true }
+# Diagnostics (AGENTS.md: `tracing`, never `println!`). Already in the workspace through wgpu.
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
