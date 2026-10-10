@@ -157,8 +157,10 @@ impl LayoutChildren<'_> {
     /// The child's size from its last layout (`Size::ZERO` if it was never laid out or the
     /// index is out of range), so a layout can position children after sizing them all.
     pub fn size(&self, index: usize) -> Size {
-        let _ = index;
-        todo!()
+        self.tree
+            .child(self.parent, index)
+            .and_then(|child| self.tree.size(child))
+            .unwrap_or(Size::ZERO)
     }
 
     /// The child's parent data, if it has some of type `T`.
