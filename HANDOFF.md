@@ -46,9 +46,13 @@ checked on Wayland with wgpu (no errors logged) and offscreen after scripted cli
 draft): pump, tap, hover, finders by key/text/render type, `rect`, `text`, goldens through the
 software renderer; `Keyed` in `tantu-view`; typing text moves to Phase 3. Left in Phase 2: the
 `tantu-text` parent item (bidi and font fallback aren't covered by a rule yet) and the
-milestone: the counter plus a layout demo running on Linux (Wayland and X11), Windows and
-macOS. The demo needs a spec; Windows and macOS runs need the user (the agent can only check
-Linux and CI).
+milestone. **The layout demo is done** (`docs/specs/examples/layout-demo.md`; `cargo run -p
+layout-demo`). Running it in a real window found a bug, fixed in a `spec:`/`test:`/`fix:` triple
+(FACADE-APP-10): nothing painted the window behind the content, so it was black on an opaque
+surface. Each window now has a background color (`Window::background`, default white).
+**Milestone runs:** counter and layout demo open and run without warnings on Linux Wayland and
+X11 (checked by the agent; X11 window captured, white background, correct layout). **Left:
+Windows and macOS runs by the user**, then tick the milestone in PLAN.md.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -442,6 +446,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     the union of its children; goldens at scale 1, tolerance 2, written with
     `TANTU_UPDATE_GOLDENS=1` (the update mode is tested in its own test binary because it sets
     an environment variable).
+42. **Layout demo and window backgrounds** (2026-10-10): the demo uses a local `Swatch` (a box
+    with a custom `Paint`) until decorated boxes come with the theme; its tests use
+    `WidgetTester` and a golden. FACADE-APP-10: the runner wraps each window's content in a
+    background element (fills with `Window::background`, default `Color::WHITE`), so the color
+    is part of the Scene (renderer-independent, visible in goldens) rather than a renderer clear
+    color.
 
 ## Commit log
 
@@ -650,7 +660,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `e6ce21e` | test: WidgetTester and Keyed, stubs + 8 failing tests |
 | `a90a104` | test: TEST-WT-06 stops after writing the golden in update mode |
 | `869a795` | impl: WidgetTester and Keyed |
-| _this commit_ | docs: HANDOFF.md for WidgetTester |
+| `43a00ab` | docs: HANDOFF.md for WidgetTester |
+| `c4aad84` | docs: draft layout-demo spec for review |
+| `69fa90d` | spec: layout demo (LAYOUT-DEMO-01..04) |
+| `148c374` | test: layout demo, stub + 4 failing tests |
+| `0dd28f5` | impl: layout demo |
+| `2f8e370` | spec: windows paint a background color (FACADE-APP-10) |
+| `d8da396` | test: windows paint a background, failing |
+| `6a3e5b0` | fix: windows paint their background color |
+| _this commit_ | docs: HANDOFF.md for the layout demo and the background fix |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -659,7 +677,8 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. The Phase 2 milestone: a layout demo (spec first), then runs on every OS.
+3. The Phase 2 milestone: Windows and macOS runs of `counter` and `layout-demo` (the user),
+   then tick it. Then the `tantu-text` parent item (rules for bidi and font fallback).
 
 ## Open questions
 
