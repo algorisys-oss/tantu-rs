@@ -7,24 +7,22 @@ _Last updated: 2026-10-10_
 
 ## Resume here (session of 2026-10-10)
 
-**Phase 1 is done.** The milestone landed on branch `phase1/milestone` (not yet merged or
-pushed at the time of writing; merge fast-forward into `main` and push when the user asks).
-wgpu matches all five software goldens and the `scene-window` demo frame within the
-cross-backend tolerance on Intel Vulkan, Intel GL and llvmpipe. The Windows and macOS CI runners
-are the first unmeasured adapters: if RENDER-CONF-12/13 fail there by a small margin, loosen the
-tolerance through a `spec:` commit with the measurement (decision 31).
+**Phase 1 is done** (merged and pushed earlier today, CI green on all three OSes, milestone
+tests included). **Phase 2 has started** with `tantu-layout`:
 
-How it was done: a new crate, **`tantu-render-conformance`** (ADR 0008, spec
-`docs/specs/render-conformance/conformance.md`, RENDER-CONF-01..13). It holds the reference
-Scenes, their goldens (moved from `tantu-render-soft/tests/goldens/`, embedded with
-`include_bytes!`) and `match_images`, an edge-aware comparison of premultiplied pixels. Every
-backend, including future ones (browser, a painter for hosting Tantu in eframe/egui), checks
-itself against it from one dev-dependency. The comparison found a real wgpu bug (a corner radius
-over half a side was cut at the middle), fixed with `test:`/`fix:` commits.
+- ADR 0009 (accepted): the layout half of the render tree lives in `tantu-layout`.
+- `BoxConstraints` (spec `docs/specs/layout/constraints.md`, LAYOUT-CONS-01..17): Implemented.
+- Layout tree and protocol (spec `docs/specs/layout/tree.md`, LAYOUT-TREE-01..18):
+  Implemented. `LayoutTree` arena, `RenderBox` trait, caching by constraints, relayout
+  boundaries, cached opt-in intrinsics, `set()` marking only on a real change (decision 32).
 
-Run `cargo run -p scene-window` to see the Phase 1 demo.
+Next: the single-child layouts spec (`docs/specs/layout/single-child.md`): `Alignment`,
+`RenderPadding`, `RenderPositionedBox`, `RenderConstrainedBox`, `RenderFractionallySizedBox`,
+`RenderAspectRatio`. Then flex, stack, wrap. Work on a branch off `main` (e.g.
+`phase2/layout`, which can be reused).
 
-Next: Phase 2 starts with `tantu-layout` (spec first, new branch off `main`).
+`cargo run -p scene-window` still shows the Phase 1 demo; nothing visual changes until views
+and widgets exist.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -34,7 +32,7 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phases 0 (Foundations) and 1 (Pixels on screen) are done; Phase 2 (Layout, views
-  and text) is next. Phase 1 delivered:
+  and text) is in progress: `tantu-layout` has `BoxConstraints` and the layout tree. Phase 1 delivered:
   `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform`,
   `tantu-platform-winit`, `tantu-render-wgpu`, `examples/scene-window` and the milestone
   (`tantu-render-conformance`, decision 31). The workspace has 17 crates under `crates/`
@@ -60,7 +58,7 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     `[workspace.dependencies]`, shared lints in `[workspace.lints]`)
   - `rust-toolchain.toml`: pins Rust 1.85, which is also the MSRV; `clippy.toml`
   - `crates/`: one directory per crate; `crates/tantu` is the facade
-  - `docs/adr/`: ADRs 0001–0008 plus `README.md` (index, template, how to supersede)
+  - `docs/adr/`: ADRs 0001–0009 plus `README.md` (index, template, how to supersede)
   - `docs/specs/`: `TEMPLATE.md` and `README.md` (location, rule-id and test-name conventions)
   - `.github/workflows/ci.yml`: fmt, clippy + rustdoc (`-D warnings`), test on Linux/Windows/macOS,
     spec coverage
@@ -299,6 +297,26 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     - Tantu does not use egui; an egui/eframe host would be a future `Renderer` backend checked
       by this crate.
 
+32. **Layout tree** (2026-10-10, ADR 0009, specs `docs/specs/layout/constraints.md` and
+    `tree.md`, agreed with the user):
+    - `tantu-layout` owns a `LayoutTree` arena (`LayoutId`, 8 bytes) of nodes holding a
+      `Box<dyn RenderBox>`, children, typed parent data (`Any`) and the last constraints, size
+      and offset. `tantu-view` will keep it in step with elements and paint and hit-test from
+      its geometry. Built-in layouts use Flutter's render-object names (`RenderPadding`, …).
+    - `BoxConstraints` is Flutter's API; malformed values are defined, not asserted ("the
+      minimum wins", NaN rules), never panic.
+    - Instead of Flutter's property setters: `set(id, value)` replaces a layout object and marks
+      it only when it differs (`PartialEq`); `get_mut` marks unconditionally. Layout objects
+      hold only layout-affecting state (paint state lives in `tantu-view`).
+    - Boundaries as in Flutter (root, size ignored, tight constraints, `sized_by_parent`);
+      marking queues where it stops, and `layout()` runs the root then the queued boundaries in
+      its subtree, shallowest first. Cached intrinsics make marking continue past a boundary.
+    - A size outside the constraints is constrained, with a debug `tracing` warning. First
+      direct `tracing` dependency (0.1, default features off).
+    - `remove` drops a subtree; `set_children` only detaches. Foreign ids aren't detected (as
+      CORE-ARENA-07).
+    - `LayoutBuilder` moved to the `tantu-view` item (it builds views during layout).
+
 ## Commit log
 
 | Commit | Summary |
@@ -389,18 +407,26 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `46dec03` | test: wgpu corner radius over half a side (RENDER-WGPU-08), failing |
 | `758c3b3` | fix: wgpu rounded corners with a radius over half a side |
 | `2f4bb8d` | impl: renderer conformance crate; Phase 1 milestone met, PLAN.md ticked |
-| _this commit_ | docs: HANDOFF.md for the end of Phase 1 |
+| `dc6302f` | docs: HANDOFF.md for the end of Phase 1 |
+| `d73c3ec` | spec: BoxConstraints (LAYOUT-CONS-01..17); ADR 0009, PLAN.md tantu-layout split |
+| `c0ef913` | test: BoxConstraints, 17 failing tests + doctest |
+| `6085d2d` | impl: BoxConstraints |
+| `fbdeebb` | spec: layout tree and protocol (LAYOUT-TREE-01..18) |
+| `8d70132` | spec: LAYOUT-TREE-02 follows CORE-ARENA-07 for foreign ids |
+| `340b794` | test: layout tree, 19 failing tests |
+| `0d499cb` | impl: layout tree and protocol; `tracing` dependency |
+| _this commit_ | docs: HANDOFF.md for the layout tree |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 2 in PLAN.md)
 
-1. Merge `phase1/milestone` into `main` and push (when asked); watch CI on Windows and macOS for
-   RENDER-CONF-12/13 (decision 31).
-2. Phase 2 starts with `tantu-layout`: `BoxConstraints` protocol and the Flutter layout widgets
-   (spec first; PLAN.md's item is large and will need splitting).
-3. When `tantu-text` lands, add text reference Scenes to `tantu-render-conformance`.
+1. Single-child layouts (spec first): `Alignment`, `RenderPadding`, `RenderPositionedBox`,
+   `RenderConstrainedBox`, `RenderFractionallySizedBox`, `RenderAspectRatio`.
+2. Flex (`RenderFlex` + flex parent data), then `RenderStack`, then `RenderWrap`.
+3. `TextMeasure` + measure cache, and the 10k-node layout benchmark.
+4. When `tantu-text` lands, add text reference Scenes to `tantu-render-conformance`.
 
 ## Open questions
 
