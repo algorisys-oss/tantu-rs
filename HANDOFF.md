@@ -10,9 +10,11 @@ _Last updated: 2026-10-10_
 **Phase 2 is done (2026-10-10).** Every PLAN.md item is ticked, and the milestone is met:
 `cargo run -p counter` and `cargo run -p layout-demo` run on Linux Wayland and X11, Windows and
 macOS. CI is green on all three OSes. **Phase 3 has started** on branch `phase3/focus`: its
-first item is split in three (PLAN.md). **Waiting for the user:** `docs/specs/view/focus.md` is
-a Draft (keyboard events, focusable elements, Tab traversal in tree order, focus changes, the
-runner forwarding keys, `WidgetTester::press_key`; four open questions). Review items from Phase 2 are
+first item is split in three (PLAN.md). **Keyboard events and focus are done**
+(`docs/specs/view/focus.md`, the user said "continue" on the draft): focusable elements, key
+dispatch to the focused path, Tab traversal in tree order, focus changes, focus on press, the
+runner forwarding keys, `WidgetTester::press_key`/`focus`. Next: shortcuts and commands (spec
+first), then `Button` keyboard activation and its focus indicator. Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -470,6 +472,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     fallback. Noto Sans Hebrew (OFL 1.1) is a second test font. CJK and Thai segmentation
     (parley's `complex-scripts`) is deferred to Phase 4 i18n. A debug build printed an ICU4X
     "No segmentation model" message to stderr for Japanese; find where it comes from then.
+44. **Keyboard events and focus** (2026-10-10, spec `docs/specs/view/focus.md`, the draft's
+    proposals): own `LogicalKey`/`NamedKey`/`Modifiers`/`KeyEvent` in `tantu-view` (`Key` is the
+    element key from `Keyed`); traversal in tree order; buttons don't take focus on press; one
+    focus per window, no scopes; with nothing focused, keys go to the root's handlers; a key
+    event counts as handled when any handler ran (as for pointers), and Tab moves focus unless a
+    handler returned `Stop`.
 
 ## Commit log
 
@@ -693,7 +701,13 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `c3e4fb5` | test: bidi and font fallback, 1 failing test |
 | `aa4809b` | fix: per-character font fallback through every registered family; Phase 2 done |
 | `0fe42c8` | docs: HANDOFF.md for the end of Phase 2 |
-| _this commit_ | docs: draft focus spec for review; PLAN.md Phase 3 focus item split in three |
+| `6c0f861` | docs: draft focus spec for review; PLAN.md Phase 3 focus item split in three |
+| `40c84a8` | spec: keyboard events and focus (VIEW-FOCUS-01..07, FACADE-APP-11, TEST-WT-07) |
+| `245319a` | test: keyboard events and focus, stubs + 9 failing tests |
+| `ea9f69a` | test: VIEW-FOCUS-07 expects the root's handlers to remain |
+| `d384d4a` | test: focus fixture registers root key handlers from the top view |
+| `3cd7918` | impl: keyboard events and focus |
+| _this commit_ | docs: HANDOFF.md for keyboard events and focus |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -702,10 +716,15 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 2 is done. Phase 3 starts with the focus system, keyboard navigation and shortcuts.
+3. Phase 3: shortcuts and commands, then `Button` keyboard activation.
 
 ## Open questions
 
+- **Handler ownership:** pointer, key and focus handlers live on the element they are
+  registered on. A component that registers on another element (e.g. its parent, or the root)
+  leaves its handlers there after it is removed, and they may read its disposed signals (a
+  panic per ADR 0007). Proposal: tie each registration to the registering scope (remove it on
+  that scope's cleanup). Found while testing focus; not fixed yet.
 - **Autopilot decisions to review:** decisions 26 (render-soft), 28 (platform) and 29 (wgpu), as
   well as 20/21 and ADR 0007.
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
