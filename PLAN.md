@@ -92,7 +92,7 @@ faster or more portable without changing how apps are written.
   - [x] `RenderStack` with `Positioned` parent data (spec `docs/specs/layout/stack.md`)
   - [x] `RenderWrap` (spec `docs/specs/layout/wrap.md`)
 - [x] `TextMeasure`, `MeasureCache` and `RenderParagraph`; the measurer passed into the layout pass (spec `docs/specs/layout/text.md`, ADR 0010)
-- [ ] Layout benchmark: 10k render objects, target < 1 ms full layout
+- [x] Layout benchmark: 10k render objects, target < 1 ms full layout (635 µs; spec `docs/specs/layout/benchmarks.md`)
 - [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries; `LayoutBuilder` (it builds views during layout, so it needs the element tree); visibility culling while painting (technique from Clay; `Scene::is_culled` exists)
 - [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons

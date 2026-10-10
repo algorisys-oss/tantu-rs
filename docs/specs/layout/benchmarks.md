@@ -1,6 +1,6 @@
 # Layout benchmarks
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-layout` (benches and tests only; no library API)
 - **Plan item:** Phase 2, "Layout benchmark: 10k render objects, target < 1 ms full layout"
 - **Related:** [layout tree](tree.md), [single-child](single-child.md), [flex](flex.md),
@@ -74,9 +74,29 @@ pub struct TextGrid { /* ... */ }
 ## Performance and allocation
 
 The target, from `PLAN.md`: `FullLayout::step` under 1 ms (criterion median, release build,
-the reference laptop). Baselines are recorded here after the implementation step. If the target
-is missed, the impl step investigates (profile, then optimize the tree) before the item is ticked,
-or this spec records why the target moves.
+the reference laptop). **Met.** Baselines (criterion median per `step()`, `cargo bench -p
+tantu-layout`, Rust 1.87.0, Linux, Intel Core i5-1235U laptop, 2026-10-10):
+
+| Scenario | Nodes | Median per step |
+|---|---|---|
+| `FullLayout` (every node laid out) | 9 801 | 635 µs (≈ 65 ns per node) |
+| `RelayoutOneLeaf` | 9 801 | 7.5 µs |
+| `NoOpLayout` | 9 801 | 29 ns |
+| `WideFlex` (one row, 10 000 children) | 10 001 | 1.22 ms |
+| `TextGrid` (10 000 paragraphs, cache hits) | 10 101 | 3.18 ms |
+
+Notes:
+
+- `RelayoutOneLeaf` touches only the changed path (leaf, its centered box, cell, row, row
+  padding, root) and skips the other 9 795 nodes through the constraint cache: about 85× cheaper
+  than a full pass.
+- `TextGrid` costs about 320 ns per paragraph, almost all of it in `MeasureCache` lookups: the
+  text is hashed with the standard library's SipHash, and the key is hashed again by the
+  `HashMap`. A faster hasher (or hashing once) is the obvious optimization; it is left for the
+  Phase 5 performance work, since real text shaping will dominate misses anyway.
+
+When a number regresses by more than about 20 % on the same machine, find out why before
+merging.
 
 ## Open questions
 
