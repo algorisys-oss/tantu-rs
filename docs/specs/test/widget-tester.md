@@ -1,6 +1,6 @@
 # WidgetTester
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-test` (plus `Keyed` in `tantu-view`)
 - **Plan item:** Phase 2, "`tantu-test::WidgetTester` (pump, tap, type, find by key)"
 - **Related:** [view tree](../view/tree.md), [frame](../view/frame.md),
@@ -40,7 +40,7 @@ Out of scope (and where it goes):
 - Semantics finders (by role or label): with `tantu-a11y`, Phase 3.
 - Gestures with timing (long press, fling), animations and fake time: Phase 3 animation.
 
-## Public API (proposal)
+## Public API
 
 ```rust
 // tantu-view
@@ -108,7 +108,7 @@ impl Finder {
 }
 ```
 
-## Behavior (proposal)
+## Behavior
 
 - **TEST-WT-01:** `new` builds the view, pumps one frame at 800 × 600 and records it.
   `with_size` uses the given size. Text in the bundled font has glyphs, so a `Text("Hi")` frame
@@ -132,16 +132,14 @@ impl Finder {
   keyed elements in tree order; removing an element removes its key; a region child is keyed as
   the region.
 
-## Open questions (for the user)
+## Open questions
 
-1. **"type" deferred to Phase 3**, when focus, keyboard dispatch and `TextField` exist.
-   Proposal: yes.
-2. **Keys through a `Keyed` wrapper view** in `tantu-view`, rather than a `.key()` method on
-   every widget. Proposal: the wrapper now, which works for any view. Flutter's `key:`
-   parameter can come as sugar later.
-3. **A bundled test font in `tantu-test`**, a third copy of Liberation Sans after
-   `tantu-text`'s test copy and the conformance crate's. Proposal: yes for now. A shared
-   `tantu-test-fonts` crate isn't worth a new crate yet.
-4. **Panicking finders and asserts** (`find`, `tap`, `matches_golden`), as in Flutter tests.
-   `try_find` returning `Option` can come if needed. Proposal: yes. These are test helpers, so
-   the no-panic rule for library code doesn't apply.
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **"type" is deferred to Phase 3.**
+2. **Keys go through a `Keyed` wrapper view.** A `key:` sugar can come later.
+3. **`tantu-test` bundles its own copy of the test font.**
+4. **Finders and asserts panic**, as test helpers do.
+
+Settled while agreeing: a region's `rect` is the union of its render children's rects (empty
+at the origin when there are none). A golden's size is the window size at scale 1.
