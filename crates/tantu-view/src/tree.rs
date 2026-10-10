@@ -2,6 +2,7 @@
 //! the per-window tree of elements (ADR 0011). Spec: `docs/specs/view/tree.md`.
 
 use std::any::Any;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use tantu_core::{Affine, Arena, Id, Rect, Size, Vec2};
@@ -14,6 +15,7 @@ use tantu_text::{TextStyle, TextStyles};
 
 use crate::events::EventState;
 use crate::frame::Shared;
+use crate::keys::Key;
 use crate::layout_builder::LayoutBuilderRecord;
 use crate::paint::Children;
 use crate::{NoPaint, Paint, PaintCx, TextPainter};
@@ -197,6 +199,7 @@ pub struct ViewTree {
     pub(crate) layout_builders: Vec<LayoutBuilderRecord>,
     pub(crate) events: EventState,
     text_styles: TextStyles,
+    pub(crate) keys: HashMap<ElementId, Key>,
 }
 
 impl ViewTree {
@@ -218,6 +221,7 @@ impl ViewTree {
             layout_builders: Vec::new(),
             events: EventState::default(),
             text_styles: styles,
+            keys: HashMap::new(),
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {
@@ -324,6 +328,7 @@ impl ViewTree {
         while let Some(next) = stack.pop() {
             if let Some(e) = arena_id(next).and_then(|a| self.elements.remove(a)) {
                 self.events.forget(next);
+                self.keys.remove(&next);
                 stack.extend(e.children);
                 removed += 1;
             }

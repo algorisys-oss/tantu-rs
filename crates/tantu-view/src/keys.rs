@@ -42,15 +42,28 @@ impl<V: View> Keyed<V> {
 
 impl<V: View> View for Keyed<V> {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.key, self.child, cx);
-        todo!()
+        let id = self.child.build(cx);
+        if cx.tree.contains(id) {
+            cx.tree.keys.insert(id, self.key);
+        }
+        id
     }
 }
 
 impl ViewTree {
     /// The elements with `key`, in tree order (removed elements drop their key).
     pub fn find_key(&self, key: &Key) -> Vec<ElementId> {
-        let _ = key;
-        todo!()
+        let mut found = Vec::new();
+        if self.keys.is_empty() {
+            return found;
+        }
+        let mut stack = vec![self.root()];
+        while let Some(id) = stack.pop() {
+            if self.keys.get(&id) == Some(key) {
+                found.push(id);
+            }
+            stack.extend(self.children(id).iter().rev());
+        }
+        found
     }
 }

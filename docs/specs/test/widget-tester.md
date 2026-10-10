@@ -1,6 +1,6 @@
 # WidgetTester
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-test` (plus `Keyed` in `tantu-view`)
 - **Plan item:** Phase 2, "`tantu-test::WidgetTester` (pump, tap, type, find by key)"
 - **Related:** [view tree](../view/tree.md), [frame](../view/frame.md),

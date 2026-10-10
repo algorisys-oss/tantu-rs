@@ -29,7 +29,7 @@ fn test_wt_01_builds_and_pumps_the_first_frame() {
     assert_eq!((tester.frame().width, tester.frame().height), (800, 600));
     assert_eq!(tester.frame().scene.size(), Size::new(800.0, 600.0));
     assert_eq!(glyph_counts(&tester), [2]);
-    let tester = WidgetTester::with_size(200.0, 100.0, || SizedBox::shrink());
+    let tester = WidgetTester::with_size(200.0, 100.0, SizedBox::shrink);
     assert_eq!(tester.frame().scene.size(), Size::new(200.0, 100.0));
 }
 
