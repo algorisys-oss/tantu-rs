@@ -34,7 +34,8 @@ In scope:
 
 Out of scope (and where it goes):
 
-- Text (as in the software renderer, glyph runs count as `missing_fonts` until Phase 2).
+- Color glyphs, hinting and exact glyph shapes under rotation or skew (as in the software
+  renderer). Glyph runs are drawn since Phase 2 (RENDER-WGPU-18, -19).
 - Sharing one device between several windows, MSAA, partial repaint, layer bounds: later
   (Phase 2 app runner, Phase 5).
 - The golden comparison against the software renderer: the milestone item (next spec).
@@ -149,7 +150,8 @@ fail. CI sets it on Linux, where Mesa's lavapipe (a software Vulkan driver) is i
 - **RENDER-WGPU-03:** Every `render` starts from a fully transparent target.
 - **RENDER-WGPU-04:** The report is `RenderReport::for_scene(scene, resources, <kind registered>)`
   plus 1 in `missing_fonts` for every glyph run with a present font that isn't hidden or invalid
-  (no text yet; glyph runs draw nothing). With a 0 width or height, `render` draws nothing and
+  whose font data can't be read as a font (`GlyphRasterizer::readable`); such runs draw nothing.
+  (Amended in Phase 2: before glyph drawing, every such run counted.) With a 0 width or height, `render` draws nothing and
   returns the default report.
 - **RENDER-WGPU-05:** Scene coordinates are multiplied by the scale factor; content outside the
   target is clipped; uncovered pixels stay transparent.
@@ -184,7 +186,23 @@ fail. CI sets it on Linux, where Mesa's lavapipe (a software Vulkan driver) is i
   nesting and large images (as RENDER-SOFT-24). Images larger than the device's texture size
   limit draw nothing and count as missing.
 
+- **RENDER-WGPU-18:** Glyph runs with a readable font are drawn as in RENDER-SOFT-27: each
+  glyph's mask from `tantu_text::GlyphRasterizer::mask` at the run's size times the device scale,
+  with the fractional device x as the subpixel offset, its left edge at `floor(x) + mask.left`
+  and top at `round(y) + mask.top`, composited source-over in the run's color with alpha times
+  coverage, through the current clip and layer. Masks are packed into a glyph atlas texture
+  (`R8Unorm`); consecutive glyphs in one surface and clip are drawn in one instanced draw.
+- **RENDER-WGPU-19:** Glyphs follow transforms by position as in RENDER-SOFT-28. When a frame's
+  glyphs don't fit in the atlas, the atlas is cleared and refilled within the frame (the
+  frame stays correct; masks are re-uploaded). Nothing panics for any glyph run.
+
 ## Implementation notes
+
+- **Glyphs.** A shelf-packed `R8Unorm` atlas (1024 × 1024 to start, grown up to the device
+  limit), keyed by the rasterizer's mask `Arc`; glyph instances carry a device-pixel rect, an
+  atlas rect and a premultiplied color; the fragment shader multiplies the atlas coverage by
+  the clip mask, like the shape shader.
+
 
 Not rules; they explain how the rules are met.
 
