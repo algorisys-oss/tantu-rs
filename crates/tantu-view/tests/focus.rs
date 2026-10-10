@@ -391,7 +391,8 @@ fn view_focus_07_removing_the_focus() {
     f.tree.remove(col);
     assert_eq!(f.tree.focused(), None);
     assert_eq!(f.take(), ["e false"]);
-    // Their key handlers are gone: only the root's would run, and they were in col's subtree.
-    assert!(!f.press(LogicalKey::Named(NamedKey::Enter), Modifiers::default()));
-    assert!(f.take().is_empty());
+    // The handlers registered on the root (by a node inside col) stay with the root, which
+    // remains; the removed elements' own handlers are gone.
+    assert!(f.press(LogicalKey::Named(NamedKey::Enter), Modifiers::default()));
+    assert_eq!(f.take(), ["root capture Enter", "root bubble Enter"]);
 }
