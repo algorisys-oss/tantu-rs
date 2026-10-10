@@ -34,10 +34,10 @@ coverage masks shared by both renderers. **The software renderer draws text**
 renderer** (RENDER-WGPU-18/19, a shelf-packed R8 glyph atlas; checked on Intel Vulkan and
 lavapipe, output matches the software renderer). **The glyph-rasterization item is done**,
 including a `text` reference Scene and golden (RENDER-CONF-14) that every backend is checked
-against. **Waiting for the user:** `docs/specs/view/events.md` is a Draft (event dispatch: own
-`PointerEvent` type, capture/bubble with `Stop`, pointer capture, hover, cursors; three open
-questions). After it's agreed: its tests and implementation, then the `tantu` facade with the
-counter example (needs minimal `Text`/`Button`/layout widgets), `WidgetTester`.
+against. **Event dispatch is done** (`docs/specs/view/events.md`, VIEW-EVENT-01..06; the user
+said "continue" on the draft, taking its proposals). Next: the `tantu` facade and `App` runner
+with the counter example (needs minimal `Text`/`Button`/layout widgets and a frame loop that
+connects platform, view tree and renderer), then `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -391,6 +391,14 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     in `tantu-view`; `NoTextMeasure` implements `TextPainter`; `PaintCx::paint_text` exists
     because a `Paint` can't borrow `text()` and `scene()` at once; paint wraps at the layout
     constraints; `ParagraphPaint` reads the `RenderParagraph` instead of duplicating it.
+38. **Event dispatch** (2026-10-10, spec `docs/specs/view/events.md`; the draft's proposals,
+    taken when the user said "continue"): `tantu-view` has its own `PointerEvent` (the runner
+    converts platform events); handlers per element and phase (capture root to target, then
+    bubble), `Handled::Stop` ends dispatch; hit-testing by layout bounds only, regions
+    transparent, a subtree searched only inside its parent's bounds; a handled `Down` captures
+    its path until the matching `Up`; hover changes only on `Move`/`Leave` and `Enter`/`Leave`
+    go to that element alone (bubble phase); a window `Leave` only ends hover. Handlers can't
+    touch the tree, only signals, so removal during dispatch is safe by construction.
 
 ## Commit log
 
@@ -567,7 +575,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `c6d7a2f` | impl: text reference Scene and golden; PLAN.md glyph item ticked |
 | `b2cf088` | docs: HANDOFF.md for the text reference Scene |
 | `f387d8b` | docs: draft event-dispatch spec for review |
-| _this commit_ | docs: HANDOFF.md, waiting on the event-dispatch review |
+| `58dd2b1` | docs: HANDOFF.md, waiting on the event-dispatch review |
+| `19b77d9` | spec: event dispatch (VIEW-EVENT-01..06) |
+| `1ad5e1b` | test: event dispatch, stubs + 7 failing tests |
+| `d1b19b7` | impl: event dispatch in tantu-view |
+| _this commit_ | docs: HANDOFF.md for event dispatch |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -576,7 +588,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Event dispatch, the `tantu` facade with the counter example, `WidgetTester`.
+3. The `tantu` facade with the counter example, `WidgetTester`.
 
 ## Open questions
 
