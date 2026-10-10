@@ -127,8 +127,7 @@ impl BuildCx<'_> {
 
     /// The key for `style` in the tree's style table.
     pub fn text_style(&mut self, style: TextStyle) -> TextStyleKey {
-        let _ = style;
-        todo!()
+        self.tree.text_styles.key(style)
     }
 
     /// The current parent element.
@@ -197,12 +196,19 @@ pub struct ViewTree {
     pub(crate) shared: Rc<Shared>,
     pub(crate) layout_builders: Vec<LayoutBuilderRecord>,
     pub(crate) events: EventState,
+    text_styles: TextStyles,
 }
 
 impl ViewTree {
     /// A tree whose content is the view returned by `app`. `app` runs once, with the tree's
     /// runtime current and inside the root element's scope, so it can create signals.
     pub fn new<V: View>(app: impl FnOnce() -> V) -> Self {
+        ViewTree::with_text_styles(TextStyles::new(), app)
+    }
+
+    /// Like [`new`](Self::new), with `styles` as the tree's style table (pass the text
+    /// system's, so keys built here mean the same styles when measured and painted).
+    pub fn with_text_styles<V: View>(styles: TextStyles, app: impl FnOnce() -> V) -> Self {
         let mut tree = ViewTree {
             elements: Arena::new(),
             layout: LayoutTree::new(),
@@ -211,6 +217,7 @@ impl ViewTree {
             shared: Rc::default(),
             layout_builders: Vec::new(),
             events: EventState::default(),
+            text_styles: styles,
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {
@@ -235,16 +242,9 @@ impl ViewTree {
         tree
     }
 
-    /// Like [`new`](Self::new), with `styles` as the tree's style table (pass the text
-    /// system's, so keys built here mean the same styles when measured and painted).
-    pub fn with_text_styles<V: View>(styles: TextStyles, app: impl FnOnce() -> V) -> Self {
-        let _ = (styles, app);
-        todo!()
-    }
-
     /// The tree's style table ([`new`](Self::new) creates an empty one of its own).
     pub fn text_styles(&self) -> &TextStyles {
-        todo!()
+        &self.text_styles
     }
 
     /// The implicit root render element; the app's view is built under it.

@@ -70,7 +70,7 @@ impl Default for TextStyle {
 
 impl TextStyle {
     /// The style with unusable values replaced (TEXT-SYS-02).
-    fn sanitized(mut self) -> Self {
+    pub(crate) fn sanitized(mut self) -> Self {
         if !(self.size.is_finite() && self.size > 0.0) {
             self.size = DEFAULT_SIZE;
         }
@@ -101,7 +101,7 @@ const LAYOUTS_PER_GENERATION: usize = 512;
 pub struct TextSystem {
     fonts: FontContext,
     layouts: LayoutContext<()>,
-    styles: Vec<TextStyle>,
+    styles: crate::TextStyles,
     default_family: FontFamily,
     /// Scene font handles for parley fonts, by (blob id, face index).
     font_ids: HashMap<(u64, u32), FontId>,
@@ -133,7 +133,7 @@ impl TextSystem {
                 source_cache: Default::default(),
             },
             layouts: LayoutContext::new(),
-            styles: Vec::new(),
+            styles: crate::TextStyles::new(),
             default_family: FontFamily::SansSerif,
             font_ids: HashMap::new(),
             cache: LayoutCache::default(),
@@ -166,31 +166,24 @@ impl TextSystem {
 
     /// The key for `style`: equal styles (after sanitizing) get the same key.
     pub fn style(&mut self, style: TextStyle) -> TextStyleKey {
-        let style = style.sanitized();
-        let index = match self.styles.iter().position(|s| *s == style) {
-            Some(index) => index,
-            None => {
-                self.styles.push(style);
-                self.styles.len() - 1
-            }
-        };
-        TextStyleKey(index as u64)
+        self.styles.key(style)
     }
 
     /// The system's style table (a clone of the handle).
     pub fn styles(&self) -> crate::TextStyles {
-        todo!()
+        self.styles.clone()
     }
 
     /// Uses `styles` as the system's table instead of its own.
-    pub fn with_styles(self, styles: crate::TextStyles) -> Self {
-        let _ = styles;
-        todo!()
+    pub fn with_styles(mut self, styles: crate::TextStyles) -> Self {
+        self.styles = styles;
+        self.cache = LayoutCache::default();
+        self
     }
 
     /// The style behind `key`.
-    pub fn text_style(&self, key: TextStyleKey) -> Option<&TextStyle> {
-        usize::try_from(key.0).ok().and_then(|i| self.styles.get(i))
+    pub fn text_style(&self, key: TextStyleKey) -> Option<TextStyle> {
+        self.styles.get(key)
     }
 
     /// Paints `text` laid out as `measure` lays it out, with the first line's top-left at
@@ -287,7 +280,7 @@ impl TextSystem {
 
     /// Shapes `text` in `style` (the default style for an unknown key) with parley.
     fn shape(&mut self, text: &str, style: TextStyleKey) -> Layout<()> {
-        let style = self.text_style(style).cloned().unwrap_or_default();
+        let style = self.text_style(style).unwrap_or_default();
         let stack = [style.family.to_parley(), self.default_family.to_parley()];
         let mut builder = self
             .layouts

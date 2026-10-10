@@ -1,6 +1,6 @@
 # Shared text styles
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-text` (the table, presets), `tantu-view` (the build-time hook)
 - **Plan item:** Phase 2, `tantu` facade → "Shared text styles"
 - **Related:** [text system](system.md), [text in views](../view/text.md),
