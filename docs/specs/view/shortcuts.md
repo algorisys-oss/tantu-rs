@@ -1,6 +1,6 @@
 # Shortcuts and commands
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 3, "Focus system, keyboard navigation, shortcuts/command registry" →
   "Shortcuts and commands"

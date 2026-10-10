@@ -2,7 +2,7 @@
 //! [`ViewTree::invoke`] (Flutter's intents, shortcuts and actions). Spec:
 //! `docs/specs/view/shortcuts.md`.
 
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::rc::Rc;
 
 use tantu_scene::ElementId;
@@ -67,20 +67,37 @@ impl SingleActivator {
 
     /// With the platform's primary modifier: Command (`super_key`) on macOS, Control elsewhere.
     pub fn primary(self) -> Self {
-        todo!()
+        if cfg!(target_os = "macos") {
+            self.super_key()
+        } else {
+            self.control()
+        }
     }
 
     /// Whether a key press matches.
     pub fn accepts(&self, event: &KeyEvent) -> bool {
-        let _ = event;
-        todo!()
+        let modifiers = event.modifiers;
+        let key_matches = match (&self.key, &event.key) {
+            (LogicalKey::Character(a), LogicalKey::Character(b)) => {
+                a.to_lowercase() == b.to_lowercase()
+            }
+            (a, b) => a == b,
+        };
+        event.pressed
+            && key_matches
+            && (
+                modifiers.control,
+                modifiers.shift,
+                modifiers.alt,
+                modifiers.super_key,
+            ) == (self.control, self.shift, self.alt, self.super_key)
     }
 }
 
 /// An intent value, type-erased.
-type IntentBox = Rc<dyn Any>;
+pub(crate) type IntentBox = Rc<dyn Any>;
 /// An action, type-erased: runs when given an intent of its type.
-type ActionBox = Rc<dyn Fn(&dyn Any)>;
+pub(crate) type ActionBox = Rc<dyn Fn(&dyn Any)>;
 
 /// Binds activators to intents for key events on the focused path through its child.
 pub struct Shortcuts<V> {
@@ -106,15 +123,18 @@ impl<V: View> Shortcuts<V> {
 
 impl<V: View> View for Shortcuts<V> {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.child, self.bindings, cx);
-        todo!()
+        let id = self.child.build(cx);
+        for (activator, intent) in self.bindings {
+            cx.shortcut_box(id, activator, intent);
+        }
+        id
     }
 }
 
 /// Handles intents of given types for focus inside its child (and `invoke` from it).
 pub struct Actions<V> {
     child: V,
-    handlers: Vec<(std::any::TypeId, ActionBox)>,
+    handlers: Vec<(TypeId, ActionBox)>,
 }
 
 impl<V: View> Actions<V> {
@@ -133,15 +153,18 @@ impl<V: View> Actions<V> {
                 handler(intent);
             }
         });
-        self.handlers.push((std::any::TypeId::of::<I>(), action));
+        self.handlers.push((TypeId::of::<I>(), action));
         self
     }
 }
 
 impl<V: View> View for Actions<V> {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.child, self.handlers, cx);
-        todo!()
+        let id = self.child.build(cx);
+        for (type_id, action) in self.handlers {
+            cx.action_box(id, type_id, action);
+        }
+        id
     }
 }
 
@@ -153,14 +176,17 @@ impl BuildCx<'_> {
         activator: SingleActivator,
         intent: I,
     ) {
-        let _ = (element, activator, intent);
-        todo!()
+        self.shortcut_box(element, activator, Rc::new(intent));
     }
 
     /// Handles intents of type `I` on `element` (what `Actions` uses).
     pub fn action<I: Any>(&mut self, element: ElementId, handler: impl Fn(&I) + 'static) {
-        let _ = (element, handler);
-        todo!()
+        let action: ActionBox = Rc::new(move |intent: &dyn Any| {
+            if let Some(intent) = intent.downcast_ref::<I>() {
+                handler(intent);
+            }
+        });
+        self.action_box(element, TypeId::of::<I>(), action);
     }
 }
 
@@ -168,7 +194,65 @@ impl ViewTree {
     /// Invokes `intent` from the focused element (the root when nothing is focused): the
     /// nearest action for `I` on the path up runs. Returns whether one did.
     pub fn invoke<I: Any>(&mut self, intent: &I) -> bool {
-        let _ = intent;
-        todo!()
+        let path = self.focus_path();
+        self.invoke_on(&path, intent)
+    }
+}
+
+impl BuildCx<'_> {
+    /// Registers a type-erased binding on `element`.
+    fn shortcut_box(&mut self, element: ElementId, activator: SingleActivator, intent: IntentBox) {
+        if self.tree.contains(element) {
+            let bindings = self.tree.focus_state.shortcuts.entry(element).or_default();
+            bindings.push((activator, intent));
+        }
+    }
+
+    /// Registers a type-erased action on `element`.
+    fn action_box(&mut self, element: ElementId, type_id: TypeId, action: ActionBox) {
+        if self.tree.contains(element) {
+            let actions = self.tree.focus_state.actions.entry(element).or_default();
+            actions.push((type_id, action));
+        }
+    }
+}
+
+impl ViewTree {
+    /// Runs the nearest action for `intent`'s type on `path` (innermost first), with the
+    /// runtime current (VIEW-SHORT-05). Returns whether one ran.
+    pub(crate) fn invoke_on(&self, path: &[ElementId], intent: &dyn Any) -> bool {
+        let type_id = intent.type_id();
+        let action = path.iter().find_map(|id| {
+            self.focus_state
+                .actions
+                .get(id)?
+                .iter()
+                .find(|(t, _)| *t == type_id)
+                .map(|(_, action)| Rc::clone(action))
+        });
+        match action {
+            Some(action) => {
+                self.enter(|| action(intent));
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Tries `element`'s bindings for `event`, innermost binding first; true if one invoked an
+    /// action (VIEW-SHORT-02..04).
+    pub(crate) fn try_shortcuts(
+        &self,
+        element: ElementId,
+        path: &[ElementId],
+        event: &KeyEvent,
+    ) -> bool {
+        let Some(bindings) = self.focus_state.shortcuts.get(&element) else {
+            return false;
+        };
+        bindings
+            .iter()
+            .filter(|(activator, _)| activator.accepts(event))
+            .any(|(_, intent)| self.invoke_on(path, intent.as_ref()))
     }
 }

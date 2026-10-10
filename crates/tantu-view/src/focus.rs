@@ -1,13 +1,15 @@
 //! Keyboard events and focus: focusable elements, key dispatch to the focused path, Tab
 //! traversal and focus changes. Spec: `docs/specs/view/focus.md`.
 
+use std::any::TypeId;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
 use tantu_scene::ElementId;
 
-use crate::{BuildCx, Handled, Phase, ViewTree};
+use crate::shortcuts::{ActionBox, IntentBox};
+use crate::{BuildCx, Handled, Phase, SingleActivator, ViewTree};
 
 /// A registered key handler.
 type KeyHandler = Rc<dyn Fn(&KeyCx<'_>) -> Handled>;
@@ -20,6 +22,8 @@ pub(crate) struct FocusState {
     focusables: HashMap<ElementId, FocusOptions>,
     keys: HashMap<ElementId, Vec<(Phase, KeyHandler)>>,
     changes: HashMap<ElementId, Vec<FocusHandler>>,
+    pub(crate) shortcuts: HashMap<ElementId, Vec<(SingleActivator, IntentBox)>>,
+    pub(crate) actions: HashMap<ElementId, Vec<(TypeId, ActionBox)>>,
     focused: Option<ElementId>,
 }
 
@@ -29,6 +33,8 @@ impl FocusState {
         self.focusables.remove(&id);
         self.keys.remove(&id);
         self.changes.remove(&id);
+        self.shortcuts.remove(&id);
+        self.actions.remove(&id);
     }
 }
 
@@ -219,10 +225,7 @@ impl ViewTree {
     /// Delivers `event` to the focused path (capture, then bubble); an unhandled Tab or
     /// Shift+Tab press moves focus. Returns whether anything handled it.
     pub fn dispatch_key(&mut self, event: KeyEvent) -> bool {
-        let path = match self.focus_state.focused {
-            Some(focused) => self.path_to(focused),
-            None => vec![self.root()],
-        };
+        let path = self.focus_path();
         let (ran, stopped) = self.deliver_key(&path, &event);
         // An unhandled Tab moves focus (VIEW-FOCUS-05).
         if !stopped && event.pressed && event.key == LogicalKey::Named(NamedKey::Tab) {
@@ -300,6 +303,14 @@ impl ViewTree {
         order
     }
 
+    /// The focused element and its ancestors, or the root alone, innermost first.
+    pub(crate) fn focus_path(&self) -> Vec<ElementId> {
+        match self.focus_state.focused {
+            Some(focused) => self.path_to(focused),
+            None => vec![self.root()],
+        }
+    }
+
     /// `id` and its ancestors, innermost first.
     fn path_to(&self, id: ElementId) -> Vec<ElementId> {
         let mut path = vec![id];
@@ -319,6 +330,12 @@ impl ViewTree {
         let (mut ran, mut stopped) = (false, false);
         self.enter(|| {
             for (id, phase) in capture.chain(bubble) {
+                // Shortcuts on this element, before its bubble handlers (VIEW-SHORT-02).
+                if phase == Phase::Bubble && event.pressed && self.try_shortcuts(id, path, event) {
+                    ran = true;
+                    stopped = true;
+                    return;
+                }
                 let Some(handlers) = self.focus_state.keys.get(&id) else {
                     continue;
                 };
