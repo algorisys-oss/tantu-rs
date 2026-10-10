@@ -72,6 +72,9 @@ impl TextPainter for SystemText<'_> { /* TextSystem::paint with the resources */
 impl PaintCx<'_, '_> {
     /// The text painter of this paint pass.
     pub fn text(&mut self) -> &mut dyn TextPainter;
+    /// Paints text through the painter into this context's Scene builder (`text()` and
+    /// `scene()` can't be borrowed at the same time).
+    pub fn paint_text(&mut self, text: &str, style: TextStyleKey, max_width: f32, max_lines: Option<u32>, color: Color, origin: Point);
     /// The element's constraints from the last layout.
     pub fn constraints(&self) -> BoxConstraints;
     /// The element's layout object, if it is an `R`.
@@ -98,7 +101,8 @@ impl Paint for ParagraphPaint { /* ... */ }
 - **VIEW-TEXT-01:** `NoTextMeasure` is a `TextPainter` that records nothing, so it is a
   `TextContext`; any type that is both `TextMeasure` and `TextPainter` is a `TextContext`.
 - **VIEW-TEXT-02:** During `ViewTree::paint(scene, text)`, `PaintCx::text()` is `text` (calls reach
-  it); `ViewTree::frame` passes its context both to the layout pass and to the paint pass.
+  it) and `PaintCx::paint_text(...)` calls `text.paint_text` with the context's Scene builder;
+  `ViewTree::frame` passes its context both to the layout pass and to the paint pass.
 - **VIEW-TEXT-03:** `PaintCx::constraints()` is the element's constraints from the last layout and
   `PaintCx::render::<R>()` its layout object when it is an `R` (else `None`).
 - **VIEW-TEXT-04:** `ParagraphPaint` paints the element's `RenderParagraph` through the painter:
