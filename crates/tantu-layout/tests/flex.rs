@@ -410,7 +410,8 @@ fn layout_flex_11_column() {
         f.constraints(1),
         BoxConstraints::new(0.0, 100.0, 180.0, 180.0)
     );
-    assert_eq!(f.offsets()[1], v(45.0, 20.0));
+    // The cross size is the widest child (20), so the 10-wide child centers at 5.
+    assert_eq!(f.offsets()[1], v(5.0, 20.0));
 }
 
 #[test]
