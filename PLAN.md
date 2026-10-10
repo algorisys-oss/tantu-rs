@@ -85,7 +85,7 @@ faster or more portable without changing how apps are written.
 
 ### Phase 2 — Layout, views and text (weeks 6–10)
 - [ ] `tantu-layout`: `BoxConstraints` protocol, `RenderBox`-style trait for custom layouts; `Padding`, `Align`/`Center`, `SizedBox`, `ConstrainedBox`, `FractionallySizedBox`, `AspectRatio`, Flex (`Row`/`Column` with `Expanded`/`Flexible`/`Spacer`, main/cross-axis alignment, `spacing`), `Stack`/`Positioned`, `Wrap` (the layout tree lives in `tantu-layout`, ADR 0009)
-  - [ ] `BoxConstraints` (spec `docs/specs/layout/constraints.md`)
+  - [x] `BoxConstraints` (spec `docs/specs/layout/constraints.md`)
   - [ ] Layout tree and protocol: `RenderBox` trait, `LayoutTree` arena, parent data, layout pass with caching, `mark_needs_layout`, relayout boundaries, opt-in intrinsic sizes (spec `docs/specs/layout/tree.md`)
   - [ ] Single-child layouts: `Alignment`, `RenderPadding`, `RenderPositionedBox` (`Align`/`Center`), `RenderConstrainedBox` (`SizedBox`/`ConstrainedBox`), `RenderFractionallySizedBox`, `RenderAspectRatio` (spec `docs/specs/layout/single-child.md`)
   - [ ] Flex: `RenderFlex` (`Row`/`Column`), flex parent data (`Expanded`/`Flexible`/`Spacer`), main/cross-axis alignment and size, `spacing`, overflow reporting (spec `docs/specs/layout/flex.md`)
