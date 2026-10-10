@@ -270,7 +270,7 @@ fn render_conf_08_the_reference_set() {
         let found = reference_scene(reference.name()).expect("findable by name");
         assert!(std::ptr::eq(found, reference));
     }
-    for other in ["", "Shadows", "shadows ", "text", "shapes"] {
+    for other in ["", "Shadows", "shadows ", "texts", "shapes"] {
         assert!(reference_scene(other).is_none(), "{other:?}");
     }
 }
