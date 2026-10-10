@@ -22,6 +22,7 @@ pub(crate) struct FocusState {
     focusables: HashMap<ElementId, FocusOptions>,
     keys: HashMap<ElementId, Vec<(Phase, KeyHandler)>>,
     changes: HashMap<ElementId, Vec<FocusHandler>>,
+    within: HashMap<ElementId, Vec<FocusHandler>>,
     pub(crate) shortcuts: HashMap<ElementId, Vec<(SingleActivator, IntentBox)>>,
     pub(crate) actions: HashMap<ElementId, Vec<(TypeId, ActionBox)>>,
     focused: Option<ElementId>,
@@ -33,6 +34,7 @@ impl FocusState {
         self.focusables.remove(&id);
         self.keys.remove(&id);
         self.changes.remove(&id);
+        self.within.remove(&id);
         self.shortcuts.remove(&id);
         self.actions.remove(&id);
     }
@@ -186,8 +188,10 @@ impl BuildCx<'_> {
     /// Calls `handler(true)` when the focus moves into `element`'s subtree and `handler(false)`
     /// when it leaves it.
     pub fn on_focus_within(&mut self, element: ElementId, handler: impl Fn(bool) + 'static) {
-        let _ = (element, handler);
-        todo!()
+        if self.tree.contains(element) {
+            let handlers = self.tree.focus_state.within.entry(element).or_default();
+            handlers.push(Rc::new(handler));
+        }
     }
 
     /// Calls `handler(true)` when `element` gains focus and `handler(false)` when it loses it.
@@ -280,11 +284,29 @@ impl ViewTree {
                 .unwrap_or_default()
         };
         let (lost, gained) = (handlers(previous), handlers(next));
+        // Subtrees the focus left and entered (VIEW-FOCUS-09).
+        let old_path = previous.map(|p| self.path_to(p)).unwrap_or_default();
+        let new_path = next.map(|n| self.path_to(n)).unwrap_or_default();
+        let within = |from: &[ElementId], other: &[ElementId]| -> Vec<FocusHandler> {
+            from.iter()
+                .filter(|id| !other.contains(id))
+                .filter_map(|id| self.focus_state.within.get(id))
+                .flatten()
+                .cloned()
+                .collect()
+        };
+        let (left, entered) = (within(&old_path, &new_path), within(&new_path, &old_path));
         self.enter(|| {
             for handler in &lost {
                 handler(false);
             }
             for handler in &gained {
+                handler(true);
+            }
+            for handler in &left {
+                handler(false);
+            }
+            for handler in &entered {
                 handler(true);
             }
         });
