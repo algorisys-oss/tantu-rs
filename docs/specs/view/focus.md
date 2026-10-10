@@ -1,6 +1,6 @@
 # Keyboard events and focus
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-view` (focus, key dispatch), `tantu` (the runner forwards keyboard events)
 - **Plan item:** Phase 3, "Focus system, keyboard navigation, shortcuts/command registry" →
   "Keyboard events and focus"
@@ -47,7 +47,7 @@ Out of scope (and where it goes):
   them.
 - Accessibility focus: `tantu-a11y`.
 
-## Public API (proposal)
+## Public API
 
 ```rust
 // tantu-view
@@ -119,7 +119,7 @@ impl WidgetTester {
 }
 ```
 
-## Behavior (proposal)
+## Behavior
 
 - **VIEW-FOCUS-01:** `focus` focuses a focusable element and returns true. For an element
   that isn't focusable, or an unknown one, it returns false and changes nothing. `focused`
@@ -148,16 +148,11 @@ impl WidgetTester {
   then pumps. `focus` focuses the found element, then pumps, and panics if it isn't
   focusable.
 
-## Open questions (for the user)
+## Open questions
 
-1. **Traversal in tree order**, not Flutter's default reading order (geometric:
-   top-to-bottom, then by start edge). Proposal: tree order now, which is predictable and
-   matches how layouts are written. Reading order can come with `FocusTraversalGroup`.
-2. **Buttons don't take focus on click** (`focus_on_press: false`), as in Flutter and native
-   desktop toolkits, where clicking a button doesn't steal focus from a text field.
-   Proposal: yes. Text fields will set it.
-3. **No focus scopes yet.** One focus per window, no restoring on window refocus. Proposal: yes.
-   Scopes come with dialogs (Phase 4).
-4. **`LogicalKey` and `Modifiers` in `tantu-view`**, duplicating the platform's types as was
-   done for pointer events. Proposal: yes, for the same reasons: tests and other shells drive
-   the view tree without the platform crate.
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **Traversal in tree order.**
+2. **Buttons don't take focus on press;** text fields will set `focus_on_press`.
+3. **No focus scopes yet:** one focus per window.
+4. **Own `LogicalKey` and `Modifiers` types in `tantu-view`.**
