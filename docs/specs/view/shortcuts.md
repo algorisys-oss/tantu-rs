@@ -1,6 +1,6 @@
 # Shortcuts and commands
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 3, "Focus system, keyboard navigation, shortcuts/command registry" →
   "Shortcuts and commands"
@@ -39,7 +39,7 @@ Out of scope (and where it goes):
   (Phase 4). For now an action is always enabled.
 - Default text-editing shortcuts: with `TextField`.
 
-## Public API (proposal)
+## Public API
 
 ```rust
 /// A key with exact modifiers (Flutter's `SingleActivator`).
@@ -91,7 +91,7 @@ impl ViewTree {
 }
 ```
 
-## Behavior (proposal)
+## Behavior
 
 - **VIEW-SHORT-01:** `accepts` is true for a press (including repeats) of the activator's key
   with exactly its modifiers. Releases don't match. Character keys compare without case, so
@@ -112,14 +112,11 @@ impl ViewTree {
   `invoke` returns false when none is found.
 - **VIEW-SHORT-06:** Removing an element drops its bindings and actions.
 
-## Open questions (for the user)
+## Open questions
 
-1. **Flutter's three-part model** (intent, shortcut, action) rather than closures bound
-   directly to keys. Proposal: yes. One command can then come from a shortcut, a menu or a
-   button, and inner widgets can override actions.
-2. **Exact-modifier matching, case-insensitive characters**, so a binding for Ctrl+S doesn't
-   fire for Ctrl+Shift+S. Proposal: yes (Flutter's `SingleActivator`).
-3. **Always-enabled actions** until menus need enablement (Phase 4). Proposal: yes.
-4. **Bindings on an element, matched when that element is on the focused path.** With nothing
-   focused, only the root's path counts, so window-wide shortcuts belong in a `Shortcuts` at
-   the top of the app. Proposal: yes. Flutter needs the same arrangement.
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **Flutter's three-part model:** intents, `Shortcuts`, `Actions`.
+2. **Exact-modifier matching, with characters compared without case.**
+3. **Actions are always enabled** until menus (Phase 4).
+4. **Bindings match on the focused path;** window-wide shortcuts go at the top of the app.
