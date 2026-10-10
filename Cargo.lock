@@ -2403,6 +2403,7 @@ dependencies = [
 name = "tantu-widgets"
 version = "0.0.0"
 dependencies = [
+ "tantu-test",
  "tantu-view",
  "tracing",
 ]

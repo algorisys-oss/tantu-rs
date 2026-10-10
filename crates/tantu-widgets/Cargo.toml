@@ -15,3 +15,7 @@ workspace = true
 tantu-view = { workspace = true }
 # Diagnostics (AGENTS.md: `tracing`), as in tantu-layout and tantu-view.
 tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+
+# WidgetTester for widget tests (tantu-test depends on tantu-view only, so no cycle).
+[dev-dependencies]
+tantu-test = { workspace = true }

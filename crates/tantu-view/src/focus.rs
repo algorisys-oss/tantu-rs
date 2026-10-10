@@ -192,6 +192,15 @@ impl BuildCx<'_> {
     }
 }
 
+impl crate::ElementMut<'_> {
+    /// Makes the element focusable with `options`, or unfocusable with `None` (clearing its
+    /// focus if it had it).
+    pub fn set_focusable(&mut self, options: Option<FocusOptions>) {
+        let _ = options;
+        todo!()
+    }
+}
+
 impl ViewTree {
     /// Focuses `element` if it is focusable; returns whether it did.
     pub fn focus(&mut self, element: ElementId) -> bool {

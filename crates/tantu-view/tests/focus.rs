@@ -392,3 +392,57 @@ fn view_focus_07_removing_the_focus() {
     assert!(f.press(LogicalKey::Named(NamedKey::Enter), Modifiers::default()));
     assert_eq!(f.take(), ["root capture Enter", "root bubble Enter"]);
 }
+
+/// A focusable box whose focusability follows a signal.
+struct Toggle(tantu_reactive::Signal<bool>, Log);
+
+impl View for Toggle {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::sized(Some(10.0), Some(10.0)), []);
+        let log = self.1;
+        cx.on_focus_change(id, move |f| log.borrow_mut().push(format!("toggle {f}")));
+        let on = self.0;
+        cx.bind(
+            id,
+            tantu_view::Prop::Dynamic(Box::new(move || on.get())),
+            |e, on| {
+                e.set_focusable(on.then_some(FocusOptions::default()));
+            },
+        );
+        id
+    }
+}
+
+#[test]
+fn view_focus_08_set_focusable() {
+    let log = Log::default();
+    let sig: Rc<std::cell::Cell<Option<tantu_reactive::Signal<bool>>>> = Rc::default();
+    let mut tree = {
+        let (log, sig) = (log.clone(), sig.clone());
+        ViewTree::new(move || {
+            let on = tantu_reactive::signal(true);
+            sig.set(Some(on));
+            Toggle(on, log)
+        })
+    };
+    let on = sig.get().expect("built");
+    let toggle = tree.children(tree.root())[0];
+    assert!(tree.focus(toggle));
+    let frame = |tree: &mut ViewTree| {
+        let mut scene = tantu_scene::Scene::new();
+        tree.frame(
+            BoxConstraints::loose(Size::new(100.0, 100.0)),
+            &mut NoTextMeasure,
+            &mut scene,
+        );
+    };
+    tree.enter(|| on.set(false));
+    frame(&mut tree);
+    assert_eq!(tree.focused(), None);
+    assert_eq!(*log.borrow(), ["toggle true", "toggle false"]);
+    assert!(!tree.focus(toggle));
+    assert_eq!(tree.focus_next(), None);
+    tree.enter(|| on.set(true));
+    frame(&mut tree);
+    assert!(tree.focus(toggle));
+}
