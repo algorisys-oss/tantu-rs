@@ -32,11 +32,13 @@ Out of scope (and where it goes):
 Crate root `tantu_view`.
 
 ```rust
+use std::any::Any;
 use tantu_core::Size;
 use tantu_scene::{ElementId, SceneBuilder};
 
-/// How a render element draws itself and where its children are painted.
-pub trait Paint: 'static {
+/// How a render element draws itself and where its children are painted. (`Any`, so
+/// `ElementMut::paint` can downcast it; every `'static` type is `Any`.)
+pub trait Paint: Any {
     /// Draws the element. `cx` is in the element's coordinates ((0, 0) is its top-left corner,
     /// its size is `cx.size()`), with its id as the current element. The children are painted
     /// where this calls `cx.paint_children()`, or after it returns if it doesn't (unless it
