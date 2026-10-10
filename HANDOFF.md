@@ -7,22 +7,27 @@ _Last updated: 2026-10-10_
 
 ## Resume here (session of 2026-10-10)
 
-**Phase 1 is done** (merged and pushed earlier today, CI green on all three OSes, milestone
-tests included). **Phase 2 has started** with `tantu-layout`:
+**Phase 1 is done. Phase 2: the `tantu-layout` item is done** (ADR 0009, all specs in
+`docs/specs/layout/` Implemented):
 
-- ADR 0009 (accepted): the layout half of the render tree lives in `tantu-layout`.
-- `BoxConstraints` (spec `docs/specs/layout/constraints.md`, LAYOUT-CONS-01..17): Implemented.
-- Layout tree and protocol (spec `docs/specs/layout/tree.md`, LAYOUT-TREE-01..18):
-  Implemented. `LayoutTree` arena, `RenderBox` trait, caching by constraints, relayout
-  boundaries, cached opt-in intrinsics, `set()` marking only on a real change (decision 32).
+- `constraints.md` (LAYOUT-CONS-01..17): `BoxConstraints`.
+- `tree.md` (LAYOUT-TREE-01..19): `LayoutTree`, `RenderBox`, caching, relayout boundaries,
+  intrinsics, `set()`, `LayoutChildren::size`.
+- `single-child.md` (LAYOUT-SINGLE-01..15): `Alignment`, `RenderPadding`,
+  `RenderPositionedBox`, `RenderConstrainedBox`, `RenderFractionallySizedBox`,
+  `RenderAspectRatio`.
+- `flex.md` (LAYOUT-FLEX-01..14): `RenderFlex`, `FlexParentData`.
+- `stack.md` (LAYOUT-STACK-01..08): `RenderStack`, `StackParentData`.
+- `wrap.md` (LAYOUT-WRAP-01..09): `RenderWrap`.
 
-Next: the single-child layouts spec (`docs/specs/layout/single-child.md`): `Alignment`,
-`RenderPadding`, `RenderPositionedBox`, `RenderConstrainedBox`, `RenderFractionallySizedBox`,
-`RenderAspectRatio`. Then flex, stack, wrap. Work on a branch off `main` (e.g.
-`phase2/layout`, which can be reused).
+The flex, stack and wrap open questions were **decided by the agent** (the user said "your
+pick"); review them (decision 33).
 
-`cargo run -p scene-window` still shows the Phase 1 demo; nothing visual changes until views
-and widgets exist.
+Next: the `TextMeasure` trait and word-level measure cache (spec first; the API shape needs the
+user's call). Visibility culling is planned to move to the `tantu-view` paint item. Then the
+10k-node layout benchmark, then `tantu-view`.
+
+`cargo run -p scene-window` still shows the Phase 1 demo.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -32,7 +37,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phases 0 (Foundations) and 1 (Pixels on screen) are done; Phase 2 (Layout, views
-  and text) is in progress: `tantu-layout` has `BoxConstraints` and the layout tree. Phase 1 delivered:
+  and text) is in progress: the `tantu-layout` item is done (constraints, layout tree and all
+  Flutter layout objects in its scope). Phase 1 delivered:
   `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform`,
   `tantu-platform-winit`, `tantu-render-wgpu`, `examples/scene-window` and the milestone
   (`tantu-render-conformance`, decision 31). The workspace has 17 crates under `crates/`
@@ -317,6 +323,21 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
       CORE-ARENA-07).
     - `LayoutBuilder` moved to the `tantu-view` item (it builds views during layout).
 
+33. **Layout objects** (2026-10-10, specs `single-child.md` (agreed with the user), `flex.md`,
+    `stack.md`, `wrap.md` (open questions decided by the agent; review)):
+    - Flutter's render objects and semantics; malformed properties get defined fallbacks
+      (negative/NaN factors and spacings count as 0, a bad aspect ratio gives the smallest
+      size, a NaN `Positioned` field counts as not set), never panics.
+    - Value types with public fields deriving `PartialEq`, updated through `LayoutTree::set`;
+      `RenderFlex` keeps its last overflow privately (`overflow()`), excluded from equality.
+    - Flexible children in an unbounded main axis are laid out as inflexible (debug warning).
+    - A stack with only positioned children takes the minimum on an unbounded axis.
+    - `RenderWrap` intrinsic heights use Flutter's pre-dry-layout estimate; runs are found by
+      one scan used to measure and to place, so layout allocates nothing.
+    - `LayoutChildren::size` (LAYOUT-TREE-19) was added for flex and wrap (Flutter's
+      `child.size`).
+    - Directional variants (RTL start/end) are deferred to Phase 4.
+
 ## Commit log
 
 | Commit | Summary |
@@ -415,17 +436,34 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `8d70132` | spec: LAYOUT-TREE-02 follows CORE-ARENA-07 for foreign ids |
 | `340b794` | test: layout tree, 19 failing tests |
 | `0d499cb` | impl: layout tree and protocol; `tracing` dependency |
-| _this commit_ | docs: HANDOFF.md for the layout tree |
+| `53854ea` | docs: HANDOFF.md for the layout tree |
+| `93d801b` | spec: single-child layouts (LAYOUT-SINGLE-01..15) |
+| `986552c` | test: single-child layouts, 15 failing tests |
+| `ce5265e` | impl: single-child layouts |
+| `5b2922d` | spec: flex layout (LAYOUT-FLEX-01..14) |
+| `258497f` | test: flex layout, 14 failing tests |
+| `7bb5430` | spec: `LayoutChildren::size` (LAYOUT-TREE-19) |
+| `3ddccd9` | test: `LayoutChildren::size`, 1 failing test |
+| `28df04f` | impl: `LayoutChildren::size` |
+| `0dd3cbf` | test: LAYOUT-FLEX-11 expectation follows LAYOUT-FLEX-06 |
+| `8f3b15f` | impl: flex layout; Row-with-Expanded doctest |
+| `e6d1616` | spec: stack layout (LAYOUT-STACK-01..08) |
+| `dd91212` | test: stack layout, 8 failing tests |
+| `512954e` | impl: stack layout |
+| `b3d7e28` | spec: wrap layout (LAYOUT-WRAP-01..09) |
+| `e5a528d` | test: wrap layout, 9 failing tests |
+| `7cdbc63` | impl: wrap layout; PLAN.md `tantu-layout` item ticked |
+| _this commit_ | docs: HANDOFF.md for the end of the `tantu-layout` item |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 2 in PLAN.md)
 
-1. Single-child layouts (spec first): `Alignment`, `RenderPadding`, `RenderPositionedBox`,
-   `RenderConstrainedBox`, `RenderFractionallySizedBox`, `RenderAspectRatio`.
-2. Flex (`RenderFlex` + flex parent data), then `RenderStack`, then `RenderWrap`.
-3. `TextMeasure` + measure cache, and the 10k-node layout benchmark.
+1. `TextMeasure` trait + word-level measure cache (spec first; ask the user about the API
+   shape). Move visibility culling to the `tantu-view` paint item in PLAN.md.
+2. Layout benchmark: 10k render objects, full layout under 1 ms.
+3. `tantu-view` (View/Element traits, reconciliation, dirty tracking, paint, `LayoutBuilder`).
 4. When `tantu-text` lands, add text reference Scenes to `tantu-render-conformance`.
 
 ## Open questions
@@ -455,6 +493,7 @@ that with the real hash from `git log`.
 - **Shadows with a radius over half a side** still use the quadrant approximation in the wgpu
   blur shader (Evan Wallace's closed form supports one radius per quadrant). Not covered by a
   reference Scene yet; check when shadows get a closer look.
+- **Review the agent's decisions in the flex, stack and wrap specs** (decision 33).
 - **Review ADR 0008** and the new AGENTS.md row for `tantu-render-conformance` (made under
   "your pick").
 
