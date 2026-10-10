@@ -3,27 +3,54 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-10_
+_Last updated: 2026-10-11_
 
-## Resume here (session of 2026-10-10)
+## Resume here (paused 2026-10-11)
 
-**Phase 2 is done (2026-10-10).** Every PLAN.md item is ticked, and the milestone is met:
-`cargo run -p counter` and `cargo run -p layout-demo` run on Linux Wayland and X11, Windows and
-macOS. CI is green on all three OSes. **Phase 3 has started** on branch `phase3/focus`: its
-first item is split in three (PLAN.md). **Keyboard events and focus are done**
-(`docs/specs/view/focus.md`, the user said "continue" on the draft): focusable elements, key
-dispatch to the focused path, Tab traversal in tree order, focus changes, focus on press, the
-runner forwarding keys, `WidgetTester::press_key`/`focus`. **Shortcuts and commands
-are done** (`docs/specs/view/shortcuts.md`): intents, `Shortcuts`, `Actions`,
-`SingleActivator` (with `primary()`), `ViewTree::invoke`. **`Button` keyboard
-activation and its focus indicator are done** (`docs/specs/widgets/button-keyboard.md`), so
-**Phase 3's first item (focus, keyboard navigation, shortcuts) is done**. **The overlay item is done** (`docs/specs/view/overlay.md`): an overlay
-layer per window, `OverlayPortal`, `Anchor` (target/follower `Alignment` points, offset, flip,
-clamp), z-index, passthrough, `on_outside_press`. The Phase 3 widget item is split in PLAN.md
-(`Tooltip`, `Divider`/`Slider`, toggles, `Icon`/`IconButton`, `Image`, `RichText`, `TextField` in
-parts). **Waiting for the user:** `docs/specs/widgets/tooltip.md` is a Draft (hover and focus,
-Material 3 plain tooltip, no show delay until timers; three open questions). Review items from Phase 2 are
-listed under Open questions and in decisions 33 to 43.
+Paused at the user's request with everything committed and pushed; `main` and branch
+`phase3/focus` point at the same commit, and CI was green on Linux, Windows and macOS for
+every push of the session. When resuming, tell the agent: "Read HANDOFF.md and continue."
+
+**Where things stand:**
+
+- **Phases 0, 1 and 2 are done.** Phase 2 ended 2026-10-10 with the milestone met:
+  `cargo run -p counter` and `cargo run -p layout-demo` run on Linux Wayland and X11 (checked
+  by the agent) and on Windows and macOS (checked by the user).
+- **Phase 3 is in progress** on branch `phase3/focus`. Done so far:
+  - **Focus, keyboard navigation and shortcuts** (the whole first item):
+    - keyboard events and focus: `docs/specs/view/focus.md`;
+    - shortcuts and commands: `docs/specs/view/shortcuts.md`;
+    - `Button` keyboard activation and focus indicator: `docs/specs/widgets/button-keyboard.md`.
+  - **Overlay and anchored positioning**: `docs/specs/view/overlay.md` (`OverlayPortal`,
+    `Anchor`).
+  - **`Tooltip`**: `docs/specs/widgets/tooltip.md`, plus `BuildCx::on_focus_within`
+    (VIEW-FOCUS-09). Rendered and checked by eye: a dark rounded box 4 px under the hovered
+    widget.
+- Workspace: 543 tests, 45 specs, every rule covered (`cargo xtask spec-coverage`).
+
+**Next (PLAN.md order, Phase 3 widget item):**
+
+1. `Divider` and `Slider` (spec first).
+2. `Checkbox`, `Radio`, `Switch`. The check mark needs Scene paths or an icon glyph; decide in
+   that spec.
+3. `Icon`/`IconButton`, `Image`, `RichText`, then `TextField` in three parts.
+
+After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
+animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
+`examples/gallery`.
+
+**Working pattern this session:** the agent writes each spec as a Draft with open questions
+and proposals and stops. The user says "continue" to accept the proposals. The agent then
+does `spec:`/`test:`/`impl:` commits, checks with `fmt`, `clippy -D warnings`, `test` and
+`spec-coverage`, and pushes with this file updated. Additions made while agreeing a spec are
+marked "review" in its Open questions and below.
+
+**For the user to review** (made by the agent, marked in the specs):
+
+- decisions 33 to 47 below;
+- `ElementMut::set_focusable` (VIEW-FOCUS-08) and `BuildCx::on_focus_within` (VIEW-FOCUS-09);
+- the open question on **handler ownership**: handlers registered on another element outlive
+  the component that registered them.
 
 The history of the session follows.
 
@@ -500,6 +527,10 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     horizontally, then clamp; one overlay layer per window, created lazily so trees without
     overlays are unchanged; each overlay sits in a wrapper render element (so regions work as
     content); placement runs after layout, with one extra pass when it changed.
+48. **Tooltip** (2026-10-11, spec `docs/specs/widgets/tooltip.md`, the draft's proposals): no
+    show delay until timers exist (animation item); shows on hover and on focus within the
+    child; Material 3 plain-tooltip look; passthrough overlay 4 px below (or above). **Review:**
+    VIEW-FOCUS-09 `BuildCx::on_focus_within`, added for it.
 
 ## Commit log
 
@@ -747,7 +778,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `c8e8cdf` | test: overlay and anchored positioning, stubs + 7 failing tests |
 | `e58b3d5` | impl: overlay and anchored positioning |
 | `f883007` | docs: HANDOFF.md for the overlay |
-| _this commit_ | docs: PLAN.md widget item split; draft Tooltip spec for review |
+| `f0c975e` | docs: PLAN.md widget item split; draft Tooltip spec for review |
+| `29487fd` | spec: Tooltip (WIDGETS-TOOLTIP-01..06, VIEW-FOCUS-09) |
+| `341acce` | test: Tooltip and focus within, stubs + 7 failing tests |
+| `ed76c10` | impl: Tooltip and focus within |
+| _this commit_ | docs: HANDOFF.md, paused (Tooltip done) |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -756,7 +791,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: the widget set (split into specs, `Tooltip` first as it uses the overlay).
+3. Phase 3 widgets: `Divider` and `Slider` next (see "Resume here").
 
 ## Open questions
 
