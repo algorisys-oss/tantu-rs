@@ -260,7 +260,8 @@ fn render_conf_08_the_reference_set() {
             "shadows",
             "images",
             "clips_and_transforms",
-            "layers"
+            "layers",
+            "text"
         ]
     );
     for reference in reference_scenes() {
@@ -313,6 +314,16 @@ fn render_conf_09_scenes_and_goldens_are_valid() {
                     assert_eq!(da, db, "{name}");
                     assert_eq!((a.element, a.z_index), (b.element, b.z_index), "{name}");
                 }
+                (Command::GlyphRun(ga), Command::GlyphRun(gb)) => {
+                    assert_eq!(
+                        resources.font(ga.font).map(|f| f.bytes().len()),
+                        again_resources.font(gb.font).map(|f| f.bytes().len()),
+                        "{name}"
+                    );
+                    let (mut ga, gb) = (ga.clone(), gb.clone());
+                    ga.font = gb.font;
+                    assert_eq!(ga, gb, "{name}");
+                }
                 _ => assert_eq!(a, b, "{name}"),
             }
         }
@@ -357,4 +368,34 @@ fn render_conf_10_check_uses_the_golden() {
         }
         other => panic!("expected SizeMismatch, got {other:?}"),
     }
+}
+
+#[test]
+fn render_conf_14_text_scene() {
+    let text = reference_scene("text").expect("a text reference scene");
+    let (scene, resources) = text.record();
+    let runs: Vec<_> = scene
+        .entries()
+        .iter()
+        .filter_map(|e| match &e.command {
+            Command::GlyphRun(run) => Some(run.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(runs.len(), 3);
+    assert_eq!(scene.glyphs(&runs[0]).len(), 5);
+    assert_eq!(scene.glyphs(&runs[1]).len(), 8);
+    assert_eq!((runs[0].font_size, runs[1].font_size), (18.0, 10.0));
+    for run in &runs {
+        let font = resources
+            .font(run.font)
+            .expect("the font is in the resources");
+        assert!(font.bytes().len() > 100_000);
+    }
+    assert!(
+        scene
+            .entries()
+            .iter()
+            .any(|e| matches!(e.command, Command::PushTransform(_)))
+    );
 }
