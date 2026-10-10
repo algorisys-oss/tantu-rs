@@ -88,7 +88,7 @@ faster or more portable without changing how apps are written.
   - [x] `BoxConstraints` (spec `docs/specs/layout/constraints.md`)
   - [x] Layout tree and protocol: `RenderBox` trait, `LayoutTree` arena, parent data, layout pass with caching, `mark_needs_layout`, relayout boundaries, opt-in intrinsic sizes (spec `docs/specs/layout/tree.md`)
   - [x] Single-child layouts: `Alignment`, `RenderPadding`, `RenderPositionedBox` (`Align`/`Center`), `RenderConstrainedBox` (`SizedBox`/`ConstrainedBox`), `RenderFractionallySizedBox`, `RenderAspectRatio` (spec `docs/specs/layout/single-child.md`)
-  - [ ] Flex: `RenderFlex` (`Row`/`Column`), flex parent data (`Expanded`/`Flexible`/`Spacer`), main/cross-axis alignment and size, `spacing`, overflow reporting (spec `docs/specs/layout/flex.md`)
+  - [x] Flex: `RenderFlex` (`Row`/`Column`), flex parent data (`Expanded`/`Flexible`/`Spacer`), main/cross-axis alignment and size, `spacing`, overflow reporting (spec `docs/specs/layout/flex.md`)
   - [ ] `RenderStack` with `Positioned` parent data (spec `docs/specs/layout/stack.md`)
   - [ ] `RenderWrap` (spec `docs/specs/layout/wrap.md`)
 - [ ] `TextMeasure` trait + word-level measure cache; visibility culling (techniques from Clay)

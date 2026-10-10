@@ -1,6 +1,6 @@
 # Flex layout
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-layout`
 - **Plan item:** Phase 2, `tantu-layout` → "Flex"
 - **Related:** [ADR 0002](../../adr/0002-flutter-structure-and-layout-protocol.md),

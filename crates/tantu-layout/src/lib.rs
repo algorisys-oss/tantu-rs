@@ -15,6 +15,26 @@
 //! // The child wants 300 × 50; it gets the closest allowed size.
 //! assert_eq!(child.constrain(Size::new(300.0, 50.0)), Size::new(180.0, 50.0));
 //! ```
+//!
+//! Layouts run in a [`LayoutTree`]. A row with a fixed-width box and an `Expanded` box that
+//! takes the rest:
+//!
+//! ```
+//! use tantu_core::{Size, Vec2};
+//! use tantu_layout::{BoxConstraints, FlexParentData, LayoutTree, RenderConstrainedBox, RenderFlex};
+//!
+//! let mut tree = LayoutTree::new();
+//! let row = tree.insert(RenderFlex::row());
+//! let fixed = tree.insert(RenderConstrainedBox::sized(Some(80.0), Some(20.0)));
+//! let rest = tree.insert(RenderConstrainedBox::expand());
+//! tree.set_parent_data(rest, Some(FlexParentData::expanded(1)));
+//! tree.set_children(row, &[fixed, rest]).expect("fresh nodes");
+//!
+//! let size = tree.layout(row, BoxConstraints::loose(Size::new(300.0, 40.0)));
+//! assert_eq!(size, Size::new(300.0, 40.0));
+//! assert_eq!(tree.size(rest), Some(Size::new(220.0, 40.0)));
+//! assert_eq!(tree.offset(rest), Some(Vec2::new(80.0, 0.0)));
+//! ```
 
 #![forbid(unsafe_code)]
 
