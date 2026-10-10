@@ -42,10 +42,13 @@ Implemented, **and so are the `tantu` facade (`docs/specs/facade/app.md`) and
 `examples/counter` (`docs/specs/examples/counter.md`): the facade item is done.** `cargo run
 -p counter` opens the AGENTS.md counter (its `main.rs` is the snippet, checked by a test);
 checked on Wayland with wgpu (no errors logged) and offscreen after scripted clicks.
-**Waiting for the user:** `docs/specs/test/widget-tester.md` is a Draft (pump, tap, hover,
-finders by key/text/render type, goldens; `Keyed` in `tantu-view`; "type" deferred to Phase 3;
-four open questions). After it: the Phase 2 milestone (counter + a layout demo on Linux
-Wayland/X11, Windows, macOS).
+**`WidgetTester` is done** (`docs/specs/test/widget-tester.md`, the user said "continue" on the
+draft): pump, tap, hover, finders by key/text/render type, `rect`, `text`, goldens through the
+software renderer; `Keyed` in `tantu-view`; typing text moves to Phase 3. Left in Phase 2: the
+`tantu-text` parent item (bidi and font fallback aren't covered by a rule yet) and the
+milestone: the counter plus a layout demo running on Linux (Wayland and X11), Windows and
+macOS. The demo needs a spec; Windows and macOS runs need the user (the agent can only check
+Linux and CI).
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -433,6 +436,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     `main.rs` is the AGENTS.md snippet, compared ignoring whitespace (rustfmt splits its last
     chain); tests `include!` it in a module; the example lists the workspace lints minus
     `missing_docs` (the snippet has no crate docs); `tantu-render-headless` as a dev-dependency.
+41. **WidgetTester** (2026-10-10, the draft's proposals): `Keyed` wrapper view and
+    `ViewTree::find_key` (no `.key()` on widgets yet); a third copy of Liberation Sans in
+    `tantu-test`; finders and asserts panic with the finder's description; a region's `rect` is
+    the union of its children; goldens at scale 1, tolerance 2, written with
+    `TANTU_UPDATE_GOLDENS=1` (the update mode is tested in its own test binary because it sets
+    an environment variable).
 
 ## Commit log
 
@@ -636,7 +645,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `e0eea67` | impl: examples/counter is the AGENTS.md snippet |
 | `5a6052b` | docs: HANDOFF.md for the facade and the counter |
 | `1f1ac46` | docs: draft WidgetTester spec for review |
-| _this commit_ | docs: HANDOFF.md, waiting on the WidgetTester review |
+| `3bcfa50` | docs: HANDOFF.md, waiting on the WidgetTester review |
+| `cf760f3` | spec: WidgetTester (TEST-WT-01..06, VIEW-KEY-01) |
+| `e6ce21e` | test: WidgetTester and Keyed, stubs + 8 failing tests |
+| `a90a104` | test: TEST-WT-06 stops after writing the golden in update mode |
+| `869a795` | impl: WidgetTester and Keyed |
+| _this commit_ | docs: HANDOFF.md for WidgetTester |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -645,7 +659,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. `WidgetTester`, then the Phase 2 milestone.
+3. The Phase 2 milestone: a layout demo (spec first), then runs on every OS.
 
 ## Open questions
 
