@@ -2325,6 +2325,7 @@ dependencies = [
  "pollster",
  "raw-window-handle",
  "tantu-core",
+ "tantu-layout",
  "tantu-render-conformance",
  "tantu-scene",
  "tantu-text",

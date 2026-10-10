@@ -26,3 +26,5 @@ raw-window-handle = "0.6.2"
 # output of failed renderings.
 tantu-render-conformance = { workspace = true }
 png = "0.18.1"
+# TextStyleKey, for the glyph-run tests (tests/text.rs).
+tantu-layout = { workspace = true }
