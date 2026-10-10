@@ -97,7 +97,7 @@ faster or more portable without changing how apps are written.
   - [x] View tree: `View`/`AnyView`, `BuildCx`, `ViewTree` (runtime, element arena, layout tree), render and region elements, element scopes, removal (spec `docs/specs/view/tree.md`)
   - [x] Paint: `Paint` trait, `PaintCx`, traversal with offsets and element ids, culling (spec `docs/specs/view/paint.md`)
   - [x] Reactive props and frames: `Prop<T>`, the update queue, `ViewTree::frame` (apply, layout, paint), needs-frame notification (spec `docs/specs/view/frame.md`)
-  - [ ] Dynamic content: `Dyn`, `Show`, `For` with keyed reconciliation (spec `docs/specs/view/dynamic.md`)
+  - [x] Dynamic content: `Dyn`, `Show`, `For` with keyed reconciliation (spec `docs/specs/view/dynamic.md`)
   - [ ] `LayoutBuilder` (spec `docs/specs/view/layout-builder.md`)
 - [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons

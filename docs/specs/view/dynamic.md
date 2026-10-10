@@ -1,6 +1,6 @@
 # Dynamic content
 
-- **Status:** Agreed (decided by the agent while the user was away, at their request; review)
+- **Status:** Implemented (decided by the agent while the user was away, at their request; review)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 2, `tantu-view` → "Dynamic content"
 - **Related:** [ADR 0011](../../adr/0011-view-layer.md) (point 7), [view tree](tree.md) (regions,

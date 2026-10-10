@@ -48,7 +48,7 @@ pub enum ElementKind {
 /// The context a view builds in: the tree and the current parent element.
 pub struct BuildCx<'a> {
     pub(crate) tree: &'a mut ViewTree,
-    parent: ElementId,
+    pub(crate) parent: ElementId,
 }
 
 impl BuildCx<'_> {
@@ -391,6 +391,15 @@ impl ViewTree {
         id
     }
 
+    /// Replaces `id`'s child list with `order` (the same children, reordered) and updates the
+    /// layout children.
+    pub(crate) fn set_child_order(&mut self, id: ElementId, order: Vec<ElementId>) {
+        if let Some(e) = arena_id(id).and_then(|a| self.elements.get_mut(a)) {
+            e.children = order;
+        }
+        self.sync_layout_children(id);
+    }
+
     /// The nearest render element at or above `id`.
     fn render_ancestor(&self, mut id: ElementId) -> Option<ElementId> {
         loop {
@@ -403,7 +412,7 @@ impl ViewTree {
     }
 
     /// Recomputes the layout children of the render element at or above `id` (VIEW-TREE-04).
-    fn sync_layout_children(&mut self, id: ElementId) {
+    pub(crate) fn sync_layout_children(&mut self, id: ElementId) {
         let Some(owner) = self.render_ancestor(id) else {
             return;
         };
