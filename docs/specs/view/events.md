@@ -1,7 +1,6 @@
 # Event dispatch
 
-- **Status:** Draft (written by the agent while the user was away; needs the user's review
-  before tests, because it fixes how input reaches elements)
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 2, "Event dispatch: hit-testing, bubbling/capture, pointer capture,
   cursor icons"
@@ -37,7 +36,7 @@ Out of scope (and where it goes):
 - Hit-testing through paint transforms set by a `Paint` (only layout offsets are used): later,
   with transformed widgets.
 
-## Public API (proposal)
+## Public API
 
 ```rust
 use tantu_core::{Point, Vec2};
@@ -52,7 +51,9 @@ pub enum PointerKind {
     Move,
     /// Wheel or trackpad scroll in logical pixels (positive y scrolls down).
     Scroll(Vec2),
-    /// The pointer left the window.
+    /// The pointer came over an element (hover, VIEW-EVENT-04; delivered to that element only).
+    Enter,
+    /// The pointer left the window, or left an element (hover).
     Leave,
 }
 
@@ -90,7 +91,7 @@ impl ViewTree {
 }
 ```
 
-## Behavior (proposal)
+## Behavior
 
 - **VIEW-EVENT-01:** Hit-testing uses the last layout: an element is under a point when the point
   lies in its bounds (offset accumulated from the root, size from layout). Among overlapping
@@ -113,13 +114,11 @@ impl ViewTree {
   element is released. Nothing panics for any event, including during dispatch to an element
   that a handler removes (the removal takes effect at the next frame, ADR 0011).
 
-## Open questions (for the user)
+## Open questions
 
-1. **Event types:** tantu-view's own `PointerEvent` (the runner converts platform events), or
-   depend on `tantu-platform` and use its types directly? Proposal: own types, so
-   `tantu-view` keeps its AGENTS.md dependencies and can be driven by tests, the facade or a
-   future web shell without the platform crate.
-2. **Phases:** capture + bubble with `Stop`, as in the DOM. Proposal: yes; a full gesture arena
-   (Flutter) comes with gestures in Phase 3, built on top.
-3. **Hit-testing by layout bounds only** (no clip awareness, no paint transforms) for Phase 2.
-   Proposal: yes, refine when scroll views and transformed widgets arrive in Phase 3.
+Resolved (2026-10-10; the user said "continue" on the draft, taking the proposals):
+
+1. **tantu-view's own `PointerEvent`**; the runner converts platform events.
+2. **Capture and bubble with `Stop`**; a gesture arena comes with Phase 3 gestures.
+3. **Hit-testing by layout bounds only** for Phase 2. An element's subtree is searched only when
+   the point lies in the element's bounds (as Flutter does).
