@@ -17,3 +17,6 @@ tantu-scene = { workspace = true }
 tantu-layout = { workspace = true }
 # Shaping, bidi, line breaking and font fallback (ADR 0005); needs Rust 1.88.
 parley = "0.12.0"
+# parley's fontique, with fontconfig loaded at run time on Linux (dlopen) instead of linked at
+# build time, so building needs no fontconfig development package.
+fontique = { version = "0.12.0", default-features = false, features = ["fontconfig-dlopen"] }

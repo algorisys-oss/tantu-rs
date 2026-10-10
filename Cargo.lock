@@ -2339,6 +2339,7 @@ dependencies = [
 name = "tantu-text"
 version = "0.0.0"
 dependencies = [
+ "fontique",
  "parley",
  "tantu-core",
  "tantu-layout",
