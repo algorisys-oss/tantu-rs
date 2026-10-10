@@ -108,7 +108,8 @@ impl ViewTree {
     /// Applies the queued prop values, lays out with `constraints` (the window) and `text`, and
     /// repaints `scene` from scratch, sized to the window (or to the root's size when the
     /// constraints are unbounded).
-    pub fn frame(&mut self, constraints: BoxConstraints, text: &mut dyn TextMeasure, scene: &mut Scene) -> FrameReport;
+    /// (`text` is a `TextContext`, measuring and painting: amended by `view/text.md`.)
+    pub fn frame(&mut self, constraints: BoxConstraints, text: &mut dyn TextContext, scene: &mut Scene) -> FrameReport;
 }
 ```
 

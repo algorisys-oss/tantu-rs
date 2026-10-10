@@ -81,8 +81,9 @@ impl BuildCx<'_> {
 
 impl ViewTree {
     /// Paints the whole tree into `scene` (an open builder for the window's Scene), using the
-    /// geometry of the last layout pass.
-    pub fn paint(&self, scene: &mut SceneBuilder<'_>);
+    /// geometry of the last layout pass, with `text` as the text painter (amended by
+    /// `view/text.md`).
+    pub fn paint(&self, scene: &mut SceneBuilder<'_>, text: &mut dyn TextPainter);
 }
 ```
 
