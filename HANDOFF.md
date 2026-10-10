@@ -17,10 +17,11 @@ milestone, deciding forks with the recommended option and marking them for revie
 (Solid/Leptos style), order **as PLAN.md** (tantu-view, then tantu-text, events, facade,
 WidgetTester), and AGENTS.md now says every crate may depend on `tantu-core`.
 
-Progress while the user is away: ADR 0011 (view layer) and the PLAN.md split of `tantu-view`
-into five specs; `docs/specs/view/tree.md` (VIEW-TREE-01..11), `view/paint.md`
-(VIEW-PAINT-01..06), `view/frame.md` (VIEW-FRAME-01..08) and `view/dynamic.md`
-(VIEW-DYN-01..07) are Implemented. Next: `layout-builder.md`, then `tantu-text`.
+Progress while the user is away: **the `tantu-view` item is done** (ADR 0011, five specs in
+`docs/specs/view/`, all Implemented): `tree.md` (VIEW-TREE-01..11), `paint.md`
+(VIEW-PAINT-01..06), `frame.md` (VIEW-FRAME-01..08), `dynamic.md` (VIEW-DYN-01..07),
+`layout-builder.md` (VIEW-LB-01..06). Next: `tantu-text` (parley), then event dispatch, the
+`tantu` facade with the counter example, `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -357,6 +358,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     content: `Dyn`/`Show`/`For` are regions; each `Dyn` version's content is owned by a scope
     under the region (not by the effect), so old content keeps working until the frame that
     removes it; `For` keeps elements (and their first item value) for kept keys.
+    `LayoutBuilder`: records its constraints; its content is a `Dyn` over a constraints signal;
+    `ViewTree::layout` rebuilds after the pass and lays out again (bits comparison, 16 rounds).
 
 ## Commit log
 
@@ -498,14 +501,19 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `d19a126` | spec: dynamic content (VIEW-DYN-01..07) |
 | `6d4f357` | test: dynamic content, 7 failing tests |
 | `c732122` | impl: dynamic content |
-| _this commit_ | docs: HANDOFF.md for dynamic content |
+| `0c06a4b` | docs: HANDOFF.md for dynamic content |
+| `57f183e` | spec: LayoutBuilder (VIEW-LB-01..06) |
+| `f818a3c` | test: LayoutBuilder, 7 failing tests |
+| `fcd06c4` | test: VIEW-LB-05 round limit with 20 nested builders |
+| `291923e` | impl: LayoutBuilder; PLAN.md `tantu-view` item ticked |
+| _this commit_ | docs: HANDOFF.md for the end of the `tantu-view` item |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 2 in PLAN.md)
 
-1. `tantu-view`: (dynamic content done)
+1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
 3. `tantu-text` (parley; implements `TextMeasure`), event dispatch, the `tantu` facade with the
    counter example, `WidgetTester`.
