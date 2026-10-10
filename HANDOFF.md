@@ -19,8 +19,8 @@ WidgetTester), and AGENTS.md now says every crate may depend on `tantu-core`.
 
 Progress while the user is away: ADR 0011 (view layer) and the PLAN.md split of `tantu-view`
 into five specs; `docs/specs/view/tree.md` (VIEW-TREE-01..11), `view/paint.md`
-(VIEW-PAINT-01..06) and `view/frame.md` (VIEW-FRAME-01..08) are Implemented. Next:
-`dynamic.md` (`Dyn`, `Show`, `For`), then `layout-builder.md`.
+(VIEW-PAINT-01..06), `view/frame.md` (VIEW-FRAME-01..08) and `view/dynamic.md`
+(VIEW-DYN-01..07) are Implemented. Next: `layout-builder.md`, then `tantu-text`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -353,7 +353,10 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     `IntoProp` (closures, `Signal`, `Memo`, a macro-listed set of value types, since a blanket
     value impl would conflict with the closure impl); `BuildCx::bind` applies the first value at
     once and later values at the next `frame`, coalesced per binding; `frame` applies, lays out
-    and repaints the whole Scene; a frame requester tells the app runner to redraw.
+    and repaints the whole Scene; a frame requester tells the app runner to redraw. Dynamic
+    content: `Dyn`/`Show`/`For` are regions; each `Dyn` version's content is owned by a scope
+    under the region (not by the effect), so old content keeps working until the frame that
+    removes it; `For` keeps elements (and their first item value) for kept keys.
 
 ## Commit log
 
@@ -491,14 +494,18 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `df47794` | test: reactive props and frames, 8 failing tests |
 | `27d89ed` | spec: `Paint` is `Any` (for `ElementMut` paint downcasts) |
 | `dcc0ef5` | impl: reactive props and frames |
-| _this commit_ | docs: HANDOFF.md for reactive props and frames |
+| `d23eade` | docs: HANDOFF.md for reactive props and frames |
+| `d19a126` | spec: dynamic content (VIEW-DYN-01..07) |
+| `6d4f357` | test: dynamic content, 7 failing tests |
+| `c732122` | impl: dynamic content |
+| _this commit_ | docs: HANDOFF.md for dynamic content |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 2 in PLAN.md)
 
-1. `tantu-view`: dynamic
+1. `tantu-view`: (dynamic content done)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
 3. `tantu-text` (parley; implements `TextMeasure`), event dispatch, the `tantu` facade with the
    counter example, `WidgetTester`.
