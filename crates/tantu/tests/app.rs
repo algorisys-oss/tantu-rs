@@ -172,9 +172,10 @@ fn button(state: ButtonState, x: f32, y: f32) -> WindowEvent {
 
 /// Where the counter's button is: under the text, centered (found from the first frame).
 fn button_center(frame: &RecordedFrame) -> Point {
-    // The button's fill is the first one, in its own coordinates; add the translations of
-    // the transform scopes open around it.
+    // The button's fill is the last one (the window background comes first), in its own
+    // coordinates; add the translations of the transform scopes open around it.
     let mut stack = vec![Vec2::ZERO];
+    let mut last = None;
     for entry in frame.scene.entries() {
         let offset = *stack.last().expect("the base offset stays");
         match &entry.command {
@@ -187,15 +188,15 @@ fn button_center(frame: &RecordedFrame) -> Point {
             }
             Command::Fill { shape, .. } => {
                 let r = shape.rect;
-                return Point::new(
+                last = Some(Point::new(
                     offset.x + (r.left + r.right) / 2.0,
                     offset.y + (r.top + r.bottom) / 2.0,
-                );
+                ));
             }
             _ => {}
         }
     }
-    panic!("no button fill in the frame");
+    last.expect("the button fills its background")
 }
 
 #[test]
@@ -420,4 +421,45 @@ fn facade_app_09_first_font_is_the_default_family() {
         .cloned()
         .expect("a frame");
     assert!(glyph_counts(&frame).iter().all(|n| *n == 0));
+}
+
+/// The first fill of a frame: (rect, color), and whether any draw came before it.
+fn first_fill(frame: &RecordedFrame) -> (tantu::core::Rect, Color, bool) {
+    let mut drew = false;
+    for entry in frame.scene.entries() {
+        match &entry.command {
+            Command::Fill { shape, color } => return (shape.rect, *color, drew),
+            Command::GlyphRun(_) | Command::Stroke { .. } | Command::Image(_) => drew = true,
+            _ => {}
+        }
+    }
+    panic!("no fill in the frame");
+}
+
+#[test]
+fn facade_app_10_windows_paint_a_background() {
+    let recorders = Recorders::default();
+    let red = Color::from_argb32(0xFFFF_0000);
+    let app = with_font(App::new())
+        .window(Window::new("A").size(200.0, 100.0), || Text::new("Hi"))
+        .window(
+            Window::new("B").size(300.0, 150.0).background(red),
+            SizedBox::shrink,
+        );
+    run(app, FakePlatform::new().scale_factor(2.0), &recorders);
+    for (i, size, color) in [
+        (0, Size::new(200.0, 100.0), Color::WHITE),
+        (1, Size::new(300.0, 150.0), red),
+    ] {
+        let renderer = recorders.get(i);
+        let renderer = renderer.borrow();
+        let frame = renderer.last_frame().expect("a frame");
+        let (rect, fill, drew_before) = first_fill(frame);
+        assert_eq!(
+            rect,
+            tantu::core::Rect::from_ltwh(0.0, 0.0, size.width, size.height)
+        );
+        assert_eq!(fill, color);
+        assert!(!drew_before);
+    }
 }

@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use tantu_core::{Point, Vec2};
+use tantu_core::{Color, Point, Vec2};
 use tantu_layout::BoxConstraints;
 use tantu_platform::{
     ButtonState, Platform, PlatformContext, PlatformError, PlatformHandler, PointerButton,
@@ -55,6 +55,7 @@ type RendererFactory =
 #[derive(Clone, Debug)]
 pub struct Window {
     attributes: WindowAttributes,
+    background: Color,
 }
 
 impl Window {
@@ -62,6 +63,7 @@ impl Window {
     pub fn new(title: impl Into<String>) -> Self {
         Window {
             attributes: WindowAttributes::new(title),
+            background: Color::WHITE,
         }
     }
 
@@ -69,6 +71,7 @@ impl Window {
     pub fn size(self, width: f32, height: f32) -> Self {
         Window {
             attributes: self.attributes.size(width, height),
+            ..self
         }
     }
 
@@ -76,6 +79,15 @@ impl Window {
     pub fn min_size(self, width: f32, height: f32) -> Self {
         Window {
             attributes: self.attributes.min_size(width, height),
+            ..self
+        }
+    }
+
+    /// The color painted behind the window's content (default `Color::WHITE`).
+    pub fn background(self, color: Color) -> Self {
+        Window {
+            background: color,
+            ..self
         }
     }
 
@@ -83,6 +95,7 @@ impl Window {
     pub fn resizable(self, resizable: bool) -> Self {
         Window {
             attributes: self.attributes.resizable(resizable),
+            ..self
         }
     }
 }

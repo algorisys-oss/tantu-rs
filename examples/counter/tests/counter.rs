@@ -106,9 +106,11 @@ fn title_glyphs(text: &'static str) -> Vec<u32> {
     first_run(frames(app, FakePlatform::new()).last().expect("a frame"))
 }
 
-/// The center of the first fill (the button) in window coordinates.
+/// The center of the last fill (the button; the window background comes first) in window
+/// coordinates.
 fn button_center(frame: &RecordedFrame) -> Point {
     let mut stack = vec![Vec2::ZERO];
+    let mut last = None;
     for entry in frame.scene.entries() {
         let offset = *stack.last().expect("the base offset stays");
         match &entry.command {
@@ -121,15 +123,15 @@ fn button_center(frame: &RecordedFrame) -> Point {
             }
             Command::Fill { shape, .. } => {
                 let r = shape.rect;
-                return Point::new(
+                last = Some(Point::new(
                     offset.x + (r.left + r.right) / 2.0,
                     offset.y + (r.top + r.bottom) / 2.0,
-                );
+                ));
             }
             _ => {}
         }
     }
-    panic!("no button in the frame");
+    last.expect("the button fills its background")
 }
 
 fn click(platform: FakePlatform, at: Point) -> FakePlatform {
