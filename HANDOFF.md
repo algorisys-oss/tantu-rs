@@ -35,14 +35,12 @@ renderer** (RENDER-WGPU-18/19, a shelf-packed R8 glyph atlas; checked on Intel V
 lavapipe, output matches the software renderer). **The glyph-rasterization item is done**,
 including a `text` reference Scene and golden (RENDER-CONF-14) that every backend is checked
 against. **Event dispatch is done** (`docs/specs/view/events.md`, VIEW-EVENT-01..06; the user
-said "continue" on the draft, taking its proposals). **Waiting for the user:** the facade item
-is split in five (PLAN.md), with Draft specs for review: `docs/specs/text/styles.md` (one
-style table shared by the text system and view trees, `BuildCx::text_style`, `TextStyle`
-presets), `docs/specs/widgets/layout.md`, `docs/specs/widgets/basic.md` (`Text`, `Button` with
-Material 3 filled-button look, `PointerCx::size`), `docs/specs/facade/app.md` (`App`,
-`Window`, `run`/`run_with`, runner rules) and `docs/specs/examples/counter.md` (the AGENTS.md
-snippet verbatim, checked by a test). Each has open questions with proposals. Then
-`WidgetTester`.
+said "continue" on the draft, taking its proposals). The user said "continue" on the facade drafts (2026-10-10), taking their proposals. **Done
+since:** shared text styles (`docs/specs/text/styles.md`), layout widgets
+(`docs/specs/widgets/layout.md`) and `Text`/`Button` (`docs/specs/widgets/basic.md`), all
+Implemented. Next: the `tantu` facade (`docs/specs/facade/app.md`, Draft with agreed
+proposals: mark Agreed in its `spec:` commit), then `examples/counter`
+(`docs/specs/examples/counter.md`), then `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -404,6 +402,20 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     its path until the matching `Up`; hover changes only on `Move`/`Leave` and `Enter`/`Leave`
     go to that element alone (bubble phase); a window `Leave` only ends hover. Handlers can't
     touch the tree, only signals, so removal during dispatch is safe by construction.
+39. **Facade groundwork** (2026-10-10; the drafts' proposals, taken when the user said
+    "continue"; additions made while agreeing are marked for review):
+    - Shared text styles: `TextStyles` (an `Rc<RefCell<Vec<TextStyle>>>` handle) owned by the
+      `TextSystem` and cloned into each `ViewTree` (`with_text_styles`); `BuildCx::text_style`;
+      `TextStyle::body/title/label` with Material 3 sizes. `TextSystem::text_style` returns a copy.
+    - Layout widgets in `tantu-widgets` over the layout render objects; every prop reactive via
+      `bind` + `update_render`; parent data (`flex`, `Positioned`) plain values; a region child
+      of `Expanded`/`Positioned` warns. **Review:** `tantu-view` re-exports `core`, `layout`,
+      `reactive`, `scene` and `text` so `tantu-widgets` keeps its single AGENTS.md edge (its
+      private `text` module became `text_context`); `BoxConstraints` is an `IntoProp` value.
+    - `Text` and `Button`: Material 3 filled-button metrics and colors until `tantu-theme`;
+      `on_press` on a primary release inside (`PointerCx::size`, VIEW-EVENT-07); a centered
+      `Align` (factors 1) keeps the label centered. New widgets lack the goldens and gallery
+      entries AGENTS.md asks for: the gallery is a Phase 3 item; add both then.
 
 ## Commit log
 
@@ -586,7 +598,17 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `d1b19b7` | impl: event dispatch in tantu-view |
 | `038eec0` | docs: HANDOFF.md for event dispatch |
 | `42db279` | docs: draft facade specs for review; PLAN.md facade item split in five |
-| _this commit_ | docs: HANDOFF.md, waiting on the facade spec review |
+| `e45d8a9` | docs: HANDOFF.md, waiting on the facade spec review |
+| `63a53a5` | spec: shared text styles (TEXT-STYLES-01..04, VIEW-STYLES-01) |
+| `72d703b` | test: shared text styles, stubs + 5 failing tests |
+| `5c773c7` | impl: shared text styles |
+| `b08c85e` | spec: layout widgets (WIDGETS-LAYOUT-01..06) |
+| `678ad21` | test: layout widgets, stubs + 7 failing tests |
+| `dcdcb3f` | impl: layout widgets |
+| `d109e27` | spec: Text and Button (WIDGETS-TEXT, WIDGETS-BUTTON, VIEW-EVENT-07) |
+| `36c5397` | test: Text and Button, stubs + 7 failing tests |
+| `58edd71` | impl: Text and Button |
+| _this commit_ | docs: HANDOFF.md for the widgets |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
