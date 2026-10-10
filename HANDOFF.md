@@ -13,8 +13,10 @@ macOS. CI is green on all three OSes. **Phase 3 has started** on branch `phase3/
 first item is split in three (PLAN.md). **Keyboard events and focus are done**
 (`docs/specs/view/focus.md`, the user said "continue" on the draft): focusable elements, key
 dispatch to the focused path, Tab traversal in tree order, focus changes, focus on press, the
-runner forwarding keys, `WidgetTester::press_key`/`focus`. Next: shortcuts and commands (spec
-first), then `Button` keyboard activation and its focus indicator. Review items from Phase 2 are
+runner forwarding keys, `WidgetTester::press_key`/`focus`. **Waiting for the user:**
+`docs/specs/view/shortcuts.md` is a Draft (Flutter's intents, `Shortcuts`, `Actions`,
+`SingleActivator`, `ViewTree::invoke`; four open questions). Then `Button` keyboard activation
+and its focus indicator. Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -707,7 +709,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `ea9f69a` | test: VIEW-FOCUS-07 expects the root's handlers to remain |
 | `d384d4a` | test: focus fixture registers root key handlers from the top view |
 | `3cd7918` | impl: keyboard events and focus |
-| _this commit_ | docs: HANDOFF.md for keyboard events and focus |
+| `16dd666` | docs: HANDOFF.md for keyboard events and focus |
+| _this commit_ | docs: draft shortcuts spec for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
