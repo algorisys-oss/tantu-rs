@@ -18,8 +18,9 @@ milestone, deciding forks with the recommended option and marking them for revie
 WidgetTester), and AGENTS.md now says every crate may depend on `tantu-core`.
 
 Progress while the user is away: ADR 0011 (view layer) and the PLAN.md split of `tantu-view`
-into five specs; `docs/specs/view/tree.md` (VIEW-TREE-01..11) and `view/paint.md`
-(VIEW-PAINT-01..06) are Implemented. Next: `frame.md`, `dynamic.md`, `layout-builder.md`.
+into five specs; `docs/specs/view/tree.md` (VIEW-TREE-01..11), `view/paint.md`
+(VIEW-PAINT-01..06) and `view/frame.md` (VIEW-FRAME-01..08) are Implemented. Next:
+`dynamic.md` (`Dyn`, `Show`, `For`), then `layout-builder.md`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -348,7 +349,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     element ids are Scene `ElementId`s; an implicit root element passes the window constraints
     to the app's view. Paint: a `Paint` trait per render element, a transform scope per render
     element (restores element id and z-index), children painted once (explicitly or after
-    `paint`), conservative culling of leaves and clipping elements.
+    `paint`), conservative culling of leaves and clipping elements. Frames: `Prop<T>` /
+    `IntoProp` (closures, `Signal`, `Memo`, a macro-listed set of value types, since a blanket
+    value impl would conflict with the closure impl); `BuildCx::bind` applies the first value at
+    once and later values at the next `frame`, coalesced per binding; `frame` applies, lays out
+    and repaints the whole Scene; a frame requester tells the app runner to redraw.
 
 ## Commit log
 
@@ -481,14 +486,19 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `e13d9f7` | test: view paint, 6 failing tests |
 | `76666ea` | test: VIEW-PAINT-02 offsets follow the column's centered cross alignment |
 | `109e2ed` | impl: view paint |
-| _this commit_ | docs: HANDOFF.md for view paint |
+| `b9cf9ef` | docs: HANDOFF.md for view paint |
+| `829fbc2` | spec: reactive props and frames (VIEW-FRAME-01..08) |
+| `df47794` | test: reactive props and frames, 8 failing tests |
+| `27d89ed` | spec: `Paint` is `Any` (for `ElementMut` paint downcasts) |
+| `dcc0ef5` | impl: reactive props and frames |
+| _this commit_ | docs: HANDOFF.md for reactive props and frames |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 2 in PLAN.md)
 
-1. `tantu-view`: reactive props and frames (`frame.md`), dynamic
+1. `tantu-view`: dynamic
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
 3. `tantu-text` (parley; implements `TextMeasure`), event dispatch, the `tantu` facade with the
    counter example, `WidgetTester`.
