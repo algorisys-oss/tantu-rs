@@ -63,7 +63,7 @@ impl LayoutId {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TreeError {
-    /// The id is stale or from another tree.
+    /// The id is stale (or from another tree, when that isn't mistaken for a node here).
     UnknownNode(LayoutId),
     /// The child already has a different parent.
     HasParent { child: LayoutId, parent: LayoutId },
@@ -224,8 +224,10 @@ on the next ones.
   parent, no children, no parent data, no size, offset `Vec2::ZERO`, and needs layout.
 - **LAYOUT-TREE-02:** After `remove(id)`, `id` and every descendant are gone (`contains` false, every
   query returns `None`, an empty slice, `false` or 0, and nothing panics). Ids are never
-  reused, so a removed id never resolves again, even after more inserts. Ids from another tree
-  don't resolve. `remove` returns the number of nodes removed; the removed node's parent loses
+  reused, so a removed id never resolves again, even after more inserts. An id from another
+  tree is not detected (as CORE-ARENA-07, `LayoutId` stays 8 bytes): it behaves like a stale id
+  when its slot doesn't exist here, and may name an unrelated node when it does; either way
+  nothing panics. `remove` returns the number of nodes removed; the removed node's parent loses
   it from its children and needs layout.
 - **LAYOUT-TREE-03:** `set_children(parent, list)` sets the ordered children; `children` and `parent`
   reflect it. Previous children not in `list` are detached: they keep their subtree and become
