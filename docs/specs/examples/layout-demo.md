@@ -1,6 +1,6 @@
 # Layout demo
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `examples/layout-demo`
 - **Plan item:** Phase 2, "**Milestone:** counter + layout demo run on Linux (Wayland + X11),
   Windows and macOS"
@@ -71,13 +71,11 @@ impl Swatch {
 The agent can run the Linux ones. The Windows and macOS runs need the user, or a CI job that
 only builds the examples. The PLAN.md milestone is ticked once all four have been seen working.
 
-## Open questions (for the user)
+## Open questions
 
-1. **What the demo shows:** header, sidebar, proportional bands, stack and badge, footer.
-   Proposal: as above. It exercises every Phase 2 layout widget.
-2. **`Swatch` with a custom `Paint`** in the example, until `DecoratedBox`/`Container` arrive
-   with the theme. Proposal: yes. It shows the extension point.
-3. **Windows and macOS checks:** will you run the two examples there, or should CI build them
-   on those runners (it can't open windows)? Proposal: CI already builds every example on all
-   three OSes (`cargo test --workspace` compiles them), so the manual runs are the only
-   missing piece.
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **The demo's contents:** header, sidebar, proportional bands, stack with a badge, footer.
+2. **`Swatch` with a custom `Paint`.**
+3. **Windows and macOS checks:** CI builds the examples on all three OSes. The windowed runs
+   there are manual, and the milestone stays open until they're done.
