@@ -100,6 +100,9 @@ faster or more portable without changing how apps are written.
   - [x] Dynamic content: `Dyn`, `Show`, `For` with keyed reconciliation (spec `docs/specs/view/dynamic.md`)
   - [x] `LayoutBuilder` (spec `docs/specs/view/layout-builder.md`)
 - [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
+  - [ ] Text system: fonts (registered and system, via fontique), styles as `TextStyleKey`s, `TextMeasure` over parley, glyph runs into a Scene (spec `docs/specs/text/system.md`)
+  - [ ] Text in views: frames carry a text context that measures and paints; the paragraph's paint (spec `docs/specs/view/text.md`)
+- [ ] Glyph rasterization: `tantu-render-soft` (swash) and `tantu-render-wgpu` (glyph atlas); text reference Scenes in `tantu-render-conformance`
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons
 - [ ] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md
 - [ ] `tantu-test::WidgetTester` (pump, tap, type, find by key)

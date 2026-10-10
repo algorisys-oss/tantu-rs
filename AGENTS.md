@@ -61,7 +61,7 @@ Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 | `tantu-core` | geometry, color, ids, arena, errors | — |
 | `tantu-reactive` | signals, memos, effects, scheduler | core |
 | `tantu-scene` | `Scene` display list, `Renderer` trait, resource handles | core |
-| `tantu-text` | font loading, shaping, bidi, line breaking (parley/swash) | core, scene |
+| `tantu-text` | font loading, shaping, bidi, line breaking (parley/swash); implements `TextMeasure` | core, scene, layout |
 | `tantu-layout` | `BoxConstraints` protocol, Flex/Stack/Wrap/Grid/Overlay algorithms, `TextMeasure` trait | core |
 | `tantu-view` | View/Element/RenderObject traits, reconciler, event dispatch, focus | core, reactive, scene, text, layout |
 | `tantu-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …) | view |
