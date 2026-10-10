@@ -28,13 +28,29 @@ fn corner_radius(q: vec2<f32>, radii: vec4<f32>) -> f32 {
     return select(left, right, q.x >= 0.0);
 }
 
-// Signed distance from `p` to a rounded rect `rect` = (left, top, right, bottom).
+// Distance to the arc of a corner of radius `r`, for a point within the corner's square
+// (`local` is measured from the rect's corner, pointing into the rect); a large negative value
+// elsewhere, so the corner doesn't count.
+fn sd_corner(local: vec2<f32>, r: f32) -> f32 {
+    if (r > 0.0 && local.x < r && local.y < r) {
+        return length(local - vec2<f32>(r)) - r;
+    }
+    return -3.0e38;
+}
+
+// Signed distance from `p` to a rounded rect `rect` = (left, top, right, bottom). Each corner
+// owns the square of its own radius, not a quadrant around the center: a radius may exceed half
+// a side when the opposite corner's radius is small (radii are already scaled to fit, the CSS
+// rule), and its arc then reaches past the middle.
 fn sd_rounded(p: vec2<f32>, rect: vec4<f32>, radii: vec4<f32>) -> f32 {
     let half = (rect.zw - rect.xy) * 0.5;
-    let q0 = p - (rect.xy + rect.zw) * 0.5;
-    let r = corner_radius(q0, radii);
-    let q = abs(q0) - half + vec2<f32>(r);
-    return min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0))) - r;
+    let q = abs(p - (rect.xy + rect.zw) * 0.5) - half;
+    var d = min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0)));
+    d = max(d, sd_corner(p - rect.xy, radii.x));
+    d = max(d, sd_corner(vec2<f32>(rect.z - p.x, p.y - rect.y), radii.y));
+    d = max(d, sd_corner(rect.zw - p, radii.z));
+    d = max(d, sd_corner(vec2<f32>(p.x - rect.x, rect.w - p.y), radii.w));
+    return d;
 }
 
 // Anti-aliased coverage of the region where `d` < 0, with a one-device-pixel ramp. The pixel
