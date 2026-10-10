@@ -5,9 +5,10 @@ use std::fmt;
 
 use tantu_core::{Affine, Color, Rect};
 use tantu_scene::{
-    BoxShadow, Clip, Command, CustomKind, ImageData, ImageDraw, ImageId, ImageSampling, Layer,
-    RenderError, RenderReport, Renderer, Resources, RoundedRect, Scene,
+    BoxShadow, Clip, Command, CustomKind, FontData, Glyph, GlyphRun, ImageData, ImageDraw, ImageId,
+    ImageSampling, Layer, RenderError, RenderReport, Renderer, Resources, RoundedRect, Scene,
 };
+use tantu_text::GlyphRasterizer;
 use tiny_skia::{
     BlendMode, FillRule, FilterQuality, IntSize, Mask, Paint, Path, PathBuilder, PathSegment,
     Pattern, Pixmap, PixmapPaint, PremultipliedColorU8, Shader, SpreadMode, Transform,
@@ -54,6 +55,8 @@ pub struct SoftRenderer {
     clips: Vec<Mask>,
     /// Scratch space for blurred shadows.
     blur: blur::Scratch,
+    /// Glyph coverage masks (shared code with the wgpu renderer).
+    glyphs: GlyphRasterizer,
 }
 
 /// Something pushed and not yet popped while drawing a frame.
@@ -78,6 +81,7 @@ impl SoftRenderer {
             layers: Vec::new(),
             clips: Vec::new(),
             blur: blur::Scratch::default(),
+            glyphs: GlyphRasterizer::new(),
         }
     }
 
@@ -159,6 +163,7 @@ impl Renderer for SoftRenderer {
             images: &mut self.images,
             handlers: &mut self.handlers,
             blur: &mut self.blur,
+            glyphs: &mut self.glyphs,
             scale: self.scale_factor,
             transform: Affine::IDENTITY,
             transforms: Vec::new(),
@@ -197,9 +202,14 @@ impl Renderer for SoftRenderer {
                 Command::BoxShadow(shadow) => frame.box_shadow(shadow),
                 Command::Image(image) => frame.image(image, resources),
                 Command::GlyphRun(run) => {
-                    // No text yet: a run with a present font is a font this backend couldn't use.
-                    if resources.font(run.font).is_some() {
-                        report.missing_fonts = report.missing_fonts.saturating_add(1);
+                    // A missing font was counted by `for_scene`; an unreadable one is ours
+                    // (RENDER-SOFT-04).
+                    if let Some(font) = resources.font(run.font) {
+                        if frame.glyphs.readable(run.font, font) {
+                            frame.glyph_run(run, scene.glyphs(run), font);
+                        } else {
+                            report.missing_fonts = report.missing_fonts.saturating_add(1);
+                        }
                     }
                 }
                 Command::Custom(custom) => {
@@ -234,6 +244,7 @@ struct FrameState<'a> {
     images: &'a mut HashMap<ImageId, Pixmap>,
     handlers: &'a mut HashMap<CustomKind, Box<dyn CustomHandler>>,
     blur: &'a mut blur::Scratch,
+    glyphs: &'a mut GlyphRasterizer,
     scale: f32,
     /// Local-to-scene transform of the current scope.
     transform: Affine,
@@ -245,6 +256,66 @@ struct FrameState<'a> {
 }
 
 impl FrameState<'_> {
+    /// Draws a glyph run (RENDER-SOFT-27, -28): each glyph's mask at device size, placed at its
+    /// device position, composited in the run's color through the current clip and layer.
+    fn glyph_run(&mut self, run: &GlyphRun, glyphs: &[Glyph], font: &FontData) {
+        let ts = self.device_transform();
+        let scale = (ts.sx * ts.sy - ts.kx * ts.ky).abs().sqrt();
+        let size = run.font_size * scale;
+        if !(size.is_finite() && size > 0.0) {
+            return;
+        }
+        let [r, g, b, a] = [run.color.r, run.color.g, run.color.b, run.color.a].map(|c| {
+            if c.is_finite() {
+                c.clamp(0.0, 1.0)
+            } else {
+                0.0
+            }
+        });
+        let (width, height) = (self.target.width() as i64, self.target.height() as i64);
+        for glyph in glyphs {
+            let mut p = tiny_skia::Point::from_xy(run.origin.x + glyph.x, run.origin.y + glyph.y);
+            ts.map_point(&mut p);
+            if !(p.x.abs() < MAX_DEVICE_COORD && p.y.abs() < MAX_DEVICE_COORD) {
+                continue;
+            }
+            let Some(mask) = self.glyphs.mask(run.font, font, glyph.id, size, p.x) else {
+                continue;
+            };
+            let x = p.x.floor() as i64 + i64::from(mask.left);
+            let y = p.y.round() as i64 + i64::from(mask.top);
+            let (w, h) = (i64::from(mask.width), i64::from(mask.height));
+            if x >= width || y >= height || x + w <= 0 || y + h <= 0 {
+                continue;
+            }
+            let Some(mut pixmap) = Pixmap::new(mask.width, mask.height) else {
+                continue;
+            };
+            for (pixel, &coverage) in pixmap.pixels_mut().iter_mut().zip(mask.coverage.iter()) {
+                let alpha = a * f32::from(coverage) / 255.0;
+                let channel = |c: f32| (c * alpha * 255.0).round() as u8;
+                let alpha8 = (alpha * 255.0).round() as u8;
+                if let Some(color) =
+                    PremultipliedColorU8::from_rgba(channel(r), channel(g), channel(b), alpha8)
+                {
+                    *pixel = color;
+                }
+            }
+            let (Ok(x), Ok(y)) = (i32::try_from(x), i32::try_from(y)) else {
+                continue;
+            };
+            let (target, clip) = self.surface();
+            target.draw_pixmap(
+                x,
+                y,
+                pixmap.as_ref(),
+                &PixmapPaint::default(),
+                Transform::identity(),
+                clip,
+            );
+        }
+    }
+
     /// Local coordinates to target pixels.
     fn device_transform(&self) -> Transform {
         let [a, b, c, d, e, f] = self.transform.coeffs();

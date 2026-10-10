@@ -35,6 +35,7 @@ const MASKS_PER_GENERATION: usize = 4096;
 /// Rasterizes glyphs into coverage masks with swash, caching them.
 pub struct GlyphRasterizer {
     scale: ScaleContext,
+    readable: HashMap<FontId, bool>,
     current: HashMap<Key, Option<Arc<GlyphMask>>>,
     old: HashMap<Key, Option<Arc<GlyphMask>>>,
 }
@@ -45,6 +46,7 @@ impl GlyphRasterizer {
     pub fn new() -> Self {
         GlyphRasterizer {
             scale: ScaleContext::new(),
+            readable: HashMap::new(),
             current: HashMap::new(),
             old: HashMap::new(),
         }
@@ -115,8 +117,12 @@ impl GlyphRasterizer {
     /// True if `data` can be read as a font (cached per `font`), so a renderer can tell an
     /// unusable font from a glyph without an outline.
     pub fn readable(&mut self, font: FontId, data: &FontData) -> bool {
-        let _ = (font, data);
-        todo!()
+        *self.readable.entry(font).or_insert_with(|| {
+            usize::try_from(data.index())
+                .ok()
+                .and_then(|index| FontRef::from_index(data.bytes(), index))
+                .is_some()
+        })
     }
 
     /// Number of cached masks (absent glyphs included).
