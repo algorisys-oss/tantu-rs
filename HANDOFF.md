@@ -41,9 +41,11 @@ since:** shared text styles (`docs/specs/text/styles.md`), layout widgets
 Implemented, **and so are the `tantu` facade (`docs/specs/facade/app.md`) and
 `examples/counter` (`docs/specs/examples/counter.md`): the facade item is done.** `cargo run
 -p counter` opens the AGENTS.md counter (its `main.rs` is the snippet, checked by a test);
-checked on Wayland with wgpu (no errors logged) and offscreen after scripted clicks. Next:
-`tantu-test::WidgetTester` (spec first), then the Phase 2 milestone (counter + a layout demo on
-Linux Wayland/X11, Windows, macOS).
+checked on Wayland with wgpu (no errors logged) and offscreen after scripted clicks.
+**Waiting for the user:** `docs/specs/test/widget-tester.md` is a Draft (pump, tap, hover,
+finders by key/text/render type, goldens; `Keyed` in `tantu-view`; "type" deferred to Phase 3;
+four open questions). After it: the Phase 2 milestone (counter + a layout demo on Linux
+Wayland/X11, Windows, macOS).
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -632,7 +634,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `a999bf2` | spec: examples/counter (COUNTER-01..02) |
 | `b0d9eb4` | test: examples/counter, stub + 2 failing tests |
 | `e0eea67` | impl: examples/counter is the AGENTS.md snippet |
-| _this commit_ | docs: HANDOFF.md for the facade and the counter |
+| `5a6052b` | docs: HANDOFF.md for the facade and the counter |
+| `1f1ac46` | docs: draft WidgetTester spec for review |
+| _this commit_ | docs: HANDOFF.md, waiting on the WidgetTester review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
