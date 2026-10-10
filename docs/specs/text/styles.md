@@ -1,6 +1,6 @@
 # Shared text styles
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-text` (the table, presets), `tantu-view` (the build-time hook)
 - **Plan item:** Phase 2, `tantu` facade → "Shared text styles"
 - **Related:** [text system](system.md), [text in views](../view/text.md),
@@ -108,7 +108,7 @@ breaking change, but nothing outside tantu-text calls it today.
 
 ## Open questions
 
-1. **Shared handle vs. a style resolver passed into building.** Proposal: the shared handle.
-   It's the smallest change: views stay plain values, and `ViewTree::new` keeps its shape.
-2. **Presets as constructors on `TextStyle`**, which the AGENTS.md snippet uses, with Flutter's
-   Material 3 sizes. Proposal: yes. A theme can later map them to themed styles.
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **A shared `TextStyles` handle**, not a resolver passed into building.
+2. **Presets as `TextStyle` constructors** with Material 3 sizes; a theme maps them later.
