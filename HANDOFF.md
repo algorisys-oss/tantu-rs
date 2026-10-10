@@ -30,9 +30,11 @@ depend on `tantu-layout` (decision 36, review). **Text in views is done**
 package) is fixed in `a19b609` with fontique's `fontconfig-dlopen` (CI green again on
 `af91790`). **Glyph rasterizer done** (`docs/specs/text/raster.md`, TEXT-RASTER-01..04): swash
 coverage masks shared by both renderers. **The software renderer draws text**
-(RENDER-SOFT-27/28; RENDER-SOFT-04 now counts only unreadable fonts). Next: glyph runs in
-`tantu-render-wgpu` (glyph atlas), a text reference Scene, then event dispatch, the facade
-with the counter example, `WidgetTester`.
+(RENDER-SOFT-27/28; RENDER-SOFT-04 now counts only unreadable fonts), **and so does the wgpu
+renderer** (RENDER-WGPU-18/19, a shelf-packed R8 glyph atlas; checked on Intel Vulkan and
+lavapipe, output matches the software renderer). Next: a text reference Scene in
+`tantu-render-conformance`, then event dispatch, the facade with the counter example,
+`WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -551,7 +553,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `ce8eaa6` | spec: glyph runs in tantu-render-soft (RENDER-SOFT-27, -28); TEXT-RASTER-05 |
 | `f1e73ed` | test: glyph runs in render-soft, readable fonts; 3 failing tests |
 | `fc17fee` | impl: glyph runs in tantu-render-soft; `GlyphRasterizer::readable` |
-| _this commit_ | docs: HANDOFF.md for text in the software renderer |
+| `d8de131` | docs: HANDOFF.md for text in the software renderer |
+| `c478d34` | spec: glyph runs in tantu-render-wgpu (RENDER-WGPU-18, -19) |
+| `b95b516` | test: glyph runs in render-wgpu, 2 failing tests |
+| `49ebfa7` | impl: glyph runs in tantu-render-wgpu with a glyph atlas |
+| _this commit_ | docs: HANDOFF.md for text in the wgpu renderer |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
