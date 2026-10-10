@@ -108,12 +108,12 @@ faster or more portable without changing how apps are written.
   - [x] Glyph runs in `tantu-render-wgpu` with a glyph atlas (amends `docs/specs/render-wgpu/renderer.md`)
   - [x] A text reference Scene and golden in `tantu-render-conformance` (RENDER-CONF-14)
 - [x] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons (spec `docs/specs/view/events.md`)
-- [ ] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md
+- [x] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md
   - [x] Shared text styles: one style table for the text system and the view tree, `BuildCx::text_style`, style presets (spec `docs/specs/text/styles.md`)
   - [x] Layout widgets: `Padding`, `Center`, `Align`, `SizedBox`, `ConstrainedBox`, `Row`, `Column`, `Expanded`, `Flexible`, `Spacer`, `Stack`, `Positioned` (spec `docs/specs/widgets/layout.md`)
   - [x] `Text` and `Button` (fixed Phase 2 look until `tantu-theme`) (spec `docs/specs/widgets/basic.md`)
   - [x] `tantu` facade: `App`, `Window`, the runner (platform + view tree + renderer), `Error`, `prelude` (spec `docs/specs/facade/app.md`)
-  - [ ] `examples/counter`: the AGENTS.md snippet, verbatim (spec `docs/specs/examples/counter.md`)
+  - [x] `examples/counter`: the AGENTS.md snippet, verbatim (spec `docs/specs/examples/counter.md`)
 - [ ] `tantu-test::WidgetTester` (pump, tap, type, find by key)
 - [ ] **Milestone:** counter + layout demo run on Linux (Wayland + X11), Windows and macOS
 

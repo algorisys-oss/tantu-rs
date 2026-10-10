@@ -1,6 +1,6 @@
 # Counter example
 
-- **Status:** Agreed (the user said "continue" on the draft; the file layout was simplified while agreeing, review)
+- **Status:** Implemented (the user said "continue" on the draft; the file layout was simplified while agreeing, review)
 - **Crate:** `examples/counter`
 - **Plan item:** Phase 2, `tantu` facade → "`examples/counter`"
 - **Related:** [app runner](../facade/app.md), [basic widgets](../widgets/basic.md),
