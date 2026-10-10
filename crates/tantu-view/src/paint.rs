@@ -3,10 +3,11 @@
 
 use std::any::Any;
 
-use tantu_core::Size;
+use tantu_core::{Color, Point, Size};
+use tantu_layout::{BoxConstraints, RenderBox, TextStyleKey};
 use tantu_scene::{ElementId, SceneBuilder};
 
-use crate::ViewTree;
+use crate::{TextPainter, ViewTree};
 
 /// How a render element draws itself and where its children are painted. (`Any`, so
 /// [`ElementMut::paint`](crate::ElementMut::paint) can downcast it; every `'static` type is
@@ -53,6 +54,7 @@ pub struct PaintCx<'t, 'b> {
     pub(crate) element: ElementId,
     pub(crate) size: Size,
     pub(crate) scene: &'t mut SceneBuilder<'b>,
+    pub(crate) text: &'t mut dyn TextPainter,
     pub(crate) children: Children,
 }
 
@@ -79,8 +81,38 @@ impl<'b> PaintCx<'_, 'b> {
         }
         self.children = Children::Painted;
         for child in self.tree.children(self.element) {
-            self.tree.paint_element(*child, self.scene);
+            self.tree.paint_element(*child, self.scene, &mut *self.text);
         }
+    }
+
+    /// The text painter of this paint pass.
+    pub fn text(&mut self) -> &mut dyn TextPainter {
+        todo!()
+    }
+
+    /// Paints text through the painter into this context's Scene builder (`text()` and
+    /// `scene()` can't be borrowed at the same time).
+    pub fn paint_text(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        max_width: f32,
+        max_lines: Option<u32>,
+        color: Color,
+        origin: Point,
+    ) {
+        let _ = (text, style, max_width, max_lines, color, origin);
+        todo!()
+    }
+
+    /// The element's constraints from the last layout.
+    pub fn constraints(&self) -> BoxConstraints {
+        todo!()
+    }
+
+    /// The element's layout object, if it is an `R`.
+    pub fn render<R: RenderBox>(&self) -> Option<&R> {
+        todo!()
     }
 
     /// Don't paint the children at all.

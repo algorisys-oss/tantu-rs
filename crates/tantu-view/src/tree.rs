@@ -12,7 +12,7 @@ use tantu_scene::{ElementId, SceneBuilder};
 use crate::frame::Shared;
 use crate::layout_builder::LayoutBuilderRecord;
 use crate::paint::Children;
-use crate::{NoPaint, Paint, PaintCx};
+use crate::{NoPaint, Paint, PaintCx, TextPainter};
 
 /// A description of part of the UI that builds its element(s) once, when consumed.
 pub trait View: 'static {
@@ -341,12 +341,17 @@ impl ViewTree {
 
     /// Paints the whole tree into `scene` (an open builder for the window's Scene), using the
     /// geometry of the last layout pass.
-    pub fn paint(&self, scene: &mut SceneBuilder<'_>) {
-        self.paint_element(self.root(), scene);
+    pub fn paint(&self, scene: &mut SceneBuilder<'_>, text: &mut dyn TextPainter) {
+        self.paint_element(self.root(), scene, text);
     }
 
     /// Paints one element (VIEW-PAINT-02..05); regions paint their children in their place.
-    pub(crate) fn paint_element(&self, id: ElementId, scene: &mut SceneBuilder<'_>) {
+    pub(crate) fn paint_element(
+        &self,
+        id: ElementId,
+        scene: &mut SceneBuilder<'_>,
+        text: &mut dyn TextPainter,
+    ) {
         let Some(element) = self.element(id) else {
             return;
         };
@@ -354,7 +359,7 @@ impl ViewTree {
             Kind::Render(layout, paint) => (*layout, paint),
             Kind::Region => {
                 for child in &element.children {
-                    self.paint_element(*child, scene);
+                    self.paint_element(*child, scene, &mut *text);
                 }
                 return;
             }
@@ -380,6 +385,7 @@ impl ViewTree {
             element: id,
             size,
             scene: &mut *scene,
+            text,
             children: Children::Pending,
         };
         paint.paint(&mut cx);

@@ -165,7 +165,7 @@ fn render(tree: &mut ViewTree) -> Scene {
 fn paint_only(tree: &ViewTree) -> Scene {
     let mut scene = Scene::new();
     let mut b = scene.begin(s(800.0, 600.0));
-    tree.paint(&mut b);
+    tree.paint(&mut b, &mut NoTextMeasure);
     b.finish().expect("paint leaves scopes balanced");
     scene
 }

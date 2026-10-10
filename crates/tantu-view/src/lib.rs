@@ -42,6 +42,7 @@ mod frame;
 mod layout_builder;
 mod paint;
 mod prop;
+mod text;
 mod tree;
 
 pub use dynamic::{Dyn, For, Show};
@@ -50,4 +51,5 @@ pub use layout_builder::LayoutBuilder;
 pub use paint::{NoPaint, Paint, PaintCx};
 pub use prop::{IntoProp, Prop};
 pub use tantu_scene::ElementId;
+pub use text::{ParagraphPaint, SystemText, TextContext, TextPainter};
 pub use tree::{AnyView, BuildCx, ElementKind, View, ViewTree};

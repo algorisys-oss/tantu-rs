@@ -5,12 +5,12 @@ use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use tantu_layout::{BoxConstraints, RenderBox, TextMeasure};
+use tantu_layout::{BoxConstraints, RenderBox};
 use tantu_reactive::effect;
 use tantu_scene::{ElementId, Scene};
 
 use crate::tree::{Kind, arena_id};
-use crate::{BuildCx, Paint, Prop, ViewTree};
+use crate::{BuildCx, Paint, Prop, TextContext, ViewTree};
 
 /// A queued change: applies itself to the tree and says whether it applied a value.
 type Update = Box<dyn FnOnce(&mut ViewTree) -> bool>;
@@ -218,17 +218,17 @@ impl ViewTree {
     pub fn frame(
         &mut self,
         constraints: BoxConstraints,
-        text: &mut dyn TextMeasure,
+        text: &mut dyn TextContext,
         scene: &mut Scene,
     ) -> FrameReport {
         // Cleared first, so values queued while applying ask for the next frame.
         self.shared.needs_frame.set(false);
         let applied = self.apply_queue();
-        let size = self.layout(constraints, text);
+        let size = self.layout(constraints, &mut *text);
         let window = constraints.biggest();
         let scene_size = if window.is_finite() { window } else { size };
         let mut builder = scene.begin(scene_size);
-        self.paint(&mut builder);
+        self.paint(&mut builder, &mut *text);
         if let Err(error) = builder.finish() {
             tracing::warn!(?error, "a Paint left the Scene's scopes unbalanced");
         }
