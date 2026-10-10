@@ -500,8 +500,11 @@ fn layout_single_14_aspect_ratio_intrinsics() {
     assert_eq!(t.tree.min_intrinsic_height(t.root, 10.0), 20.0);
 }
 
+/// Inserts a layout into a tree.
+type Make = Box<dyn Fn(&mut LayoutTree) -> LayoutId>;
+
 /// All five layouts, with ordinary and malformed properties.
-fn every_layout() -> Vec<Box<dyn Fn(&mut LayoutTree) -> LayoutId>> {
+fn every_layout() -> Vec<Make> {
     vec![
         Box::new(|t| t.insert(RenderPadding::new(EdgeInsets::all(4.0)))),
         Box::new(|t| {
