@@ -143,6 +143,8 @@ impl WidgetTester {
 - **VIEW-FOCUS-08:** `ElementMut::set_focusable(Some(options) | None)` changes focusability
   after building; `None` clears the element's focus. (Added with
   [Button keyboard activation](../widgets/button-keyboard.md).)
+- **VIEW-FOCUS-09:** `BuildCx::on_focus_within(element, handler)` reports the focus entering
+  (`true`) and leaving (`false`) `element`'s subtree. (Added with [Tooltip](../widgets/tooltip.md).)
 - **FACADE-APP-11:** The runner converts `WindowEvent::Keyboard` to a `KeyEvent` with the
   current modifiers (tracked from `ModifiersChanged`) and dispatches it to the window's tree.
   Named keys map one to one, `Character` keys keep their text, and modifier keys and

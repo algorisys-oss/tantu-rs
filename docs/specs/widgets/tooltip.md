@@ -1,6 +1,6 @@
 # Tooltip
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-widgets`
 - **Plan item:** Phase 3, "Widgets" → "`Tooltip`"
 - **Related:** [overlay](../view/overlay.md), [events](../view/events.md),
@@ -33,7 +33,7 @@ Out of scope (and where it goes):
 - Rich tooltips (title, actions), touch long-press: later.
 - Accessibility (the message as the child's description): `tantu-a11y`.
 
-## Public API (proposal)
+## Public API
 
 ```rust
 /// A short message shown near `child` while hovered or focused (Material 3 plain tooltip).
@@ -47,7 +47,7 @@ impl<V: View> Tooltip<V> {
 }
 ```
 
-## Behavior (proposal)
+## Behavior
 
 - **WIDGETS-TOOLTIP-01:** The tooltip is hidden at first. Pointer enter on the child shows it,
   and pointer leave or a primary press on the child hides it. It's shown in the overlay layer
@@ -59,15 +59,21 @@ impl<V: View> Tooltip<V> {
   what's under it.
 - **WIDGETS-TOOLTIP-04:** While the child, or an element inside it, has keyboard focus, the
   tooltip shows. It hides when the focus leaves, unless the pointer is still over the child.
+- **VIEW-FOCUS-09:** `BuildCx::on_focus_within(element, handler)` calls `handler(true)` when the
+  focus moves into `element`'s subtree (the element or a descendant) from outside it, and
+  `handler(false)` when it leaves the subtree. Moves inside the subtree call nothing. It runs
+  with the tree's runtime current, after the focused elements' own `on_focus_change`
+  handlers. (Added to `tantu-view` while agreeing this spec, for WIDGETS-TOOLTIP-04.)
 - **WIDGETS-TOOLTIP-05:** The message is reactive; a change shows at the next frame.
 - **WIDGETS-TOOLTIP-06:** The child must be a render element to receive hover. A region child
   (`Dyn`, `Show`, `For`) logs a warning, and the tooltip never shows.
 
-## Open questions (for the user)
+## Open questions
 
-1. **No show delay until timers exist.** Flutter waits 500 ms before showing. Proposal: show at
-   once now and add `wait_duration` with the animation item. The other choice is to add a
-   small timer service to the view tree first.
-2. **Show on focus as well as hover**, as Flutter does on desktop. Proposal: yes. It makes the
-   message reachable from the keyboard.
-3. **Material 3 plain-tooltip look** until the theme. Proposal: yes.
+Resolved (2026-10-11; the user said "continue" on the draft):
+
+1. **No show delay until timers exist.**
+2. **The tooltip shows on focus as well as hover.**
+3. **Material 3 plain-tooltip look.**
+
+Added while agreeing (review): VIEW-FOCUS-09, `BuildCx::on_focus_within`.
