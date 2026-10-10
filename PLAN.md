@@ -83,7 +83,7 @@ faster or more portable without changing how apps are written.
 - [x] `examples/scene-window`: Phase 1 demo, a hand-built Scene drawn in a winit window with wgpu (spec `docs/specs/examples/scene-window.md`; depends on the crates directly until the `tantu` facade exists in Phase 2)
 - [x] **Milestone:** a hand-built Scene renders the same in wgpu and software (golden diff within the cross-backend tolerance); reference Scenes and goldens in a renderer conformance crate every backend is tested against (spec `docs/specs/render-conformance/conformance.md`, ADR 0008)
 
-### Phase 2 — Layout, views and text (weeks 6–10)
+### Phase 2 — Layout, views and text (weeks 6–10) — done 2026-10-10
 - [x] `tantu-layout`: `BoxConstraints` protocol, `RenderBox`-style trait for custom layouts; `Padding`, `Align`/`Center`, `SizedBox`, `ConstrainedBox`, `FractionallySizedBox`, `AspectRatio`, Flex (`Row`/`Column` with `Expanded`/`Flexible`/`Spacer`, main/cross-axis alignment, `spacing`), `Stack`/`Positioned`, `Wrap` (the layout tree lives in `tantu-layout`, ADR 0009)
   - [x] `BoxConstraints` (spec `docs/specs/layout/constraints.md`)
   - [x] Layout tree and protocol: `RenderBox` trait, `LayoutTree` arena, parent data, layout pass with caching, `mark_needs_layout`, relayout boundaries, opt-in intrinsic sizes (spec `docs/specs/layout/tree.md`)
@@ -99,10 +99,10 @@ faster or more portable without changing how apps are written.
   - [x] Reactive props and frames: `Prop<T>`, the update queue, `ViewTree::frame` (apply, layout, paint), needs-frame notification (spec `docs/specs/view/frame.md`)
   - [x] Dynamic content: `Dyn`, `Show`, `For` with keyed reconciliation (spec `docs/specs/view/dynamic.md`)
   - [x] `LayoutBuilder` (spec `docs/specs/view/layout-builder.md`)
-- [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
+- [x] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
   - [x] Text system: fonts (registered and system, via fontique), styles as `TextStyleKey`s, `TextMeasure` over parley, glyph runs into a Scene (spec `docs/specs/text/system.md`)
   - [x] Text in views: frames carry a text context that measures and paints; the paragraph's paint (spec `docs/specs/view/text.md`)
-  - [ ] Bidi and font fallback: rules for right-to-left and mixed paragraphs; per-character fallback through every registered family (spec `docs/specs/text/scripts.md`)
+  - [x] Bidi and font fallback: rules for right-to-left and mixed paragraphs; per-character fallback through every registered family (spec `docs/specs/text/scripts.md`)
 - [x] Glyph rasterization: `tantu-render-soft` (swash) and `tantu-render-wgpu` (glyph atlas); text reference Scenes in `tantu-render-conformance`
   - [x] Glyph rasterizer: swash coverage masks with quarter-pixel subpixel positioning, cached, shared by both renderers (spec `docs/specs/text/raster.md`)
   - [x] Glyph runs in `tantu-render-soft` (amends `docs/specs/render-soft/renderer.md`)

@@ -103,6 +103,9 @@ pub struct TextSystem {
     layouts: LayoutContext<()>,
     styles: crate::TextStyles,
     default_family: FontFamily,
+    /// Families added by `register_font`, in registration order (the fallback list,
+    /// TEXT-SCRIPT-03).
+    registered: Vec<Arc<str>>,
     /// Scene font handles for parley fonts, by (blob id, face index).
     font_ids: HashMap<(u64, u32), FontId>,
     cache: LayoutCache,
@@ -135,6 +138,7 @@ impl TextSystem {
             layouts: LayoutContext::new(),
             styles: crate::TextStyles::new(),
             default_family: FontFamily::SansSerif,
+            registered: Vec::new(),
             font_ids: HashMap::new(),
             cache: LayoutCache::default(),
         }
@@ -150,10 +154,15 @@ impl TextSystem {
             .fonts
             .collection
             .register_fonts(Blob::new(Arc::new(data)), None);
-        let names = families
+        let names: Vec<String> = families
             .iter()
             .filter_map(|(family, _)| self.fonts.collection.family_name(*family).map(String::from))
             .collect();
+        for name in &names {
+            if !self.registered.iter().any(|r| **r == **name) {
+                self.registered.push(Arc::from(name.as_str()));
+            }
+        }
         self.cache = LayoutCache::default();
         names
     }
@@ -281,13 +290,21 @@ impl TextSystem {
     /// Shapes `text` in `style` (the default style for an unknown key) with parley.
     fn shape(&mut self, text: &str, style: TextStyleKey) -> Layout<()> {
         let style = self.text_style(style).unwrap_or_default();
-        let stack = [style.family.to_parley(), self.default_family.to_parley()];
+        // The style's family, the default family, then every registered family in order
+        // (TEXT-SCRIPT-03); parley falls back per character along this list.
+        let mut stack = vec![style.family.to_parley(), self.default_family.to_parley()];
+        for name in &self.registered {
+            let family = FontFamily::Named(Arc::clone(name)).to_parley();
+            if !stack.contains(&family) {
+                stack.push(family);
+            }
+        }
         let mut builder = self
             .layouts
             .ranged_builder(&mut self.fonts, text, 1.0, true);
         builder.push_default(StyleProperty::FontSize(style.size));
         builder.push_default(StyleProperty::FontFamily(parley::FontFamily::List(
-            Cow::Owned(stack.to_vec()),
+            Cow::Owned(stack),
         )));
         builder.push_default(StyleProperty::FontWeight(FontWeight::new(style.weight)));
         if style.italic {

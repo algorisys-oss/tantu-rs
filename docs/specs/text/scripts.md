@@ -1,6 +1,6 @@
 # Bidi and font fallback
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-text`
 - **Plan item:** Phase 2, "`tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run
   output into Scene" (the parent item; its sub-items are done)
