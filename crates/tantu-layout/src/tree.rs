@@ -154,6 +154,13 @@ impl LayoutChildren<'_> {
         }
     }
 
+    /// The child's size from its last layout (`Size::ZERO` if it was never laid out or the
+    /// index is out of range), so a layout can position children after sizing them all.
+    pub fn size(&self, index: usize) -> Size {
+        let _ = index;
+        todo!()
+    }
+
     /// The child's parent data, if it has some of type `T`.
     pub fn parent_data<T: Any>(&self, index: usize) -> Option<&T> {
         self.tree

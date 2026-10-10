@@ -670,3 +670,49 @@ impl RenderBox for Fill2 {
         c.biggest()
     }
 }
+
+/// Records `children.size(i)` before and after laying out its children.
+struct SizeReader(Log);
+
+impl RenderBox for SizeReader {
+    fn perform_layout(&mut self, c: BoxConstraints, children: &mut LayoutChildren<'_>) -> Size {
+        let n = children.len();
+        self.0.push(format!("before {:?}", children.size(0)));
+        if n > 0 {
+            let got = children.layout(0, c);
+            self.0.push(format!("same {}", got == children.size(0)));
+        }
+        self.0.push(format!("after {:?}", children.size(0)));
+        self.0.push(format!("never {:?}", children.size(1)));
+        self.0
+            .push(format!("out of range {:?}", children.size(n + 3)));
+        c.smallest()
+    }
+}
+
+#[test]
+fn layout_tree_19_child_sizes() {
+    let log = Log::default();
+    let mut tree = LayoutTree::new();
+    let p = tree.insert(SizeReader(log.clone()));
+    let first = tree.insert(Fixed(Size::new(7.0, 3.0)));
+    let second = tree.insert(Fixed(Size::new(1.0, 1.0)));
+    tree.set_children(p, &[first, second]).expect("valid");
+    tree.layout(p, loose(10.0, 10.0));
+    let zero = format!("{:?}", Size::ZERO);
+    let seven = format!("{:?}", Size::new(7.0, 3.0));
+    assert_eq!(
+        log.take(),
+        [
+            format!("before {zero}"),
+            "same true".to_string(),
+            format!("after {seven}"),
+            format!("never {zero}"),
+            format!("out of range {zero}"),
+        ]
+    );
+    // The last layout's size is kept for the next pass.
+    tree.mark_needs_layout(p);
+    tree.layout(p, loose(10.0, 10.0));
+    assert_eq!(log.take()[0], format!("before {seven}"));
+}
