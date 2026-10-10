@@ -75,11 +75,11 @@ impl View for Node {
                 log.borrow_mut().push(format!("{name} {focused}"));
             });
         }
-        let targets = if self.root_keys {
-            vec![(cx.parent(), "root")]
-        } else {
-            vec![(id, name)]
-        };
+        // `root_keys`: also register on the parent, which for the top view is the tree's root.
+        let mut targets = vec![(id, name)];
+        if self.root_keys {
+            targets.insert(0, (cx.parent(), "root"));
+        }
         for (target, label) in targets {
             for phase in [Phase::Capture, Phase::Bubble] {
                 let log = self.log.clone();
@@ -122,13 +122,12 @@ const TRAVERSABLE: FocusOptions = FocusOptions {
 /// The test tree, in a column (each box 100 × 20 unless noted):
 ///
 /// ```text
-/// col
-/// ├─ root  registers key handlers on the root element   y 0
-/// ├─ a     focusable                                    y 20
-/// ├─ b     not focusable                                y 40
-/// ├─ c     focusable, not traversable                   y 60
-/// ├─ (Dyn) d   focusable                                y 80
-/// └─ e     focusable, focus on press, with child f      y 100..120
+/// col   also registers key handlers on the tree's root (its parent)
+/// ├─ a     focusable                                    y 0
+/// ├─ b     not focusable                                y 20
+/// ├─ c     focusable, not traversable                   y 40
+/// ├─ (Dyn) d   focusable                                y 60
+/// └─ e     focusable, focus on press, with child f      y 80..100
 /// ```
 struct Fixture {
     tree: ViewTree,
@@ -142,14 +141,11 @@ impl Fixture {
         let mut tree = ViewTree::new(move || {
             let mut col = node("col", &l);
             col.column = true;
-            col.root_keys = false;
+            col.root_keys = true;
             let mut a = node("a", &l).focusable(TRAVERSABLE);
             a.stop_tab = stop_tab_on == Some("a");
-            let mut root = node("root", &l);
-            root.root_keys = true;
             let l2 = l.clone();
-            col.child(Keyed::new("root-keys", root))
-                .child(Keyed::new("a", a))
+            col.child(Keyed::new("a", a))
                 .child(Keyed::new("b", node("b", &l)))
                 .child(Keyed::new(
                     "c",
@@ -333,13 +329,13 @@ fn view_focus_06_focus_on_press() {
         &mut f.tree,
         PointerKind::Down(PointerButton::Primary),
         10.0,
-        110.0,
+        90.0,
     );
     pointer(
         &mut f.tree,
         PointerKind::Up(PointerButton::Primary),
         10.0,
-        110.0,
+        90.0,
     );
     assert_eq!(f.tree.focused(), Some(e));
     let log = f.take();
@@ -353,13 +349,13 @@ fn view_focus_06_focus_on_press() {
         &mut f.tree,
         PointerKind::Down(PointerButton::Primary),
         10.0,
-        30.0,
+        10.0,
     );
     pointer(
         &mut f.tree,
         PointerKind::Up(PointerButton::Primary),
         10.0,
-        30.0,
+        10.0,
     );
     assert_eq!(f.tree.focused(), Some(e));
     // Secondary presses don't focus.
@@ -368,7 +364,7 @@ fn view_focus_06_focus_on_press() {
         &mut f.tree,
         PointerKind::Down(PointerButton::Secondary),
         10.0,
-        110.0,
+        90.0,
     );
     assert_eq!(f.tree.focused(), None);
 }
