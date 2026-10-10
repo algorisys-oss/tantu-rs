@@ -4,8 +4,8 @@
 use std::any::Any;
 use std::rc::Rc;
 
-use tantu_core::{Arena, Size};
-use tantu_layout::{BoxConstraints, LayoutId, LayoutTree, RenderBox, TextMeasure};
+use tantu_core::{Arena, Id, Size, Vec2};
+use tantu_layout::{BoxConstraints, LayoutChildren, LayoutId, LayoutTree, RenderBox, TextMeasure};
 use tantu_reactive::{Runtime, Scope};
 use tantu_scene::ElementId;
 
@@ -21,15 +21,13 @@ pub struct AnyView(Box<dyn FnOnce(&mut BuildCx<'_>) -> ElementId>);
 impl AnyView {
     /// Erases `view`'s type.
     pub fn new(view: impl View) -> Self {
-        let _ = view;
-        todo!()
+        AnyView(Box::new(move |cx: &mut BuildCx<'_>| view.build(cx)))
     }
 }
 
 impl View for AnyView {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (cx, self.0);
-        todo!()
+        (self.0)(cx)
     }
 }
 
@@ -57,23 +55,48 @@ impl BuildCx<'_> {
         render: impl RenderBox,
         children: impl IntoIterator<Item = AnyView>,
     ) -> ElementId {
-        let _ = (render, children.into_iter().count(), &self.tree);
-        todo!()
+        let layout = self.tree.layout.insert(render);
+        let id = self.tree.add_element(self.parent, Kind::Render(layout));
+        let Some(scope) = self.tree.scope(id) else {
+            return id;
+        };
+        scope.run(|| {
+            let mut cx = BuildCx {
+                tree: &mut *self.tree,
+                parent: id,
+            };
+            for child in children {
+                child.build(&mut cx);
+            }
+        });
+        self.tree.sync_layout_children(id);
+        id
     }
 
     /// Creates a region element under the current parent, then runs `build` with the region as
     /// the parent (inside its scope) to build its children.
     pub fn region(&mut self, build: impl FnOnce(&mut BuildCx<'_>)) -> ElementId {
-        let _ = build;
-        todo!()
+        let id = self.tree.add_element(self.parent, Kind::Region);
+        let Some(scope) = self.tree.scope(id) else {
+            return id;
+        };
+        scope.run(|| {
+            build(&mut BuildCx {
+                tree: &mut *self.tree,
+                parent: id,
+            })
+        });
+        id
     }
 
     /// Sets the parent data of a render element's layout node (read by its layout parent, e.g.
     /// `FlexParentData` for `Expanded`). Returns false (and does nothing) for a region or an
     /// unknown id.
     pub fn set_parent_data<T: Any>(&mut self, element: ElementId, data: T) -> bool {
-        let _ = (element, data);
-        todo!()
+        match self.tree.layout_id(element) {
+            Some(layout) => self.tree.layout.set_parent_data(layout, Some(data)),
+            None => false,
+        }
     }
 
     /// The current parent element.
@@ -101,6 +124,35 @@ enum Kind {
     Region,
 }
 
+/// The root element's layout: each child laid out with the window's constraints at the
+/// origin; as large as the window when it is bounded (VIEW-TREE-08).
+struct RootBox;
+
+impl RenderBox for RootBox {
+    fn perform_layout(
+        &mut self,
+        constraints: BoxConstraints,
+        children: &mut LayoutChildren<'_>,
+    ) -> Size {
+        let mut largest = Size::ZERO;
+        for i in 0..children.len() {
+            largest = largest.max(children.layout(i, constraints));
+            children.set_offset(i, Vec2::ZERO);
+        }
+        let biggest = constraints.biggest();
+        if biggest.is_finite() {
+            biggest
+        } else {
+            constraints.constrain(largest)
+        }
+    }
+}
+
+/// The arena id behind an element id.
+fn arena_id(id: ElementId) -> Option<Id> {
+    Id::from_bits(id.to_raw())
+}
+
 /// The views, elements and layout of one window, with its reactive runtime.
 pub struct ViewTree {
     elements: Arena<Element>,
@@ -113,59 +165,85 @@ impl ViewTree {
     /// A tree whose content is the view returned by `app`. `app` runs once, with the tree's
     /// runtime current and inside the root element's scope, so it can create signals.
     pub fn new<V: View>(app: impl FnOnce() -> V) -> Self {
-        let _ = app;
-        todo!()
+        let mut tree = ViewTree {
+            elements: Arena::new(),
+            layout: LayoutTree::new(),
+            root: None,
+            runtime: Rc::new(Runtime::new()),
+        };
+        let runtime = tree.runtime.clone();
+        runtime.enter(|| {
+            let scope = Scope::new();
+            let layout = tree.layout.insert(RootBox);
+            let root = ElementId::from(tree.elements.insert(Element {
+                parent: None,
+                children: Vec::new(),
+                scope,
+                kind: Kind::Render(layout),
+            }));
+            tree.root = Some(root);
+            scope.run(|| {
+                let view = app();
+                view.build(&mut BuildCx {
+                    tree: &mut tree,
+                    parent: root,
+                });
+            });
+            tree.sync_layout_children(root);
+        });
+        tree
     }
 
     /// The implicit root render element; the app's view is built under it.
     pub fn root(&self) -> ElementId {
-        todo!()
+        self.root
+            .expect("ViewTree::new sets the root before returning")
     }
 
     /// Number of elements, the root included.
     pub fn len(&self) -> usize {
-        todo!()
+        self.elements.len()
     }
 
     /// True if the tree has no elements (never, while it exists: the root is always there).
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.elements.is_empty()
     }
 
     /// True if `id` is an element of this tree.
     pub fn contains(&self, id: ElementId) -> bool {
-        let _ = id;
-        todo!()
+        self.element(id).is_some()
     }
 
     /// The element's kind.
     pub fn kind(&self, id: ElementId) -> Option<ElementKind> {
-        let _ = id;
-        todo!()
+        self.element(id).map(|e| match e.kind {
+            Kind::Render(_) => ElementKind::Render,
+            Kind::Region => ElementKind::Region,
+        })
     }
 
     /// The element's parent (`None` for the root or an unknown id).
     pub fn parent(&self, id: ElementId) -> Option<ElementId> {
-        let _ = id;
-        todo!()
+        self.element(id)?.parent
     }
 
     /// The element's children, in order (empty for an unknown id).
     pub fn children(&self, id: ElementId) -> &[ElementId] {
-        let _ = id;
-        todo!()
+        self.element(id).map_or(&[][..], |e| e.children.as_slice())
     }
 
     /// A render element's layout node.
     pub fn layout_id(&self, id: ElementId) -> Option<LayoutId> {
-        let _ = id;
-        todo!()
+        match self.element(id)?.kind {
+            Kind::Render(layout) => Some(layout),
+            Kind::Region => None,
+        }
     }
 
     /// The element's reactive scope.
     pub fn scope(&self, id: ElementId) -> Option<Scope> {
-        let _ = id;
-        todo!()
+        self.element(id).map(|e| e.scope)
     }
 
     /// The layout tree (read-only; it changes only through the view tree).
@@ -177,20 +255,130 @@ impl ViewTree {
     /// removes their layout nodes, and updates the parent. Returns the number of elements
     /// removed (0 for the root or an unknown id).
     pub fn remove(&mut self, id: ElementId) -> usize {
-        let _ = id;
-        todo!()
+        let Some(element) = self.element(id) else {
+            return 0;
+        };
+        let Some(parent) = element.parent else {
+            return 0; // the root
+        };
+        let scope = element.scope;
+        // The scope owns the descendants' scopes, so disposing it stops them all.
+        let runtime = self.runtime.clone();
+        runtime.enter(|| scope.dispose());
+        self.remove_layout_nodes(id);
+        let mut removed = 0;
+        let mut stack = vec![id];
+        while let Some(next) = stack.pop() {
+            if let Some(e) = arena_id(next).and_then(|a| self.elements.remove(a)) {
+                stack.extend(e.children);
+                removed += 1;
+            }
+        }
+        if let Some(p) = arena_id(parent).and_then(|a| self.elements.get_mut(a)) {
+            p.children.retain(|c| *c != id);
+        }
+        self.sync_layout_children(parent);
+        removed
     }
 
     /// Runs a layout pass over the whole tree with `constraints` for the root (the window) and
     /// `text` as the text measurer; returns the root's size.
     pub fn layout(&mut self, constraints: BoxConstraints, text: &mut dyn TextMeasure) -> Size {
-        let _ = (constraints, text);
-        todo!()
+        match self.layout_id(self.root()) {
+            Some(root) => self.layout.with_text(text).layout(root, constraints),
+            None => Size::ZERO,
+        }
     }
 
     /// Runs `f` with the tree's runtime current (to read or write signals from outside).
     pub fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
-        let _ = (f, &self.elements, &self.root, &self.runtime);
-        todo!()
+        self.runtime.enter(f)
+    }
+
+    fn element(&self, id: ElementId) -> Option<&Element> {
+        self.elements.get(arena_id(id)?)
+    }
+
+    /// Adds an element of `kind` as the last child of `parent`, with a scope owned by the
+    /// parent's scope.
+    fn add_element(&mut self, parent: ElementId, kind: Kind) -> ElementId {
+        let scope = match self.scope(parent) {
+            Some(parent_scope) => parent_scope.run(Scope::new),
+            None => Scope::new(),
+        };
+        let id = ElementId::from(self.elements.insert(Element {
+            parent: Some(parent),
+            children: Vec::new(),
+            scope,
+            kind,
+        }));
+        if let Some(p) = arena_id(parent).and_then(|a| self.elements.get_mut(a)) {
+            p.children.push(id);
+        }
+        id
+    }
+
+    /// The nearest render element at or above `id`.
+    fn render_ancestor(&self, mut id: ElementId) -> Option<ElementId> {
+        loop {
+            let element = self.element(id)?;
+            match element.kind {
+                Kind::Render(_) => return Some(id),
+                Kind::Region => id = element.parent?,
+            }
+        }
+    }
+
+    /// Recomputes the layout children of the render element at or above `id` (VIEW-TREE-04).
+    fn sync_layout_children(&mut self, id: ElementId) {
+        let Some(owner) = self.render_ancestor(id) else {
+            return;
+        };
+        let Some(layout) = self.layout_id(owner) else {
+            return;
+        };
+        let mut flat = Vec::new();
+        self.collect_layout_children(owner, &mut flat);
+        if let Err(error) = self.layout.set_children(layout, &flat) {
+            tracing::error!(?error, "view tree out of step with its layout tree");
+        }
+    }
+
+    /// The layout nodes of `id`'s children, with regions replaced by their own children.
+    fn collect_layout_children(&self, id: ElementId, out: &mut Vec<LayoutId>) {
+        for child in self.children(id) {
+            match self.element(*child).map(|e| &e.kind) {
+                Some(Kind::Render(layout)) => out.push(*layout),
+                Some(Kind::Region) => self.collect_layout_children(*child, out),
+                None => {}
+            }
+        }
+    }
+
+    /// Removes the layout nodes owned by `id` and its descendants: a render element's node
+    /// takes its render descendants' nodes with it; a region's render children are removed
+    /// one by one.
+    fn remove_layout_nodes(&mut self, id: ElementId) {
+        match self.element(id).map(|e| &e.kind) {
+            Some(Kind::Render(layout)) => {
+                let layout = *layout;
+                self.layout.remove(layout);
+            }
+            Some(Kind::Region) => {
+                let children = self.children(id).to_vec();
+                for child in children {
+                    self.remove_layout_nodes(child);
+                }
+            }
+            None => {}
+        }
+    }
+}
+
+impl Drop for ViewTree {
+    fn drop(&mut self) {
+        if let Some(scope) = self.root.and_then(|root| self.scope(root)) {
+            self.runtime.enter(|| scope.dispose());
+        }
     }
 }

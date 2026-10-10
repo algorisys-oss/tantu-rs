@@ -56,10 +56,13 @@ impl View for Col {
     }
 }
 
+/// Code run inside a region's build.
+type Hook = Box<dyn FnOnce(&mut BuildCx<'_>)>;
+
 /// A region with children and an optional hook run inside its build.
 struct Region {
     children: Vec<AnyView>,
-    hook: Option<Box<dyn FnOnce(&mut BuildCx<'_>)>>,
+    hook: Option<Hook>,
 }
 
 fn region(children: Vec<AnyView>) -> AnyView {
