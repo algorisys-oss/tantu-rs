@@ -68,7 +68,7 @@ faster or more portable without changing how apps are written.
 - [x] `tantu-reactive`: `Signal`, `Memo`, `Effect`, batch, scoped disposal, and tests for glitch-freedom
 - [x] Reactive micro-benchmarks (spec `docs/specs/reactive/benchmarks.md`)
 
-### Phase 1 — Pixels on screen (weeks 3–5)
+### Phase 1 — Pixels on screen (weeks 3–5) — done 2026-10-10
 - [x] `tantu-scene`:
   - [x] `Scene` and its builder: command set (with element id + z-index), clip/transform/layer scopes, overlay color, glyph runs, custom commands, resource handle types, damage, culling query (spec `docs/specs/scene/scene.md`)
   - [x] `Renderer` trait, image/font resource registry, custom-command handlers (spec `docs/specs/scene/renderer.md`)
@@ -81,7 +81,7 @@ faster or more portable without changing how apps are written.
   - [x] `tantu-platform-winit`: winit 0.30 shell, event conversion, window handles for renderers (spec `docs/specs/platform-winit/shell.md`)
 - [x] `tantu-render-wgpu`: rects, rounded rects, borders, shadows, clips, images (spec `docs/specs/render-wgpu/renderer.md`)
 - [x] `examples/scene-window`: Phase 1 demo, a hand-built Scene drawn in a winit window with wgpu (spec `docs/specs/examples/scene-window.md`; depends on the crates directly until the `tantu` facade exists in Phase 2)
-- [ ] **Milestone:** a hand-built Scene renders the same in wgpu and software (golden diff within the cross-backend tolerance); reference Scenes and goldens in a renderer conformance crate every backend is tested against (spec `docs/specs/render-conformance/conformance.md`, ADR 0008)
+- [x] **Milestone:** a hand-built Scene renders the same in wgpu and software (golden diff within the cross-backend tolerance); reference Scenes and goldens in a renderer conformance crate every backend is tested against (spec `docs/specs/render-conformance/conformance.md`, ADR 0008)
 
 ### Phase 2 — Layout, views and text (weeks 6–10)
 - [ ] `tantu-layout`: `BoxConstraints` protocol, `RenderBox`-style trait for custom layouts; `Padding`, `Align`/`Center`, `SizedBox`, `ConstrainedBox`, `FractionallySizedBox`, `AspectRatio`, Flex (`Row`/`Column` with `Expanded`/`Flexible`/`Spacer`, main/cross-axis alignment, `spacing`), `Stack`/`Positioned`, `Wrap`, `LayoutBuilder`

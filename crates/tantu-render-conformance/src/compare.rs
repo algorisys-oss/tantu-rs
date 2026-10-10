@@ -27,18 +27,18 @@ impl MatchTolerance {
     /// in the spec: edge threshold 8, interior 10, edge 96, loose edge 16, loose edge
     /// fraction 0.05.
     pub const CROSS_BACKEND: MatchTolerance = MatchTolerance {
-        edge_threshold: 0,
-        interior: 0,
-        edge: 0,
-        loose_edge: 0,
-        loose_edge_fraction: 0.0,
+        edge_threshold: 8,
+        interior: 10,
+        edge: 96,
+        loose_edge: 16,
+        loose_edge_fraction: 0.05,
     };
 }
 
 impl Default for MatchTolerance {
     /// [`MatchTolerance::CROSS_BACKEND`].
     fn default() -> Self {
-        todo!()
+        MatchTolerance::CROSS_BACKEND
     }
 }
 
@@ -74,6 +74,64 @@ pub fn match_images(
     actual: &ImageData,
     tolerance: &MatchTolerance,
 ) -> Option<ImageMatch> {
-    let _ = (reference, actual, tolerance);
-    todo!()
+    let (width, height) = (reference.width() as usize, reference.height() as usize);
+    if (actual.width(), actual.height()) != (reference.width(), reference.height()) {
+        return None;
+    }
+    let premultiplied: Vec<[u8; 4]> = reference
+        .pixels()
+        .chunks_exact(4)
+        .map(premultiply)
+        .collect();
+
+    let mut result = ImageMatch::default();
+    for (i, actual_px) in actual.pixels().chunks_exact(4).enumerate() {
+        let (x, y) = (i % width, i / width);
+        let here = premultiplied[i];
+        let delta = difference(here, premultiply(actual_px));
+        let is_edge = (y.saturating_sub(1)..=(y + 1).min(height - 1)).any(|ny| {
+            (x.saturating_sub(1)..=(x + 1).min(width - 1)).any(|nx| {
+                difference(here, premultiplied[ny * width + nx]) > tolerance.edge_threshold
+            })
+        });
+        if is_edge {
+            result.edge_pixels += 1;
+            result.max_edge_delta = result.max_edge_delta.max(delta);
+            result.edge_failures += u64::from(delta > tolerance.edge);
+            result.loose_edge_pixels += u64::from(delta > tolerance.loose_edge);
+        } else {
+            result.max_interior_delta = result.max_interior_delta.max(delta);
+            result.interior_failures += u64::from(delta > tolerance.interior);
+        }
+    }
+
+    // NaN fails both comparisons and becomes 0.
+    let fraction = if tolerance.loose_edge_fraction > 0.0 {
+        f64::from(tolerance.loose_edge_fraction.min(1.0))
+    } else {
+        0.0
+    };
+    // Exact for any pixel count an image can have (well below 2^53).
+    result.loose_edge_allowance = (fraction * result.edge_pixels as f64).floor() as u64;
+    result.passed = result.interior_failures == 0
+        && result.edge_failures == 0
+        && result.loose_edge_pixels <= result.loose_edge_allowance;
+    Some(result)
+}
+
+/// A straight-alpha RGBA8 pixel premultiplied, each color channel rounded to nearest.
+fn premultiply(px: &[u8]) -> [u8; 4] {
+    let a = u32::from(px[3]);
+    // Round half up; at most 255 · 255 + 127, so it fits, and the quotient is at most 255.
+    let m = |c: u8| ((u32::from(c) * a + 127) / 255) as u8;
+    [m(px[0]), m(px[1]), m(px[2]), px[3]]
+}
+
+/// The largest channel difference between two pixels.
+fn difference(a: [u8; 4], b: [u8; 4]) -> u8 {
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| x.abs_diff(y))
+        .max()
+        .unwrap_or(0)
 }

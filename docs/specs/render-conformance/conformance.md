@@ -1,6 +1,6 @@
 # Renderer conformance and the Phase 1 milestone
 
-- **Status:** Agreed
+- **Status:** Implemented
 - **Crate:** `tantu-render-conformance` (new); milestone tests in `tantu-render-wgpu` and
   `scene-window`
 - **Plan item:** Phase 1, "**Milestone:** a hand-built Scene renders the same in wgpu and
