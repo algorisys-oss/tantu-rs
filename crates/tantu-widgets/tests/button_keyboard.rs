@@ -143,12 +143,14 @@ fn widgets_button_06_space_and_enter_activate() {
     repeat.repeat = true;
     tree.dispatch_key(repeat);
     assert_eq!(count.get(), 0);
+    // The ignored repeat bubbled on to the outer handler.
+    assert_eq!(seen.get(), 1);
     tree.dispatch_key(KeyEvent::press(enter(), Modifiers::default()));
-    assert_eq!((count.get(), seen.get()), (1, 0));
+    assert_eq!((count.get(), seen.get()), (1, 1));
     let on = sig.get().expect("built");
     tree.enter(|| on.set(false));
     tree.dispatch_key(KeyEvent::press(enter(), Modifiers::default()));
-    assert_eq!((count.get(), seen.get()), (1, 1));
+    assert_eq!((count.get(), seen.get()), (1, 2));
 }
 
 /// A button inside a box that counts the Enter presses that bubble past the button.
