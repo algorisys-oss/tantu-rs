@@ -29,9 +29,10 @@ depend on `tantu-layout` (decision 36, review). **Text in views is done**
 `RenderParagraph`. A CI failure on `ab86cee` (Linux runners lack fontconfig's development
 package) is fixed in `a19b609` with fontique's `fontconfig-dlopen` (CI green again on
 `af91790`). **Glyph rasterizer done** (`docs/specs/text/raster.md`, TEXT-RASTER-01..04): swash
-coverage masks shared by both renderers. Next: drawing glyph runs in `tantu-render-soft` and
-`tantu-render-wgpu`, a text reference Scene, then event dispatch, the facade with the counter
-example, `WidgetTester`.
+coverage masks shared by both renderers. **The software renderer draws text**
+(RENDER-SOFT-27/28; RENDER-SOFT-04 now counts only unreadable fonts). Next: glyph runs in
+`tantu-render-wgpu` (glyph atlas), a text reference Scene, then event dispatch, the facade
+with the counter example, `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -546,7 +547,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `88afc14` | spec: glyph rasterizer (TEXT-RASTER-01..04); PLAN.md glyph item split |
 | `6582f9c` | test: glyph rasterizer, 4 failing tests; swash dependency |
 | `74ac56f` | impl: glyph rasterizer |
-| _this commit_ | docs: HANDOFF.md for the glyph rasterizer |
+| `1612df7` | docs: HANDOFF.md for the glyph rasterizer |
+| `ce8eaa6` | spec: glyph runs in tantu-render-soft (RENDER-SOFT-27, -28); TEXT-RASTER-05 |
+| `f1e73ed` | test: glyph runs in render-soft, readable fonts; 3 failing tests |
+| `fc17fee` | impl: glyph runs in tantu-render-soft; `GlyphRasterizer::readable` |
+| _this commit_ | docs: HANDOFF.md for text in the software renderer |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
