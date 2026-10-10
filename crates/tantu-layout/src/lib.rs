@@ -42,6 +42,7 @@ mod alignment;
 mod constraints;
 mod flex;
 mod single_child;
+mod stack;
 mod tree;
 
 pub use alignment::Alignment;
@@ -53,4 +54,5 @@ pub use single_child::{
     RenderAspectRatio, RenderConstrainedBox, RenderFractionallySizedBox, RenderPadding,
     RenderPositionedBox,
 };
+pub use stack::{RenderStack, StackFit, StackParentData};
 pub use tree::{IntrinsicChildren, LayoutChildren, LayoutId, LayoutTree, RenderBox, TreeError};
