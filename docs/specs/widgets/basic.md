@@ -1,6 +1,6 @@
 # Text and Button
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-widgets` (plus one field added to `tantu-view`'s `PointerCx`)
 - **Plan item:** Phase 2, `tantu` facade → "`Text` and `Button`"
 - **Related:** [shared text styles](../text/styles.md), [text in views](../view/text.md),
@@ -65,10 +65,17 @@ pub struct PointerCx<'a> {
 }
 ```
 
-`Button` builds a render element with a `RenderPadding` of 24 horizontal and 10 vertical,
-inside a `RenderConstrainedBox` with a minimum height of 40 and a minimum width of 64 (Material
-3's filled button). A `Text` label in `TextStyle::label()` sits under it, centered. A
-`ButtonPaint` fills a rounded rect with radius 20 (fully rounded at 40 px):
+`Button` builds the elements of Material 3's filled button:
+
+- an outer render element with a `RenderConstrainedBox` with a minimum width of 64 and a
+  minimum height of 40, which holds the pointer handlers and a `ButtonPaint`;
+- under it, a `RenderPadding` of 24 horizontal and 10 vertical;
+- under that, an `Align` at the center with width and height factors of 1, as in Flutter's
+  `ButtonStyleButton`, so the label stays centered when the minimum size is larger;
+- inside it, a `Text` label in `TextStyle::label()`.
+
+The `ButtonPaint` fills a rounded rect with radius 20 (fully rounded at 40 px). "Over" means
+source-over blending in sRGB (`c · (1 − a) + a`):
 
 | State | Fill | Label |
 |---|---|---|
@@ -104,7 +111,7 @@ unless the label changes.
 
 ## Open questions
 
-1. **Material 3 filled-button metrics and colors as the fixed Phase 2 look.** Proposal: yes.
-   They match the Flutter defaults readers know, and the theme replaces them in Phase 3.
-2. **`on_press` on release inside**, with no gesture arena. Proposal: yes. Gestures (tap
-   slop, long press) come in Phase 3.
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **Material 3 filled-button metrics and colors** as the fixed Phase 2 look.
+2. **`on_press` on release inside**, with no gesture arena until Phase 3.

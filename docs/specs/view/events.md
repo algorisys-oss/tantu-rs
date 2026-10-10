@@ -71,7 +71,7 @@ pub enum CursorIcon { Default, Pointer, Text, Grab, Grabbing, NotAllowed, Resize
 
 /// What a handler receives: the event, the element, and its position in the element's
 /// coordinates.
-pub struct PointerCx<'a> { /* event, element, local position, phase */ }
+pub struct PointerCx<'a> { /* event, element, local position, phase, size */ }
 
 impl BuildCx<'_> {
     /// Calls `handler` for pointer events in `phase` on paths through `element`.
@@ -113,6 +113,9 @@ impl ViewTree {
 - **VIEW-EVENT-06:** Removing an element removes its handlers and cursor; a capture held by a removed
   element is released. Nothing panics for any event, including during dispatch to an element
   that a handler removes (the removal takes effect at the next frame, ADR 0011).
+- **VIEW-EVENT-07:** `PointerCx::size` is the element's size from the last layout (`Size::ZERO` if
+  never laid out), so a handler can tell whether a release lands inside the element. (Added
+  with [Text and Button](../widgets/basic.md).)
 
 ## Open questions
 
