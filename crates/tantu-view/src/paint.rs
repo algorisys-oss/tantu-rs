@@ -87,7 +87,7 @@ impl<'b> PaintCx<'_, 'b> {
 
     /// The text painter of this paint pass.
     pub fn text(&mut self) -> &mut dyn TextPainter {
-        todo!()
+        &mut *self.text
     }
 
     /// Paints text through the painter into this context's Scene builder (`text()` and
@@ -101,18 +101,22 @@ impl<'b> PaintCx<'_, 'b> {
         color: Color,
         origin: Point,
     ) {
-        let _ = (text, style, max_width, max_lines, color, origin);
-        todo!()
+        self.text
+            .paint_text(self.scene, text, style, max_width, max_lines, color, origin);
     }
 
     /// The element's constraints from the last layout.
     pub fn constraints(&self) -> BoxConstraints {
-        todo!()
+        self.tree
+            .layout_id(self.element)
+            .and_then(|layout| self.tree.layout_tree().constraints(layout))
+            .unwrap_or_default()
     }
 
     /// The element's layout object, if it is an `R`.
     pub fn render<R: RenderBox>(&self) -> Option<&R> {
-        todo!()
+        let layout = self.tree.layout_id(self.element)?;
+        self.tree.layout_tree().get::<R>(layout)
     }
 
     /// Don't paint the children at all.

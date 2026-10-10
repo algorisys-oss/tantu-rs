@@ -1,6 +1,6 @@
 # Text in views
 
-- **Status:** Agreed (decided by the agent while the user was away, at their request; review)
+- **Status:** Implemented (decided by the agent while the user was away, at their request; review)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 2, `tantu-text` → "Text in views"
 - **Related:** [ADR 0010](../../adr/0010-text-measurement-in-layout.md), [paint](paint.md),

@@ -2,7 +2,7 @@
 //! Spec: `docs/specs/view/text.md`.
 
 use tantu_core::{Color, Point};
-use tantu_layout::{NoTextMeasure, TextMeasure, TextMetrics, TextStyleKey};
+use tantu_layout::{NoTextMeasure, RenderParagraph, TextMeasure, TextMetrics, TextStyleKey};
 use tantu_scene::{Resources, SceneBuilder};
 use tantu_text::TextSystem;
 
@@ -38,7 +38,6 @@ impl TextPainter for NoTextMeasure {
         origin: Point,
     ) {
         let _ = (scene, text, style, max_width, max_lines, color, origin);
-        todo!()
     }
 }
 
@@ -63,20 +62,11 @@ impl TextMeasure for SystemText<'_> {
         max_width: f32,
         max_lines: Option<u32>,
     ) -> TextMetrics {
-        let _ = (
-            text,
-            style,
-            max_width,
-            max_lines,
-            &self.system,
-            &self.resources,
-        );
-        todo!()
+        self.system.measure(text, style, max_width, max_lines)
     }
 
     fn min_intrinsic_width(&mut self, text: &str, style: TextStyleKey) -> f32 {
-        let _ = (text, style);
-        todo!()
+        self.system.min_intrinsic_width(text, style)
     }
 }
 
@@ -91,8 +81,16 @@ impl TextPainter for SystemText<'_> {
         color: Color,
         origin: Point,
     ) {
-        let _ = (scene, text, style, max_width, max_lines, color, origin);
-        todo!()
+        self.system.paint(
+            scene,
+            self.resources,
+            text,
+            style,
+            max_width,
+            max_lines,
+            color,
+            origin,
+        );
     }
 }
 
@@ -105,7 +103,17 @@ pub struct ParagraphPaint {
 
 impl Paint for ParagraphPaint {
     fn paint(&self, cx: &mut PaintCx<'_, '_>) {
-        let _ = cx;
-        todo!()
+        let Some(paragraph) = cx.render::<RenderParagraph>() else {
+            return;
+        };
+        let (text, style, max_lines) =
+            (paragraph.text.clone(), paragraph.style, paragraph.max_lines);
+        // Wrap where layout wrapped (VIEW-TEXT-04).
+        let width = if paragraph.soft_wrap {
+            cx.constraints().max_width
+        } else {
+            f32::INFINITY
+        };
+        cx.paint_text(&text, style, width, max_lines, self.color, Point::ZERO);
     }
 }
