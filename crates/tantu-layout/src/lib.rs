@@ -44,6 +44,7 @@ mod flex;
 mod single_child;
 mod stack;
 mod tree;
+mod wrap;
 
 pub use alignment::Alignment;
 pub use constraints::BoxConstraints;
@@ -56,3 +57,4 @@ pub use single_child::{
 };
 pub use stack::{RenderStack, StackFit, StackParentData};
 pub use tree::{IntrinsicChildren, LayoutChildren, LayoutId, LayoutTree, RenderBox, TreeError};
+pub use wrap::{RenderWrap, WrapAlignment, WrapCrossAlignment};
