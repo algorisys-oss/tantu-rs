@@ -17,7 +17,9 @@ milestone, deciding forks with the recommended option and marking them for revie
 (Solid/Leptos style), order **as PLAN.md** (tantu-view, then tantu-text, events, facade,
 WidgetTester), and AGENTS.md now says every crate may depend on `tantu-core`.
 
-Next: the `tantu-view` design (ADR + PLAN.md split), then its specs.
+Progress while the user is away: ADR 0011 (view layer) and the PLAN.md split of `tantu-view`
+into five specs; the first, `docs/specs/view/tree.md` (VIEW-TREE-01..11), is Implemented.
+Next: `view/paint.md`, then `frame.md`, `dynamic.md`, `layout-builder.md`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -337,6 +339,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     **Reactivity model for `tantu-view`:** components run once; reactive props are fine-grained
     effects; dynamic parts are explicit reactive views reconciled by key (the user's choice).
 
+35. **View layer** (2026-10-10, ADR 0011; reactivity model by the user, the rest decided by the
+    agent while the user was away; review): views are one-shot builders (`View::build(self,
+    &mut BuildCx) -> ElementId`, `AnyView`); a `ViewTree` per window owns an `Rc<Runtime>`, the
+    element arena and the `LayoutTree`; render elements own a layout node, region elements
+    don't and are flattened into their render ancestor's layout children; every element has a
+    reactive scope owned by its parent's; effects will queue updates applied per frame;
+    element ids are Scene `ElementId`s; an implicit root element passes the window constraints
+    to the app's view.
+
 ## Commit log
 
 | Commit | Summary |
@@ -459,16 +470,19 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `0f6eb86` | spec: layout benchmarks (LAYOUT-BENCH-01..05) |
 | `37e8e3a` | test: layout benchmarks, 5 failing tests |
 | `94839cb` | impl: layout benchmarks; 10k-node full layout in 635 µs |
-| _this commit_ | docs: AGENTS.md (every crate may depend on tantu-core); HANDOFF.md |
+| `2a9c3a4` | docs: AGENTS.md (every crate may depend on tantu-core); HANDOFF.md |
+| `64cd972` | spec: view tree (VIEW-TREE-01..11); ADR 0011, PLAN.md tantu-view split |
+| `63e8e09` | test: view tree, 11 failing tests |
+| `db138c8` | impl: view tree |
+| _this commit_ | docs: HANDOFF.md for the view tree |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 2 in PLAN.md)
 
-1. `tantu-view` design: ADR (views, elements, run-once components, reactive props, keyed
-   dynamic children, layout-node ownership, paint with culling) and a PLAN.md split into specs.
-2. `tantu-view` specs, tests, implementation.
+1. `tantu-view`: paint (`view/paint.md`), reactive props and frames (`frame.md`), dynamic
+   content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
 3. `tantu-text` (parley; implements `TextMeasure`), event dispatch, the `tantu` facade with the
    counter example, `WidgetTester`.
 
@@ -493,6 +507,8 @@ that with the real hash from `git log`.
 - **Shadows with a radius over half a side** still use the quadrant approximation in the wgpu
   blur shader (Evan Wallace's closed form supports one radius per quadrant). Not covered by a
   reference Scene yet; check when shadows get a closer look.
+- **Review ADR 0011 and the view-tree spec** (decided by the agent while the user was away,
+  decision 35).
 - **Review the agent's decisions in the flex, stack and wrap specs** (decision 33).
 - **Review ADR 0008** and the new AGENTS.md row for `tantu-render-conformance` (made under
   "your pick").
