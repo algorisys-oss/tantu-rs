@@ -152,7 +152,7 @@ fn fixture() -> (ViewTree, Log) {
             )
             .bind(SingleActivator::character("e").control(), Export);
         let column = Column(vec![
-            AnyView::new(Keyed::new("inner", field)),
+            AnyView::new(field),
             AnyView::new(Keyed::new("other", Field)),
         ]);
         let outer = Shortcuts::new(Keyed::new(
