@@ -18,8 +18,8 @@ milestone, deciding forks with the recommended option and marking them for revie
 WidgetTester), and AGENTS.md now says every crate may depend on `tantu-core`.
 
 Progress while the user is away: ADR 0011 (view layer) and the PLAN.md split of `tantu-view`
-into five specs; the first, `docs/specs/view/tree.md` (VIEW-TREE-01..11), is Implemented.
-Next: `view/paint.md`, then `frame.md`, `dynamic.md`, `layout-builder.md`.
+into five specs; `docs/specs/view/tree.md` (VIEW-TREE-01..11) and `view/paint.md`
+(VIEW-PAINT-01..06) are Implemented. Next: `frame.md`, `dynamic.md`, `layout-builder.md`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -346,7 +346,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     don't and are flattened into their render ancestor's layout children; every element has a
     reactive scope owned by its parent's; effects will queue updates applied per frame;
     element ids are Scene `ElementId`s; an implicit root element passes the window constraints
-    to the app's view.
+    to the app's view. Paint: a `Paint` trait per render element, a transform scope per render
+    element (restores element id and z-index), children painted once (explicitly or after
+    `paint`), conservative culling of leaves and clipping elements.
 
 ## Commit log
 
@@ -474,14 +476,19 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `64cd972` | spec: view tree (VIEW-TREE-01..11); ADR 0011, PLAN.md tantu-view split |
 | `63e8e09` | test: view tree, 11 failing tests |
 | `db138c8` | impl: view tree |
-| _this commit_ | docs: HANDOFF.md for the view tree |
+| `314cb27` | docs: HANDOFF.md for the view tree |
+| `45f8950` | spec: view paint (VIEW-PAINT-01..06) |
+| `e13d9f7` | test: view paint, 6 failing tests |
+| `76666ea` | test: VIEW-PAINT-02 offsets follow the column's centered cross alignment |
+| `109e2ed` | impl: view paint |
+| _this commit_ | docs: HANDOFF.md for view paint |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps (Phase 2 in PLAN.md)
 
-1. `tantu-view`: paint (`view/paint.md`), reactive props and frames (`frame.md`), dynamic
+1. `tantu-view`: reactive props and frames (`frame.md`), dynamic
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
 3. `tantu-text` (parley; implements `TextMeasure`), event dispatch, the `tantu` facade with the
    counter example, `WidgetTester`.
