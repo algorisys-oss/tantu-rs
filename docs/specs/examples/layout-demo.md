@@ -1,6 +1,6 @@
 # Layout demo
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `examples/layout-demo`
 - **Plan item:** Phase 2, "**Milestone:** counter + layout demo run on Linux (Wayland + X11),
   Windows and macOS"
