@@ -52,8 +52,11 @@ layout-demo`). Running it in a real window found a bug, fixed in a `spec:`/`test
 surface. Each window now has a background color (`Window::background`, default white).
 **The Phase 2 milestone is met** (ticked 2026-10-10): `counter` and `layout-demo` run on
 Linux Wayland and X11 (checked by the agent) and on Windows and macOS (checked by the user).
-Left in Phase 2: the `tantu-text` parent item, whose sub-items are done but which has no rules
-for bidi and font fallback yet.
+Left in Phase 2: the `tantu-text` parent item. **Waiting for the user:**
+`docs/specs/text/scripts.md` is a Draft. Bidi already works and only needs rules. Per-character
+font fallback doesn't work without system fonts (a character missing from the style's and
+default families is a missing-glyph box even when another registered font has it). The fix
+proposed: the family stack lists every registered family. Three open questions.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -670,7 +673,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `d8da396` | test: windows paint a background, failing |
 | `6a3e5b0` | fix: windows paint their background color |
 | `548dc60` | docs: HANDOFF.md for the layout demo and the background fix |
-| _this commit_ | docs: Phase 2 milestone ticked (user checked Windows and macOS) |
+| `af7b73c` | docs: Phase 2 milestone ticked (user checked Windows and macOS) |
+| _this commit_ | docs: draft bidi and font fallback spec for review; PLAN.md sub-item |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
