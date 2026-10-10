@@ -112,7 +112,7 @@ fn view_frame_01_into_prop() {
         let from_memo: Prop<u32> = m.into_prop();
         assert_eq!(from_memo.get(), 8);
         let same: Prop<bool> = Prop::Value(true).into_prop();
-        assert_eq!(same.get(), true);
+        assert!(same.get());
     });
 }
 
@@ -379,6 +379,9 @@ impl View for Chain {
     }
 }
 
+/// Two signals handed out of a tree's build.
+type SignalPair = (Signal<u32>, Signal<u32>);
+
 #[test]
 fn view_frame_08_robustness() {
     // Unbounded constraints: the Scene takes the root's size.
@@ -392,7 +395,7 @@ fn view_frame_08_robustness() {
     assert_eq!(scene.size(), s(30.0, 20.0));
     // apply may write signals: their values are applied in the next frame.
     let log: Rc<RefCell<Vec<String>>> = Rc::default();
-    let sigs: Rc<Cell<Option<(Signal<u32>, Signal<u32>)>>> = Rc::default();
+    let sigs: Rc<Cell<Option<SignalPair>>> = Rc::default();
     let mut tree = {
         let (log, sigs) = (log.clone(), sigs.clone());
         ViewTree::new(move || {

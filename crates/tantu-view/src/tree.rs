@@ -9,6 +9,7 @@ use tantu_layout::{BoxConstraints, LayoutChildren, LayoutId, LayoutTree, RenderB
 use tantu_reactive::{Runtime, Scope};
 use tantu_scene::{ElementId, SceneBuilder};
 
+use crate::frame::Shared;
 use crate::paint::Children;
 use crate::{NoPaint, Paint, PaintCx};
 
@@ -46,7 +47,7 @@ pub enum ElementKind {
 
 /// The context a view builds in: the tree and the current parent element.
 pub struct BuildCx<'a> {
-    tree: &'a mut ViewTree,
+    pub(crate) tree: &'a mut ViewTree,
     parent: ElementId,
 }
 
@@ -131,15 +132,15 @@ impl BuildCx<'_> {
 }
 
 /// One element.
-struct Element {
+pub(crate) struct Element {
     parent: Option<ElementId>,
     children: Vec<ElementId>,
     scope: Scope,
-    kind: Kind,
+    pub(crate) kind: Kind,
 }
 
 /// The element kind, with a render element's layout node and paint behavior.
-enum Kind {
+pub(crate) enum Kind {
     Render(LayoutId, Box<dyn Paint>),
     Region,
 }
@@ -169,16 +170,17 @@ impl RenderBox for RootBox {
 }
 
 /// The arena id behind an element id.
-fn arena_id(id: ElementId) -> Option<Id> {
+pub(crate) fn arena_id(id: ElementId) -> Option<Id> {
     Id::from_bits(id.to_raw())
 }
 
 /// The views, elements and layout of one window, with its reactive runtime.
 pub struct ViewTree {
-    elements: Arena<Element>,
-    layout: LayoutTree,
+    pub(crate) elements: Arena<Element>,
+    pub(crate) layout: LayoutTree,
     root: Option<ElementId>,
-    runtime: Rc<Runtime>,
+    pub(crate) runtime: Rc<Runtime>,
+    pub(crate) shared: Rc<Shared>,
 }
 
 impl ViewTree {
@@ -190,6 +192,7 @@ impl ViewTree {
             layout: LayoutTree::new(),
             root: None,
             runtime: Rc::new(Runtime::new()),
+            shared: Rc::default(),
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {

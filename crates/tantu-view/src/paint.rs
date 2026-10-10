@@ -1,13 +1,17 @@
 //! [`Paint`] and [`PaintCx`]: how render elements become Scene commands (ADR 0011, point 8).
 //! Spec: `docs/specs/view/paint.md`.
 
+use std::any::Any;
+
 use tantu_core::Size;
 use tantu_scene::{ElementId, SceneBuilder};
 
 use crate::ViewTree;
 
-/// How a render element draws itself and where its children are painted.
-pub trait Paint: 'static {
+/// How a render element draws itself and where its children are painted. (`Any`, so
+/// [`ElementMut::paint`](crate::ElementMut::paint) can downcast it; every `'static` type is
+/// `Any`.)
+pub trait Paint: Any {
     /// Draws the element. `cx` is in the element's coordinates ((0, 0) is its top-left corner,
     /// its size is `cx.size()`), with its id as the current element. The children are painted
     /// where this calls [`PaintCx::paint_children`], or after it returns if it doesn't (unless

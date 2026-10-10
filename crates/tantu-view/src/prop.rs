@@ -25,12 +25,15 @@ impl<T> Prop<T> {
     where
         T: Clone,
     {
-        todo!()
+        match self {
+            Prop::Value(value) => value.clone(),
+            Prop::Dynamic(f) => f(),
+        }
     }
 
     /// True for `Dynamic`.
     pub fn is_dynamic(&self) -> bool {
-        todo!()
+        matches!(self, Prop::Dynamic(_))
     }
 }
 
@@ -51,25 +54,25 @@ pub trait IntoProp<T> {
 
 impl<T, F: Fn() -> T + 'static> IntoProp<T> for F {
     fn into_prop(self) -> Prop<T> {
-        todo!()
+        Prop::Dynamic(Box::new(self))
     }
 }
 
 impl<T: Clone + 'static> IntoProp<T> for Signal<T> {
     fn into_prop(self) -> Prop<T> {
-        todo!()
+        Prop::Dynamic(Box::new(move || self.get()))
     }
 }
 
 impl<T: Clone + PartialEq + 'static> IntoProp<T> for Memo<T> {
     fn into_prop(self) -> Prop<T> {
-        todo!()
+        Prop::Dynamic(Box::new(move || self.get()))
     }
 }
 
 impl<T> IntoProp<T> for Prop<T> {
     fn into_prop(self) -> Prop<T> {
-        todo!()
+        self
     }
 }
 
@@ -79,7 +82,7 @@ macro_rules! value_props {
         $(
             impl IntoProp<$ty> for $ty {
                 fn into_prop(self) -> Prop<$ty> {
-                    todo!()
+                    Prop::Value(self)
                 }
             }
         )*
@@ -124,12 +127,12 @@ value_props!(
 
 impl IntoProp<Arc<str>> for &'static str {
     fn into_prop(self) -> Prop<Arc<str>> {
-        todo!()
+        Prop::Value(Arc::from(self))
     }
 }
 
 impl IntoProp<String> for &'static str {
     fn into_prop(self) -> Prop<String> {
-        todo!()
+        Prop::Value(self.to_owned())
     }
 }
