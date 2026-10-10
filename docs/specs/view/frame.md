@@ -95,7 +95,7 @@ impl BuildCx<'_> {
 /// What a frame did.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct FrameReport {
-    /// Prop values applied.
+    /// Updates applied: prop values and dynamic-content rebuilds.
     pub applied: usize,
 }
 
