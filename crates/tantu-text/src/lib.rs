@@ -17,6 +17,8 @@
 
 #![forbid(unsafe_code)]
 
+mod raster;
 mod system;
 
+pub use raster::{GlyphMask, GlyphRasterizer};
 pub use system::{FontFamily, TextStyle, TextSystem};

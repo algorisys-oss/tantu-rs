@@ -20,3 +20,5 @@ parley = "0.12.0"
 # parley's fontique, with fontconfig loaded at run time on Linux (dlopen) instead of linked at
 # build time, so building needs no fontconfig development package.
 fontique = { version = "0.12.0", default-features = false, features = ["fontconfig-dlopen"] }
+# Glyph coverage masks for the renderers (ADR 0005).
+swash = "0.2.10"
