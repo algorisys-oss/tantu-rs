@@ -20,11 +20,15 @@
 
 mod alignment;
 mod constraints;
+mod flex;
 mod single_child;
 mod tree;
 
 pub use alignment::Alignment;
 pub use constraints::BoxConstraints;
+pub use flex::{
+    Axis, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment, MainAxisSize, RenderFlex,
+};
 pub use single_child::{
     RenderAspectRatio, RenderConstrainedBox, RenderFractionallySizedBox, RenderPadding,
     RenderPositionedBox,
