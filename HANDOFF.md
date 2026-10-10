@@ -32,8 +32,10 @@ package) is fixed in `a19b609` with fontique's `fontconfig-dlopen` (CI green aga
 coverage masks shared by both renderers. **The software renderer draws text**
 (RENDER-SOFT-27/28; RENDER-SOFT-04 now counts only unreadable fonts), **and so does the wgpu
 renderer** (RENDER-WGPU-18/19, a shelf-packed R8 glyph atlas; checked on Intel Vulkan and
-lavapipe, output matches the software renderer). Next: a text reference Scene in
-`tantu-render-conformance`, then event dispatch, the facade with the counter example,
+lavapipe, output matches the software renderer). **The glyph-rasterization item is done**,
+including a `text` reference Scene and golden (RENDER-CONF-14) that every backend is checked
+against. Next: event dispatch (hit-testing, bubbling/capture, pointer capture, cursors), then
+the `tantu` facade with the counter example (needs minimal `Text`/`Button`/layout widgets),
 `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
@@ -557,7 +559,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `c478d34` | spec: glyph runs in tantu-render-wgpu (RENDER-WGPU-18, -19) |
 | `b95b516` | test: glyph runs in render-wgpu, 2 failing tests |
 | `49ebfa7` | impl: glyph runs in tantu-render-wgpu with a glyph atlas |
-| _this commit_ | docs: HANDOFF.md for text in the wgpu renderer |
+| `d5d987d` | docs: HANDOFF.md for text in the wgpu renderer |
+| `aaf28fe` | spec: a text reference Scene (RENDER-CONF-14); CONF-09 allows fresh font handles |
+| `9ef307a` | test: text reference Scene, 2 failing tests |
+| `a0afa0c` | test: RENDER-CONF-08's unknown-name examples no longer include `text` |
+| `c6d7a2f` | impl: text reference Scene and golden; PLAN.md glyph item ticked |
+| _this commit_ | docs: HANDOFF.md for the text reference Scene |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -566,9 +573,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Glyph rasterization (render-soft with swash,
-   render-wgpu with a glyph atlas, text reference Scenes), event dispatch, the `tantu` facade
-   with the counter example, `WidgetTester`.
+3. Event dispatch, the `tantu` facade with the counter example, `WidgetTester`.
 
 ## Open questions
 
