@@ -38,6 +38,7 @@
 #![forbid(unsafe_code)]
 
 mod dynamic;
+mod events;
 mod frame;
 mod layout_builder;
 mod paint;
@@ -46,6 +47,7 @@ mod text;
 mod tree;
 
 pub use dynamic::{Dyn, For, Show};
+pub use events::{CursorIcon, Handled, Phase, PointerButton, PointerCx, PointerEvent, PointerKind};
 pub use frame::{ElementMut, FrameReport};
 pub use layout_builder::LayoutBuilder;
 pub use paint::{NoPaint, Paint, PaintCx};
