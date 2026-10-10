@@ -184,6 +184,7 @@ impl ViewTree {
         }
         let path = self.hit_test(event.position);
         if event.kind == PointerKind::Down(PointerButton::Primary) {
+            self.outside_presses(&path);
             self.focus_on_press(&path);
         }
         if event.kind == PointerKind::Move {
@@ -235,6 +236,14 @@ impl ViewTree {
             return false; // never laid out
         };
         let origin = parent_origin + offset;
+        if self.is_overlay_layer(id) {
+            // Transparent itself; passthrough overlays are skipped (VIEW-OVERLAY-04).
+            return children
+                .iter()
+                .rev()
+                .filter(|child| !self.is_passthrough(**child))
+                .any(|child| self.hit_into(*child, position, origin, path));
+        }
         let (x, y) = (position.x - origin.x, position.y - origin.y);
         if !(x >= 0.0 && x < size.width && y >= 0.0 && y < size.height) {
             return false;
@@ -249,7 +258,7 @@ impl ViewTree {
     }
 
     /// The window position of a render element's top-left corner (sum of layout offsets).
-    fn origin(&self, id: ElementId) -> Vec2 {
+    pub(crate) fn origin(&self, id: ElementId) -> Vec2 {
         let mut origin = Vec2::ZERO;
         let mut next = Some(id);
         while let Some(current) = next {

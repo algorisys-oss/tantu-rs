@@ -1,6 +1,6 @@
 # Overlay and anchored positioning
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 3, "`Overlay` + anchored positioning (target/follower): 9-point anchors,
   offset, z-index, pointer passthrough, flip/clamp to window"

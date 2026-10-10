@@ -3,11 +3,13 @@
 
 use std::rc::Rc;
 
-use tantu_core::Vec2;
-use tantu_layout::Alignment;
+use tantu_core::{Rect, Size, Vec2};
+use tantu_layout::{Alignment, BoxConstraints, LayoutChildren, RenderBox, RenderConstrainedBox};
+use tantu_reactive::Scope;
 use tantu_scene::ElementId;
 
-use crate::{AnyView, BuildCx, IntoProp, Prop, View};
+use crate::tree::Kind;
+use crate::{AnyView, BuildCx, IntoProp, NoPaint, Prop, View, ViewTree};
 
 /// Where an overlay goes relative to its target (Flutter's follower, Clay's attach points).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -149,16 +151,310 @@ impl<V: View> OverlayPortal<V> {
 
 impl<V: View> View for OverlayPortal<V> {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            self.child,
-            self.visible,
-            self.content,
-            self.anchor,
-            self.z_index,
-            self.pointer,
-            self.on_outside_press,
-            cx,
+        let target = self.child.build(cx);
+        let Some(content) = self.content else {
+            return target;
+        };
+        let config = EntryConfig {
+            anchor: self.anchor,
+            z_index: self.z_index,
+            pointer: self.pointer,
+            on_outside_press: self.on_outside_press,
+        };
+        cx.bind(target, self.visible, move |e, visible| {
+            if visible {
+                e.tree.show_overlay(target, &content, &config);
+            } else {
+                e.tree.hide_overlay(target);
+            }
+        });
+        target
+    }
+}
+
+/// How a portal's overlay is placed and behaves.
+#[derive(Clone)]
+struct EntryConfig {
+    anchor: Anchor,
+    z_index: i32,
+    pointer: OverlayPointer,
+    on_outside_press: Option<Rc<dyn Fn()>>,
+}
+
+/// One shown overlay.
+struct Entry {
+    /// The wrapper render element under the layer that holds the content.
+    root: ElementId,
+    /// The portal's child, which the overlay is anchored to.
+    target: ElementId,
+    /// Owns what the content closure created (disposed when the overlay hides).
+    scope: Scope,
+    config: EntryConfig,
+    /// Insertion order, for equal z-indexes.
+    seq: u64,
+}
+
+/// The tree's overlays: the layer element (created on first use) and the shown entries.
+#[derive(Default)]
+pub(crate) struct OverlayState {
+    layer: Option<ElementId>,
+    entries: Vec<Entry>,
+    next_seq: u64,
+}
+
+/// The overlay layer's layout: as large as the window, children laid out with loose window
+/// constraints at the offsets in their parent data.
+struct OverlayLayer;
+
+/// An overlay's position in the layer (parent data).
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct OverlayOffset(Vec2);
+
+impl RenderBox for OverlayLayer {
+    fn perform_layout(
+        &mut self,
+        constraints: BoxConstraints,
+        children: &mut LayoutChildren<'_>,
+    ) -> Size {
+        let biggest = constraints.biggest();
+        let size = if biggest.is_finite() {
+            biggest
+        } else {
+            constraints.constrain(Size::ZERO)
+        };
+        let loose = BoxConstraints::loose(size);
+        for i in 0..children.len() {
+            children.layout(i, loose);
+            let offset = children
+                .parent_data::<OverlayOffset>(i)
+                .map_or(Vec2::ZERO, |o| o.0);
+            children.set_offset(i, offset);
+        }
+        size
+    }
+}
+
+/// The point at `alignment` in `size`, from its top-left corner.
+fn point_in(size: Size, alignment: Alignment) -> Vec2 {
+    Vec2::new(
+        (alignment.x + 1.0) / 2.0 * size.width,
+        (alignment.y + 1.0) / 2.0 * size.height,
+    )
+}
+
+/// Where an overlay of `size` goes for `target` in a `window` (VIEW-OVERLAY-01, -03).
+fn place(anchor: &Anchor, target: Rect, size: Size, window: Size) -> Vec2 {
+    let at = |a: &Anchor| {
+        let t = point_in(target.size(), a.target);
+        let f = point_in(size, a.follower);
+        Vec2::new(
+            target.left + t.x - f.x + a.offset.x,
+            target.top + t.y - f.y + a.offset.y,
+        )
+    };
+    let fits = |start: f32, length: f32, limit: f32| start >= 0.0 && start + length <= limit;
+    let mut anchor = *anchor;
+    let mut position = at(&anchor);
+    if anchor.flip && !fits(position.y, size.height, window.height) {
+        let mut mirrored = anchor;
+        mirrored.target.y = -anchor.target.y;
+        mirrored.follower.y = -anchor.follower.y;
+        mirrored.offset.y = -anchor.offset.y;
+        let candidate = at(&mirrored);
+        if fits(candidate.y, size.height, window.height) {
+            anchor = mirrored;
+            position = candidate;
+        }
+    }
+    if anchor.flip && !fits(position.x, size.width, window.width) {
+        let mut mirrored = anchor;
+        mirrored.target.x = -anchor.target.x;
+        mirrored.follower.x = -anchor.follower.x;
+        mirrored.offset.x = -anchor.offset.x;
+        let candidate = at(&mirrored);
+        if fits(candidate.x, size.width, window.width) {
+            position = candidate;
+        }
+    }
+    if anchor.clamp {
+        let clamp = |p: f32, length: f32, limit: f32| {
+            if length > limit {
+                0.0
+            } else {
+                p.clamp(0.0, limit - length)
+            }
+        };
+        position = Vec2::new(
+            clamp(position.x, size.width, window.width),
+            clamp(position.y, size.height, window.height),
         );
-        todo!()
+    }
+    position
+}
+
+impl ViewTree {
+    /// The overlay layer, created as the root's last child on first use.
+    fn overlay_layer(&mut self) -> ElementId {
+        if let Some(layer) = self.overlays.layer.filter(|l| self.contains(*l)) {
+            return layer;
+        }
+        let layout = self.layout.insert(OverlayLayer);
+        let layer = self.add_element(self.root(), Kind::Render(layout, Box::new(NoPaint)));
+        self.overlays.layer = Some(layer);
+        self.sync_layout_children(self.root());
+        layer
+    }
+
+    /// Shows `target`'s overlay if it isn't shown (VIEW-OVERLAY-01).
+    fn show_overlay(&mut self, target: ElementId, content: &ContentFn, config: &EntryConfig) {
+        if self.overlays.entries.iter().any(|e| e.target == target) {
+            return;
+        }
+        let Some(owner) = self.scope(target) else {
+            return;
+        };
+        let layer = self.overlay_layer();
+        let scope = owner.run(Scope::new);
+        let wrapper_layout = self
+            .layout
+            .insert(RenderConstrainedBox::new(BoxConstraints::default()));
+        let wrapper = self.add_element(layer, Kind::Render(wrapper_layout, Box::new(NoPaint)));
+        scope.run(|| {
+            let view = content();
+            view.build(&mut BuildCx {
+                tree: &mut *self,
+                parent: wrapper,
+            });
+        });
+        self.sync_layout_children(wrapper);
+        let seq = self.overlays.next_seq;
+        self.overlays.next_seq += 1;
+        self.overlays.entries.push(Entry {
+            root: wrapper,
+            target,
+            scope,
+            config: config.clone(),
+            seq,
+        });
+        self.order_overlays(layer);
+    }
+
+    /// Sorts the layer's children by z-index, then insertion order (VIEW-OVERLAY-02).
+    fn order_overlays(&mut self, layer: ElementId) {
+        let mut entries: Vec<(i32, u64, ElementId)> = self
+            .overlays
+            .entries
+            .iter()
+            .map(|e| (e.config.z_index, e.seq, e.root))
+            .collect();
+        entries.sort_by_key(|(z, seq, _)| (*z, *seq));
+        let order = entries.into_iter().map(|(_, _, root)| root).collect();
+        self.set_child_order(layer, order);
+    }
+
+    /// Hides `target`'s overlay: removes its elements and disposes its scope.
+    fn hide_overlay(&mut self, target: ElementId) {
+        let Some(index) = self
+            .overlays
+            .entries
+            .iter()
+            .position(|e| e.target == target)
+        else {
+            return;
+        };
+        let entry = self.overlays.entries.remove(index);
+        self.remove(entry.root);
+        let runtime = std::rc::Rc::clone(&self.runtime);
+        runtime.enter(|| entry.scope.dispose());
+    }
+
+    /// Hides the overlays whose targets were removed (VIEW-OVERLAY-06).
+    pub(crate) fn drop_overlays_of(&mut self, removed: &[ElementId]) {
+        let targets: Vec<ElementId> = self
+            .overlays
+            .entries
+            .iter()
+            .filter(|e| removed.contains(&e.target) || removed.contains(&e.root))
+            .map(|e| e.target)
+            .collect();
+        for target in targets {
+            self.hide_overlay(target);
+        }
+    }
+
+    /// Places every overlay for the last layout; true if a placement changed (VIEW-OVERLAY-06).
+    pub(crate) fn place_overlays(&mut self, window: Size) -> bool {
+        let mut changed = false;
+        let placements: Vec<(ElementId, Vec2)> = self
+            .overlays
+            .entries
+            .iter()
+            .filter_map(|e| {
+                let target = self.window_rect(e.target)?;
+                let size = self
+                    .layout_id(e.root)
+                    .and_then(|l| self.layout_tree().size(l))?;
+                Some((e.root, place(&e.config.anchor, target, size, window)))
+            })
+            .collect();
+        for (root, offset) in placements {
+            let Some(layout) = self.layout_id(root) else {
+                continue;
+            };
+            if self.layout.parent_data::<OverlayOffset>(layout) != Some(&OverlayOffset(offset)) {
+                self.layout
+                    .set_parent_data(layout, Some(OverlayOffset(offset)));
+                changed = true;
+            }
+        }
+        changed
+    }
+
+    /// An element's bounds in window coordinates; a region's is its children's union.
+    fn window_rect(&self, id: ElementId) -> Option<Rect> {
+        match self.layout_id(id) {
+            Some(layout) => {
+                let size = self.layout_tree().size(layout)?;
+                let origin = self.origin(id);
+                Some(Rect::from_ltwh(origin.x, origin.y, size.width, size.height))
+            }
+            None => self
+                .children(id)
+                .iter()
+                .filter_map(|c| self.window_rect(*c))
+                .reduce(Rect::union),
+        }
+    }
+
+    /// True for the overlay layer element (transparent to hit-testing, VIEW-OVERLAY-04).
+    pub(crate) fn is_overlay_layer(&self, id: ElementId) -> bool {
+        self.overlays.layer == Some(id)
+    }
+
+    /// True for an overlay wrapper with `Passthrough` (skipped by hit-testing).
+    pub(crate) fn is_passthrough(&self, id: ElementId) -> bool {
+        self.overlays
+            .entries
+            .iter()
+            .any(|e| e.root == id && e.config.pointer == OverlayPointer::Passthrough)
+    }
+
+    /// Runs the `on_outside_press` callbacks of overlays a primary press on `path` misses
+    /// (VIEW-OVERLAY-05).
+    pub(crate) fn outside_presses(&self, path: &[ElementId]) {
+        let callbacks: Vec<Rc<dyn Fn()>> = self
+            .overlays
+            .entries
+            .iter()
+            .filter(|e| !path.contains(&e.root) && !path.contains(&e.target))
+            .filter_map(|e| e.config.on_outside_press.clone())
+            .collect();
+        if !callbacks.is_empty() {
+            self.enter(|| {
+                for callback in &callbacks {
+                    callback();
+                }
+            });
+        }
     }
 }

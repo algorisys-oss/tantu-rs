@@ -18,6 +18,7 @@ use crate::focus::FocusState;
 use crate::frame::Shared;
 use crate::keys::Key;
 use crate::layout_builder::LayoutBuilderRecord;
+use crate::overlay::OverlayState;
 use crate::paint::Children;
 use crate::{NoPaint, Paint, PaintCx, TextPainter};
 
@@ -202,6 +203,7 @@ pub struct ViewTree {
     text_styles: TextStyles,
     pub(crate) keys: HashMap<ElementId, Key>,
     pub(crate) focus_state: FocusState,
+    pub(crate) overlays: OverlayState,
 }
 
 impl ViewTree {
@@ -225,6 +227,7 @@ impl ViewTree {
             text_styles: styles,
             keys: HashMap::new(),
             focus_state: FocusState::default(),
+            overlays: OverlayState::default(),
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {
@@ -328,9 +331,11 @@ impl ViewTree {
         runtime.enter(|| scope.dispose());
         self.remove_layout_nodes(id);
         let mut removed = 0;
+        let mut removed_ids = Vec::new();
         let mut stack = vec![id];
         while let Some(next) = stack.pop() {
             if let Some(e) = arena_id(next).and_then(|a| self.elements.remove(a)) {
+                removed_ids.push(next);
                 self.events.forget(next);
                 self.keys.remove(&next);
                 self.focus_state.forget(next);
@@ -342,12 +347,28 @@ impl ViewTree {
             p.children.retain(|c| *c != id);
         }
         self.sync_layout_children(parent);
+        self.drop_overlays_of(&removed_ids);
         removed
     }
 
     /// Runs a layout pass over the whole tree with `constraints` for the root (the window) and
     /// `text` as the text measurer; returns the root's size.
     pub fn layout(&mut self, constraints: BoxConstraints, text: &mut dyn TextMeasure) -> Size {
+        let size = self.layout_with_builders(constraints, &mut *text);
+        // Overlays are placed for this layout; a changed placement lays the layer out again
+        // (VIEW-OVERLAY-06).
+        if self.place_overlays(size) {
+            self.layout_pass(constraints, &mut *text);
+        }
+        size
+    }
+
+    /// A layout pass, with `LayoutBuilder` rebuild rounds.
+    fn layout_with_builders(
+        &mut self,
+        constraints: BoxConstraints,
+        text: &mut dyn TextMeasure,
+    ) -> Size {
         let mut size = self.layout_pass(constraints, &mut *text);
         // LayoutBuilders whose constraints changed rebuild, then lay out again (VIEW-LB-02, -05).
         for _ in 0..LAYOUT_BUILDER_ROUNDS {
@@ -446,7 +467,7 @@ impl ViewTree {
 
     /// Adds an element of `kind` as the last child of `parent`, with a scope owned by the
     /// parent's scope.
-    fn add_element(&mut self, parent: ElementId, kind: Kind) -> ElementId {
+    pub(crate) fn add_element(&mut self, parent: ElementId, kind: Kind) -> ElementId {
         let scope = match self.scope(parent) {
             Some(parent_scope) => parent_scope.run(Scope::new),
             None => Scope::new(),

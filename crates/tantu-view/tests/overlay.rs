@@ -382,9 +382,12 @@ impl<V: View> View for Logged<V> {
     }
 }
 
+/// The target's size and whether the portal is present.
+type SizeAndPresence = (Signal<Size>, Signal<bool>);
+
 #[test]
 fn view_overlay_06_follows_the_target_and_goes_with_the_portal() {
-    let handles: Rc<RefCell<Option<(Signal<Size>, Signal<bool>)>>> = Rc::default();
+    let handles: Rc<RefCell<Option<SizeAndPresence>>> = Rc::default();
     let h = handles.clone();
     let mut tree = ViewTree::new(move || {
         let (size, present) = (signal(Size::new(100.0, 40.0)), signal(true));
