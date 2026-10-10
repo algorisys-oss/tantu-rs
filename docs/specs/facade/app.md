@@ -1,6 +1,6 @@
 # The `tantu` facade and app runner
 
-- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals; FACADE-APP-10 added after a bug found in a real window)
 - **Crate:** `tantu`
 - **Plan item:** Phase 2, `tantu` facade → "`tantu` facade"
 - **Related:** [ADR 0004](../../adr/0004-platform-trait.md), [ADR 0011](../../adr/0011-view-layer.md),
@@ -65,6 +65,8 @@ impl Window {
     pub fn size(self, width: f32, height: f32) -> Self;
     pub fn min_size(self, width: f32, height: f32) -> Self;
     pub fn resizable(self, resizable: bool) -> Self;
+    /// The color painted behind the window's content (default `Color::WHITE`).
+    pub fn background(self, color: Color) -> Self;
 }
 
 /// An app: fonts and windows, then `run`.
@@ -164,6 +166,12 @@ FACADE-APP-08's test runs only without the `winit` or `wgpu` feature, so CI runs
   system's default family. Registered fonts are then used without being named, and apps
   that turn off system fonts still show text. With no registered font, the default stays
   `SansSerif`. (Added while agreeing: without it, generic families find no registered font.)
+- **FACADE-APP-10:** Every frame paints the window's background color, `Window::background`
+  (default `Color::WHITE`), over the whole window before the content. The runner builds each
+  window's content inside a background element that fills the window and lays the content out
+  with the window's constraints. Without it, uncovered areas showed the surface's undefined
+  contents (black on an opaque surface), which made dark text unreadable. Found by running
+  the layout demo in a real window.
 
 ## Performance and allocation
 
