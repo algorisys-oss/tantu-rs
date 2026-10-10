@@ -42,6 +42,7 @@
 mod dynamic;
 mod events;
 mod frame;
+mod keys;
 mod layout_builder;
 mod paint;
 mod prop;
@@ -51,6 +52,7 @@ mod tree;
 pub use dynamic::{Dyn, For, Show};
 pub use events::{CursorIcon, Handled, Phase, PointerButton, PointerCx, PointerEvent, PointerKind};
 pub use frame::{ElementMut, FrameReport};
+pub use keys::{Key, Keyed};
 pub use layout_builder::LayoutBuilder;
 pub use paint::{NoPaint, Paint, PaintCx};
 pub use prop::{IntoProp, Prop};

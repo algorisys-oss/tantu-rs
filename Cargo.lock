@@ -2357,6 +2357,7 @@ dependencies = [
  "tantu-render-headless",
  "tantu-render-soft",
  "tantu-view",
+ "tantu-widgets",
 ]
 
 [[package]]
