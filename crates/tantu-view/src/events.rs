@@ -183,6 +183,9 @@ impl ViewTree {
             return ran;
         }
         let path = self.hit_test(event.position);
+        if event.kind == PointerKind::Down(PointerButton::Primary) {
+            self.focus_on_press(&path);
+        }
         if event.kind == PointerKind::Move {
             self.update_hover(path.clone(), event.position);
         }

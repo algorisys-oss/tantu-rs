@@ -219,6 +219,7 @@ impl App {
             windows: Vec::new(),
             factory: Box::new(renderer),
             error: None,
+            modifiers: tantu_view::Modifiers::default(),
         }
     }
 }
@@ -269,6 +270,8 @@ pub struct AppHandler {
     windows: Vec<WindowState>,
     factory: RendererFactory,
     error: Option<Error>,
+    /// The modifiers held, from `ModifiersChanged` (FACADE-APP-11).
+    modifiers: tantu_view::Modifiers,
 }
 
 impl AppHandler {
@@ -392,6 +395,77 @@ fn pointer_event(event: &WindowEvent) -> Option<PointerEvent> {
     Some(PointerEvent { kind, position })
 }
 
+/// The view layer's key for a platform key; `None` for modifier, lock and unidentified keys,
+/// which aren't dispatched (FACADE-APP-11).
+fn logical_key(key: &tantu_platform::Key) -> Option<tantu_view::LogicalKey> {
+    use tantu_platform::{Key, NamedKey as P};
+    use tantu_view::{LogicalKey, NamedKey as V};
+    let named = match key {
+        Key::Character(text) => return Some(LogicalKey::Character(text.as_str().into())),
+        Key::Unidentified => return None,
+        Key::Named(named) => named,
+    };
+    let view = match named {
+        P::Enter => V::Enter,
+        P::Tab => V::Tab,
+        P::Escape => V::Escape,
+        P::Backspace => V::Backspace,
+        P::Delete => V::Delete,
+        P::Insert => V::Insert,
+        P::ArrowLeft => V::ArrowLeft,
+        P::ArrowRight => V::ArrowRight,
+        P::ArrowUp => V::ArrowUp,
+        P::ArrowDown => V::ArrowDown,
+        P::Home => V::Home,
+        P::End => V::End,
+        P::PageUp => V::PageUp,
+        P::PageDown => V::PageDown,
+        P::F1 => V::F(1),
+        P::F2 => V::F(2),
+        P::F3 => V::F(3),
+        P::F4 => V::F(4),
+        P::F5 => V::F(5),
+        P::F6 => V::F(6),
+        P::F7 => V::F(7),
+        P::F8 => V::F(8),
+        P::F9 => V::F(9),
+        P::F10 => V::F(10),
+        P::F11 => V::F(11),
+        P::F12 => V::F(12),
+        P::F13 => V::F(13),
+        P::F14 => V::F(14),
+        P::F15 => V::F(15),
+        P::F16 => V::F(16),
+        P::F17 => V::F(17),
+        P::F18 => V::F(18),
+        P::F19 => V::F(19),
+        P::F20 => V::F(20),
+        P::F21 => V::F(21),
+        P::F22 => V::F(22),
+        P::F23 => V::F(23),
+        P::F24 => V::F(24),
+        P::Shift | P::Control | P::Alt | P::Super | P::CapsLock | P::NumLock | P::ScrollLock => {
+            return None;
+        }
+        _ => V::Other,
+    };
+    Some(LogicalKey::Named(view))
+}
+
+/// The view-layer key event for a platform key event (FACADE-APP-11).
+fn key_event(
+    event: &tantu_platform::KeyEvent,
+    modifiers: tantu_view::Modifiers,
+) -> Option<tantu_view::KeyEvent> {
+    Some(tantu_view::KeyEvent {
+        key: logical_key(&event.key)?,
+        pressed: event.state == ButtonState::Pressed,
+        repeat: event.repeat,
+        modifiers,
+        text: event.text.as_deref().map(Into::into),
+    })
+}
+
 impl PlatformHandler for AppHandler {
     fn started(&mut self, cx: &mut dyn PlatformContext) {
         if self.pending.is_empty() {
@@ -426,6 +500,19 @@ impl PlatformHandler for AppHandler {
                 cx.request_redraw(window);
             }
             WindowEvent::RedrawRequested => self.redraw(cx, index),
+            WindowEvent::ModifiersChanged(m) => {
+                self.modifiers = tantu_view::Modifiers {
+                    shift: m.shift,
+                    control: m.control,
+                    alt: m.alt,
+                    super_key: m.super_key,
+                };
+            }
+            WindowEvent::Keyboard(ref key) => {
+                if let Some(event) = key_event(key, self.modifiers) {
+                    self.windows[index].tree.dispatch_key(event);
+                }
+            }
             ref other => {
                 if let Some(pointer) = pointer_event(other) {
                     self.windows[index].tree.dispatch_pointer(pointer);

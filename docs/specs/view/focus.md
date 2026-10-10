@@ -1,6 +1,6 @@
 # Keyboard events and focus
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-view` (focus, key dispatch), `tantu` (the runner forwards keyboard events)
 - **Plan item:** Phase 3, "Focus system, keyboard navigation, shortcuts/command registry" →
   "Keyboard events and focus"

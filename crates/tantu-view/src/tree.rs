@@ -14,6 +14,7 @@ use tantu_scene::{ElementId, SceneBuilder};
 use tantu_text::{TextStyle, TextStyles};
 
 use crate::events::EventState;
+use crate::focus::FocusState;
 use crate::frame::Shared;
 use crate::keys::Key;
 use crate::layout_builder::LayoutBuilderRecord;
@@ -200,6 +201,7 @@ pub struct ViewTree {
     pub(crate) events: EventState,
     text_styles: TextStyles,
     pub(crate) keys: HashMap<ElementId, Key>,
+    pub(crate) focus_state: FocusState,
 }
 
 impl ViewTree {
@@ -222,6 +224,7 @@ impl ViewTree {
             events: EventState::default(),
             text_styles: styles,
             keys: HashMap::new(),
+            focus_state: FocusState::default(),
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {
@@ -319,6 +322,7 @@ impl ViewTree {
             return 0; // the root
         };
         let scope = element.scope;
+        self.release_focus_within(id);
         // The scope owns the descendants' scopes, so disposing it stops them all.
         let runtime = self.runtime.clone();
         runtime.enter(|| scope.dispose());
@@ -329,6 +333,7 @@ impl ViewTree {
             if let Some(e) = arena_id(next).and_then(|a| self.elements.remove(a)) {
                 self.events.forget(next);
                 self.keys.remove(&next);
+                self.focus_state.forget(next);
                 stack.extend(e.children);
                 removed += 1;
             }
