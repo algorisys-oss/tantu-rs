@@ -1,0 +1,28 @@
+[package]
+name = "counter"
+description = "The AGENTS.md counter snippet as a runnable Tantu app."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+# The workspace lints without `missing_docs`: main.rs is the AGENTS.md snippet verbatim, which
+# has no crate doc comment (spec docs/specs/examples/counter.md).
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+undocumented_unsafe_blocks = "deny"
+unwrap_used = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+
+[dependencies]
+tantu = { workspace = true }
+
+# The tests drive the app on a fake platform and record its frames.
+[dev-dependencies]
+tantu-render-headless = { workspace = true }
