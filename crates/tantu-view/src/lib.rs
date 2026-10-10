@@ -47,6 +47,7 @@ mod keys;
 mod layout_builder;
 mod paint;
 mod prop;
+mod shortcuts;
 mod text_context;
 mod tree;
 
@@ -58,6 +59,7 @@ pub use keys::{Key, Keyed};
 pub use layout_builder::LayoutBuilder;
 pub use paint::{NoPaint, Paint, PaintCx};
 pub use prop::{IntoProp, Prop};
+pub use shortcuts::{Actions, Shortcuts, SingleActivator};
 pub use tantu_scene::ElementId;
 
 /// `tantu-core`, re-exported so widget crates use the view layer's version.
