@@ -20,3 +20,9 @@ wgpu = "30.0.1"
 pollster = "0.4.0"
 raw-window-handle = "0.6.2"
 
+
+[dev-dependencies]
+# Reference Scenes and goldens (spec docs/specs/render-conformance/conformance.md), and PNG
+# output of failed renderings.
+tantu-render-conformance = { workspace = true }
+png = "0.18.1"

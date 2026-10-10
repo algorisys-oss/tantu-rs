@@ -1,73 +1,92 @@
 //! Golden images for the software renderer (spec `docs/specs/render-soft/renderer.md`,
-//! "Golden tests"). Each test renders a reference Scene and compares it with
-//! `tests/goldens/<name>.png` (tolerance 2 per channel, no differing pixels). Set
-//! `TANTU_UPDATE_GOLDENS=1` to write the PNGs instead. On a mismatch the actual image is written
-//! next to the golden as `<name>.actual.png` (gitignored).
+//! "Golden tests", and `docs/specs/render-conformance/conformance.md`, RENDER-CONF-07 and 11).
+//!
+//! The reference Scenes and their goldens live in `tantu-render-conformance`. This renderer
+//! produces the goldens, so it is held to them strictly: tolerance 2 per channel, no differing
+//! pixels. Set `TANTU_UPDATE_GOLDENS=1` to write the PNGs instead. On a mismatch the actual
+//! image is written next to the golden as `<name>.actual.png` (gitignored).
 
 mod common;
 
-use std::path::PathBuf;
-
 use common::*;
-use tantu_core::{Affine, Color, Vec2};
-use tantu_render_soft::{decode_png, diff_images, encode_png};
-use tantu_scene::{
-    BorderRadius, BoxShadow, Clip, ImageData, ImageDraw, ImageSampling, Layer, Resources,
-    RoundedRect, Scene, SceneBuilder,
-};
+use tantu_core::Color;
+use tantu_render_conformance::{MatchTolerance, ReferenceScene, reference_scene, reference_scenes};
+use tantu_render_soft::{diff_images, encode_png};
+use tantu_scene::{BorderRadius, ImageData, Resources, RoundedRect, Scene};
 
 const TOLERANCE: u8 = 2;
 
-fn golden_path(name: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/goldens")
-        .join(format!("{name}.png"))
+/// Renders `reference` at its target size and scale factor.
+fn render_reference(reference: &ReferenceScene) -> ImageData {
+    let (scene, resources) = reference.record();
+    render_target(reference, &scene, &resources)
 }
 
-/// Renders `scene` at 2× into a 200 × 200 target and checks it against the golden `name`.
-fn check_golden(name: &str, scene: &Scene, resources: &Resources) {
-    let (image, report) = render_with(200, 200, 2.0, scene, resources);
-    assert!(report.is_clean(), "{name}: {report:?}");
-    let path = golden_path(name);
-    if std::env::var_os("TANTU_UPDATE_GOLDENS").is_some_and(|v| v == "1") {
-        std::fs::create_dir_all(path.parent().expect("goldens dir")).expect("create goldens dir");
-        std::fs::write(&path, encode_png(&image).expect("encode")).expect("write golden");
-        return;
-    }
-    let bytes = std::fs::read(&path).unwrap_or_else(|_| {
-        panic!(
-            "missing golden {}: run with TANTU_UPDATE_GOLDENS=1 to create it",
-            path.display()
-        )
-    });
-    let golden = decode_png(&bytes).expect("golden is a PNG");
-    let diff = diff_images(&golden, &image, TOLERANCE).expect("golden has the same size");
-    if diff.differing_pixels > 0 {
-        let actual = path.with_extension("actual.png");
-        std::fs::write(&actual, encode_png(&image).expect("encode")).expect("write actual");
-        panic!(
-            "{name}: {} pixels differ by more than {TOLERANCE} (max {}); actual written to {}",
-            diff.differing_pixels,
-            diff.max_channel_delta,
-            actual.display()
-        );
-    }
+fn render_target(reference: &ReferenceScene, scene: &Scene, resources: &Resources) -> ImageData {
+    let (w, h) = reference.target_size();
+    let (image, report) = render_with(w, h, reference.scale_factor(), scene, resources);
+    assert!(report.is_clean(), "{}: {report:?}", reference.name());
+    image
 }
 
-fn golden_scene(paint: impl FnOnce(&mut SceneBuilder<'_>)) -> Scene {
-    scene(100.0, 100.0, paint)
+#[test]
+fn render_conf_11_soft_reproduces_every_golden() {
+    let update = std::env::var_os("TANTU_UPDATE_GOLDENS").is_some_and(|v| v == "1");
+    let mut failures = Vec::new();
+    for reference in reference_scenes() {
+        let image = render_reference(reference);
+        let path = reference.golden_path();
+        if update {
+            std::fs::write(&path, encode_png(&image).expect("encode")).expect("write golden");
+            continue;
+        }
+        let golden = reference.golden().expect("embedded golden decodes");
+        let diff = diff_images(&golden, &image, TOLERANCE).expect("golden has the same size");
+        if diff.differing_pixels > 0 {
+            let actual = path.with_extension("actual.png");
+            std::fs::write(&actual, encode_png(&image).expect("encode")).expect("write actual");
+            failures.push(format!(
+                "{}: {} pixels differ by more than {TOLERANCE} (max {}); actual written to {}",
+                reference.name(),
+                diff.differing_pixels,
+                diff.max_channel_delta,
+                actual.display()
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 const RED: Color = Color::from_rgb8(220, 40, 40);
 const BLUE: Color = Color::from_rgb8(40, 80, 220);
 const GREEN: Color = Color::from_rgb8(40, 180, 90);
 
-#[test]
-fn golden_shapes_and_strokes() {
-    let s = golden_scene(|b| {
+/// One change to the `shapes_and_strokes` Scene.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Mutation {
+    None,
+    /// The red rounded rect moved 1 logical pixel right.
+    Moved,
+    /// The red rounded rect's radius 8 → 12.
+    Radius,
+    /// The blue fill's red channel 40 → 52.
+    Color,
+    /// The green stroke 3 → 4 logical pixels wide.
+    StrokeWidth,
+}
+
+/// A copy of the `shapes_and_strokes` reference Scene with `mutation` applied. With
+/// `Mutation::None` it must reproduce the golden exactly, so this copy can't drift from the
+/// reference.
+fn shapes_and_strokes(mutation: Mutation) -> Scene {
+    let m = |which: Mutation| mutation == which;
+    scene(100.0, 100.0, |b| {
         b.fill_rect(r(0.0, 0.0, 100.0, 100.0), Color::WHITE);
         b.fill(
-            RoundedRect::new(r(8.0, 8.0, 40.0, 30.0), BorderRadius::circular(8.0)),
+            RoundedRect::new(
+                r(if m(Mutation::Moved) { 9.0 } else { 8.0 }, 8.0, 40.0, 30.0),
+                BorderRadius::circular(if m(Mutation::Radius) { 12.0 } else { 8.0 }),
+            ),
             RED,
         );
         b.fill(
@@ -80,11 +99,15 @@ fn golden_shapes_and_strokes() {
                     bottom_left: 30.0,
                 },
             ),
-            BLUE,
+            if m(Mutation::Color) {
+                Color::from_rgb8(52, 80, 220)
+            } else {
+                BLUE
+            },
         );
         b.stroke(
             RoundedRect::new(r(8.0, 50.0, 40.0, 40.0), BorderRadius::circular(12.0)),
-            3.0,
+            if m(Mutation::StrokeWidth) { 4.0 } else { 3.0 },
             GREEN,
         );
         b.stroke(
@@ -96,148 +119,32 @@ fn golden_shapes_and_strokes() {
             RoundedRect::new(r(62.0, 57.0, 24.0, 12.0), BorderRadius::circular(100.0)),
             RED.with_alpha(0.5),
         );
-    });
-    check_golden("shapes_and_strokes", &s, &Resources::new());
+    })
 }
 
 #[test]
-fn golden_shadows() {
-    let s = golden_scene(|b| {
-        b.fill_rect(r(0.0, 0.0, 100.0, 100.0), Color::from_rgb8(240, 240, 240));
-        for (i, blur) in [0.0f32, 3.0, 10.0].into_iter().enumerate() {
-            let shape = RoundedRect::new(
-                r(10.0 + i as f32 * 30.0, 15.0, 22.0, 22.0),
-                BorderRadius::circular(4.0),
-            );
-            b.box_shadow(BoxShadow {
-                shape,
-                color: Color::BLACK.with_alpha(0.5),
-                offset: Vec2::new(2.0, 4.0),
-                blur_radius: blur,
-                spread_radius: 1.0,
-            });
-            b.fill(shape, Color::WHITE);
-        }
-        b.push_transform(Affine::translate(Vec2::new(50.0, 70.0)) * Affine::rotate(0.4));
-        let shape = RoundedRect::new(r(-20.0, -10.0, 40.0, 20.0), BorderRadius::circular(6.0));
-        b.box_shadow(BoxShadow {
-            shape,
-            color: BLUE.with_alpha(0.6),
-            offset: Vec2::ZERO,
-            blur_radius: 6.0,
-            spread_radius: 0.0,
-        });
-        b.fill(shape, Color::WHITE);
-        b.pop();
-    });
-    check_golden("shadows", &s, &Resources::new());
-}
+fn render_conf_07_cross_backend_tolerance_catches_real_errors() {
+    let reference = reference_scene("shapes_and_strokes").expect("exists");
+    let golden = reference.golden().expect("decodes");
+    let resources = Resources::new();
 
-#[test]
-fn golden_images() {
-    let mut res = Resources::new();
-    let pixels: Vec<u8> = (0..16u8)
-        .flat_map(|i| [i * 16, 255 - i * 16, (i % 4) * 80, 255 - (i / 4) * 40])
-        .collect();
-    let id = res.add_image(ImageData::rgba8(4, 4, pixels).expect("4×4 RGBA8"));
-    let s = golden_scene(|b| {
-        b.image(ImageDraw {
-            image: id,
-            src: None,
-            dest: r(5.0, 5.0, 40.0, 40.0),
-            sampling: ImageSampling::Nearest,
-            opacity: 1.0,
-        });
-        b.image(ImageDraw {
-            image: id,
-            src: None,
-            dest: r(55.0, 5.0, 40.0, 40.0),
-            sampling: ImageSampling::Linear,
-            opacity: 1.0,
-        });
-        b.image(ImageDraw {
-            image: id,
-            src: Some(r(1.0, 1.0, 2.0, 2.0)),
-            dest: r(5.0, 55.0, 40.0, 40.0),
-            sampling: ImageSampling::Nearest,
-            opacity: 0.6,
-        });
-        b.push_transform(Affine::translate(Vec2::new(75.0, 75.0)) * Affine::rotate(0.5));
-        b.image(ImageDraw {
-            image: id,
-            src: None,
-            dest: r(-15.0, -15.0, 30.0, 30.0),
-            sampling: ImageSampling::Linear,
-            opacity: 1.0,
-        });
-        b.pop();
-    });
-    check_golden("images", &s, &res);
-}
+    let unchanged = render_target(reference, &shapes_and_strokes(Mutation::None), &resources);
+    let diff = diff_images(&golden, &unchanged, TOLERANCE).expect("same size");
+    assert_eq!(
+        diff.differing_pixels, 0,
+        "the copy drifted from the reference Scene"
+    );
 
-#[test]
-fn golden_clips_and_transforms() {
-    let s = golden_scene(|b| {
-        b.push_clip(Clip::RoundedRect(RoundedRect::new(
-            r(5.0, 5.0, 90.0, 90.0),
-            BorderRadius::circular(20.0),
-        )));
-        b.fill_rect(r(0.0, 0.0, 100.0, 100.0), Color::from_rgb8(250, 230, 200));
-        b.push_transform(Affine::translate(Vec2::new(50.0, 50.0)));
-        for i in 0..6 {
-            b.push_transform(Affine::rotate(i as f32 * std::f32::consts::FRAC_PI_6));
-            b.push_clip(Clip::Rect(r(0.0, -4.0, 60.0, 8.0)));
-            b.fill_rect(
-                r(5.0, -10.0, 50.0, 20.0),
-                if i % 2 == 0 { RED } else { BLUE },
-            );
-            b.pop();
-            b.pop();
-        }
-        b.push_transform(Affine::scale_non_uniform(2.0, 0.5));
-        b.fill(
-            RoundedRect::new(r(-8.0, -8.0, 16.0, 16.0), BorderRadius::circular(8.0)),
-            GREEN,
-        );
-        b.pop();
-        b.pop();
-        b.pop();
-    });
-    check_golden("clips_and_transforms", &s, &Resources::new());
-}
-
-#[test]
-fn golden_layers() {
-    let s = golden_scene(|b| {
-        b.fill_rect(r(0.0, 0.0, 100.0, 100.0), Color::WHITE);
-        b.push_layer(Layer {
-            opacity: 0.5,
-            overlay_color: None,
-        });
-        b.fill(
-            RoundedRect::new(r(10.0, 10.0, 50.0, 50.0), BorderRadius::circular(10.0)),
-            RED,
-        );
-        b.fill(
-            RoundedRect::new(r(35.0, 35.0, 50.0, 50.0), BorderRadius::circular(25.0)),
-            BLUE,
-        );
-        b.pop();
-        b.push_layer(Layer {
-            opacity: 1.0,
-            overlay_color: Some(Color::from_rgb8(255, 200, 0).with_alpha(0.6)),
-        });
-        b.fill(
-            RoundedRect::new(r(60.0, 5.0, 35.0, 25.0), BorderRadius::circular(5.0)),
-            GREEN,
-        );
-        b.push_layer(Layer {
-            opacity: 0.5,
-            overlay_color: None,
-        });
-        b.fill_rect(r(70.0, 15.0, 25.0, 25.0), BLUE);
-        b.pop();
-        b.pop();
-    });
-    check_golden("layers", &s, &Resources::new());
+    for mutation in [
+        Mutation::Moved,
+        Mutation::Radius,
+        Mutation::Color,
+        Mutation::StrokeWidth,
+    ] {
+        let image = render_target(reference, &shapes_and_strokes(mutation), &resources);
+        let m = reference
+            .check(&image, &MatchTolerance::CROSS_BACKEND)
+            .expect("same size");
+        assert!(!m.passed, "{mutation:?} passed: {m:?}");
+    }
 }

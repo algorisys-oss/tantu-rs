@@ -19,3 +19,7 @@ tantu-text = { workspace = true }
 tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd"] }
 png = "0.18.1"
 
+
+[dev-dependencies]
+# Reference Scenes and goldens (spec docs/specs/render-conformance/conformance.md).
+tantu-render-conformance = { workspace = true }

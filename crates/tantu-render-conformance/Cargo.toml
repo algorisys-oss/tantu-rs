@@ -1,0 +1,18 @@
+[package]
+name = "tantu-render-conformance"
+description = "Reference scenes, goldens and the cross-backend image comparison every Tantu renderer is tested against."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tantu-core = { workspace = true }
+tantu-scene = { workspace = true }
+# Decodes the embedded goldens (already in the workspace through tantu-render-soft).
+png = "0.18.1"

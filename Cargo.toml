@@ -19,6 +19,7 @@ tantu-platform = { path = "crates/tantu-platform", version = "0.0.0" }
 tantu-platform-winit = { path = "crates/tantu-platform-winit", version = "0.0.0" }
 tantu-reactive = { path = "crates/tantu-reactive", version = "0.0.0" }
 tantu-render-headless = { path = "crates/tantu-render-headless", version = "0.0.0" }
+tantu-render-conformance = { path = "crates/tantu-render-conformance", version = "0.0.0" }
 tantu-render-soft = { path = "crates/tantu-render-soft", version = "0.0.0" }
 tantu-render-wgpu = { path = "crates/tantu-render-wgpu", version = "0.0.0" }
 tantu-scene = { path = "crates/tantu-scene", version = "0.0.0" }
