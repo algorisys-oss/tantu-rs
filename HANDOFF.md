@@ -23,8 +23,12 @@ Progress while the user is away: **the `tantu-view` item is done** (ADR 0011, fi
 `layout-builder.md` (VIEW-LB-01..06). **`tantu-text`'s text system is done**
 (`docs/specs/text/system.md`, TEXT-SYS-01..09): parley 0.12 behind `TextMeasure`, glyph runs
 into Scenes. MSRV raised to 1.88 for parley (decision 12), and AGENTS.md now lets `tantu-text`
-depend on `tantu-layout` (decision 36, review). Next: "text in views" (frames that measure and
-paint text), then glyph rasterization in the renderers, event dispatch, the facade with the
+depend on `tantu-layout` (decision 36, review). **Text in views is done**
+(`docs/specs/view/text.md`, VIEW-TEXT-01..05): `ViewTree::paint` takes a `TextPainter`, `frame` a
+`TextContext`, `SystemText` adapts a `TextSystem` + `Resources`, `ParagraphPaint` draws a
+`RenderParagraph`. A CI failure on `ab86cee` (Linux runners lack fontconfig's development
+package) is fixed in `a19b609` with fontique's `fontconfig-dlopen`. Next: glyph rasterization in
+the renderers (text is in Scenes but not yet drawn), event dispatch, the facade with the
 counter example, `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
@@ -372,7 +376,13 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     (text, style), re-broken per width; `paint` emits one Scene glyph run per parley run with
     fonts added to `Resources` once. **AGENTS.md change:** the `tantu-text` row may depend on
     `layout` (for `TextMeasure`, as ADR 0010 says). Tests use a committed Liberation Sans
-    (OFL) so they don't depend on installed fonts.
+    (OFL) so they don't depend on installed fonts. fontique's `fontconfig-dlopen` feature loads
+    fontconfig at run time on Linux, so building needs no fontconfig development package.
+37. **Text in views** (2026-10-10, spec `docs/specs/view/text.md`, decided by the agent while the
+    user was away; review): `TextPainter` and `TextContext` (= `TextMeasure + TextPainter`) live
+    in `tantu-view`; `NoTextMeasure` implements `TextPainter`; `PaintCx::paint_text` exists
+    because a `Paint` can't borrow `text()` and `scene()` at once; paint wraps at the layout
+    constraints; `ParagraphPaint` reads the `RenderParagraph` instead of duplicating it.
 
 ## Commit log
 
@@ -524,7 +534,13 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `5e54abb` | spec: text system (TEXT-SYS-01..09); AGENTS.md `tantu-text` may use `layout` |
 | `b35330c` | test: text system, 9 failing tests; Liberation Sans test font |
 | `dd60c6d` | impl: text system over parley |
-| _this commit_ | docs: HANDOFF.md for the text system |
+| `ab86cee` | docs: HANDOFF.md for the text system (CI red on Linux: fontconfig) |
+| `73999ee` | spec: text in views (VIEW-TEXT-01..05); paint and frame take a text context |
+| `cd9d06b` | spec: `PaintCx::paint_text` |
+| `c5d5a13` | test: text in views, 5 failing tests |
+| `a19b609` | fix: load fontconfig at run time on Linux (fontique `fontconfig-dlopen`) |
+| `50a80c8` | impl: text in views |
+| _this commit_ | docs: HANDOFF.md for text in views |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -533,7 +549,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Text in views (`docs/specs/view/text.md`), glyph rasterization (render-soft with swash,
+3. Glyph rasterization (render-soft with swash,
    render-wgpu with a glyph atlas, text reference Scenes), event dispatch, the `tantu` facade
    with the counter example, `WidgetTester`.
 
