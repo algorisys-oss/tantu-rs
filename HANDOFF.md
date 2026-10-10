@@ -9,9 +9,10 @@ _Last updated: 2026-10-10_
 
 **Phase 2 is done (2026-10-10).** Every PLAN.md item is ticked, and the milestone is met:
 `cargo run -p counter` and `cargo run -p layout-demo` run on Linux Wayland and X11, Windows and
-macOS. CI is green on all three OSes. **Next: Phase 3**, starting with its first item, the
-focus system, keyboard navigation and shortcuts (spec first: it needs keyboard events through
-the view tree, and it is where "type" in `WidgetTester` lands). Review items from Phase 2 are
+macOS. CI is green on all three OSes. **Phase 3 has started** on branch `phase3/focus`: its
+first item is split in three (PLAN.md). **Waiting for the user:** `docs/specs/view/focus.md` is
+a Draft (keyboard events, focusable elements, Tab traversal in tree order, focus changes, the
+runner forwarding keys, `WidgetTester::press_key`; four open questions). Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -691,7 +692,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `6247bd6` | spec: bidi and font fallback (TEXT-SCRIPT-01..04) |
 | `c3e4fb5` | test: bidi and font fallback, 1 failing test |
 | `aa4809b` | fix: per-character font fallback through every registered family; Phase 2 done |
-| _this commit_ | docs: HANDOFF.md for the end of Phase 2 |
+| `0fe42c8` | docs: HANDOFF.md for the end of Phase 2 |
+| _this commit_ | docs: draft focus spec for review; PLAN.md Phase 3 focus item split in three |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
