@@ -265,6 +265,9 @@ fn view_paint_02_traversal_scopes_and_ids() {
     let [col, a, b] = [0, 1, 2].map(|i| ids[i].get().expect("built"));
     let root = tree.root();
     assert_eq!(*log.borrow(), ["col 800x600", "a 10x5", "b 10x5"]);
+    // b sits in a region under the column, so its render parent is the column.
+    let region = tree.parent(b).expect("b has a parent");
+    assert_eq!(tree.parent(region), Some(col));
     assert_eq!(
         summary(&scene),
         [

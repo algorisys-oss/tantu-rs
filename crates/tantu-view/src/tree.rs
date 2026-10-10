@@ -4,12 +4,13 @@
 use std::any::Any;
 use std::rc::Rc;
 
-use tantu_core::{Arena, Id, Size, Vec2};
+use tantu_core::{Affine, Arena, Id, Rect, Size, Vec2};
 use tantu_layout::{BoxConstraints, LayoutChildren, LayoutId, LayoutTree, RenderBox, TextMeasure};
 use tantu_reactive::{Runtime, Scope};
 use tantu_scene::{ElementId, SceneBuilder};
 
-use crate::Paint;
+use crate::paint::Children;
+use crate::{NoPaint, Paint, PaintCx};
 
 /// A description of part of the UI that builds its element(s) once, when consumed.
 pub trait View: 'static {
@@ -58,7 +59,9 @@ impl BuildCx<'_> {
         children: impl IntoIterator<Item = AnyView>,
     ) -> ElementId {
         let layout = self.tree.layout.insert(render);
-        let id = self.tree.add_element(self.parent, Kind::Render(layout));
+        let id = self
+            .tree
+            .add_element(self.parent, Kind::Render(layout, Box::new(NoPaint)));
         let Some(scope) = self.tree.scope(id) else {
             return id;
         };
@@ -104,8 +107,16 @@ impl BuildCx<'_> {
     /// Gives a render element its paint behavior (replacing the previous one). Returns false
     /// for a region or an unknown id.
     pub fn set_paint(&mut self, element: ElementId, paint: impl Paint) -> bool {
-        let _ = (element, paint);
-        todo!()
+        let Some(e) = arena_id(element).and_then(|a| self.tree.elements.get_mut(a)) else {
+            return false;
+        };
+        match &mut e.kind {
+            Kind::Render(_, slot) => {
+                *slot = Box::new(paint);
+                true
+            }
+            Kind::Region => false,
+        }
     }
 
     /// The current parent element.
@@ -127,9 +138,9 @@ struct Element {
     kind: Kind,
 }
 
-/// The element kind, with a render element's layout node.
+/// The element kind, with a render element's layout node and paint behavior.
 enum Kind {
-    Render(LayoutId),
+    Render(LayoutId, Box<dyn Paint>),
     Region,
 }
 
@@ -188,7 +199,7 @@ impl ViewTree {
                 parent: None,
                 children: Vec::new(),
                 scope,
-                kind: Kind::Render(layout),
+                kind: Kind::Render(layout, Box::new(NoPaint)),
             }));
             tree.root = Some(root);
             scope.run(|| {
@@ -227,7 +238,7 @@ impl ViewTree {
     /// The element's kind.
     pub fn kind(&self, id: ElementId) -> Option<ElementKind> {
         self.element(id).map(|e| match e.kind {
-            Kind::Render(_) => ElementKind::Render,
+            Kind::Render(..) => ElementKind::Render,
             Kind::Region => ElementKind::Region,
         })
     }
@@ -245,7 +256,7 @@ impl ViewTree {
     /// A render element's layout node.
     pub fn layout_id(&self, id: ElementId) -> Option<LayoutId> {
         match self.element(id)?.kind {
-            Kind::Render(layout) => Some(layout),
+            Kind::Render(layout, _) => Some(layout),
             Kind::Region => None,
         }
     }
@@ -302,8 +313,51 @@ impl ViewTree {
     /// Paints the whole tree into `scene` (an open builder for the window's Scene), using the
     /// geometry of the last layout pass.
     pub fn paint(&self, scene: &mut SceneBuilder<'_>) {
-        let _ = scene;
-        todo!()
+        self.paint_element(self.root(), scene);
+    }
+
+    /// Paints one element (VIEW-PAINT-02..05); regions paint their children in their place.
+    pub(crate) fn paint_element(&self, id: ElementId, scene: &mut SceneBuilder<'_>) {
+        let Some(element) = self.element(id) else {
+            return;
+        };
+        let (layout, paint) = match &element.kind {
+            Kind::Render(layout, paint) => (*layout, paint),
+            Kind::Region => {
+                for child in &element.children {
+                    self.paint_element(*child, scene);
+                }
+                return;
+            }
+        };
+        let (Some(size), Some(offset)) = (self.layout.size(layout), self.layout.offset(layout))
+        else {
+            return; // never laid out
+        };
+        let margin = paint.overflow().max(0.0);
+        let bounds = Rect::from_ltwh(
+            offset.x - margin,
+            offset.y - margin,
+            size.width + 2.0 * margin,
+            size.height + 2.0 * margin,
+        );
+        if (element.children.is_empty() || paint.clips_children()) && scene.is_culled(bounds) {
+            return;
+        }
+        scene.push_transform(Affine::translate(offset));
+        scene.set_element(Some(id));
+        let mut cx = PaintCx {
+            tree: self,
+            element: id,
+            size,
+            scene: &mut *scene,
+            children: Children::Pending,
+        };
+        paint.paint(&mut cx);
+        if cx.children == Children::Pending {
+            cx.paint_children();
+        }
+        scene.pop();
     }
 
     /// Runs `f` with the tree's runtime current (to read or write signals from outside).
@@ -339,7 +393,7 @@ impl ViewTree {
         loop {
             let element = self.element(id)?;
             match element.kind {
-                Kind::Render(_) => return Some(id),
+                Kind::Render(..) => return Some(id),
                 Kind::Region => id = element.parent?,
             }
         }
@@ -364,7 +418,7 @@ impl ViewTree {
     fn collect_layout_children(&self, id: ElementId, out: &mut Vec<LayoutId>) {
         for child in self.children(id) {
             match self.element(*child).map(|e| &e.kind) {
-                Some(Kind::Render(layout)) => out.push(*layout),
+                Some(Kind::Render(layout, _)) => out.push(*layout),
                 Some(Kind::Region) => self.collect_layout_children(*child, out),
                 None => {}
             }
@@ -376,7 +430,7 @@ impl ViewTree {
     /// one by one.
     fn remove_layout_nodes(&mut self, id: ElementId) {
         match self.element(id).map(|e| &e.kind) {
-            Some(Kind::Render(layout)) => {
+            Some(Kind::Render(layout, _)) => {
                 let layout = *layout;
                 self.layout.remove(layout);
             }

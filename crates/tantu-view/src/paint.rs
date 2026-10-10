@@ -55,33 +55,34 @@ pub struct PaintCx<'t, 'b> {
 impl<'b> PaintCx<'_, 'b> {
     /// The element being painted.
     pub fn element(&self) -> ElementId {
-        todo!()
+        self.element
     }
 
     /// Its size from the last layout.
     pub fn size(&self) -> Size {
-        todo!()
+        self.size
     }
 
     /// The Scene builder, in the element's coordinates.
     pub fn scene(&mut self) -> &mut SceneBuilder<'b> {
-        todo!()
+        self.scene
     }
 
     /// Paints the element's children here (once; later calls do nothing).
     pub fn paint_children(&mut self) {
-        let _ = (
-            self.tree,
-            self.element,
-            self.size,
-            self.children == Children::Pending,
-        );
-        todo!()
+        if self.children != Children::Pending {
+            return;
+        }
+        self.children = Children::Painted;
+        for child in self.tree.children(self.element) {
+            self.tree.paint_element(*child, self.scene);
+        }
     }
 
     /// Don't paint the children at all.
     pub fn skip_children(&mut self) {
-        let _ = (Children::Painted, Children::Skipped);
-        todo!()
+        if self.children == Children::Pending {
+            self.children = Children::Skipped;
+        }
     }
 }

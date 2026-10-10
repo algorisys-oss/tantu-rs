@@ -95,7 +95,7 @@ faster or more portable without changing how apps are written.
 - [x] Layout benchmark: 10k render objects, target < 1 ms full layout (635 µs; spec `docs/specs/layout/benchmarks.md`)
 - [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries; `LayoutBuilder` (it builds views during layout, so it needs the element tree); visibility culling while painting (technique from Clay; `Scene::is_culled` exists). Design: ADR 0011
   - [x] View tree: `View`/`AnyView`, `BuildCx`, `ViewTree` (runtime, element arena, layout tree), render and region elements, element scopes, removal (spec `docs/specs/view/tree.md`)
-  - [ ] Paint: `Paint` trait, `PaintCx`, traversal with offsets and element ids, culling (spec `docs/specs/view/paint.md`)
+  - [x] Paint: `Paint` trait, `PaintCx`, traversal with offsets and element ids, culling (spec `docs/specs/view/paint.md`)
   - [ ] Reactive props and frames: `Prop<T>`, the update queue, `ViewTree::frame` (apply, layout, paint), needs-frame notification (spec `docs/specs/view/frame.md`)
   - [ ] Dynamic content: `Dyn`, `Show`, `For` with keyed reconciliation (spec `docs/specs/view/dynamic.md`)
   - [ ] `LayoutBuilder` (spec `docs/specs/view/layout-builder.md`)
