@@ -1,6 +1,6 @@
 # Text system
 
-- **Status:** Agreed (decided by the agent while the user was away, at their request; review)
+- **Status:** Implemented (decided by the agent while the user was away, at their request; review)
 - **Crate:** `tantu-text`
 - **Plan item:** Phase 2, `tantu-text` → "Text system"
 - **Related:** [ADR 0005](../../adr/0005-text-stack-parley-swash-fontique.md) (parley, swash,
