@@ -14,3 +14,6 @@ workspace = true
 [dependencies]
 tantu-core = { workspace = true }
 tantu-scene = { workspace = true }
+tantu-layout = { workspace = true }
+# Shaping, bidi, line breaking and font fallback (ADR 0005); needs Rust 1.88.
+parley = "0.12.0"
