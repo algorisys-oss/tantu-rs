@@ -5,7 +5,7 @@ members = ["crates/*", "examples/*", "xtask"]
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 authors = ["Rajesh Pillai - Algorisys Technologies"]
 repository = "https://github.com/algorisys-oss/tantu-rs"
