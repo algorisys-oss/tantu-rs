@@ -3,10 +3,23 @@
 
 use tantu_view::core::EdgeInsets;
 use tantu_view::layout::{
-    Alignment, BoxConstraints, CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize,
-    StackFit,
+    Alignment, BoxConstraints, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment,
+    MainAxisSize, RenderBox, RenderConstrainedBox, RenderFlex, RenderPadding, RenderPositionedBox,
+    RenderStack, StackFit, StackParentData,
 };
 use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Prop, View};
+
+/// Binds `prop` to the element's `R`, applying each value with `set` (WIDGETS-LAYOUT-03).
+fn bind_render<R: RenderBox + Clone + PartialEq, T: 'static>(
+    cx: &mut BuildCx<'_>,
+    element: ElementId,
+    prop: Prop<T>,
+    set: fn(&mut R, T),
+) {
+    cx.bind(element, prop, move |e, value| {
+        e.update_render::<R>(|render| set(render, value));
+    });
+}
 
 /// Insets its child (Flutter's `Padding`).
 pub struct Padding {
@@ -37,8 +50,11 @@ impl Padding {
 
 impl View for Padding {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.padding, self.child, cx);
-        todo!()
+        let id = cx.render(RenderPadding::new(EdgeInsets::ZERO), self.child);
+        bind_render(cx, id, self.padding, |r: &mut RenderPadding, v| {
+            r.padding = v
+        });
+        id
     }
 }
 
@@ -82,14 +98,16 @@ impl Align {
 
 impl View for Align {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            self.alignment,
-            self.width_factor,
-            self.height_factor,
-            self.child,
-            cx,
-        );
-        todo!()
+        let render = RenderPositionedBox {
+            alignment: Alignment::CENTER,
+            width_factor: self.width_factor,
+            height_factor: self.height_factor,
+        };
+        let id = cx.render(render, self.child);
+        bind_render(cx, id, self.alignment, |r: &mut RenderPositionedBox, v| {
+            r.alignment = v
+        });
+        id
     }
 }
 
@@ -174,8 +192,18 @@ impl SizedBox {
 
 impl View for SizedBox {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.width, self.height, self.child, cx);
-        todo!()
+        let id = cx.render(RenderConstrainedBox::sized(None, None), self.child);
+        if let Some(width) = self.width {
+            bind_render(cx, id, width, |r: &mut RenderConstrainedBox, w| {
+                (r.additional.min_width, r.additional.max_width) = (w, w);
+            });
+        }
+        if let Some(height) = self.height {
+            bind_render(cx, id, height, |r: &mut RenderConstrainedBox, h| {
+                (r.additional.min_height, r.additional.max_height) = (h, h);
+            });
+        }
+        id
     }
 }
 
@@ -203,8 +231,17 @@ impl ConstrainedBox {
 
 impl View for ConstrainedBox {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.constraints, self.child, cx);
-        todo!()
+        let id = cx.render(
+            RenderConstrainedBox::new(BoxConstraints::default()),
+            self.child,
+        );
+        bind_render(
+            cx,
+            id,
+            self.constraints,
+            |r: &mut RenderConstrainedBox, c| r.additional = c,
+        );
+        id
     }
 }
 
@@ -229,16 +266,26 @@ impl Flex {
     }
 
     fn build(self, vertical: bool, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            self.main_axis_alignment,
-            self.main_axis_size,
-            self.cross_axis_alignment,
-            self.spacing,
-            self.children,
-            vertical,
+        let render = if vertical {
+            RenderFlex::column()
+        } else {
+            RenderFlex::row()
+        };
+        let id = cx.render(render, self.children);
+        bind_render(cx, id, self.main_axis_alignment, |r: &mut RenderFlex, v| {
+            r.main_axis_alignment = v
+        });
+        bind_render(cx, id, self.main_axis_size, |r: &mut RenderFlex, v| {
+            r.main_axis_size = v
+        });
+        bind_render(
             cx,
+            id,
+            self.cross_axis_alignment,
+            |r: &mut RenderFlex, v| r.cross_axis_alignment = v,
         );
-        todo!()
+        bind_render(cx, id, self.spacing, |r: &mut RenderFlex, v| r.spacing = v);
+        id
     }
 }
 
@@ -327,8 +374,18 @@ struct FlexChild {
 
 impl FlexChild {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.child, self.flex, self.fit, cx);
-        todo!()
+        let id = self.child.build(cx);
+        let data = FlexParentData {
+            flex: self.flex,
+            fit: self.fit,
+        };
+        if !cx.set_parent_data(id, data) {
+            tracing::warn!(
+                "Expanded/Flexible around a dynamic region has no element to hold its flex; \
+                 the child is laid out as inflexible"
+            );
+        }
+        id
     }
 }
 
@@ -472,8 +529,12 @@ impl Default for Stack {
 
 impl View for Stack {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.alignment, self.fit, self.children, cx);
-        todo!()
+        let id = cx.render(RenderStack::new(), self.children);
+        bind_render(cx, id, self.alignment, |r: &mut RenderStack, v| {
+            r.alignment = v
+        });
+        bind_render(cx, id, self.fit, |r: &mut RenderStack, v| r.fit = v);
+        id
     }
 }
 
@@ -550,16 +611,21 @@ impl Positioned {
 
 impl View for Positioned {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            self.child,
-            self.left,
-            self.top,
-            self.right,
-            self.bottom,
-            self.width,
-            self.height,
-            cx,
-        );
-        todo!()
+        let id = self.child.build(cx);
+        let data = StackParentData {
+            left: self.left,
+            top: self.top,
+            right: self.right,
+            bottom: self.bottom,
+            width: self.width,
+            height: self.height,
+        };
+        if !cx.set_parent_data(id, data) {
+            tracing::warn!(
+                "Positioned around a dynamic region has no element to hold its position; \
+                 the child is laid out as non-positioned"
+            );
+        }
+        id
     }
 }

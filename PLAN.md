@@ -110,7 +110,7 @@ faster or more portable without changing how apps are written.
 - [x] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons (spec `docs/specs/view/events.md`)
 - [ ] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md
   - [x] Shared text styles: one style table for the text system and the view tree, `BuildCx::text_style`, style presets (spec `docs/specs/text/styles.md`)
-  - [ ] Layout widgets: `Padding`, `Center`, `Align`, `SizedBox`, `ConstrainedBox`, `Row`, `Column`, `Expanded`, `Flexible`, `Spacer`, `Stack`, `Positioned` (spec `docs/specs/widgets/layout.md`)
+  - [x] Layout widgets: `Padding`, `Center`, `Align`, `SizedBox`, `ConstrainedBox`, `Row`, `Column`, `Expanded`, `Flexible`, `Spacer`, `Stack`, `Positioned` (spec `docs/specs/widgets/layout.md`)
   - [ ] `Text` and `Button` (fixed Phase 2 look until `tantu-theme`) (spec `docs/specs/widgets/basic.md`)
   - [ ] `tantu` facade: `App`, `Window`, the runner (platform + view tree + renderer), `Error`, `prelude` (spec `docs/specs/facade/app.md`)
   - [ ] `examples/counter`: the AGENTS.md snippet, verbatim (spec `docs/specs/examples/counter.md`)
