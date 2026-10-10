@@ -1,6 +1,6 @@
 # Bidi and font fallback
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-text`
 - **Plan item:** Phase 2, "`tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run
   output into Scene" (the parent item; its sub-items are done)
@@ -46,7 +46,7 @@ Out of scope:
 No new API. The behavior of `TextSystem::measure`, `min_intrinsic_width` and `paint` changes
 for text whose characters the style's family lacks.
 
-## Behavior (proposal)
+## Behavior
 
 - **TEXT-SCRIPT-01:** A right-to-left paragraph is shaped in visual order: glyph x positions
   increase along the run. The first glyph drawn is the paragraph's last character, so for
@@ -62,17 +62,11 @@ for text whose characters the style's family lacks.
 - **TEXT-SCRIPT-04:** A character no font has is still drawn as the default family's glyph 0 and
   measured with its advance, so a paragraph never measures as empty because of missing glyphs.
 
-## Open questions (for the user)
+## Open questions
+
+Resolved (2026-10-10; the user said "continue" on the draft):
 
 1. **Fallback order:** the style's family, the default family, the other registered families
-   in registration order, then system fallback. Proposal: yes. It is predictable, and an app
-   controls it by the order it registers fonts in.
-2. **A second test font** (Noto Sans Hebrew, 27 KB, OFL 1.1) in `crates/tantu-text/tests/fonts`.
-   Proposal: yes, test-only.
-3. **CJK and Thai segmentation:** parley's `complex-scripts` feature adds ICU4X segmentation
-   models for scripts that don't separate words with spaces. Without it, a debug build printed
-   "ICU4X data error: No segmentation model for complex script: Chinese/Japanese" to stderr
-   when shaping Japanese. A quick release-build comparison showed no size change and no
-   message, which isn't conclusive. Proposal: leave it out of this spec. Enabling it, behind a
-   `tantu-text` feature or by default, is decided with i18n work in Phase 4, after measuring
-   its size and checking where the message comes from.
+   in registration order, then system fallback.
+2. **Noto Sans Hebrew** as a second, test-only font.
+3. **CJK and Thai segmentation (`complex-scripts`)** is deferred to Phase 4 i18n.
