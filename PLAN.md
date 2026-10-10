@@ -125,6 +125,14 @@ faster or more portable without changing how apps are written.
   - [x] `Button`: Space/Enter activation when focused, focus indicator (spec `docs/specs/widgets/button-keyboard.md`)
 - [x] `Overlay` + anchored positioning (target/follower): 9-point anchors, offset, z-index, pointer passthrough, flip/clamp to window (spec `docs/specs/view/overlay.md`)
 - [ ] Widgets: Text, RichText, Button, IconButton, Checkbox, Radio, Switch, Slider, TextField (with IME, selection, undo), Image, Icon, Divider, Tooltip
+  - [x] `Text`, `Button` (Phase 2, `docs/specs/widgets/basic.md`; keyboard in `button-keyboard.md`)
+  - [ ] `Tooltip`: the overlay's first user (spec `docs/specs/widgets/tooltip.md`)
+  - [ ] `Divider` and `Slider`
+  - [ ] `Checkbox`, `Radio`, `Switch` (needs a check-mark shape: Scene paths or an icon glyph, decided in the spec)
+  - [ ] `Icon` and `IconButton` (an icon font)
+  - [ ] `Image` (decoding, fit, sizing)
+  - [ ] `RichText` (multi-style paragraphs in `tantu-text`)
+  - [ ] `TextField`, in parts: editing model (text, selection, undo), the widget (caret, selection painting, keys), then IME
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
 - [ ] Virtualized `ListView` (100k items at 60fps)
 - [ ] `tantu-theme`: design tokens, light/dark, density, live theme switching

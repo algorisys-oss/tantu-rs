@@ -19,8 +19,10 @@ are done** (`docs/specs/view/shortcuts.md`): intents, `Shortcuts`, `Actions`,
 activation and its focus indicator are done** (`docs/specs/widgets/button-keyboard.md`), so
 **Phase 3's first item (focus, keyboard navigation, shortcuts) is done**. **The overlay item is done** (`docs/specs/view/overlay.md`): an overlay
 layer per window, `OverlayPortal`, `Anchor` (target/follower `Alignment` points, offset, flip,
-clamp), z-index, passthrough, `on_outside_press`. Next in PLAN.md: the Phase 3 widget set
-(`Text`, `RichText`, `Button`, `IconButton`, `Checkbox`, ..., `Tooltip`), split into specs. Review items from Phase 2 are
+clamp), z-index, passthrough, `on_outside_press`. The Phase 3 widget item is split in PLAN.md
+(`Tooltip`, `Divider`/`Slider`, toggles, `Icon`/`IconButton`, `Image`, `RichText`, `TextField` in
+parts). **Waiting for the user:** `docs/specs/widgets/tooltip.md` is a Draft (hover and focus,
+Material 3 plain tooltip, no show delay until timers; three open questions). Review items from Phase 2 are
 listed under Open questions and in decisions 33 to 43.
 
 The history of the session follows.
@@ -744,7 +746,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `bf722ec` | spec: overlay and anchored positioning (VIEW-OVERLAY-01..07) |
 | `c8e8cdf` | test: overlay and anchored positioning, stubs + 7 failing tests |
 | `e58b3d5` | impl: overlay and anchored positioning |
-| _this commit_ | docs: HANDOFF.md for the overlay |
+| `f883007` | docs: HANDOFF.md for the overlay |
+| _this commit_ | docs: PLAN.md widget item split; draft Tooltip spec for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
