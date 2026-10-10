@@ -27,9 +27,11 @@ depend on `tantu-layout` (decision 36, review). **Text in views is done**
 (`docs/specs/view/text.md`, VIEW-TEXT-01..05): `ViewTree::paint` takes a `TextPainter`, `frame` a
 `TextContext`, `SystemText` adapts a `TextSystem` + `Resources`, `ParagraphPaint` draws a
 `RenderParagraph`. A CI failure on `ab86cee` (Linux runners lack fontconfig's development
-package) is fixed in `a19b609` with fontique's `fontconfig-dlopen`. Next: glyph rasterization in
-the renderers (text is in Scenes but not yet drawn), event dispatch, the facade with the
-counter example, `WidgetTester`.
+package) is fixed in `a19b609` with fontique's `fontconfig-dlopen` (CI green again on
+`af91790`). **Glyph rasterizer done** (`docs/specs/text/raster.md`, TEXT-RASTER-01..04): swash
+coverage masks shared by both renderers. Next: drawing glyph runs in `tantu-render-soft` and
+`tantu-render-wgpu`, a text reference Scene, then event dispatch, the facade with the counter
+example, `WidgetTester`.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -540,7 +542,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `c5d5a13` | test: text in views, 5 failing tests |
 | `a19b609` | fix: load fontconfig at run time on Linux (fontique `fontconfig-dlopen`) |
 | `50a80c8` | impl: text in views |
-| _this commit_ | docs: HANDOFF.md for text in views |
+| `af91790` | docs: HANDOFF.md for text in views and the fontconfig fix |
+| `88afc14` | spec: glyph rasterizer (TEXT-RASTER-01..04); PLAN.md glyph item split |
+| `6582f9c` | test: glyph rasterizer, 4 failing tests; swash dependency |
+| `74ac56f` | impl: glyph rasterizer |
+| _this commit_ | docs: HANDOFF.md for the glyph rasterizer |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
