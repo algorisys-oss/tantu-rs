@@ -1,6 +1,6 @@
 # The `tantu` facade and app runner
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu`
 - **Plan item:** Phase 2, `tantu` facade → "`tantu` facade"
 - **Related:** [ADR 0004](../../adr/0004-platform-trait.md), [ADR 0011](../../adr/0011-view-layer.md),
@@ -76,7 +76,8 @@ impl App {
     /// Opens `window` showing the view `content` builds. `content` runs once, when the window
     /// opens, with the window's reactive runtime current (ADR 0011).
     pub fn window<V: View>(self, window: Window, content: impl FnOnce() -> V + 'static) -> Self;
-    /// Registers a font file (e.g. bundled with the app).
+    /// Registers a font file (e.g. bundled with the app); the first one's family becomes the
+    /// default family (FACADE-APP-09).
     pub fn font(self, data: Vec<u8>) -> Self;
     /// Uses only registered fonts, not the system's (tests, reproducible output).
     pub fn without_system_fonts(self) -> Self;
@@ -87,8 +88,25 @@ impl App {
     pub fn run_with(
         self,
         platform: impl Platform,
-        renderer: impl FnMut(&mut dyn PlatformContext, WindowId) -> Result<Box<dyn Renderer>>,
+        renderer: impl FnMut(&mut dyn PlatformContext, WindowId) -> Result<Box<dyn Renderer>> + 'static,
     ) -> Result<()>;
+    /// The runner as a platform handler, for shells that drive handlers themselves (and for
+    /// `FakePlatform::run_logged` in tests). `run_with` is `platform.run(&mut handler)`
+    /// followed by `handler.finish()`.
+    pub fn handler(
+        self,
+        renderer: impl FnMut(&mut dyn PlatformContext, WindowId) -> Result<Box<dyn Renderer>> + 'static,
+    ) -> AppHandler;
+}
+
+/// The app runner (a `PlatformHandler`).
+pub struct AppHandler { /* ... */ }
+
+impl PlatformHandler for AppHandler { /* started, window_event, idle */ }
+
+impl AppHandler {
+    /// How the run ended: the first error, or `Ok(())`.
+    pub fn finish(self) -> Result<()>;
 }
 
 /// What app code imports: `use tantu::prelude::*;`
@@ -109,7 +127,9 @@ The crate also re-exports the member crates as modules (`tantu::core`, `tantu::r
 
 ## Behavior
 
-Tests drive `run_with` with `FakePlatform` and the headless renderer.
+Tests drive `App::handler` with `FakePlatform::run_logged` and the headless renderer.
+FACADE-APP-08's test runs only without the `winit` or `wgpu` feature, so CI runs
+`cargo test -p tantu --no-default-features` too.
 
 - **FACADE-APP-01:** At `started`, each window is created in the order given, with its title and
   size. Its view tree is built (sharing the app text system's style table), and its renderer
@@ -140,6 +160,10 @@ Tests drive `run_with` with `FakePlatform` and the headless renderer.
   with `tracing`, never errors.
 - **FACADE-APP-08:** `run` without both the `winit` and `wgpu` features returns
   `Error::Unsupported` and opens nothing.
+- **FACADE-APP-09:** The family of the first font registered with `App::font` becomes the text
+  system's default family. Registered fonts are then used without being named, and apps
+  that turn off system fonts still show text. With no registered font, the default stays
+  `SansSerif`. (Added while agreeing: without it, generic families find no registered font.)
 
 ## Performance and allocation
 
@@ -147,13 +171,15 @@ One `Scene` per window, reused across frames. Frames happen only on request.
 
 ## Open questions
 
-1. **Redraw scheduling by polling `needs_frame()` after events and at idle**, instead of the
-   frame-requester callback, which can't reach the platform context outside callbacks.
-   Proposal: yes. It's simple and costs nothing per idle wake.
-2. **40 px per wheel line.** Proposal: yes (Chromium uses 40 on Linux and Windows). Tune with
-   scroll views in Phase 3.
-3. **`run` is GPU-only in Phase 2.** The software renderer in a window waits for a
-   pixel-presenting dependency. Proposal: yes. The Phase 2 milestone runs on wgpu, and a
-   machine without a GPU uses wgpu's GL or lavapipe fallback.
-4. **One `TextSystem` and one `Resources` per app, shared by all windows.** Proposal: yes. Fonts
-   are app-wide, and each renderer caches per `Resources` revision.
+Resolved (2026-10-10; the user said "continue" on the draft):
+
+1. **Redraws are scheduled by polling `needs_frame()`** after events and at idle.
+2. **40 px per wheel line.**
+3. **`run` is GPU-only in Phase 2.**
+4. **One `TextSystem` and one `Resources` per app.**
+
+Added while agreeing (review):
+
+- `App::handler` and `AppHandler`, so tests can read `FakePlatform`'s log and other shells can
+  drive the runner. `run_with` is built on them.
+- FACADE-APP-09: the first registered font is the default family.
