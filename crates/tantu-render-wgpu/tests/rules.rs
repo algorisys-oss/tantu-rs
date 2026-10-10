@@ -260,6 +260,35 @@ fn render_wgpu_08_rounded_corners_and_radius_clamping() {
 }
 
 #[test]
+fn render_wgpu_08_radius_over_half_a_side() {
+    // A 20-pixel bottom-left radius on a 20-pixel-tall rect with a square top-left corner: the
+    // radii fit (CSS rule), so the corner curves along the whole left side: its circle is centered at (30, 10) and
+    // passes through the rect's top-left corner.
+    let red = [255, 0, 0, 255];
+    let Some(image) = render100(|b| {
+        b.fill(
+            RoundedRect::new(
+                r(10.0, 10.0, 40.0, 20.0),
+                BorderRadius {
+                    top_left: 0.0,
+                    top_right: 0.0,
+                    bottom_right: 0.0,
+                    bottom_left: 20.0,
+                },
+            ),
+            RED,
+        );
+    }) else {
+        return;
+    };
+    assert_px(&image, 14, 11, red, 0);
+    assert_px(&image, 10, 18, CLEAR, 0);
+    assert_px(&image, 10, 19, CLEAR, 0);
+    assert_px(&image, 20, 12, red, 0);
+    assert_px(&image, 30, 29, red, 0);
+}
+
+#[test]
 fn render_wgpu_09_strokes_and_empty_draws() {
     let red = [255, 0, 0, 255];
     let Some(image) = render100(|b| {
