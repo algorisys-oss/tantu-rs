@@ -123,7 +123,7 @@
   <text class="t" x="700" y="578">Render tree</text>
   <text class="b" x="700" y="600">RenderBox protocol: constraints ↓ · sizes ↑ · parent sets offsets</text>
   <text class="b" x="700" y="619">layout · paint · hit-test · relayout boundaries</text>
-  <text class="c" x="700" y="639">tantu-view + tantu-layout</text>
+  <text class="c" x="700" y="639">layout tree: tantu-layout · paint, hit-test: tantu-view</text>
 
   <!-- Scene -->
   <rect class="rend" x="420" y="720" width="330" height="110" rx="10"/>

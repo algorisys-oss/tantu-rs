@@ -84,10 +84,16 @@ faster or more portable without changing how apps are written.
 - [x] **Milestone:** a hand-built Scene renders the same in wgpu and software (golden diff within the cross-backend tolerance); reference Scenes and goldens in a renderer conformance crate every backend is tested against (spec `docs/specs/render-conformance/conformance.md`, ADR 0008)
 
 ### Phase 2 — Layout, views and text (weeks 6–10)
-- [ ] `tantu-layout`: `BoxConstraints` protocol, `RenderBox`-style trait for custom layouts; `Padding`, `Align`/`Center`, `SizedBox`, `ConstrainedBox`, `FractionallySizedBox`, `AspectRatio`, Flex (`Row`/`Column` with `Expanded`/`Flexible`/`Spacer`, main/cross-axis alignment, `spacing`), `Stack`/`Positioned`, `Wrap`, `LayoutBuilder`
+- [ ] `tantu-layout`: `BoxConstraints` protocol, `RenderBox`-style trait for custom layouts; `Padding`, `Align`/`Center`, `SizedBox`, `ConstrainedBox`, `FractionallySizedBox`, `AspectRatio`, Flex (`Row`/`Column` with `Expanded`/`Flexible`/`Spacer`, main/cross-axis alignment, `spacing`), `Stack`/`Positioned`, `Wrap` (the layout tree lives in `tantu-layout`, ADR 0009)
+  - [ ] `BoxConstraints` (spec `docs/specs/layout/constraints.md`)
+  - [ ] Layout tree and protocol: `RenderBox` trait, `LayoutTree` arena, parent data, layout pass with caching, `mark_needs_layout`, relayout boundaries, opt-in intrinsic sizes (spec `docs/specs/layout/tree.md`)
+  - [ ] Single-child layouts: `Alignment`, `RenderPadding`, `RenderPositionedBox` (`Align`/`Center`), `RenderConstrainedBox` (`SizedBox`/`ConstrainedBox`), `RenderFractionallySizedBox`, `RenderAspectRatio` (spec `docs/specs/layout/single-child.md`)
+  - [ ] Flex: `RenderFlex` (`Row`/`Column`), flex parent data (`Expanded`/`Flexible`/`Spacer`), main/cross-axis alignment and size, `spacing`, overflow reporting (spec `docs/specs/layout/flex.md`)
+  - [ ] `RenderStack` with `Positioned` parent data (spec `docs/specs/layout/stack.md`)
+  - [ ] `RenderWrap` (spec `docs/specs/layout/wrap.md`)
 - [ ] `TextMeasure` trait + word-level measure cache; visibility culling (techniques from Clay)
 - [ ] Layout benchmark: 10k render objects, target < 1 ms full layout
-- [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries
+- [ ] `tantu-view`: View/Element/RenderObject traits, keyed reconciliation, dirty tracking, relayout boundaries; `LayoutBuilder` (it builds views during layout, so it needs the element tree)
 - [ ] `tantu-text`: shaping, line breaking, bidi, font fallback, glyph-run output into Scene
 - [ ] Event dispatch: hit-testing, bubbling/capture, pointer capture, cursor icons
 - [ ] `tantu` facade + `App` runner; `counter` example matching the snippet in AGENTS.md

@@ -38,7 +38,7 @@ inkscape "$PWD/docs/architecture/tantu-architecture.svg" \
 | App code | user crate, `tantu-widgets`, `tantu-theme` | Functions returning `impl View`, built with builders; state kept in signals |
 | View tree | `tantu-view` | Cheap, short-lived descriptions of the UI, like Flutter `Widget`s |
 | Element tree | `tantu-view` | Retained nodes in an arena. Each has a stable identity, holds state, and tracks whether it is dirty |
-| Render tree | `tantu-view` + `tantu-layout` | `RenderBox`-style objects that do layout, paint and hit-testing |
+| Render tree | `tantu-layout` (layout tree) + `tantu-view` (paint, hit-test) | `RenderBox`-style layout objects in a `LayoutTree` arena owned by `tantu-layout`; `tantu-view` keeps them in step with elements and paints and hit-tests from their geometry ([ADR-0009](adr/0009-layout-tree-in-tantu-layout.md)) |
 | Scene | `tantu-scene` | Flat, serializable, versioned list of draw commands. Each command carries an element id and z-index |
 | Renderer | `tantu-scene` (trait), `tantu-render-*` | Draws a Scene. Never calls back into the UI |
 
@@ -88,6 +88,14 @@ Closures capture `Copy` signal handles and elements live in an arena addressed b
 `tantu-layout` holds the constraint types and the layout algorithms (Flex, Stack, Wrap, Align, …).
 It measures text only through the `TextMeasure` trait, with a word-level measure cache, so it does
 not depend on the text crate.
+
+Following [ADR-0009](adr/0009-layout-tree-in-tantu-layout.md), `tantu-layout` also owns the layout
+half of the render tree: a `LayoutTree` arena of nodes, each holding a `RenderBox` layout object
+(`RenderPadding`, `RenderFlex`, `RenderStack`, …, Flutter's names), its children, parent data and
+cached constraints, size and offset. The tree runs the layout pass, skips clean nodes and stops
+dirtiness at relayout boundaries. `tantu-view` creates and updates the nodes from elements and
+paints and hit-tests from their geometry, so every layout algorithm can be tested and benchmarked
+without views.
 
 `tantu-text` (parley, swash, fontique) handles shaping, bidi, line breaking and font fallback. It
 implements `TextMeasure`, hands shaped paragraphs to text render objects, and those emit glyph runs
@@ -152,6 +160,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | wgpu as default GPU backend | [ADR-0006](adr/0006-wgpu-as-the-default-gpu-backend.md) |
 | Reads of disposed signal handles panic, `try_*` reads and writes don't | [ADR-0007](adr/0007-using-disposed-reactive-handles.md) |
 | Every renderer is checked against shared reference Scenes and goldens | [ADR-0008](adr/0008-renderer-conformance-suite.md) |
+| The layout tree (layout objects, caching, relayout boundaries) lives in `tantu-layout` | [ADR-0009](adr/0009-layout-tree-in-tantu-layout.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).
