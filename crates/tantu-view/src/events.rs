@@ -285,7 +285,10 @@ impl ViewTree {
             element: id,
             local: Point::new(event.position.x - origin.x, event.position.y - origin.y),
             phase,
-            size: Size::ZERO,
+            size: self
+                .layout_id(id)
+                .and_then(|layout| self.layout_tree().size(layout))
+                .unwrap_or(Size::ZERO),
         };
         for (_, handler) in handlers.iter().filter(|(p, _)| *p == phase) {
             *ran = true;

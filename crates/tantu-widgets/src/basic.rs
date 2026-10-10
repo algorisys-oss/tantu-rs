@@ -1,10 +1,28 @@
 //! [`Text`] and [`Button`]. Spec: `docs/specs/widgets/basic.md`.
 
 use std::rc::Rc;
+use std::sync::Arc;
 
-use tantu_view::core::Color;
+use tantu_view::core::{Color, EdgeInsets, Rect};
+use tantu_view::layout::{Alignment, BoxConstraints, RenderConstrainedBox, RenderParagraph};
+use tantu_view::reactive::{effect, signal};
+use tantu_view::scene::{BorderRadius, RoundedRect};
 use tantu_view::text::TextStyle;
-use tantu_view::{BuildCx, ElementId, IntoProp, Prop, View};
+use tantu_view::{
+    AnyView, BuildCx, CursorIcon, ElementId, Handled, IntoProp, Paint, PaintCx, ParagraphPaint,
+    Phase, PointerButton, PointerKind, Prop, View,
+};
+
+use crate::{Align, Padding};
+
+/// `Text`'s default color (Material 3's on-surface).
+const ON_SURFACE: Color = Color::from_argb32(0xFF1C_1B1F);
+/// The filled button's fill (Material 3's primary).
+const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
+/// A disabled button's fill: on-surface at 12 %.
+const DISABLED_FILL: Color = Color::from_argb32(0x1F1C_1B1F);
+/// A disabled button's label: on-surface at 38 %.
+const DISABLED_LABEL: Color = Color::from_argb32(0x611C_1B1F);
 
 /// Shows a string (a value, a closure or a signal) in a style and color (Flutter's `Text`).
 pub struct Text {
@@ -21,7 +39,7 @@ impl Text {
         Text {
             text: text.into_prop(),
             style: TextStyle::body(),
-            color: Prop::Value(Color::from_argb32(0xFF1C_1B1F)),
+            color: Prop::Value(ON_SURFACE),
             max_lines: None,
             soft_wrap: true,
         }
@@ -54,15 +72,18 @@ impl Text {
 
 impl View for Text {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            self.text,
-            self.style,
-            self.color,
-            self.max_lines,
-            self.soft_wrap,
-            cx,
-        );
-        todo!()
+        let mut paragraph = RenderParagraph::new("", cx.text_style(self.style));
+        paragraph.max_lines = self.max_lines;
+        paragraph.soft_wrap = self.soft_wrap;
+        let id = cx.render(paragraph, []);
+        cx.set_paint(id, ParagraphPaint { color: ON_SURFACE });
+        cx.bind(id, self.text, |e, text: String| {
+            e.update_render::<RenderParagraph>(|p| p.text = Arc::from(text));
+        });
+        cx.bind(id, self.color, |e, color| {
+            e.update_paint::<ParagraphPaint>(|p| p.color = color);
+        });
+        id
     }
 }
 
@@ -98,7 +119,141 @@ impl Button {
 
 impl View for Button {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.label, self.on_press, self.enabled, cx);
-        todo!()
+        let enabled: Rc<dyn Fn() -> bool> = match self.enabled {
+            Prop::Value(value) => Rc::new(move || value),
+            Prop::Dynamic(f) => Rc::from(f),
+        };
+        let (hovered, pressed) = (signal(false), signal(false));
+        // Becoming disabled clears hover and press (WIDGETS-BUTTON-03).
+        {
+            let enabled = Rc::clone(&enabled);
+            effect(move || {
+                if !enabled() {
+                    if hovered.get_untracked() {
+                        hovered.set(false);
+                    }
+                    if pressed.get_untracked() {
+                        pressed.set(false);
+                    }
+                }
+            });
+        }
+        let label_color = {
+            let enabled = Rc::clone(&enabled);
+            move || {
+                if enabled() {
+                    Color::WHITE
+                } else {
+                    DISABLED_LABEL
+                }
+            }
+        };
+        let label = Text::new(self.label)
+            .style(TextStyle::label())
+            .color(label_color);
+        let content = Padding::new(EdgeInsets::symmetric(24.0, 10.0)).child(
+            Align::new(Alignment::CENTER)
+                .width_factor(1.0)
+                .height_factor(1.0)
+                .child(label),
+        );
+        let minimum = BoxConstraints::new(64.0, f32::INFINITY, 40.0, f32::INFINITY);
+        let id = cx.render(RenderConstrainedBox::new(minimum), [AnyView::new(content)]);
+        cx.set_paint(
+            id,
+            ButtonPaint {
+                state: ButtonState::Idle,
+            },
+        );
+        let state = {
+            let enabled = Rc::clone(&enabled);
+            move || {
+                if !enabled() {
+                    ButtonState::Disabled
+                } else if pressed.get() {
+                    ButtonState::Pressed
+                } else if hovered.get() {
+                    ButtonState::Hovered
+                } else {
+                    ButtonState::Idle
+                }
+            }
+        };
+        cx.bind(id, Prop::Dynamic(Box::new(state)), |e, state| {
+            e.update_paint::<ButtonPaint>(|p| p.state = state);
+        });
+        let on_press = self.on_press;
+        cx.on_pointer(id, Phase::Bubble, move |p| match p.event.kind {
+            PointerKind::Enter => {
+                if enabled() {
+                    hovered.set(true);
+                }
+                Handled::Continue
+            }
+            PointerKind::Leave => {
+                hovered.set(false);
+                Handled::Continue
+            }
+            PointerKind::Down(PointerButton::Primary) if enabled() => {
+                pressed.set(true);
+                Handled::Stop
+            }
+            PointerKind::Up(PointerButton::Primary) if pressed.get_untracked() => {
+                pressed.set(false);
+                let inside = p.local.x >= 0.0
+                    && p.local.y >= 0.0
+                    && p.local.x < p.size.width
+                    && p.local.y < p.size.height;
+                if inside && enabled() {
+                    if let Some(on_press) = &on_press {
+                        on_press();
+                    }
+                }
+                Handled::Stop
+            }
+            _ => Handled::Continue,
+        });
+        cx.set_cursor(id, CursorIcon::Pointer);
+        id
+    }
+}
+
+/// What a button shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ButtonState {
+    Idle,
+    Hovered,
+    Pressed,
+    Disabled,
+}
+
+/// Fills the button's rounded background for its state.
+struct ButtonPaint {
+    state: ButtonState,
+}
+
+/// `color` with `alpha` white over it (source-over in sRGB).
+fn over_white(color: Color, alpha: f32) -> Color {
+    let mix = |c: f32| c * (1.0 - alpha) + alpha;
+    Color {
+        r: mix(color.r),
+        g: mix(color.g),
+        b: mix(color.b),
+        a: color.a,
+    }
+}
+
+impl Paint for ButtonPaint {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        let color = match self.state {
+            ButtonState::Idle => PRIMARY,
+            ButtonState::Hovered => over_white(PRIMARY, 0.08),
+            ButtonState::Pressed => over_white(PRIMARY, 0.12),
+            ButtonState::Disabled => DISABLED_FILL,
+        };
+        let size = cx.size();
+        let rect = Rect::from_ltwh(0.0, 0.0, size.width, size.height);
+        cx.scene()
+            .fill(RoundedRect::new(rect, BorderRadius::circular(20.0)), color);
     }
 }

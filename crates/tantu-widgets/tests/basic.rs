@@ -145,10 +145,13 @@ fn widgets_text_01_paragraph_and_glyphs() {
     assert_eq!(runs(&scene), [(2, Color::from_argb32(0xFF1C_1B1F))]);
 }
 
+/// The text and color signals of `widgets_text_02`.
+type TextAndColor = (Signal<String>, Signal<Color>);
+
 #[test]
 fn widgets_text_02_dynamic_text_and_color() {
     let mut fonts = Fonts::new();
-    let handles: Rc<Cell<Option<(Signal<String>, Signal<Color>)>>> = Rc::default();
+    let handles: Rc<Cell<Option<TextAndColor>>> = Rc::default();
     let mut tree = {
         let handles = handles.clone();
         fonts.tree(move || {

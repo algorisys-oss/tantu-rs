@@ -1,6 +1,6 @@
 # Text and Button
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crate:** `tantu-widgets` (plus one field added to `tantu-view`'s `PointerCx`)
 - **Plan item:** Phase 2, `tantu` facade → "`Text` and `Button`"
 - **Related:** [shared text styles](../text/styles.md), [text in views](../view/text.md),
