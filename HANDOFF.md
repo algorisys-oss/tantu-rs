@@ -50,9 +50,10 @@ milestone. **The layout demo is done** (`docs/specs/examples/layout-demo.md`; `c
 layout-demo`). Running it in a real window found a bug, fixed in a `spec:`/`test:`/`fix:` triple
 (FACADE-APP-10): nothing painted the window behind the content, so it was black on an opaque
 surface. Each window now has a background color (`Window::background`, default white).
-**Milestone runs:** counter and layout demo open and run without warnings on Linux Wayland and
-X11 (checked by the agent; X11 window captured, white background, correct layout). **Left:
-Windows and macOS runs by the user**, then tick the milestone in PLAN.md.
+**The Phase 2 milestone is met** (ticked 2026-10-10): `counter` and `layout-demo` run on
+Linux Wayland and X11 (checked by the agent) and on Windows and macOS (checked by the user).
+Left in Phase 2: the `tantu-text` parent item, whose sub-items are done but which has no rules
+for bidi and font fallback yet.
 
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
@@ -668,7 +669,8 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `2f8e370` | spec: windows paint a background color (FACADE-APP-10) |
 | `d8da396` | test: windows paint a background, failing |
 | `6a3e5b0` | fix: windows paint their background color |
-| _this commit_ | docs: HANDOFF.md for the layout demo and the background fix |
+| `548dc60` | docs: HANDOFF.md for the layout demo and the background fix |
+| _this commit_ | docs: Phase 2 milestone ticked (user checked Windows and macOS) |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -677,8 +679,8 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. The Phase 2 milestone: Windows and macOS runs of `counter` and `layout-demo` (the user),
-   then tick it. Then the `tantu-text` parent item (rules for bidi and font fallback).
+3. The `tantu-text` parent item: rules (and tests) for bidi and font fallback, then Phase 2 is
+   done and Phase 3 starts.
 
 ## Open questions
 

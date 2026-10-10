@@ -115,7 +115,7 @@ faster or more portable without changing how apps are written.
   - [x] `tantu` facade: `App`, `Window`, the runner (platform + view tree + renderer), `Error`, `prelude` (spec `docs/specs/facade/app.md`)
   - [x] `examples/counter`: the AGENTS.md snippet, verbatim (spec `docs/specs/examples/counter.md`)
 - [x] `tantu-test::WidgetTester` (pump, tap, find by key/text/type, goldens; typing text moves to Phase 3 with focus and `TextField`) (spec `docs/specs/test/widget-tester.md`)
-- [ ] **Milestone:** counter + layout demo run on Linux (Wayland + X11), Windows and macOS
+- [x] **Milestone:** counter + layout demo run on Linux (Wayland + X11), Windows and macOS (Linux checked by the agent, Windows and macOS by the user, 2026-10-10; `examples/counter`, `examples/layout-demo`, spec `docs/specs/examples/layout-demo.md`)
 
 ### Phase 3 — Core widget set and interaction (weeks 11–16)
 - [ ] Focus system, keyboard navigation, shortcuts/command registry
