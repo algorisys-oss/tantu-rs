@@ -1,7 +1,7 @@
 # ListView
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-12; review the
-  Open questions)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-12; review
+  the Open questions)
 - **Crate:** `tantu-widgets`; layout in [RenderListContent](../layout/list.md)
 - **Plan item:** Phase 3, "Virtualized `ListView` (100k items at 60fps)"
 - **Related:** [ScrollView](scroll.md), [dynamic content](../view/dynamic.md) (`For`),

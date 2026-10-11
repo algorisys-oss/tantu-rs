@@ -1,6 +1,6 @@
 # RenderListContent
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-12; review)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-12; review)
 - **Crate:** `tantu-layout`
 - **Plan item:** Phase 3, "Virtualized `ListView`" (the layout part)
 - **Related:** [viewport](viewport.md), [ListView](../widgets/list-view.md), Flutter's

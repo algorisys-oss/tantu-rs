@@ -141,7 +141,7 @@ faster or more portable without changing how apps are written.
   - [x] `RenderViewport` and `ScrollView`: wheel/trackpad deltas, clamping, scrollbar, clipping (specs `docs/specs/layout/viewport.md`, `docs/specs/widgets/scroll.md`)
   - [ ] kinetic scrolling and smooth wheel animation (after the animation item), keyboard scrolling and `ensure_visible`
 - [ ] Virtualized `ListView` (100k items at 60fps)
-  - [ ] fixed-extent `ListView::builder` on the viewport (specs `docs/specs/layout/list.md`, `docs/specs/widgets/list-view.md`)
+  - [x] fixed-extent `ListView::builder` on the viewport (specs `docs/specs/layout/list.md`, `docs/specs/widgets/list-view.md`)
   - [ ] variable item extents, separators, keyboard navigation
 - [ ] `tantu-theme`: design tokens, light/dark, density, live theme switching
 - [ ] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
