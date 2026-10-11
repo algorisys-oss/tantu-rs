@@ -19,15 +19,16 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
   `Checkbox`/`Radio`/`Switch`, `Icon`/`IconButton`, `Image`, `RichText`, `TextField` with undo
   and IME); `ScrollView` with wheel, scrollbar and keyboard scrolling; fixed-extent
   `ListView::builder`; inherited values; `examples/gallery`; on 2026-10-11 **the theme**
-  (decision 62) and **timers and tickers**, the first animation sub-item (decision 63): the
-  reactive runtime has a clock, the platform wakes the loop up at deadlines, the tester has
-  `advance`, and the tooltip waits 500 ms. Left in Phase 3: the animation controller and
-  implicit transitions, enter/exit transitions, kinetic scrolling and `ensure_visible`,
-  variable list extents, `tantu-a11y`.
+  (decision 62), **timers and tickers** (decision 63: the reactive runtime has a clock, the
+  platform wakes the loop up at deadlines, the tester has `advance`, the tooltip waits 500 ms)
+  and **the animation controller, tweens, curves and `animated()` props** (decision 64; the
+  gallery has an Animation section). Left in Phase 3: enter/exit transitions (the third
+  animation sub-item), kinetic scrolling and `ensure_visible`, variable list extents,
+  `tantu-a11y`.
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 63 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 64 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally. CI was not checked from this session.
 
@@ -38,15 +39,14 @@ stops; the user says "continue" to accept the proposals; the agent then does
 recommended option at forks, marks it for review and pushes at each milestone (decision 34).
 Additions made while agreeing a spec are marked "review" in its Open questions.
 
-**For the user to review:** decisions 49 to 63 (made by the agent, marked in the specs), and the
+**For the user to review:** decisions 49 to 64 (made by the agent, marked in the specs), and the
 open questions below.
 
 **Next (PLAN.md order, Phase 3):**
 
-1. **Animation, sub-items 2 and 3** (PLAN.md): `AnimationController`, `Tween`, curves and
-   `animated()` props (implicit transitions on any reactive prop); then enter/exit transitions
-   (`Opacity`, `AnimatedSwitcher`, animated `Show`) with caret blink, double-click and kinetic
-   scrolling as users. The timers are in (`timer`, `ticker`, `Runtime::tick`).
+1. **Animation, sub-item 3** (PLAN.md): enter/exit transitions (`Opacity`, `AnimatedSwitcher`,
+   animated `Show`) with caret blink, double-click and kinetic scrolling as users. Timers,
+   tickers, the controller, tweens, curves and `animated()` are in.
 2. Scroll leftovers (kinetic, `ensure_visible`) and `ListView` leftovers (variable extents,
    separators, keyboard navigation).
 3. `tantu-a11y`: the AccessKit tree for every widget.
@@ -604,6 +604,20 @@ open questions below.
     hover (`wait_duration`), focus shows at once, and its timer runs in the portal's scope
     (`BuildCx::tree().scope(id)`), the first workaround for the handler-ownership question.
     PLATFORM-WINIT-14 was checked in a real window on Wayland.
+64. **Animation** (2026-10-11, spec `docs/specs/view/animation.md`; the user said "ok" on the
+    draft's six proposals): the module lives in `tantu-view`; `Curve` is an enum (Flutter's
+    named curves plus `Cubic`, solved by bisection); `Lerp` for the core value types and
+    `Tween`; `AnimationController` is a `Copy` handle over two signals, a plan signal and a
+    ticker (Flutter's `forward`/`reverse`/`animate_to`/`animate_back`/`repeat`/`stop`/
+    `reset`/`set_value`, remaining-fraction durations, repeats carrying the overshoot over);
+    `Animation<T>` and `Animated<T>` are `IntoProp`, `animated(target, d)` being the implicit
+    form (a transition from the shown value on each target change, default `EaseInOut`).
+    **VIEW-ANIM-08**, found when the gallery hung: control methods and `animated()`'s first
+    read are untracked, otherwise a `Dyn` building them subscribes to the controller's value
+    (or the target) and rebuilds on every tick. Rule of thumb for the future: anything
+    constructed while views are built must read signals untracked unless it means to re-run
+    the enclosing `Dyn`. The gallery's Animation section has a painted `ColorBox` (a local
+    custom-paint view, the first in an example since the layout demo's `Swatch`).
 
 ## Commit log
 
@@ -953,7 +967,16 @@ open questions below.
 | `a44d2de` | spec: timers and tickers (REACTIVE-TIME-01..05, PLATFORM-TIME-01, PLATFORM-FAKE-12, PLATFORM-WINIT-14, VIEW-TIME-01, FACADE-APP-14, TEST-WT-13, WIDGETS-TOOLTIP-07) |
 | `ebbc95d` | test: timers and tickers, stubs + 11 failing tests |
 | `62af943` | impl: timers and tickers: the runtime's clock, platform now/wake_at, tree and tester forwarding, the runner's scheduling, the tooltip's show delay |
-| _this commit_ | docs: HANDOFF.md for timers and tickers |
+| `53cdbed` | docs: HANDOFF.md for timers and tickers |
+| `612d9dd` | docs: draft animation spec for review |
+| `e29b27a` | spec: animation (VIEW-ANIM-01..07, GALLERY-06) |
+| `3de03ba` | test: animation, stubs + 8 failing tests |
+| `5bd2f91` | spec: VIEW-ANIM-08, control methods never subscribe their caller |
+| `3423d11` | test: VIEW-ANIM-08, a controller inside a Dyn builds once |
+| `f3911fd` | spec: VIEW-ANIM-08 covers animated()'s first read |
+| `bb26bce` | test: VIEW-ANIM-08, an animated prop inside a Dyn doesn't rebuild it |
+| `633c536` | impl: animation: curves, Lerp/Tween, AnimationController, Animation and animated(); the gallery's Animation section |
+| _this commit_ | docs: HANDOFF.md for the animation controller |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
