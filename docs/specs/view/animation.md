@@ -187,6 +187,12 @@ impl<T: Lerp + PartialEq> IntoProp<T> for Animated<T> { /* see VIEW-ANIM-07 */ }
   is; a change to the same value does nothing; a zero duration jumps; a `Prop::Value` target
   never animates. The transition's ticker belongs to the owner current when `into_prop` ran
   (the widget's build), so it stops with the widget.
+- **VIEW-ANIM-08:** Control methods (`forward`, `reverse`, `animate_to`, `animate_back`,
+  `repeat`, `stop`, `reset`, `set_value`) never subscribe their caller: a controller created
+  and started inside a `Dyn`'s closure (or any effect) doesn't make that closure re-run when
+  the controller's value changes, so the content is built once and animates in place. Found
+  when the gallery hung: `repeat` read the value signal tracked, the `Dyn` subscribed to it
+  and rebuilt a new controller on every tick.
 - **GALLERY-06:** An "Animation" section (key `animation`): a `Switch` (key `grow`) that
   animates a box (key `box`) between 100 and 200 px wide and two colors with `animated()` over
   300 ms, and a dot (key `dot`) moving back and forth across a track with a repeating
