@@ -265,17 +265,72 @@ fn text_field_section() -> impl View {
 }
 
 fn lists_section() -> impl View {
+    let selection = signal(None::<usize>);
     Column::new()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .spacing(8.0)
         .child(Text::new("10 000 rows, built as they scroll into view.").style(TextStyle::label()))
-        .child(SizedBox::new(400.0, 320.0).child(Keyed::new(
+        .child(SizedBox::new(400.0, 200.0).child(Keyed::new(
             "list",
             ListView::builder(10_000usize, 32.0, |i| {
                 Padding::new(EdgeInsets::symmetric(8.0, 0.0))
                     .child(Align::new(Alignment::CENTER_LEFT).child(Text::new(format!("Row {i}"))))
             }),
         )))
+        .child(
+            Text::new("Headers and rows of different heights; click or use the arrow keys.")
+                .style(TextStyle::label()),
+        )
+        .child(
+            SizedBox::new(400.0, 200.0).child(Keyed::new(
+                "contacts",
+                ListView::builder_with_extents(
+                    200usize,
+                    |i| if i % 11 == 0 { 24.0 } else { 32.0 },
+                    move |i| contact_row(i, selection),
+                )
+                .selection(selection),
+            )),
+        )
+        .child(Keyed::new(
+            "selected",
+            Text::new(move || match selection.get() {
+                Some(i) => format!("Selected: {i}"),
+                None => "Selected: none".to_owned(),
+            }),
+        ))
+}
+
+/// A row of the contacts list (GALLERY-08): a group header every eleventh row, else a
+/// contact, highlighted in primary while selected, with a 1 px line under it.
+fn contact_row(i: usize, selection: Signal<Option<usize>>) -> impl View {
+    let header = i % 11 == 0;
+    let label = if header {
+        format!("Group {}", i / 11)
+    } else {
+        format!("Contact {i}")
+    };
+    let color = move || {
+        if selection.get() == Some(i) {
+            PRIMARY
+        } else {
+            Color::from_argb32(0xFF1C_1B1F)
+        }
+    };
+    let style = if header {
+        TextStyle::label()
+    } else {
+        TextStyle::body()
+    };
+    Column::new()
+        .cross_axis_alignment(CrossAxisAlignment::Stretch)
+        .child(Expanded::new(
+            Padding::new(EdgeInsets::symmetric(8.0, 0.0)).child(
+                Align::new(Alignment::CENTER_LEFT)
+                    .child(Text::new(label).style(style).color(color)),
+            ),
+        ))
+        .child(Divider::new().height(1.0))
 }
 
 fn media_section() -> impl View {

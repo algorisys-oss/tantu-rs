@@ -140,6 +140,16 @@ impl ScrollController {
         self.extents.get().1
     }
 
+    /// The offset without subscribing (for handlers).
+    pub(crate) fn offset_untracked(&self) -> f32 {
+        self.offset.get_untracked()
+    }
+
+    /// The viewport's extent without subscribing (for handlers).
+    pub(crate) fn viewport_extent_untracked(&self) -> f32 {
+        self.extents.get_untracked().0
+    }
+
     /// The viewport's extent along the axis, from the last frame.
     pub fn viewport_extent(&self) -> f32 {
         self.extents.get().0

@@ -19,15 +19,28 @@ pub enum ListExtents {
 impl ListExtents {
     /// Prefix sums of `extents` (negative or NaN entries count as 0).
     pub fn table(extents: impl IntoIterator<Item = f32>) -> ListExtents {
-        let _ = extents.into_iter();
-        todo!()
+        let mut end = 0.0f32;
+        let ends: Vec<f32> = extents
+            .into_iter()
+            .map(|extent| {
+                end += clean(extent);
+                end
+            })
+            .collect();
+        ListExtents::Table(Arc::from(ends))
     }
 
     /// Where item `index` starts.
     pub fn start(&self, index: usize) -> f32 {
         match self {
             ListExtents::Fixed(extent) => index as f32 * clean(*extent),
-            ListExtents::Table(_) => todo!(),
+            ListExtents::Table(ends) => match index {
+                0 => 0.0,
+                _ => ends
+                    .get(index - 1)
+                    .copied()
+                    .unwrap_or_else(|| ends.last().copied().unwrap_or(0.0)),
+            },
         }
     }
 
@@ -35,10 +48,10 @@ impl ListExtents {
     pub fn extent(&self, index: usize) -> f32 {
         match self {
             ListExtents::Fixed(extent) => clean(*extent),
-            ListExtents::Table(_) => {
-                let _ = index;
-                todo!()
-            }
+            ListExtents::Table(ends) => match ends.get(index) {
+                Some(end) => end - self.start(index),
+                None => 0.0,
+            },
         }
     }
 
@@ -46,18 +59,37 @@ impl ListExtents {
     pub fn total(&self, count: usize) -> f32 {
         match self {
             ListExtents::Fixed(extent) => count as f32 * clean(*extent),
-            ListExtents::Table(_) => todo!(),
+            ListExtents::Table(ends) => match count.min(ends.len()) {
+                0 => 0.0,
+                n => ends[n - 1],
+            },
         }
     }
 
     /// The index of the item containing `position` (the last item at or past the end, 0
     /// before the start), among `count` items; `None` when `count` is 0.
     pub fn index_at(&self, position: f32, count: usize) -> Option<usize> {
-        let _ = position;
         if count == 0 {
             return None;
         }
-        todo!()
+        let last = count - 1;
+        let index = match self {
+            ListExtents::Fixed(extent) => {
+                let extent = clean(*extent);
+                if extent > 0.0 && position.is_finite() && position > 0.0 {
+                    (position / extent).floor().min(last as f32) as usize
+                } else if position.is_finite() && position <= 0.0 {
+                    0
+                } else {
+                    last
+                }
+            }
+            ListExtents::Table(ends) => {
+                let n = count.min(ends.len());
+                ends[..n].partition_point(|end| *end <= position)
+            }
+        };
+        Some(index.min(last))
     }
 }
 

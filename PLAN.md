@@ -142,9 +142,9 @@ faster or more portable without changing how apps are written.
   - [x] keyboard scrolling (arrows, PageUp/Down, Home/End) (WIDGETS-SCROLL-06)
   - [x] smooth wheel animation and `ScrollController::animate_to` (WIDGETS-SCROLL-07, -08; kinetic fling deferred, see `docs/specs/widgets/transitions.md`)
   - [ ] `ensure_visible` (with focus scopes)
-- [ ] Virtualized `ListView` (100k items at 60fps)
+- [x] Virtualized `ListView` (100k items at 60fps)
   - [x] fixed-extent `ListView::builder` on the viewport (specs `docs/specs/layout/list.md`, `docs/specs/widgets/list-view.md`)
-  - [ ] variable item extents, separators, keyboard navigation (spec `docs/specs/widgets/list-view-advanced.md`)
+  - [x] variable item extents, separators, keyboard navigation (spec `docs/specs/widgets/list-view-advanced.md`)
 - [x] `tantu-theme`: design tokens, light/dark, density, live theme switching (spec `docs/specs/theme/theme.md`, ADR 0012; `Builder` in `tantu-view`; the gallery's dark-mode switch)
 - [x] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
   - [x] timers and tickers: platform `now`/`wake_at` (winit `WaitUntil`), `Runtime::tick`, `timer`/`ticker`, `WidgetTester::advance`; the tooltip's show delay (spec `docs/specs/reactive/timers.md`)

@@ -1,6 +1,6 @@
 # ListView: variable extents, separators and keyboard navigation
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-11, taking its five
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-11, taking its five
   proposals)
 - **Crates:** `tantu-layout` (`RenderListContent` with an extent table), `tantu-widgets`
   (`ListView::builder_with_extents`, `ListView::separated`, selection and keys),
