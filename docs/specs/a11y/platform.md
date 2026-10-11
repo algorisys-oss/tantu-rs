@@ -1,6 +1,7 @@
 # Accessibility through the platform
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Draft (the user said "continue" on 2026-10-12, taking its four proposals; it
+  moves to Agreed with its own `spec:` commit when the semantics sub-item is done)
 - **Crates:** `tantu-platform` (events and the update call, `FakePlatform` recording),
   `tantu-platform-winit` (the `accesskit_winit` adapter), `tantu` (the runner sending trees
   and routing actions)

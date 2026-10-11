@@ -161,6 +161,7 @@ impl Finder {
   [theme](../theme/theme.md).
 - **TEST-WT-13:** The tester's clock: `pump` ticks at the current time and `advance` moves it;
   see [timers and tickers](../reactive/timers.md).
+- **TEST-WT-14:** `a11y_tree` and `perform_action`; see [semantics](../a11y/semantics.md).
 
 ## Open questions
 

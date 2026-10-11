@@ -1,6 +1,7 @@
 # Semantics and the AccessKit tree
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its seven
+  proposals)
 - **Crates:** `tantu-view` (`Semantics` on elements, `bounds`, `perform_action`),
   `tantu-a11y` (the AccessKit tree and action mapping), `tantu-widgets` (every widget
   annotated), `tantu-test` (`a11y_tree`, `perform_action`), `examples/gallery`
@@ -218,7 +219,7 @@ them pay a pointer).
 
 ## Open questions
 
-Proposals (say "continue" to take them, or change them):
+Resolved (2026-10-12; the user said "continue" on the draft, taking these proposals):
 
 1. **Semantics are plain data on elements in `tantu-view`** (ADR 0013), with a `Role` enum
    that mirrors the AccessKit roles the widgets need, so `tantu-view` and the widgets never

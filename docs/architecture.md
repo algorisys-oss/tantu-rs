@@ -152,6 +152,9 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 
 - Nothing below `tantu-view` knows about widgets. `tantu-theme` sits beside the widgets:
   `tantu-widgets` and `tantu-test` depend on it, and it depends only on `tantu-view`.
+- `tantu-a11y` reads element semantics from `tantu-view` and builds AccessKit trees; the
+  runner sends them through the platform trait, and only `tantu-platform-*` touch the
+  AccessKit platform adapters ([ADR-0013](adr/0013-accessibility-pipeline.md)).
 - Only `tantu-render-*` may depend on `wgpu` or `tiny-skia`.
 - Only `tantu-platform-*` may depend on `winit`.
 
@@ -171,6 +174,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Paragraph-level `TextMeasure` passed into the layout pass; `RenderParagraph` in `tantu-layout`; word cache in `tantu-text` | [ADR-0010](adr/0010-text-measurement-in-layout.md) |
 | Run-once components, render and region elements, queued updates applied per frame | [ADR-0011](adr/0011-view-layer.md) |
 | Theme tokens reach widgets through an inherited `Signal<Theme>`; `tantu-widgets` depends on `tantu-theme` | [ADR-0012](adr/0012-theme-tokens-through-inherited-signals.md) |
+| Semantics on elements; `tantu-a11y` builds AccessKit trees, delivered through the platform trait | [ADR-0013](adr/0013-accessibility-pipeline.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).

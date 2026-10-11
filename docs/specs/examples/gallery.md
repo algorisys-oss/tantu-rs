@@ -74,6 +74,7 @@ Sections and their samples:
   [transitions](../widgets/transitions.md).
 - **GALLERY-08:** The Lists section's contacts list (headers, separators, selection); see
   [ListView: variable extents](../widgets/list-view-advanced.md).
+- **GALLERY-09:** Every sample has an accessibility node; see [semantics](../a11y/semantics.md).
 
 ## Open questions
 

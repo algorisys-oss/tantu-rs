@@ -81,7 +81,7 @@
 
   <!-- a11y to platform adapter -->
   <path class="side" d="M880,830 L880,874 L390,874 L390,660 L362,660"/>
-  <text class="lbl" x="770" y="864">AccessKit updates → platform adapter</text>
+  <text class="lbl" x="770" y="864">AccessKit updates via the platform trait; actions back</text>
 
   <!-- tester -->
   <path class="side" d="M700,1178 L645,1122"/>

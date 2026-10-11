@@ -1,6 +1,6 @@
 # 0013. Accessibility: semantics in the view tree, AccessKit trees from `tantu-a11y`
 
-- **Status:** Proposed
+- **Status:** Accepted (the user said "continue" on the drafts, 2026-10-12)
 - **Date:** 2026-10-12
 - **Related:** [ADR 0004](0004-platform-trait-with-winit-by-default.md) (platform trait),
   [ADR 0011](0011-view-layer.md) (elements), spec [semantics](../specs/a11y/semantics.md),

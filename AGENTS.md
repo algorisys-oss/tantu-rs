@@ -67,14 +67,14 @@ Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 | `tantu-view` | View/Element/RenderObject traits, reconciler, event dispatch, focus | core, reactive, scene, text, layout |
 | `tantu-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …); reads the theme's tokens (ADR 0012) | view, theme |
 | `tantu-theme` | design tokens, Material-ish + Fluent-ish default themes, `Theme::of` | view |
-| `tantu-a11y` | AccessKit tree generation | view |
-| `tantu-platform` | `Platform` trait: windows, input, clipboard, IME, dialogs, menus | core |
+| `tantu-a11y` | AccessKit tree generation from element semantics (ADR 0013); depends on the `accesskit` data crate | view |
+| `tantu-platform` | `Platform` trait: windows, input, clipboard, IME, accessibility events (`accesskit` data crate), dialogs, menus | core |
 | `tantu-platform-winit` | winit implementation | platform |
 | `tantu-render-wgpu` | GPU renderer (Vulkan/Metal/DX12/GL) | scene, text |
 | `tantu-render-soft` | CPU renderer via tiny-skia (fallback, CI, remote desktop) | scene, text |
 | `tantu-render-headless` | records Scenes, used by tests | scene |
 | `tantu-render-conformance` | reference Scenes, embedded goldens and the cross-backend image comparison every renderer is tested against (ADR 0008) | core, scene |
-| `tantu-test` | widget tester, golden images, event simulation; provides the default theme | view, theme, render-soft, render-headless |
+| `tantu-test` | widget tester, golden images, event simulation, the accessibility tree; provides the default theme | view, theme, a11y, render-soft, render-headless |
 | `tantu` | facade crate, `App` runner, prelude | everything above |
 | `examples/` | gallery, todo, enterprise dashboard, data grid stress test | tantu |
 | `xtask` | dev tooling, not published: `cargo xtask spec-coverage` | — (std only; nothing depends on it) |
@@ -84,7 +84,8 @@ everything; the table lists only the other edges.
 
 **Dependency rule (enforced in review):** nothing below `tantu-view` may know about widgets; nothing
 except `tantu-render-*` may depend on `wgpu`/`tiny-skia`; nothing except `tantu-platform-*` may depend
-on `winit`. If you need to break this rule, stop and discuss.
+on `winit` or the `accesskit_*` platform adapters (the `accesskit` data crate is allowed in `tantu-a11y`
+and `tantu-platform`). If you need to break this rule, stop and discuss.
 
 ## Authoring style we are aiming for
 
