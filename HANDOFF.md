@@ -26,11 +26,22 @@ every push of the session. When resuming, tell the agent: "Read HANDOFF.md and c
   - **`Tooltip`**: `docs/specs/widgets/tooltip.md`, plus `BuildCx::on_focus_within`
     (VIEW-FOCUS-09). Rendered and checked by eye: a dark rounded box 4 px under the hovered
     widget.
-- Workspace: 543 tests, 45 specs, every rule covered (`cargo xtask spec-coverage`).
+  - **`Divider` and `VerticalDivider`** (2026-10-11, `docs/specs/widgets/divider.md`), which
+    brought Flutter's `LimitedBox` (`RenderLimitedBox`, LAYOUT-SINGLE-16; the widget,
+    WIDGETS-LAYOUT-07) and the first widget golden
+    (`crates/tantu-widgets/tests/goldens/divider.png`). Writing its reactive test found a
+    layout-tree bug: a boundary queued as dirty, then laid out by an ancestor's pass, stayed
+    flagged "queued", so a later mark that stopped at it was never laid out. Fixed in the
+    `spec:`/`test:`/`fix:` triple `fece7dc`/`3e63827`/`96a932b` (LAYOUT-TREE-13).
+- Workspace: 46 specs (one draft), every rule covered (`cargo xtask spec-coverage`).
+
+**The user left for ~4 hours on 2026-10-11** after saying "continue" on the Divider and
+Slider drafts, asking the agent to keep going (decision 34 applies: take the recommended
+option, mark it for review, push at each milestone).
 
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `Divider` and `Slider` (spec first).
+1. `Slider` (`docs/specs/widgets/slider.md`, agreed; next to implement).
 2. `Checkbox`, `Radio`, `Switch`. The check mark needs Scene paths or an icon glyph; decide in
    that spec.
 3. `Icon`/`IconButton`, `Image`, `RichText`, then `TextField` in three parts.
@@ -531,6 +542,18 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     show delay until timers exist (animation item); shows on hover and on focus within the
     child; Material 3 plain-tooltip look; passthrough overlay 4 px below (or above). **Review:**
     VIEW-FOCUS-09 `BuildCx::on_focus_within`, added for it.
+49. **Divider** (2026-10-11, spec `docs/specs/widgets/divider.md`, the draft's proposals):
+    Flutter's `LimitedBox` added to `tantu-layout` and the layout widgets rather than a private
+    leaf render object, so "fill a bounded width, else a fixed one" is one Flutter idiom (a
+    `LimitedBox` around an expanding box; the Slider reuses it); default thickness 1 px
+    (Material 3), not Flutter's hairline, until paint can see the scale factor; one golden per
+    widget from here on under `crates/tantu-widgets/tests/goldens/` (`Button` and `Tooltip`
+    get theirs with the gallery).
+50. **Slider** (2026-10-11, spec `docs/specs/widgets/slider.md`, the draft's proposals): `f64`
+    values; strictly controlled like Flutter (the thumb shows `value`, `on_change` reports);
+    Flutter's keyboard model (5 % or one-division steps, Home/End, repeats, `on_change` only);
+    focus on press; a slider without `on_change` counts as disabled; a fixed 48 px height
+    where Flutter takes the bounded maximum height; `WidgetTester::drag` (TEST-WT-08).
 
 ## Commit log
 
@@ -782,7 +805,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `29487fd` | spec: Tooltip (WIDGETS-TOOLTIP-01..06, VIEW-FOCUS-09) |
 | `341acce` | test: Tooltip and focus within, stubs + 7 failing tests |
 | `ed76c10` | impl: Tooltip and focus within |
-| _this commit_ | docs: HANDOFF.md, paused (Tooltip done) |
+| `3aa5372` | docs: HANDOFF.md, paused (Tooltip done) |
+| `f90a4ed` | docs: draft Divider and Slider specs for review; PLAN.md item split in two |
+| `14163c2` | spec: Divider and VerticalDivider (WIDGETS-DIVIDER-01..04); RenderLimitedBox (LAYOUT-SINGLE-16), LimitedBox (WIDGETS-LAYOUT-07) |
+| `2bd1ad8` | test: Divider, VerticalDivider, RenderLimitedBox and LimitedBox, stubs + 6 failing tests |
+| `fece7dc` | spec: LAYOUT-TREE-13 holds for a boundary cleaned by an ancestor's pass |
+| `3e63827` | test: a boundary cleaned by an ancestor's pass is queued again, failing |
+| `96a932b` | fix: dirty boundaries leave the queue when a pass handles them |
+| `6dfb402` | impl: Divider and VerticalDivider, RenderLimitedBox and LimitedBox; divider golden |
+| _this commit_ | docs: HANDOFF.md for the Divider |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -791,7 +822,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `Divider` and `Slider` next (see "Resume here").
+3. Phase 3 widgets: `Slider` next (see "Resume here").
 
 ## Open questions
 
