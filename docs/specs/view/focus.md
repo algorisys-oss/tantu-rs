@@ -152,6 +152,10 @@ impl WidgetTester {
 - **TEST-WT-07:** `press_key` dispatches a press and a release of the key to the tester's tree,
   then pumps. `focus` focuses the found element, then pumps, and panics if it isn't
   focusable.
+- **VIEW-IME-01:** `BuildCx::on_ime` and `ViewTree::dispatch_ime` to the focused element; see
+  [TextField IME](../widgets/text-field-ime.md).
+- **VIEW-IME-02:** `ElementMut::set_ime_area` and `ViewTree::ime_area` in window coordinates; see
+  [TextField IME](../widgets/text-field-ime.md).
 
 ## Open questions
 

@@ -136,7 +136,7 @@ faster or more portable without changing how apps are written.
   - [ ] `TextField`, in parts:
     - [x] editing model: text, selection, undo (spec `docs/specs/widgets/text-editing.md`)
     - [x] the widget: caret, selection painting, keys, pointer (spec `docs/specs/widgets/text-field.md`; clipboard waits for the platform)
-    - [ ] IME composition
+    - [ ] IME composition (spec `docs/specs/widgets/text-field-ime.md`)
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
 - [ ] Virtualized `ListView` (100k items at 60fps)
 - [ ] `tantu-theme`: design tokens, light/dark, density, live theme switching

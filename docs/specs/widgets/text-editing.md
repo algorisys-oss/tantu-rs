@@ -154,6 +154,8 @@ word. `LineBoundary` is the start or end of the line of hard breaks (`\n`) the c
 - **WIDGETS-EDIT-08:** The controller is reactive: a memo or effect reading `value()` or
   `text()` re-runs after `edit`, `set_text`, `select`, `undo` and `redo`; `value()` inside
   `edit`'s closure sees the current value.
+- **WIDGETS-EDIT-09:** `compose` and `commit` edit the composing region; see
+  [TextField IME](text-field-ime.md).
 
 ## Open questions
 

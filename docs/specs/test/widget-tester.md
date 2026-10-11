@@ -83,6 +83,8 @@ impl WidgetTester {
     /// Taps the element, then types `text` character by character (TEST-WT-09, added with
     /// the TextField).
     pub fn enter_text(&mut self, finder: &Finder, text: &str);
+    /// Dispatches an IME event to the focused element, then pumps (TEST-WT-10).
+    pub fn ime(&mut self, event: ImeEvent);
     /// Dispatches a raw pointer event (no pump).
     pub fn pointer(&mut self, event: PointerEvent) -> bool;
     /// The single element `finder` matches (panics otherwise, naming the finder).
@@ -142,6 +144,8 @@ impl Finder {
   matches no element or several. (Added with [Slider](../widgets/slider.md).)
 - **TEST-WT-09:** `enter_text` taps the found element, then presses and releases a key with the
   text of each character, pumping after each; see [TextField](../widgets/text-field.md).
+- **TEST-WT-10:** `ime` dispatches an IME event to the tester's tree and pumps; see
+  [TextField IME](../widgets/text-field-ime.md).
 
 ## Open questions
 

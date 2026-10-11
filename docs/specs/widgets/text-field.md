@@ -217,6 +217,9 @@ coalescing works as the model specifies.
 - **TEST-WT-09:** `enter_text` taps the found element, then presses and releases, for each
   character of `text`, a `Character` key carrying that character as `text`, pumping after
   each, so a focused field ends up with the text appended at its caret.
+- **WIDGETS-TEXTFIELD-07:** IME events edit the composing region and the field declares its IME
+  area; see [TextField IME](text-field-ime.md).
+- **WIDGETS-TEXTFIELD-08:** The composing range is underlined; see [TextField IME](text-field-ime.md).
 
 ## Performance and allocation
 

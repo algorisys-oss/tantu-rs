@@ -172,6 +172,8 @@ FACADE-APP-08's test runs only without the `winit` or `wgpu` feature, so CI runs
   with the window's constraints. Without it, uncovered areas showed the surface's undefined
   contents (black on an opaque surface), which made dark text unreadable. Found by running
   the layout demo in a real window.
+- **FACADE-APP-12:** The runner forwards `Ime` events and keeps the platform's IME state in step
+  with the focused element's area; see [TextField IME](../widgets/text-field-ime.md).
 
 ## Performance and allocation
 

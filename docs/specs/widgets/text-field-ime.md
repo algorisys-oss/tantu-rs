@@ -1,6 +1,6 @@
 # TextField: IME composition
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-platform` (IME events and context calls), `tantu-platform-winit`
   (conversion), `tantu-view` (dispatch to the focused element, the IME area), `tantu`
   (the runner), `tantu-widgets` (`EditingValue` composing edits, `TextField`), `tantu-test`
@@ -94,15 +94,20 @@ impl WidgetTester {
 }
 ```
 
-## Behavior (draft)
+## Behavior
 
-- **PLATFORM-IME-01:** `ImeEvent` and `WindowEvent::Ime` exist as above; `FakePlatform` can
-  script them like other window events (PLATFORM-FAKE-11).
+- **PLATFORM-IME-01:** `ImeEvent` and `WindowEvent::Ime` exist as above, and
+  `PlatformContext` has `set_ime_allowed` and `set_ime_cursor_area`. (In
+  [platform](../platform/platform.md).)
+- **PLATFORM-FAKE-11:** `FakePlatform` delivers scripted `Ime` events like other window events
+  and records `set_ime_allowed` and `set_ime_cursor_area` per window (`FakeWindow::ime_allowed`,
+  `ime_area`).
 - **PLATFORM-WINIT-13:** winit's `Ime::Enabled/Preedit/Commit/Disabled` convert one to one;
   `set_ime_allowed` and `set_ime_cursor_area` call the winit window (the area in physical
   pixels, from the window's scale factor).
 - **VIEW-IME-01:** `dispatch_ime` calls the handlers registered with `on_ime` on the focused
   element (not its ancestors); with nothing focused, or no handlers, it returns false.
+  Removing the element drops its handlers and area. (In [focus](../view/focus.md).)
 - **VIEW-IME-02:** `ime_area` is the focused element's area set through `set_ime_area`,
   offset to window coordinates by its layout position; `None` when the focused element
   declared none, nothing is focused, or focus moved to another element.
@@ -121,7 +126,7 @@ impl WidgetTester {
 
 ## Open questions
 
-Proposals (say "continue" to take them):
+Resolved (2026-10-12; the user said "continue" on the draft):
 
 1. **winit's event shape as the platform's** (`Preedit { text, cursor }`, `Commit`, byte
    offsets), as for keys and pointers.
