@@ -77,6 +77,9 @@ impl WidgetTester {
     pub fn tap(&mut self, finder: &Finder);
     /// A pointer move to the element's center, then a pump.
     pub fn hover(&mut self, finder: &Finder);
+    /// A primary press at the element's center, a move by `delta` and a release there,
+    /// pumping after each (TEST-WT-08, added with the Slider).
+    pub fn drag(&mut self, finder: &Finder, delta: Vec2);
     /// Dispatches a raw pointer event (no pump).
     pub fn pointer(&mut self, event: PointerEvent) -> bool;
     /// The single element `finder` matches (panics otherwise, naming the finder).
@@ -131,6 +134,9 @@ impl Finder {
 - **VIEW-KEY-01:** `Keyed` gives the element its child builds the key; `find_key` returns the
   keyed elements in tree order; removing an element removes its key; a region child is keyed as
   the region.
+- **TEST-WT-08:** `drag` presses the primary button at the found element's center, moves by
+  `delta` and releases there, pumping after each step, and panics like `tap` when the finder
+  matches no element or several. (Added with [Slider](../widgets/slider.md).)
 
 ## Open questions
 

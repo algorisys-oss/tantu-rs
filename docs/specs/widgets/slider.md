@@ -1,6 +1,6 @@
 # Slider
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-widgets` (plus `WidgetTester::drag` in `tantu-test`)
 - **Plan item:** Phase 3, "Widgets" → "`Slider`"
 - **Related:** [Divider](divider.md) (`LimitedBox`), [Text and Button](basic.md),
@@ -133,7 +133,7 @@ Colors ("over" is source-over in sRGB, as for `Button`):
   `Up`); the strongest wins. The state layer paints under the thumb and over the tracks.
 - **WIDGETS-SLIDER-08:** `value`, `min`, `max` and `enabled` are reactive and applied at the
   next frame; a change repaints the slider without re-laying it out.
-- **TEST-WT-08:** `drag` presses the primary button at the found element's center, moves by
+- **TEST-WT-08** (in [WidgetTester](../test/widget-tester.md)): `drag` presses the primary button at the found element's center, moves by
   `delta` and releases there, pumping after each step, and panics like `tap` when the finder
   matches no element or several.
 
@@ -145,7 +145,7 @@ repaint.
 
 ## Open questions
 
-Proposals (the user says "continue" to take them):
+Resolved (2026-10-11; the user said "continue" on the draft):
 
 1. **`f64` values.** The value is app data, not geometry, so it takes the precision apps
    use for numbers (Flutter uses `double`). Geometry stays `f32`.
