@@ -48,9 +48,16 @@ option, mark it for review, push at each milestone).
     focus, state layers), a paint per widget, goldens `checkbox.png`, `radio.png`,
     `switch.png`.
 
+  - **`Icon` and `IconButton`** (2026-10-11, `docs/specs/widgets/icon.md`, decision 52,
+    decided by the agent while the user was away): Material Icons Regular (Apache 2.0,
+    357 KB) embedded behind the default `material-icons` feature with a generated
+    `Icons` table (`crates/tantu-widgets/src/icons.rs`, 2 234 constants); widgets bring
+    their own fonts through `TextStyles::ensure_font` / `BuildCx::ensure_font`
+    (TEXT-STYLES-05, VIEW-STYLES-02); goldens `icon.png`, `icon-button.png`.
+
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `Icon`/`IconButton` (an icon font), `Image`, `RichText`, then `TextField` in three parts.
+1. `Image` (decoding, fit, sizing), `RichText`, then `TextField` in three parts.
 
 After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
 animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
@@ -568,6 +575,17 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     `Button` (shortcuts fire on repeats and intents carry no repeat flag, so the shared
     `ActivateIntent` stays deferred); `Radio::new(value, group)` as Flutter's `groupValue`;
     no focus on press, as `Button`. Material 3 colors and metrics are in the spec's table.
+52. **Icon and IconButton** (2026-10-11, spec `docs/specs/widgets/icon.md`, decided by the
+    agent while the user was away; review): Material Icons Regular embedded in
+    `tantu-widgets` (feature `material-icons`, default on, forwarded by the facade) with a
+    generated constant table (names upper snake case, digit-leading names prefixed `N`, the
+    first of duplicate names wins; regenerate by hand from the codepoints file until an
+    `xtask icons` exists); **fonts queued through the shared `TextStyles` handle**
+    (`ensure_font`, once per table by address; the `TextSystem` registers queued fonts
+    before its next layout), so a widget or theme registers its own font with no app or
+    tester setup; `IconData { code_point, family, font }`; `Icon::size` not reactive and the
+    family fixed at build; `IconButton` on the toggles' pressable core (no `on_press` =
+    disabled, on-surface state layer).
 
 ## Commit log
 
@@ -839,7 +857,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `c78fb2d` | test: Checkbox, Radio and Switch, stubs + 9 failing tests |
 | `2001951` | test: toggle tests read the toggle's own entries and compare sizes (the column centers it) |
 | `b63ed0e` | impl: Checkbox, Radio and Switch; three goldens |
-| _this commit_ | docs: HANDOFF.md for the toggles |
+| `fa91fb4` | docs: HANDOFF.md for the toggles |
+| `916fd49` | spec: Icon and IconButton (WIDGETS-ICON-01..04); TextStyles::ensure_font (TEXT-STYLES-05, VIEW-STYLES-02) |
+| `a554d35` | test: Icon, IconButton and the font queue, stubs + 5 failing tests; Material Icons font and Icons table |
+| `501226d` | spec: an Icon's family and font come from its first value (WIDGETS-ICON-03) |
+| `ce84ffa` | impl: Icon and IconButton, the font queue in TextStyles; icon goldens |
+| _this commit_ | docs: HANDOFF.md for Icon and IconButton |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -848,7 +871,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `Icon`/`IconButton` next (see "Resume here").
+3. Phase 3 widgets: `Image` next (see "Resume here").
 
 ## Open questions
 
