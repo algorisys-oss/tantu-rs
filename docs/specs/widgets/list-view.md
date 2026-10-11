@@ -54,7 +54,7 @@ first frame recorded the extents, `v` is 0, so the first items appear at the sec
   2000 px of content (the controller's `max_scroll_extent` is 1800) and places item `i` at
   `y = i · 40 − offset`; `Finder::text` finds the visible items, each 300 × 40.
 - **WIDGETS-LIST-02:** Virtualization: after the second frame only the visible items plus one
-  before and after exist (a 100 000-item list in a 200 px window with 40 px items has 7 item
+  before and after exist (a 100 000-item list in a 200 px window with 40 px items has 6 item
   elements at offset 0 and at most 8 anywhere); scrolling removes the items that left and
   keeps the element ids of the ones still in view; at the maximum offset the last item is
   visible; the builder was called once per item that appeared.
