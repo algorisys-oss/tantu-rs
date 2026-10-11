@@ -11,8 +11,8 @@
 The two widgets the counter needs, and enough for a first layout demo. `Text` shows a reactive
 string in a style and color. `Button` is a pressable label that calls `on_press` when a press is
 released over it, and shows hover and pressed states. Both are Phase 2 versions: the look is
-fixed until `tantu-theme` (Phase 3), and keyboard activation and accessibility come with focus
-and `tantu-a11y`.
+Material 3's, with the colors coming from the theme since [theme](../theme/theme.md), and
+keyboard activation and accessibility come with focus and `tantu-a11y`.
 
 ## Scope
 
@@ -113,5 +113,6 @@ unless the label changes.
 
 Resolved (2026-10-10; the user said "continue" on the draft):
 
-1. **Material 3 filled-button metrics and colors** as the fixed Phase 2 look.
+1. **Material 3 filled-button metrics and colors** as the fixed Phase 2 look (the colors are
+   the light theme's roles since [theme](../theme/theme.md)).
 2. **`on_press` on release inside**, with no gesture arena until Phase 3.

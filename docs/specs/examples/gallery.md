@@ -19,8 +19,8 @@ toggles together, which is where integration bugs show.
 In scope: `examples/gallery` with `src/lib.rs` (`gallery() -> impl View`) and `src/main.rs`,
 depending only on `tantu`; tests with `WidgetTester` and goldens at 960 × 640.
 
-Out of scope: theming (fixed Material 3 look), a search box, source snippets per sample
-(later, with the docs site).
+Out of scope: a search box, source snippets per sample (later, with the docs site). Theming
+arrived with GALLERY-05 (a dark-mode switch).
 
 ## Public API
 
@@ -32,8 +32,8 @@ pub fn gallery() -> impl View;
 pub const SECTIONS: [&str; 6] = ["Buttons", "Text", "Selection", "Text field", "Lists", "Media"];
 ```
 
-Structure: a `Column` with a header `Row` (key `header`: the title "Tantu gallery" and, after a
-`Spacer`, the selected section's name, key `current`), and an `Expanded` body `Row`: a 200 px
+Structure: a `Column` with a header `Row` (key `header`: the title "Tantu gallery", after a
+`Spacer` the selected section's name, key `current`, then a "Dark" `Switch`, key `dark`), and an `Expanded` body `Row`: a 200 px
 sidebar (key `sidebar`, a `Column` of one `Button` per section, keys `nav-<section>` with the
 name lower-cased and spaces as dashes) and an `Expanded` content area (key `content`) showing
 the selected section through a `Dyn`, each section starting with its name as a title `Text`
@@ -63,6 +63,11 @@ Sections and their samples:
   shows "Row 0" first and, after scrolling, no longer shows it but shows a later row.
 - **GALLERY-04:** Goldens at 960 × 640 of the Buttons section (`tests/goldens/gallery-buttons.png`)
   and the Selection section (`gallery-selection.png`).
+
+- **GALLERY-05:** The header's "Dark" switch (key `dark`) sets the provided theme signal to
+  `Theme::dark()` or `Theme::light()`; after tapping it the press button fills with the dark
+  primary and the background is the dark surface. Golden `tests/goldens/gallery-dark.png`
+  (the Buttons section, dark). See [theme](../theme/theme.md).
 
 ## Open questions
 

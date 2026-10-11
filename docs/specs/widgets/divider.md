@@ -13,7 +13,7 @@ A thin line that separates content: horizontal in a column (`Divider`), vertical
 (`VerticalDivider`). It's the simplest widget with a look, and the first to need "fill the
 available width, but don't blow up when it's unbounded", which is Flutter's `LimitedBox`. That
 layout object is added here so the slider and later widgets can use it too. The look is
-Material 3's divider until `tantu-theme` arrives.
+Material 3's divider, in the theme's `outline_variant` ([theme](../theme/theme.md)).
 
 ## Scope
 

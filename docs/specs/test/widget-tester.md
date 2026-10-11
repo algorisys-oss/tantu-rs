@@ -87,6 +87,8 @@ impl WidgetTester {
     pub fn ime(&mut self, event: ImeEvent);
     /// A wheel scroll of `delta` at the element's center, then a pump (TEST-WT-11).
     pub fn scroll(&mut self, finder: &Finder, delta: Vec2);
+    /// The theme signal provided at the root, initially `Theme::light()` (TEST-WT-12).
+    pub fn theme(&self) -> Signal<Theme>;
     /// Dispatches a raw pointer event (no pump).
     pub fn pointer(&mut self, event: PointerEvent) -> bool;
     /// The single element `finder` matches (panics otherwise, naming the finder).
@@ -150,6 +152,8 @@ impl Finder {
   [TextField IME](../widgets/text-field-ime.md).
 - **TEST-WT-11:** `scroll` dispatches a wheel scroll at the element's center and pumps; see
   [ScrollView](../widgets/scroll.md).
+- **TEST-WT-12:** The tester provides a `Signal<Theme>` holding `Theme::light()` around the app
+  view and returns it from `theme()`; see [theme](../theme/theme.md).
 
 ## Open questions
 

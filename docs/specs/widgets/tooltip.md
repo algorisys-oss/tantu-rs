@@ -11,7 +11,7 @@
 A tooltip shows a short message about a widget while the pointer rests on it, or while it has
 keyboard focus. It's the first widget built on the overlay layer: an `OverlayPortal` around the
 child, shown on hover, anchored above or below it, and passing pointer events through so it
-never gets in the way. The look is Material 3's plain tooltip until `tantu-theme` arrives.
+never gets in the way. The look is Material 3's plain tooltip, in the theme's inverse colors ([theme](../theme/theme.md)).
 
 ## Scope
 

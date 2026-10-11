@@ -14,7 +14,7 @@ equal citizen. It is the first widget with a drag gesture (pressed, moved while 
 released), and the first with a value that the app owns: like Flutter's `Slider` it is
 *controlled*. The widget reports changes through `on_change`, and the thumb shows `value`,
 which the app updates (normally by writing the signal it passed in). The look is Material 3's
-until `tantu-theme`.
+with the colors from the theme ([theme](../theme/theme.md)).
 
 ## Scope
 
@@ -31,7 +31,7 @@ Out of scope (and where it goes):
 - The value indicator (a label over the thumb while dragging): with the animation item, since
   it fades in and out; it will use the overlay.
 - `RangeSlider`, vertical sliders (Flutter rotates), a secondary track value: later.
-- Theming and density: `tantu-theme`. Accessibility (value, increase/decrease actions):
+- Per-widget theme overrides: later. Accessibility (value, increase/decrease actions):
   `tantu-a11y`.
 - Thumb movement animations: the animation item.
 

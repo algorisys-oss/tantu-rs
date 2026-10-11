@@ -35,7 +35,7 @@ inkscape "$PWD/docs/architecture/tantu-architecture.svg" \
 
 | Stage | Crate | What it is |
 |---|---|---|
-| App code | user crate, `tantu-widgets`, `tantu-theme` | Functions returning `impl View`, built with builders; state kept in signals |
+| App code | user crate, `tantu-widgets`, `tantu-theme` | Functions returning `impl View`, built with builders; state kept in signals. Widgets read the theme's tokens through an inherited `Signal<Theme>` ([ADR-0012](adr/0012-theme-tokens-through-inherited-signals.md)) |
 | View tree | `tantu-view` | Cheap, one-shot descriptions of the UI, consumed when they build their elements; components are functions that run once ([ADR-0011](adr/0011-view-layer.md)) |
 | Element tree | `tantu-view` | Retained nodes in an arena (`ViewTree`, one per window). Render elements own a layout node and a paint behavior; region elements hold dynamic content. Each has a stable identity and a reactive scope |
 | Render tree | `tantu-layout` (layout tree) + `tantu-view` (paint, hit-test) | `RenderBox`-style layout objects in a `LayoutTree` arena owned by `tantu-layout`; `tantu-view` keeps them in step with elements and paints and hit-tests from their geometry ([ADR-0009](adr/0009-layout-tree-in-tantu-layout.md)) |
@@ -148,7 +148,8 @@ window surface that the GPU backend draws into. Nothing outside `tantu-platform-
 `tantu-core` (geometry, color, ids, arena, errors) sits under every crate and is left out of the
 diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table. The hard rules:
 
-- Nothing below `tantu-view` knows about widgets.
+- Nothing below `tantu-view` knows about widgets. `tantu-theme` sits beside the widgets:
+  `tantu-widgets` and `tantu-test` depend on it, and it depends only on `tantu-view`.
 - Only `tantu-render-*` may depend on `wgpu` or `tiny-skia`.
 - Only `tantu-platform-*` may depend on `winit`.
 
@@ -167,6 +168,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | The layout tree (layout objects, caching, relayout boundaries) lives in `tantu-layout` | [ADR-0009](adr/0009-layout-tree-in-tantu-layout.md) |
 | Paragraph-level `TextMeasure` passed into the layout pass; `RenderParagraph` in `tantu-layout`; word cache in `tantu-text` | [ADR-0010](adr/0010-text-measurement-in-layout.md) |
 | Run-once components, render and region elements, queued updates applied per frame | [ADR-0011](adr/0011-view-layer.md) |
+| Theme tokens reach widgets through an inherited `Signal<Theme>`; `tantu-widgets` depends on `tantu-theme` | [ADR-0012](adr/0012-theme-tokens-through-inherited-signals.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).

@@ -64,8 +64,8 @@ Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 | `tantu-text` | font loading, shaping, bidi, line breaking (parley/swash); implements `TextMeasure` | core, scene, layout |
 | `tantu-layout` | `BoxConstraints` protocol, Flex/Stack/Wrap/Grid/Overlay algorithms, `TextMeasure` trait | core |
 | `tantu-view` | View/Element/RenderObject traits, reconciler, event dispatch, focus | core, reactive, scene, text, layout |
-| `tantu-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …) | view |
-| `tantu-theme` | design tokens, Material-ish + Fluent-ish default themes | view |
+| `tantu-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …); reads the theme's tokens (ADR 0012) | view, theme |
+| `tantu-theme` | design tokens, Material-ish + Fluent-ish default themes, `Theme::of` | view |
 | `tantu-a11y` | AccessKit tree generation | view |
 | `tantu-platform` | `Platform` trait: windows, input, clipboard, IME, dialogs, menus | core |
 | `tantu-platform-winit` | winit implementation | platform |
@@ -73,7 +73,7 @@ Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 | `tantu-render-soft` | CPU renderer via tiny-skia (fallback, CI, remote desktop) | scene, text |
 | `tantu-render-headless` | records Scenes, used by tests | scene |
 | `tantu-render-conformance` | reference Scenes, embedded goldens and the cross-backend image comparison every renderer is tested against (ADR 0008) | core, scene |
-| `tantu-test` | widget tester, golden images, event simulation | view, render-soft, render-headless |
+| `tantu-test` | widget tester, golden images, event simulation; provides the default theme | view, theme, render-soft, render-headless |
 | `tantu` | facade crate, `App` runner, prelude | everything above |
 | `examples/` | gallery, todo, enterprise dashboard, data grid stress test | tantu |
 | `xtask` | dev tooling, not published: `cargo xtask spec-coverage` | — (std only; nothing depends on it) |

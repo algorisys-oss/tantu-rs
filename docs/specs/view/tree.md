@@ -59,6 +59,11 @@ impl AnyView {
 }
 impl View for AnyView { /* builds the wrapped view */ }
 
+/// Builds the view `f` returns, giving `f` the build context (Flutter's `Builder`).
+pub struct Builder<F> { /* f */ }
+impl<V: View, F: FnOnce(&mut BuildCx<'_>) -> V + 'static> Builder<F> { pub fn new(f: F) -> Self; }
+impl<V: View, F: FnOnce(&mut BuildCx<'_>) -> V + 'static> View for Builder<F> {}
+
 /// What kind of element an id names.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ElementKind {
@@ -183,6 +188,9 @@ and children.
 - **VIEW-TREE-11:** Queries on removed or unknown ids return `None`, an empty slice or false, and
   never panic. `enter` makes the tree's runtime current for its closure and restores the
   previous one afterwards (signals created by the tree can be read and written inside it).
+- **VIEW-TREE-12:** `Builder::new(f)` builds the view `f(cx)` returns in place (same parent,
+  same scope), so `f` can read inherited values and the text styles; the builder's element is
+  that view's element. See [theme](../theme/theme.md).
 
 ## Performance and allocation
 

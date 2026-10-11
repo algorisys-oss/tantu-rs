@@ -65,7 +65,8 @@ impl Window {
     pub fn size(self, width: f32, height: f32) -> Self;
     pub fn min_size(self, width: f32, height: f32) -> Self;
     pub fn resizable(self, resizable: bool) -> Self;
-    /// The color painted behind the window's content (default `Color::WHITE`).
+    /// The color painted behind the window's content; the default follows the theme's
+    /// `surface` (white in the light theme; FACADE-APP-13).
     pub fn background(self, color: Color) -> Self;
 }
 
@@ -174,6 +175,11 @@ FACADE-APP-08's test runs only without the `winit` or `wgpu` feature, so CI runs
   the layout demo in a real window.
 - **FACADE-APP-12:** The runner forwards `Ime` events and keeps the platform's IME state in step
   with the focused element's area; see [TextField IME](../widgets/text-field-ime.md).
+- **FACADE-APP-13:** With the `default-theme` feature, the runner provides a `Signal<Theme>`
+  holding `Theme::light()` at the root of every window and the window background follows the
+  theme's `surface` unless `Window::background` was set; without the feature nothing is
+  provided and the background is `Window::background` (default white). See
+  [theme](../theme/theme.md).
 
 ## Performance and allocation
 

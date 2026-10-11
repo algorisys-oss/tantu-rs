@@ -21,7 +21,7 @@ laid-out paragraph (lines and cluster boxes). The frame's painter produces it as
 point" and "where is the caret" from it, between frames, without parley. Those queries are
 pure functions on the geometry, so they are tested on hand-built geometries.
 
-The look is a Material 3 outlined field until `tantu-theme`.
+The look is a Material 3 outlined field in the theme's colors ([theme](../theme/theme.md)).
 
 ## Scope
 
@@ -45,7 +45,7 @@ Out of scope (and where it goes):
   carry no modifiers yet), drag-and-drop of text, a context menu: later.
 - Bidi caret logic and affinity at soft wraps: with RTL work in Phase 4 (the caret sits at
   the start of the next line at a soft wrap).
-- Accessibility: `tantu-a11y`. Theming (filled variant, labels, helper text): `tantu-theme`.
+- Accessibility: `tantu-a11y`. The filled variant, labels and helper text: later.
 
 ## Public API
 
