@@ -147,7 +147,9 @@ fn node(semantics: &Semantics) -> Node {
         R::ListItem => Role::ListItem,
         R::ScrollView => Role::ScrollView,
         R::Tooltip => Role::Tooltip,
-        R::Grid | R::ColumnHeader | R::Cell => todo!(),
+        R::Grid => Role::Grid,
+        R::ColumnHeader => Role::ColumnHeader,
+        R::Cell => Role::Cell,
     };
     let mut node = Node::new(role);
     if let Some(name) = &semantics.name {

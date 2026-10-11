@@ -56,7 +56,16 @@ impl RenderGridBody {
 
     /// The content's size: every column's width by every row's height (LAYOUT-GRID-03).
     pub fn content(&self) -> Size {
-        todo!()
+        Size::new(
+            self.columns.total(self.column_count),
+            self.rows.total(self.row_count),
+        )
+    }
+
+    /// The offset with non-finite components counting as 0.
+    fn finite_offset(&self) -> Vec2 {
+        let finite = |v: f32| if v.is_finite() { v } else { 0.0 };
+        Vec2::new(finite(self.offset.x), finite(self.offset.y))
     }
 }
 
@@ -66,27 +75,52 @@ impl RenderBox for RenderGridBody {
         constraints: BoxConstraints,
         children: &mut LayoutChildren<'_>,
     ) -> Size {
-        let _ = (constraints, children);
-        todo!()
+        let offset = self.finite_offset();
+        for i in 0..children.len() {
+            let slot = children
+                .parent_data::<GridSlot>(i)
+                .copied()
+                .unwrap_or(GridSlot { row: 0, column: 0 });
+            let size = Size::new(self.columns.extent(slot.column), self.rows.extent(slot.row));
+            children.layout(i, BoxConstraints::tight(size));
+            // Frozen columns ignore the horizontal offset (LAYOUT-GRID-04).
+            let x = self.columns.start(slot.column)
+                - if slot.column < self.frozen_columns {
+                    0.0
+                } else {
+                    offset.x
+                };
+            let y = self.rows.start(slot.row) - offset.y;
+            children.set_offset(i, Vec2::new(x, y));
+        }
+        // The incoming maximum on a bounded axis, the content's extent on an unbounded one.
+        let content = self.content();
+        let width = if constraints.has_bounded_width() {
+            constraints.max_width
+        } else {
+            content.width
+        };
+        let height = if constraints.has_bounded_height() {
+            constraints.max_height
+        } else {
+            content.height
+        };
+        constraints.constrain(Size::new(width, height))
     }
 
-    fn min_intrinsic_width(&self, height: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = (height, children);
-        todo!()
+    fn min_intrinsic_width(&self, _height: f32, _children: &mut IntrinsicChildren<'_>) -> f32 {
+        self.content().width
     }
 
-    fn max_intrinsic_width(&self, height: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = (height, children);
-        todo!()
+    fn max_intrinsic_width(&self, _height: f32, _children: &mut IntrinsicChildren<'_>) -> f32 {
+        self.content().width
     }
 
-    fn min_intrinsic_height(&self, width: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = (width, children);
-        todo!()
+    fn min_intrinsic_height(&self, _width: f32, _children: &mut IntrinsicChildren<'_>) -> f32 {
+        self.content().height
     }
 
-    fn max_intrinsic_height(&self, width: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = (width, children);
-        todo!()
+    fn max_intrinsic_height(&self, _width: f32, _children: &mut IntrinsicChildren<'_>) -> f32 {
+        self.content().height
     }
 }

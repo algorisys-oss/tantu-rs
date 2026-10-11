@@ -1,6 +1,7 @@
 //! The Tantu widget gallery (spec `docs/specs/examples/gallery.md`): a header, a sidebar of
 //! sections and the selected section's samples.
 
+use std::rc::Rc;
 use std::time::Duration;
 
 use tantu::core::Rect;
@@ -10,7 +11,7 @@ use tantu::scene::{BorderRadius, ImageData, RoundedRect};
 use tantu::view::{BuildCx, ElementId, Keyed, Paint, PaintCx, Prop};
 
 /// The section names, in sidebar order.
-pub const SECTIONS: [&str; 7] = [
+pub const SECTIONS: [&str; 8] = [
     "Buttons",
     "Text",
     "Selection",
@@ -18,6 +19,7 @@ pub const SECTIONS: [&str; 7] = [
     "Lists",
     "Media",
     "Animation",
+    "Data grid",
 ];
 
 const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
@@ -106,6 +108,7 @@ fn content(section: Signal<&'static str>) -> impl View {
             "Lists" => AnyView::new(lists_section()),
             "Media" => AnyView::new(media_section()),
             "Animation" => AnyView::new(animation_section()),
+            "Data grid" => AnyView::new(grid_section()),
             _ => AnyView::new(buttons_section()),
         };
         Column::new()
@@ -362,6 +365,57 @@ fn media_section() -> impl View {
 
 /// The Animation section (GALLERY-06): an implicitly animated box and a controller-driven
 /// dot.
+/// The Data grid section (GALLERY-10): a million generated rows in a `DataGrid`, and the
+/// first visible row read from its vertical controller.
+fn grid_section() -> impl View {
+    let (vertical, horizontal) = (ScrollController::new(), ScrollController::new());
+    const CITIES: [&str; 7] = [
+        "Mumbai",
+        "Pune",
+        "Bengaluru",
+        "Chennai",
+        "Delhi",
+        "Kolkata",
+        "Hyderabad",
+    ];
+    let source = Rc::new(FnSource::new(1_000_000, |row, column| match column {
+        0 => CellValue::Int(row as i64),
+        1 => CellValue::Text(format!("Person {row}")),
+        2 => CellValue::Text(CITIES[row % CITIES.len()].to_owned()),
+        3 => CellValue::Float((row % 1000) as f64 * 1.25),
+        4 => CellValue::Bool(row % 3 == 0),
+        _ => CellValue::Int((row * 37 % 101) as i64),
+    }));
+    Column::new()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .spacing(8.0)
+        .child(
+            Text::new(
+                "1 000 000 rows and 6 columns; only the visible cells are built. Scroll on both axes.",
+            )
+            .style(TextStyle::label()),
+        )
+        .child(SizedBox::new(700.0, 400.0).child(Keyed::new(
+            "grid",
+            DataGrid::new(
+                [
+                    GridColumn::new("Id").width(80.0),
+                    GridColumn::new("Name").width(160.0),
+                    GridColumn::new("City").width(140.0),
+                    GridColumn::new("Amount"),
+                    GridColumn::new("Active").width(90.0),
+                    GridColumn::new("Score"),
+                ],
+                source,
+            )
+            .controllers(vertical, horizontal),
+        )))
+        .child(Keyed::new(
+            "first-row",
+            Text::new(move || format!("First row: {}", (vertical.offset() / 32.0) as usize)),
+        ))
+}
+
 fn animation_section() -> impl View {
     let grow = signal(false);
     let transition = Duration::from_millis(300);

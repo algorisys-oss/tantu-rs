@@ -17,15 +17,15 @@ use tantu_view::{
 use crate::theme::{ThemeHandle, at};
 
 /// The thumb's thickness.
-const THUMB_WIDTH: f32 = 8.0;
+pub(crate) const THUMB_WIDTH: f32 = 8.0;
 /// The thumb's distance from the trailing edge, and the track's margins.
 const MARGIN: f32 = 2.0;
 /// The thumb's shortest length.
 const MIN_THUMB: f32 = 24.0;
 /// The thumb's alpha (on-surface at 40 %).
-const THUMB_ALPHA: u8 = 0x66;
+pub(crate) const THUMB_ALPHA: u8 = 0x66;
 /// How far an arrow key scrolls.
-const KEY_STEP: f32 = 40.0;
+pub(crate) const KEY_STEP: f32 = 40.0;
 
 /// A scroll view's offset and extents, shared between the app and the view (Flutter's
 /// `ScrollController`). `Copy`; create it inside a runtime.
@@ -116,7 +116,7 @@ impl ScrollController {
 
     /// A wheel step: animates to the accumulated target over `duration` (WIDGETS-SCROLL-07);
     /// true when the target moved.
-    fn wheel(&self, delta: f32, duration: Duration) -> bool {
+    pub(crate) fn wheel(&self, delta: f32, duration: Duration) -> bool {
         if duration.is_zero() {
             return self.scroll_by(delta);
         }
@@ -146,6 +146,11 @@ impl ScrollController {
         self.offset.get_untracked()
     }
 
+    /// The maximum offset without subscribing (for handlers).
+    pub(crate) fn max_scroll_extent_untracked(&self) -> f32 {
+        self.extents.get_untracked().1.max(0.0)
+    }
+
     /// The viewport's extent without subscribing (for handlers).
     pub(crate) fn viewport_extent_untracked(&self) -> f32 {
         self.extents.get_untracked().0
@@ -157,7 +162,7 @@ impl ScrollController {
     }
 
     /// Records the extents after a layout, and clamps the offset to them (once per change).
-    fn set_extents(&self, viewport: f32, max: f32) {
+    pub(crate) fn set_extents(&self, viewport: f32, max: f32) {
         if self.extents.get_untracked() != (viewport, max) {
             self.extents.set((viewport, max));
         }
@@ -169,7 +174,7 @@ impl ScrollController {
     }
 
     /// Moves by `delta` at once within the extents; true when the offset changed.
-    fn scroll_by(&self, delta: f32) -> bool {
+    pub(crate) fn scroll_by(&self, delta: f32) -> bool {
         self.interrupt();
         let max = self.extents.get_untracked().1.max(0.0);
         let before = self.offset.get_untracked();
@@ -230,15 +235,15 @@ impl ScrollView {
 
 /// The scrollbar's geometry along the axis (WIDGETS-SCROLL-04).
 #[derive(Clone, Copy)]
-struct Scrollbar {
+pub(crate) struct Scrollbar {
     axis: ScrollAxis,
-    viewport: f32,
+    pub(crate) viewport: f32,
     content: f32,
     cross: f32,
 }
 
 impl Scrollbar {
-    fn from(axis: ScrollAxis, size: Size, content: Size) -> Self {
+    pub(crate) fn from(axis: ScrollAxis, size: Size, content: Size) -> Self {
         let (viewport, extent, cross) = match axis {
             ScrollAxis::Vertical => (size.height, content.height, size.width),
             ScrollAxis::Horizontal => (size.width, content.width, size.height),
@@ -251,7 +256,7 @@ impl Scrollbar {
         }
     }
 
-    fn max(&self) -> f32 {
+    pub(crate) fn max(&self) -> f32 {
         (self.content - self.viewport).max(0.0)
     }
 
@@ -269,12 +274,12 @@ impl Scrollbar {
     }
 
     /// Content pixels per track pixel.
-    fn ratio(&self) -> f32 {
+    pub(crate) fn ratio(&self) -> f32 {
         let room = self.track() - self.thumb_length();
         if room > 0.0 { self.max() / room } else { 0.0 }
     }
 
-    fn thumb_rect(&self, offset: f32) -> Option<Rect> {
+    pub(crate) fn thumb_rect(&self, offset: f32) -> Option<Rect> {
         let max = self.max();
         if max <= 0.0 {
             return None;

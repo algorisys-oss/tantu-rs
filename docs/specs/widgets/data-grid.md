@@ -1,6 +1,6 @@
 # DataGrid: data source, columns, header and virtualization
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its nine
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its nine
   proposals)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`, `DataSource`, `CellValue`,
   `FnSource`), `tantu-view` and `tantu-a11y` (three roles), `examples/gallery`
@@ -187,7 +187,19 @@ Per frame while scrolling: one `For` reconciliation over at most (visible rows +
 built cells (LAYOUT-GRID-02, two lookups each); one text layout per new cell (cached by text
 and style, so repeated values are hits). Target, from PLAN.md's 0.1 criteria: a `GridScroll`
 step under 8 ms (criterion median, release build, the reference laptop), leaving the rest
-of a 16.7 ms frame to the renderer; the baseline is recorded here at implementation time.
+of a 16.7 ms frame to the renderer. **Met.** Baseline (criterion median per `step()`,
+`cargo bench -p tantu-widgets`, Rust 1.88.0, Linux, Intel Core i5-1235U laptop, 2026-10-12):
+
+| Scenario | Built cells | Median per step |
+|---|---|---|
+| `grid_scroll_1m` (1 000 000 × 20, 1280 × 720, one-row wheel step) | 288 | 1.30 ms |
+
+Of that, the frame (apply, layout, paint) is about 1.4 ms in a debug-instrumented run and the
+dispatch about 20 µs; swapping 20 unique-text cells costs about 0.5 ms. Note for benchmark
+authors: `WidgetTester::scroll` looks the element up by key on every call, and that walk over
+every element took about 30 ms here, so the scenario dispatches the wheel at a position looked
+up once (the finder's cost is an open question in HANDOFF.md). When a number regresses by
+more than about 20 % on the same machine, find out why before moving on.
 
 ## Open questions
 

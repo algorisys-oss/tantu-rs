@@ -157,7 +157,7 @@ faster or more portable without changing how apps are written.
 
 ### Phase 4 — Enterprise features (weeks 17–26)
 - [ ] `DataGrid`: virtualized rows **and** columns, frozen columns, sort/filter, resize/reorder, cell editors, selection models, 1M-row data source trait, in parts:
-  - [ ] data source, columns, header, row and column virtualization, scrolling on both axes, roles, the gallery section and the scrolling benchmark (specs `docs/specs/layout/grid.md`, `docs/specs/widgets/data-grid.md`)
+  - [x] data source, columns, header, row and column virtualization, scrolling on both axes, roles, the gallery section and the scrolling benchmark (1.30 ms per scroll step at 1280 × 720) (specs `docs/specs/layout/grid.md`, `docs/specs/widgets/data-grid.md`)
   - [ ] frozen columns (pinned at the left, painted over the scrolling ones)
   - [ ] sorting and filtering (header click, sort indicators, the source's sort and filter hooks)
   - [ ] column resize and reorder (header edge and header drag)
