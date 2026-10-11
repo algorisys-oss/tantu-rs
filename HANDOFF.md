@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 1 implemented; rust-analyzer removed)_
+_Last updated: 2026-10-12 (DataGrid part 2, frozen columns)_
 
 ## Resume here (2026-10-12)
 
@@ -59,12 +59,16 @@ source, columns, pinned header, two-dimensional virtualization and scrolling, ro
 gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row wheel step on a
 1 000 000 × 20 grid at 1280 × 720, target under 8 ms). PLAN.md splits the item in seven parts.
 
+**`DataGrid` part 2, frozen columns, is done** too (decision 71, 2026-10-12, on the user's
+"continue and then commit and push"; its three proposals are marked for review).
+
 **Next (PLAN.md order): Phase 4, enterprise features.**
 
-1. `DataGrid` part 2, frozen columns: `RenderGridBody` already places them (LAYOUT-GRID-04);
-   the widget needs a `frozen_columns` builder, paint order (frozen cells above the scrolling
-   ones, via the cell wrapper's z-index) and a clip so scrolling cells don't show under them.
-   Draft the spec for review (the usual pattern), then parts 3 to 7.
+1. `DataGrid` part 3, sorting and filtering: a header click sorts (indicators in the header
+   cell), and the source gets sort and filter hooks (proposal to draft: the grid keeps a
+   `Vec<usize>` row map from a `sort`/`filter` the app applies to its source, or a
+   `SortedSource` adapter, so `DataSource` stays a plain row store). Draft the spec for
+   review, then parts 4 to 7.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -738,6 +742,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     every call and that walk dominated; the scenario now dispatches at a cached position
     (open question below). Found while writing the tests: cells appear one frame after the
     first paint records the extents (as list items), so the tests pump twice.
+71. **DataGrid frozen columns** (2026-10-12, WIDGETS-GRID-09 in
+    `docs/specs/widgets/data-grid.md`; decided by the agent, review): `frozen_columns(n)`
+    (clamped to the column count) sets `RenderGridBody::frozen_columns` on the header and
+    the body, so the first `n` columns are placed at their starts (LAYOUT-GRID-04); the
+    visible-column list is the scrolling columns between the frozen width and the right edge
+    (buffer one each side, never a frozen one) followed by the frozen ones, so the `For`
+    orders frozen cells last and they paint on top (element order rather than a z-index,
+    which set inside a cell's paint wouldn't reorder its scope among its siblings); frozen
+    cells fill a `surface` background (opaque, since `paint_children` can't clip the
+    scrolling cells per child) and the last frozen column's right line is the theme's
+    `outline`; the horizontal extents are unchanged. The gallery freezes its Id column with
+    wider columns (its golden regenerated). Found while testing: a cell one buffer row below
+    the window is culled (no commands), and the gallery's grid scrolls horizontally by only
+    its overflow, so the tests count painted rows and check direction, not distance.
 
 ## Commit log
 
@@ -1139,15 +1157,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `b73b950` | test: WIDGETS-GRID-03 checks the clip, not the paragraph's constrained rect |
 | `074ff46` | test: the GridScroll step dispatches the wheel at a cached position (the tester's lookup hid the frame's cost) |
 | `ae4575f` | impl: DataGrid part 1: RenderGridBody, CellValue/DataSource/FnSource/GridColumn/DataGrid, roles, the gallery section, the benchmark at 1.30 ms per step |
-| _this commit_ | docs: HANDOFF.md for DataGrid part 1; rust-analyzer removed from the toolchain |
+| `935cf25` | chore: drop rust-analyzer from the pinned toolchain's components |
+| `7db8aac` | docs: HANDOFF.md for DataGrid part 1; rust-analyzer removed |
+| `90eea5c` | spec: DataGrid part 2, frozen columns (WIDGETS-GRID-09; GALLERY-10 amended) |
+| `875ffe4` | test: DataGrid frozen columns and the gallery's frozen Id column, 2 failing tests |
+| `2d9d899` | test: WIDGETS-GRID-09 counts painted frozen rows; GALLERY-10 checks Name moved left |
+| `9b9bb52` | impl: DataGrid frozen columns; the gallery freezes its Id column; PLAN.md part 2 ticked |
+| _this commit_ | docs: HANDOFF.md for DataGrid part 2 |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: `DataGrid` part 2 (frozen columns) next, then parts 3 to 7, then the
-rest of Phase 4 in PLAN.md order.
+See "Resume here" above: `DataGrid` part 3 (sorting and filtering) next, then parts 4 to 7,
+then the rest of Phase 4 in PLAN.md order.
 
 ## Open questions
 
@@ -1189,7 +1213,7 @@ rest of Phase 4 in PLAN.md order.
   handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
-  lists, accessibility and focus scopes) and 70 (DataGrid part 1).
+  lists, accessibility and focus scopes), 70 and 71 (DataGrid parts 1 and 2).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
