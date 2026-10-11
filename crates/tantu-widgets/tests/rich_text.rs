@@ -151,9 +151,10 @@ fn widgets_richtext_02_paragraph_and_paint() {
     });
     let element = tester.find(&Finder::text("Hello bold world!"));
     assert_eq!(element, tester.find(&Finder::key("r")));
+    // One run per parley run: the bigger "!" is a run of its own.
     assert_eq!(
         runs(&tester, element),
-        [(6, ON_SURFACE), (4, RED), (7, ON_SURFACE)]
+        [(6, ON_SURFACE), (4, RED), (6, ON_SURFACE), (1, ON_SURFACE)]
     );
     assert!(tester.rect(element).height() > 0.0);
     tester.matches_golden(concat!(
