@@ -33,6 +33,7 @@ mod icons;
 mod image;
 mod layout;
 mod rich_text;
+mod scroll;
 mod slider;
 mod text_editing;
 mod text_field;
@@ -49,6 +50,7 @@ pub use icon::{MATERIAL_ICONS_FAMILY, MATERIAL_ICONS_FONT};
 pub use icons::Icons;
 pub use image::{BoxFit, Image, ImageError, decode_png};
 pub use rich_text::{RichText, TextSpan};
+pub use scroll::{ScrollController, ScrollView};
 pub use slider::Slider;
 pub use text_editing::{
     Direction, EditingValue, Movement, TextEditingController, TextRange, TextSelection,

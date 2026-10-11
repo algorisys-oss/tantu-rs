@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/test/widget-tester.md`, rules TEST-WT-01..10.
+//! Tests for `docs/specs/test/widget-tester.md`, rules TEST-WT-01..11.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
@@ -16,7 +16,8 @@ use tantu_view::{
     PointerKind, View,
 };
 use tantu_widgets::{
-    Button, Center, Column, Padding, SizedBox, Text, TextEditingController, TextField,
+    Button, Center, Column, Padding, ScrollController, ScrollView, SizedBox, Text,
+    TextEditingController, TextField,
 };
 
 fn glyph_counts(tester: &WidgetTester) -> Vec<usize> {
@@ -322,4 +323,23 @@ fn test_wt_10_ime() {
     tester.ime(ImeEvent::Commit("ab".into()));
     assert_eq!(tester.enter(|| controller.value().composing), None);
     tester.find(&Finder::text("ab"));
+}
+
+#[test]
+fn test_wt_11_scroll() {
+    let out: Rc<RefCell<Option<ScrollController>>> = Rc::default();
+    let mut tester = {
+        let out = out.clone();
+        WidgetTester::new(move || {
+            let controller = ScrollController::new();
+            *out.borrow_mut() = Some(controller);
+            Keyed::new(
+                "s",
+                ScrollView::new(SizedBox::new(800.0, 5000.0)).controller(controller),
+            )
+        })
+    };
+    let controller = out.borrow().expect("built");
+    tester.scroll(&Finder::key("s"), Vec2::new(0.0, 30.0));
+    assert_eq!(tester.enter(|| controller.offset()), 30.0);
 }

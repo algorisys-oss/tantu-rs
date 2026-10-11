@@ -46,6 +46,7 @@ mod single_child;
 mod stack;
 mod text;
 mod tree;
+mod viewport;
 mod wrap;
 
 pub use alignment::Alignment;
@@ -66,4 +67,5 @@ pub use text::{
 pub use tree::{
     IntrinsicChildren, LayoutChildren, LayoutId, LayoutSession, LayoutTree, RenderBox, TreeError,
 };
+pub use viewport::{RenderViewport, ScrollAxis};
 pub use wrap::{RenderWrap, WrapAlignment, WrapCrossAlignment};

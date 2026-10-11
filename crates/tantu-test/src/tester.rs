@@ -193,6 +193,13 @@ impl WidgetTester {
         }
     }
 
+    /// A wheel scroll of `delta` at the center of the single element `finder` matches, then
+    /// a pump (TEST-WT-11).
+    pub fn scroll(&mut self, finder: &Finder, delta: Vec2) {
+        let _ = (self.find(finder), delta);
+        todo!("TEST-WT-11")
+    }
+
     /// Dispatches an IME event to the focused element, then pumps (TEST-WT-10).
     pub fn ime(&mut self, event: ImeEvent) {
         self.tree.dispatch_ime(event);
