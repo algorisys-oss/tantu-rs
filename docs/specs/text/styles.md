@@ -101,6 +101,12 @@ breaking change, but nothing outside tantu-text calls it today.
 - **VIEW-STYLES-01:** `BuildCx::text_style` returns the key from the tree's table, so it resolves
   through the `TextStyles` given to `with_text_styles`. `ViewTree::new` gives the tree a table
   of its own.
+- **TEXT-STYLES-05:** `TextStyles::ensure_font` queues font data once per table (by address);
+  `take_pending_fonts` returns and clears the queue; a `TextSystem` registers the queued fonts
+  of its table before it next measures, paints or computes intrinsics. (Added with
+  [Icon](../widgets/icon.md).)
+- **VIEW-STYLES-02:** `BuildCx::ensure_font` queues on the tree's table. (Added with
+  [Icon](../widgets/icon.md).)
 
 ## Performance and allocation
 
