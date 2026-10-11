@@ -138,6 +138,8 @@ faster or more portable without changing how apps are written.
     - [x] the widget: caret, selection painting, keys, pointer (spec `docs/specs/widgets/text-field.md`; clipboard waits for the platform)
     - [x] IME composition (spec `docs/specs/widgets/text-field-ime.md`)
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
+  - [ ] `RenderViewport` and `ScrollView`: wheel/trackpad deltas, clamping, scrollbar, clipping (specs `docs/specs/layout/viewport.md`, `docs/specs/widgets/scroll.md`)
+  - [ ] kinetic scrolling and smooth wheel animation (after the animation item), keyboard scrolling and `ensure_visible`
 - [ ] Virtualized `ListView` (100k items at 60fps)
 - [ ] `tantu-theme`: design tokens, light/dark, density, live theme switching
 - [ ] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions

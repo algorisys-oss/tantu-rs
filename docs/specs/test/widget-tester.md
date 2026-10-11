@@ -85,6 +85,8 @@ impl WidgetTester {
     pub fn enter_text(&mut self, finder: &Finder, text: &str);
     /// Dispatches an IME event to the focused element, then pumps (TEST-WT-10).
     pub fn ime(&mut self, event: ImeEvent);
+    /// A wheel scroll of `delta` at the element's center, then a pump (TEST-WT-11).
+    pub fn scroll(&mut self, finder: &Finder, delta: Vec2);
     /// Dispatches a raw pointer event (no pump).
     pub fn pointer(&mut self, event: PointerEvent) -> bool;
     /// The single element `finder` matches (panics otherwise, naming the finder).
@@ -146,6 +148,8 @@ impl Finder {
   text of each character, pumping after each; see [TextField](../widgets/text-field.md).
 - **TEST-WT-10:** `ime` dispatches an IME event to the tester's tree and pumps; see
   [TextField IME](../widgets/text-field-ime.md).
+- **TEST-WT-11:** `scroll` dispatches a wheel scroll at the element's center and pumps; see
+  [ScrollView](../widgets/scroll.md).
 
 ## Open questions
 
