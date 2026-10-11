@@ -118,12 +118,17 @@ option, mark it for review, push at each milestone).
     `Finder::text(string.as_str())` did in one test; not investigated (TEST-WT-03 may want a
     rule).
 
+  - **Inherited values** (2026-10-12, `docs/specs/view/inherited.md`, decision 61):
+    `BuildCx::provide`/`inherit`, the `Provide` region, `ViewTree::inherited_on`; values are
+    looked up at build time, reactive ones are provided as signals. The groundwork for the
+    theme.
+
 **Next (PLAN.md order, Phase 3):**
 
-1. `tantu-theme` (design tokens, light/dark, density, live switching): the widgets' Material
-   constants move behind tokens read from the tree. Groundwork first: inherited values in
-   `tantu-view` (a provider element and `BuildCx::inherit::<T>()`), then the theme crate and
-   the widget migration.
+1. `tantu-theme`: a `Theme` of design tokens (color scheme, text styles, shape, density) with
+   `light()`/`dark()`, provided as a `Signal<Theme>` through `Provide`, and every widget
+   reading its colors from `cx.inherit::<Signal<Theme>>()` with the default theme as the
+   fallback (the current constants). Spec first; the widget migration is the bulk.
 2. Animation (tickers, tweens, curves), which brings timers: tooltip delay, caret blink,
    double-click, kinetic scrolling. Needs a timer in the platform trait (winit's
    `WaitUntil`).
@@ -724,6 +729,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 60. **Gallery** (2026-10-12, spec `docs/specs/examples/gallery.md`, decided by the agent while
     the user was away; review): six sections keyed by name, state echoed as text so tests and
     readers see it, a generated gradient image (no asset file), goldens of two sections.
+61. **Inherited values** (2026-10-12, spec `docs/specs/view/inherited.md`, decided by the agent
+    while the user was away; review): values attach to the element being built (for a leaf,
+    its parent) and are found by walking up at build time; reactivity comes from providing
+    `Copy` signal handles; no reactive re-lookup (a provider must be above its consumers when
+    they build).
 
 ## Commit log
 
@@ -1055,7 +1065,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `39c612a` | test: TextField caret following (WIDGETS-TEXTFIELD-09), failing |
 | `8af9726` | test: WIDGETS-TEXTFIELD-09 checks the wrapped text in the multi-line case |
 | `fcd37bf` | impl: single-line TextField caret following (content shift in a transform scope) |
-| _this commit_ | docs: HANDOFF.md for caret following |
+| `22d919b` | docs: HANDOFF.md for caret following |
+| `6e6c652` | spec: inherited values (VIEW-INHERIT-01..03), the groundwork for themes |
+| `12d8165` | test: inherited values, stubs + 3 failing tests |
+| `e568355` | test: VIEW-INHERIT-02's leaf provides on its parent |
+| `f138bbd` | impl: inherited values (BuildCx::provide/inherit, Provide, ViewTree::inherited_on) |
+| _this commit_ | docs: HANDOFF.md for inherited values |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1064,7 +1079,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: `tantu-theme` next (see "Resume here").
+3. Phase 3: `tantu-theme` next, on inherited values (see "Resume here").
 
 ## Open questions
 
