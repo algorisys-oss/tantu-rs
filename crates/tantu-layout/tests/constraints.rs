@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/layout/constraints.md`, rules LAYOUT-CONS-01..17.
+//! Tests for `docs/specs/layout/constraints.md`, rules LAYOUT-CONS-01..18.
 
 use tantu_core::{EdgeInsets, Size};
 use tantu_layout::BoxConstraints;
@@ -395,4 +395,43 @@ fn layout_cons_17_axis_constraints() {
     let b = c(10.0, 100.0, 20.0, 50.0);
     assert_eq!(b.width_constraints(), c(10.0, 100.0, 0.0, INF));
     assert_eq!(b.height_constraints(), c(0.0, INF, 20.0, 50.0));
+}
+
+#[test]
+fn layout_cons_18_aspect_ratio_constrain() {
+    let fit = |b: BoxConstraints, w: f32, h: f32| {
+        b.constrain_size_and_attempt_to_preserve_aspect_ratio(Size::new(w, h))
+    };
+    let b = c(0.0, 100.0, 0.0, 50.0);
+    assert_eq!(fit(b, 200.0, 100.0), Size::new(100.0, 50.0));
+    assert_eq!(fit(b, 20.0, 80.0), Size::new(12.5, 50.0));
+    assert_eq!(fit(b, 60.0, 40.0), Size::new(60.0, 40.0));
+    // Tight constraints give their size.
+    assert_eq!(
+        fit(BoxConstraints::tight(Size::new(30.0, 30.0)), 60.0, 40.0),
+        Size::new(30.0, 30.0)
+    );
+    // Minimums raise the size, keeping the ratio.
+    assert_eq!(
+        fit(c(50.0, INF, 0.0, INF), 10.0, 20.0),
+        Size::new(50.0, 100.0)
+    );
+    assert_eq!(
+        fit(c(0.0, INF, 60.0, INF), 10.0, 20.0),
+        Size::new(30.0, 60.0)
+    );
+    // A bad size counts as zero: the smallest size.
+    for (w, h) in [
+        (0.0, 10.0),
+        (10.0, 0.0),
+        (NAN, 10.0),
+        (INF, 10.0),
+        (-5.0, 10.0),
+    ] {
+        assert_eq!(
+            fit(c(5.0, 100.0, 0.0, 50.0), w, h),
+            Size::new(5.0, 0.0),
+            "{w} {h}"
+        );
+    }
 }

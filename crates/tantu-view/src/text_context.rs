@@ -3,7 +3,7 @@
 
 use tantu_core::{Color, Point};
 use tantu_layout::{NoTextMeasure, RenderParagraph, TextMeasure, TextMetrics, TextStyleKey};
-use tantu_scene::{Resources, SceneBuilder};
+use tantu_scene::{ImageData, ImageId, Resources, SceneBuilder};
 use tantu_text::TextSystem;
 
 use crate::{Paint, PaintCx};
@@ -23,6 +23,13 @@ pub trait TextPainter {
         color: Color,
         origin: Point,
     );
+
+    /// Interns `image` in the frame's resources and returns its handle; `None` when the
+    /// painter has no resources (VIEW-TEXT-06). Default `None`.
+    fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
+        let _ = image;
+        None
+    }
 }
 
 /// Paints nothing (tests, no text system).
@@ -71,6 +78,11 @@ impl TextMeasure for SystemText<'_> {
 }
 
 impl TextPainter for SystemText<'_> {
+    fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
+        let _ = image;
+        todo!("VIEW-TEXT-06")
+    }
+
     fn paint_text(
         &mut self,
         scene: &mut SceneBuilder<'_>,

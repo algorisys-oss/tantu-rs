@@ -5,7 +5,7 @@ use std::any::Any;
 
 use tantu_core::{Color, Point, Size};
 use tantu_layout::{BoxConstraints, RenderBox, TextStyleKey};
-use tantu_scene::{ElementId, SceneBuilder};
+use tantu_scene::{ElementId, ImageData, ImageId, SceneBuilder};
 
 use crate::{TextPainter, ViewTree};
 
@@ -103,6 +103,13 @@ impl<'b> PaintCx<'_, 'b> {
     ) {
         self.text
             .paint_text(self.scene, text, style, max_width, max_lines, color, origin);
+    }
+
+    /// Interns `image` in the frame's resources through the pass's painter and returns its
+    /// handle (`None` without resources, VIEW-TEXT-06).
+    pub fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
+        let _ = image;
+        todo!("VIEW-TEXT-06")
     }
 
     /// The element's constraints from the last layout.

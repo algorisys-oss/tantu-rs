@@ -228,3 +228,25 @@ fn scene_res_10_clones_are_independent() {
     assert_send_sync::<ImageData>();
     assert_send_sync::<FontData>();
 }
+
+#[test]
+fn scene_res_11_intern_image() {
+    let mut r = Resources::new();
+    let a = image(2, 2);
+    let id = r.intern_image(&a);
+    assert_eq!(r.revision(), 1);
+    assert_eq!(r.intern_image(&a), id);
+    assert_eq!(r.intern_image(&a.clone()), id);
+    assert_eq!(r.revision(), 1);
+    assert_eq!(r.image(id).map(|i| i.width()), Some(2));
+    // Equal pixels in another buffer are another image.
+    let b = image(2, 2);
+    let other = r.intern_image(&b);
+    assert_ne!(other, id);
+    assert_eq!(r.revision(), 2);
+    // Removed, then interned again: added again.
+    r.remove_image(id);
+    let again = r.intern_image(&a);
+    assert_ne!(again, id);
+    assert!(r.image(again).is_some());
+}

@@ -1,6 +1,6 @@
-//! Tests for `docs/specs/view/text.md`, rules VIEW-TEXT-01..05.
+//! Tests for `docs/specs/view/text.md`, rules VIEW-TEXT-01..06.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use tantu_core::{Color, Point, Size};
@@ -8,7 +8,7 @@ use tantu_layout::{
     BoxConstraints, NoTextMeasure, RenderConstrainedBox, RenderFlex, RenderParagraph, TextMeasure,
     TextMetrics, TextStyleKey,
 };
-use tantu_scene::{Command, Resources, Scene, SceneBuilder};
+use tantu_scene::{Command, ImageData, ImageId, Resources, Scene, SceneBuilder};
 use tantu_text::{FontFamily, TextStyle, TextSystem};
 use tantu_view::{
     BuildCx, ElementId, Paint, PaintCx, ParagraphPaint, SystemText, TextContext, TextPainter, View,
@@ -263,4 +263,73 @@ fn view_text_05_system_text() {
     assert_eq!(runs.len(), 1);
     assert_eq!(scene.glyphs(&runs[0]).len(), 5);
     assert!(resources.font(runs[0].font).is_some());
+}
+
+/// A paint that asks for an image's id.
+struct ImageProbe {
+    data: ImageData,
+    seen: Rc<Cell<Option<Option<ImageId>>>>,
+}
+
+impl Paint for ImageProbe {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        self.seen.set(Some(cx.image_id(&self.data)));
+    }
+}
+
+struct Probed(ImageData, Rc<Cell<Option<Option<ImageId>>>>);
+
+impl View for Probed {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::sized(Some(10.0), Some(10.0)), []);
+        cx.set_paint(
+            id,
+            ImageProbe {
+                data: self.0,
+                seen: self.1,
+            },
+        );
+        id
+    }
+}
+
+#[test]
+fn view_text_06_image_id() {
+    let data = ImageData::rgba8(2, 2, vec![0u8; 16]).expect("valid");
+    assert_eq!(NoTextMeasure.image_id(&data), None);
+    let mut system = TextSystem::without_system_fonts();
+    let mut resources = Resources::new();
+    let mut painter = SystemText {
+        system: &mut system,
+        resources: &mut resources,
+    };
+    let id = painter.image_id(&data).expect("interned");
+    assert_eq!(painter.image_id(&data), Some(id));
+    assert!(resources.image(id).is_some());
+    assert_eq!(resources.revision(), 1);
+    // Through a paint pass.
+    let seen: Rc<Cell<Option<Option<ImageId>>>> = Rc::default();
+    let mut tree = {
+        let (data, seen) = (data.clone(), seen.clone());
+        ViewTree::new(move || Probed(data, seen))
+    };
+    tree.layout(
+        BoxConstraints::loose(Size::new(100.0, 100.0)),
+        &mut NoTextMeasure,
+    );
+    let mut scene = Scene::new();
+    let mut builder = scene.begin(Size::new(100.0, 100.0));
+    tree.paint(&mut builder, &mut NoTextMeasure);
+    builder.finish().expect("balanced");
+    assert_eq!(seen.get(), Some(None));
+    let mut builder = scene.begin(Size::new(100.0, 100.0));
+    tree.paint(
+        &mut builder,
+        &mut SystemText {
+            system: &mut system,
+            resources: &mut resources,
+        },
+    );
+    builder.finish().expect("balanced");
+    assert_eq!(seen.get(), Some(Some(id)));
 }

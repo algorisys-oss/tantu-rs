@@ -30,6 +30,7 @@ mod divider;
 mod icon;
 #[cfg(feature = "material-icons")]
 mod icons;
+mod image;
 mod layout;
 mod slider;
 mod toggles;
@@ -43,6 +44,7 @@ pub use icon::{Icon, IconButton, IconData};
 pub use icon::{MATERIAL_ICONS_FAMILY, MATERIAL_ICONS_FONT};
 #[cfg(feature = "material-icons")]
 pub use icons::Icons;
+pub use image::{BoxFit, Image, ImageError, decode_png};
 pub use slider::Slider;
 pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;

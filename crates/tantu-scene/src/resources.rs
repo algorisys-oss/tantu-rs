@@ -178,6 +178,13 @@ impl Resources {
         id
     }
 
+    /// The handle of `image`'s pixel buffer: the id an image with the same buffer and size
+    /// was added with, or a new one from `add_image` (SCENE-RES-11).
+    pub fn intern_image(&mut self, image: &ImageData) -> ImageId {
+        let _ = image;
+        todo!("SCENE-RES-11")
+    }
+
     /// The image for `id`, or `None` if it was removed or never added here.
     pub fn image(&self, id: ImageId) -> Option<&ImageData> {
         self.images.get(&id)
