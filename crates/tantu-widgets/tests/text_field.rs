@@ -12,7 +12,7 @@ use tantu_view::{
     CursorIcon, ElementId, Keyed, LogicalKey, Modifiers, NamedKey, PointerButton, PointerEvent,
     PointerKind, ViewTree,
 };
-use tantu_widgets::{Column, Row, TextEditingController, TextField, TextSelection};
+use tantu_widgets::{Button, Column, Row, TextEditingController, TextField, TextSelection};
 
 const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
 const OUTLINE: Color = Color::from_argb32(0xFF79_747E);
@@ -37,7 +37,9 @@ fn field(
             let controller = TextEditingController::new(text);
             *out.borrow_mut() = Some(controller);
             let make = make.take().expect("built once");
-            Column::new().child(Keyed::new("f", make(TextField::new(controller))))
+            Column::new()
+                .child(Keyed::new("f", make(TextField::new(controller))))
+                .child(Button::new("Next"))
         })
     };
     let controller = out.borrow().expect("built");
@@ -161,17 +163,18 @@ fn widgets_textfield_02_painting() {
     assert!(selection(&tester).is_empty());
     tester.focus(&Finder::key("f"));
     assert_eq!(outline(&tester), Some((2.0, PRIMARY)));
+    // Scene commands are in the editor's coordinates: the caret sits at the text's end.
     let caret_rect = caret(&tester).expect("a caret");
     let editor = tester.rect(tester.find(&Finder::text("hello")));
-    assert!(caret_rect.left > editor.left && caret_rect.left < editor.right + 2.0);
-    assert_eq!(caret_rect.top, editor.top);
+    assert!(caret_rect.left > 0.0 && caret_rect.left <= editor.width());
+    assert_eq!(caret_rect.top, 0.0);
     assert!(caret_rect.height() > 10.0);
     tester.enter(|| c.select(TextSelection::new(0, 2)));
     assert!(tester.pump());
     let rects = selection(&tester);
     assert_eq!(rects.len(), 1);
-    assert_eq!(rects[0].left, editor.left);
-    assert!(rects[0].right > editor.left && rects[0].right < editor.right);
+    assert_eq!(rects[0].left, 0.0);
+    assert!(rects[0].right > 0.0 && rects[0].right < editor.width());
     // Painted under the text: the selection fill comes before the glyph run.
     let entries = tester.frame().scene.entries();
     let selection_index = entries
