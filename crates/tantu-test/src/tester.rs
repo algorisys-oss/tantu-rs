@@ -284,8 +284,9 @@ impl WidgetTester {
     /// Calls `ensure_visible` on the single element `finder` matches, then pumps
     /// (TEST-WT-15).
     pub fn ensure_visible(&mut self, finder: &Finder) {
-        let _ = finder;
-        todo!()
+        let element = self.find(finder);
+        self.tree.ensure_visible(element);
+        self.pump();
     }
 
     /// Dispatches a raw pointer event (no pump).

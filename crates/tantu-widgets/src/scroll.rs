@@ -306,7 +306,7 @@ impl View for ScrollView {
         let id = cx.render(RenderViewport::new(axis), [self.child]);
         let shared: Shared = Rc::default();
         // Semantics: a scroll view that scrolls a descendant into view on request
-        // (WIDGETS-SEM-02).
+        // (WIDGETS-SEM-02, WIDGETS-SCROLL-09).
         cx.set_semantics(
             id,
             Semantics {
@@ -322,11 +322,35 @@ impl View for ScrollView {
             else {
                 return false;
             };
-            let (own_start, own_end, start, end) = match axis {
-                ScrollAxis::Vertical => (own.top, own.bottom, target.top, target.bottom),
-                ScrollAxis::Horizontal => (own.left, own.right, target.left, target.right),
+            // The extents come from the last layout rather than the last paint, so a view
+            // the parent culled (never painted) can still scroll.
+            let content = a
+                .tree
+                .children(a.element)
+                .first()
+                .and_then(|child| a.tree.bounds(*child))
+                .map_or(Size::ZERO, |b| b.size());
+            let (own_start, own_end, start, end, extent) = match axis {
+                ScrollAxis::Vertical => (
+                    own.top,
+                    own.bottom,
+                    target.top,
+                    target.bottom,
+                    content.height,
+                ),
+                ScrollAxis::Horizontal => (
+                    own.left,
+                    own.right,
+                    target.left,
+                    target.right,
+                    content.width,
+                ),
             };
-            let delta = if start < own_start {
+            let viewport = own_end - own_start;
+            controller.set_extents(viewport, (extent - viewport).max(0.0));
+            // A target longer than the viewport, or starting before it, aligns its start;
+            // one ending after it aligns its end.
+            let delta = if end - start > own_end - own_start || start < own_start {
                 start - own_start
             } else if end > own_end {
                 end - own_end

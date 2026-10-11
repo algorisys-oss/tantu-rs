@@ -1,6 +1,6 @@
 # Focus scopes and scrolling into view
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-12; the five
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-12; the five
   proposals under Open questions are marked for review)
 - **Crates:** `tantu-view` (`ensure_visible`, focus scopes, traversal), `tantu-widgets`
   (`ScrollView` reveals, `FocusScope`), `tantu-test` (`ensure_visible`)

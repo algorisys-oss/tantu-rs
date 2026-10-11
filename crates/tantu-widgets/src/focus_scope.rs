@@ -19,7 +19,11 @@ impl FocusScope {
 
 impl View for FocusScope {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.child, cx);
-        todo!()
+        let child = self.child;
+        let id = cx.region(|cx| {
+            child.build(cx);
+        });
+        cx.focus_scope(id);
+        id
     }
 }

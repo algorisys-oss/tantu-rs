@@ -118,13 +118,13 @@ faster or more portable without changing how apps are written.
 - [x] `tantu-test::WidgetTester` (pump, tap, find by key/text/type, goldens; typing text moves to Phase 3 with focus and `TextField`) (spec `docs/specs/test/widget-tester.md`)
 - [x] **Milestone:** counter + layout demo run on Linux (Wayland + X11), Windows and macOS (Linux checked by the agent, Windows and macOS by the user, 2026-10-10; `examples/counter`, `examples/layout-demo`, spec `docs/specs/examples/layout-demo.md`)
 
-### Phase 3 — Core widget set and interaction (weeks 11–16)
+### Phase 3 — Core widget set and interaction (weeks 11–16) — done 2026-10-12 (the gallery under a real screen reader is still to be checked by the user)
 - [x] Focus system, keyboard navigation, shortcuts/command registry
   - [x] Keyboard events and focus: focusable elements, key dispatch to the focused path, Tab traversal, focus changes, the runner forwarding keys, `WidgetTester::press_key` (spec `docs/specs/view/focus.md`)
   - [x] Shortcuts and commands: Flutter's `Shortcuts`/`Actions`/`Intent` (spec `docs/specs/view/shortcuts.md`)
   - [x] `Button`: Space/Enter activation when focused, focus indicator (spec `docs/specs/widgets/button-keyboard.md`)
 - [x] `Overlay` + anchored positioning (target/follower): 9-point anchors, offset, z-index, pointer passthrough, flip/clamp to window (spec `docs/specs/view/overlay.md`)
-- [ ] Widgets: Text, RichText, Button, IconButton, Checkbox, Radio, Switch, Slider, TextField (with IME, selection, undo), Image, Icon, Divider, Tooltip
+- [x] Widgets: Text, RichText, Button, IconButton, Checkbox, Radio, Switch, Slider, TextField (with IME, selection, undo), Image, Icon, Divider, Tooltip
   - [x] `Text`, `Button` (Phase 2, `docs/specs/widgets/basic.md`; keyboard in `button-keyboard.md`)
   - [x] `Tooltip`: the overlay's first user (spec `docs/specs/widgets/tooltip.md`)
   - [x] `Divider` and `VerticalDivider` (brings Flutter's `LimitedBox`) (spec `docs/specs/widgets/divider.md`)
@@ -137,11 +137,11 @@ faster or more portable without changing how apps are written.
     - [x] editing model: text, selection, undo (spec `docs/specs/widgets/text-editing.md`)
     - [x] the widget: caret, selection painting, keys, pointer (spec `docs/specs/widgets/text-field.md`; clipboard waits for the platform)
     - [x] IME composition (spec `docs/specs/widgets/text-field-ime.md`)
-- [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
+- [x] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling (kinetic fling deferred until touch or trackpad gestures exist)
   - [x] `RenderViewport` and `ScrollView`: wheel/trackpad deltas, clamping, scrollbar, clipping (specs `docs/specs/layout/viewport.md`, `docs/specs/widgets/scroll.md`)
   - [x] keyboard scrolling (arrows, PageUp/Down, Home/End) (WIDGETS-SCROLL-06)
   - [x] smooth wheel animation and `ScrollController::animate_to` (WIDGETS-SCROLL-07, -08; kinetic fling deferred, see `docs/specs/widgets/transitions.md`)
-  - [ ] `ensure_visible` and focus scopes: Tab and `ScrollIntoView` reveal the focus through every enclosing `ScrollView`; `FocusScope` confines traversal and restores focus (spec `docs/specs/view/focus-scope.md`)
+  - [x] `ensure_visible` and focus scopes: Tab and `ScrollIntoView` reveal the focus through every enclosing `ScrollView`; `FocusScope` confines traversal and restores focus (spec `docs/specs/view/focus-scope.md`)
 - [x] Virtualized `ListView` (100k items at 60fps)
   - [x] fixed-extent `ListView::builder` on the viewport (specs `docs/specs/layout/list.md`, `docs/specs/widgets/list-view.md`)
   - [x] variable item extents, separators, keyboard navigation (spec `docs/specs/widgets/list-view-advanced.md`)

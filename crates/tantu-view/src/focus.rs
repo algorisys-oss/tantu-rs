@@ -2,7 +2,7 @@
 //! traversal and focus changes. Spec: `docs/specs/view/focus.md`.
 
 use std::any::TypeId;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -10,6 +10,8 @@ use tantu_scene::ElementId;
 
 use tantu_core::Rect;
 
+use crate::events::ActionHandler;
+use crate::semantics::{ActionCx, SemanticsAction};
 use crate::shortcuts::{ActionBox, IntentBox};
 use crate::{BuildCx, Handled, Phase, SingleActivator, ViewTree};
 
@@ -30,6 +32,10 @@ pub(crate) struct FocusState {
     pub(crate) shortcuts: HashMap<ElementId, Vec<(SingleActivator, IntentBox)>>,
     pub(crate) actions: HashMap<ElementId, Vec<(TypeId, ActionBox)>>,
     focused: Option<ElementId>,
+    /// Elements marked as focus scopes (VIEW-SCOPE-01).
+    scopes: HashSet<ElementId>,
+    /// Each scope's last focused descendant (VIEW-SCOPE-03).
+    remembered: HashMap<ElementId, ElementId>,
 }
 
 impl FocusState {
@@ -43,6 +49,10 @@ impl FocusState {
         self.within.remove(&id);
         self.shortcuts.remove(&id);
         self.actions.remove(&id);
+        // A removed element is neither a scope nor remembered by one (VIEW-SCOPE-04).
+        self.scopes.remove(&id);
+        self.remembered.remove(&id);
+        self.remembered.retain(|_, focused| *focused != id);
     }
 }
 
@@ -373,6 +383,17 @@ impl ViewTree {
             return;
         }
         self.focus_state.focused = next;
+        // Every enclosing scope (and the root) remembers the focus (VIEW-SCOPE-03).
+        if let Some(next) = next {
+            let scopes: Vec<ElementId> = self
+                .path_to(next)
+                .into_iter()
+                .filter(|id| self.is_scope(*id))
+                .collect();
+            for scope in scopes {
+                self.focus_state.remembered.insert(scope, next);
+            }
+        }
         let handlers = |id: Option<ElementId>| -> Vec<FocusHandler> {
             id.and_then(|id| self.focus_state.changes.get(&id))
                 .cloned()
@@ -408,9 +429,15 @@ impl ViewTree {
     }
 
     /// The next (or previous) traversable element in tree order after the focus, wrapping
-    /// (VIEW-FOCUS-03).
+    /// within the innermost scope enclosing it (VIEW-FOCUS-03, VIEW-SCOPE-02), then scrolled
+    /// into view (VIEW-REVEAL-02).
     fn traverse(&mut self, forward: bool) -> Option<ElementId> {
-        let order = self.preorder();
+        let scope = self
+            .focus_state
+            .focused
+            .and_then(|f| self.focus_scope_of(f))
+            .unwrap_or_else(|| self.root());
+        let order = self.preorder_from(scope);
         let traversable = |id: &ElementId| {
             self.focus_state
                 .focusables
@@ -433,14 +460,15 @@ impl ViewTree {
         });
         if let Some(next) = candidate {
             self.set_focus(Some(next));
+            self.ensure_visible(next);
         }
         self.focus_state.focused
     }
 
-    /// Every element, depth first with children in order, from the root.
-    fn preorder(&self) -> Vec<ElementId> {
+    /// `from` and its descendants, depth first with children in order.
+    fn preorder_from(&self, from: ElementId) -> Vec<ElementId> {
         let mut order = Vec::new();
-        let mut stack = vec![self.root()];
+        let mut stack = vec![from];
         while let Some(id) = stack.pop() {
             order.push(id);
             stack.extend(self.children(id).iter().rev());
@@ -531,8 +559,9 @@ impl BuildCx<'_> {
     /// remembers its last focused descendant (VIEW-SCOPE-01). Render or region elements; an
     /// unknown element is ignored.
     pub fn focus_scope(&mut self, element: ElementId) {
-        let _ = element;
-        todo!()
+        if self.tree.contains(element) {
+            self.tree.focus_state.scopes.insert(element);
+        }
     }
 }
 
@@ -542,22 +571,74 @@ impl ViewTree {
     /// handles it becomes the target for the containers above it (VIEW-REVEAL-01). True when
     /// any handled it; false for an unknown element.
     pub fn ensure_visible(&mut self, element: ElementId) -> bool {
-        let _ = element;
-        todo!()
+        if !self.contains(element) {
+            return false;
+        }
+        let action = SemanticsAction::ScrollIntoView;
+        let mut target = element;
+        let mut revealed = false;
+        let mut next = self.parent(element);
+        while let Some(id) = next {
+            let handlers: Vec<ActionHandler> =
+                self.events.actions.get(&id).cloned().unwrap_or_default();
+            let handled = self.enter(|| {
+                handlers.iter().any(|handler| {
+                    handler(&ActionCx {
+                        tree: self,
+                        element: id,
+                        target,
+                        action: &action,
+                    })
+                })
+            });
+            if handled {
+                revealed = true;
+                target = id;
+            }
+            next = self.parent(id);
+        }
+        revealed
     }
 
     /// The innermost focus scope among `element` and its ancestors; the root when none is
     /// marked; `None` for an unknown element (VIEW-SCOPE-01).
     pub fn focus_scope_of(&self, element: ElementId) -> Option<ElementId> {
-        let _ = element;
-        todo!()
+        if !self.contains(element) {
+            return None;
+        }
+        self.path_to(element)
+            .into_iter()
+            .find(|id| self.is_scope(*id))
+    }
+
+    /// Whether `id` is a marked scope or the root.
+    fn is_scope(&self, id: ElementId) -> bool {
+        id == self.root() || self.focus_state.scopes.contains(&id)
     }
 
     /// Focuses the element `scope` last had the focus on, else its first traversable
     /// descendant; returns the focus, or `None` (changing nothing) when there is neither or
     /// `scope` isn't a scope (VIEW-SCOPE-03).
     pub fn focus_into(&mut self, scope: ElementId) -> Option<ElementId> {
-        let _ = scope;
-        todo!()
+        if !self.contains(scope) || !self.is_scope(scope) {
+            return None;
+        }
+        let remembered = self
+            .focus_state
+            .remembered
+            .get(&scope)
+            .copied()
+            .filter(|id| self.contains(*id) && self.focus_state.focusables.contains_key(id));
+        let first = || {
+            self.preorder_from(scope).into_iter().find(|id| {
+                self.focus_state
+                    .focusables
+                    .get(id)
+                    .is_some_and(|o| o.traversable)
+            })
+        };
+        let next = remembered.or_else(first)?;
+        self.set_focus(Some(next));
+        Some(next)
     }
 }

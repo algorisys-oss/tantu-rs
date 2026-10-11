@@ -290,7 +290,9 @@ impl ViewTree {
                     text: None,
                 })
             }
-            SemanticsAction::SetValue(_) | SemanticsAction::ScrollIntoView => {
+            // Every enclosing container reveals (VIEW-REVEAL-03).
+            SemanticsAction::ScrollIntoView => self.ensure_visible(element),
+            SemanticsAction::SetValue(_) => {
                 // Handlers on the element, then its ancestors; the first `true` wins.
                 let mut next = Some(element);
                 while let Some(id) = next {
