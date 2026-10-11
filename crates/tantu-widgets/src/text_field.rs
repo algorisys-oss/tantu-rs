@@ -4,7 +4,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use tantu_view::core::{Color, EdgeInsets, Point, Rect};
+use tantu_view::core::{Affine, Color, EdgeInsets, Point, Rect, Vec2};
 use tantu_view::layout::{
     BoxConstraints, RenderConstrainedBox, RenderLimitedBox, RenderParagraph, TextGeometry,
     TextStyleKey,
@@ -119,6 +119,8 @@ impl TextField {
 
 /// What the handlers share with the editor's paint.
 type SharedGeometry = Rc<RefCell<TextGeometry>>;
+/// The content's horizontal shift (WIDGETS-TEXTFIELD-09), also shared.
+type SharedShift = Rc<Cell<f32>>;
 
 /// Applies `f` to the controller and reports a text change (WIDGETS-TEXTFIELD-04).
 fn apply(
@@ -159,6 +161,7 @@ impl View for TextField {
         let dragging = Cell::new(false);
         let anchor = Cell::new(0usize);
         let geometry: SharedGeometry = Rc::default();
+        let shift: SharedShift = Rc::default();
         let style = cx.text_style(self.style);
         let on_change = self.on_change;
         let on_submit = self.on_submit;
@@ -172,6 +175,7 @@ impl View for TextField {
             enabled: Rc::clone(&enabled),
             focused,
             geometry: Rc::clone(&geometry),
+            shift: Rc::clone(&shift),
         };
         let content = Padding::new(PADDING).child(editor);
         let constraints =
@@ -188,6 +192,7 @@ impl View for TextField {
             on_change,
             on_submit,
             geometry,
+            shift,
             dragging: Rc::new(dragging),
             anchor: Rc::new(anchor),
         }
@@ -217,6 +222,7 @@ struct FieldBox {
     on_change: Option<Rc<dyn Fn(String)>>,
     on_submit: Option<Rc<dyn Fn(String)>>,
     geometry: SharedGeometry,
+    shift: SharedShift,
     dragging: Rc<Cell<bool>>,
     anchor: Rc<Cell<usize>>,
 }
@@ -378,9 +384,12 @@ impl View for FieldBox {
         {
             let (geometry, dragging, anchor) =
                 (Rc::clone(&self.geometry), self.dragging, self.anchor);
-            let enabled = Rc::clone(&enabled);
+            let (enabled, shift) = (Rc::clone(&enabled), Rc::clone(&self.shift));
             cx.on_pointer(id, Phase::Bubble, move |p| {
-                let local = Point::new(p.local.x - PADDING.left, p.local.y - PADDING.top);
+                let local = Point::new(
+                    p.local.x - PADDING.left + shift.get(),
+                    p.local.y - PADDING.top,
+                );
                 match p.event.kind {
                     PointerKind::Down(PointerButton::Primary) if enabled() => {
                         let offset = geometry.borrow().hit_test(local);
@@ -428,16 +437,21 @@ impl View for FieldBox {
             });
         }
         {
-            let (enabled, geometry) = (Rc::clone(&enabled), Rc::clone(&self.geometry));
+            let (enabled, geometry, shift) = (
+                Rc::clone(&enabled),
+                Rc::clone(&self.geometry),
+                Rc::clone(&self.shift),
+            );
             cx.ime_area(id, move || {
                 if !(focused.get_untracked() && enabled()) {
                     return None;
                 }
                 let caret = geometry.borrow().caret(controller.value().selection.extent);
+                let left = caret.left + PADDING.left - shift.get();
                 Some(Rect::from_ltrb(
-                    caret.left + PADDING.left,
+                    left,
                     caret.top + PADDING.top,
-                    caret.left + PADDING.left + CARET_WIDTH,
+                    left + CARET_WIDTH,
                     caret.bottom + PADDING.top,
                 ))
             });
@@ -507,6 +521,7 @@ struct Editor {
     enabled: Rc<dyn Fn() -> bool>,
     focused: Signal<bool>,
     geometry: SharedGeometry,
+    shift: SharedShift,
 }
 
 impl View for Editor {
@@ -519,6 +534,7 @@ impl View for Editor {
             id,
             EditorPaint {
                 geometry: self.geometry,
+                shift: self.shift,
                 empty: true,
                 enabled: true,
                 focused: false,
@@ -575,6 +591,7 @@ impl View for Editor {
 /// (WIDGETS-TEXTFIELD-02).
 struct EditorPaint {
     geometry: SharedGeometry,
+    shift: SharedShift,
     empty: bool,
     enabled: bool,
     focused: bool,
@@ -610,6 +627,30 @@ impl Paint for EditorPaint {
             }
         }
         let active = self.focused && self.enabled;
+        // Caret following in a single-line field (WIDGETS-TEXTFIELD-09).
+        let mut shift = self.shift.get();
+        if soft_wrap || self.empty {
+            shift = 0.0;
+        } else {
+            let caret = geometry.caret(self.selection.extent);
+            let text_width = geometry
+                .lines
+                .first()
+                .and_then(|line| line.clusters.last())
+                .map_or(0.0, |cluster| cluster.right);
+            let width = cx.size().width;
+            let max_shift = (text_width + CARET_WIDTH - width).max(0.0);
+            if caret.left - shift > width - CARET_WIDTH {
+                shift = caret.left - (width - CARET_WIDTH);
+            }
+            if caret.left - shift < 0.0 {
+                shift = caret.left;
+            }
+            shift = shift.clamp(0.0, max_shift);
+        }
+        self.shift.set(shift);
+        cx.scene()
+            .push_transform(Affine::translate(Vec2::new(-shift, 0.0)));
         if active && !self.empty {
             for rect in geometry.selection_rects(self.selection.start(), self.selection.end()) {
                 cx.scene().fill_rect(rect, PRIMARY.with_alpha(0.4));
@@ -644,6 +685,7 @@ impl Paint for EditorPaint {
                 PRIMARY,
             );
         }
+        cx.scene().pop();
         *self.geometry.borrow_mut() = geometry;
     }
 }
