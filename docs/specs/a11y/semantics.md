@@ -86,9 +86,18 @@ pub enum SemanticsAction { Focus, Click, Increment, Decrement, SetValue(String),
 impl BuildCx<'_> {
     /// Sets the element's semantics (a render element only; false for a region).
     pub fn set_semantics(&mut self, element: ElementId, semantics: Semantics) -> bool;
-    /// Handles `SetValue` and `ScrollIntoView` requests for `element` and its descendants
-    /// (`target` is the element the request named); true when handled.
-    pub fn on_action(&mut self, element: ElementId, handler: impl Fn(ElementId, &SemanticsAction) -> bool + 'static);
+    /// Handles `SetValue` and `ScrollIntoView` requests for `element` and its descendants;
+    /// true when handled.
+    pub fn on_action(&mut self, element: ElementId, handler: impl Fn(&ActionCx<'_>) -> bool + 'static);
+}
+
+/// What an action handler sees: the tree (to read bounds), its own element, the element the
+/// request named, and the action.
+pub struct ActionCx<'a> {
+    pub tree: &'a ViewTree,
+    pub element: ElementId,
+    pub target: ElementId,
+    pub action: &'a SemanticsAction,
 }
 impl ElementMut<'_> {
     /// Changes the semantics in place (for reactive props); false without semantics.
@@ -168,8 +177,8 @@ Widget semantics:
   `Decrement` focus the element and dispatch ArrowRight/ArrowUp or ArrowLeft/ArrowDown key
   presses as the element's role suggests (a slider steps, a scroll view scrolls); `SetValue`
   and `ScrollIntoView` are delivered to the action handlers registered with
-  `BuildCx::on_action` on the element and then its ancestors (the target element as the
-  first argument), stopping at the first that returns true: a text field handles `SetValue`
+  `BuildCx::on_action` on the element and then its ancestors (an `ActionCx` naming the
+  target and giving read access to the tree), stopping at the first that returns true: a text field handles `SetValue`
   by replacing its text, a scroll view handles `ScrollIntoView` for a descendant by scrolling
   the least amount that shows it. An element without semantics, or whose `actions` lack the
   action, or with no handler taking it, returns false. Actions never panic on removed ids.
