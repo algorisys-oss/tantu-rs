@@ -29,7 +29,7 @@ arrived with GALLERY-05 (a dark-mode switch).
 /// The gallery's view: a header, a sidebar of sections and the selected section's samples.
 pub fn gallery() -> impl View;
 /// The section names, in sidebar order.
-pub const SECTIONS: [&str; 6] = ["Buttons", "Text", "Selection", "Text field", "Lists", "Media"];
+pub const SECTIONS: [&str; 7] = ["Buttons", "Text", "Selection", "Text field", "Lists", "Media", "Animation"];
 ```
 
 Structure: a `Column` with a header `Row` (key `header`: the title "Tantu gallery", after a
@@ -49,6 +49,7 @@ Sections and their samples:
 | Text field | a `TextField` (`field`) with a placeholder and "You typed: …" (`echo`), a multi-line `TextField` (`notes`) |
 | Lists | a `ListView` of 10 000 rows of 32 px ("Row N") in a 320 px tall box (`list`) |
 | Media | a row of `Icon`s, an `Image` of a generated 64 × 64 gradient shown at 128 × 128 (`image`) |
+| Animation | a `Switch` (`grow`) animating a box (`box`) with `animated()`, a dot (`dot`) moved by a repeating controller (GALLERY-06) |
 
 ## Behavior
 
@@ -68,6 +69,7 @@ Sections and their samples:
   `Theme::dark()` or `Theme::light()`; after tapping it the press button fills with the dark
   primary and the background is the dark surface. Golden `tests/goldens/gallery-dark.png`
   (the Buttons section, dark). See [theme](../theme/theme.md).
+- **GALLERY-06:** The Animation section; see [animation](../view/animation.md).
 
 ## Open questions
 

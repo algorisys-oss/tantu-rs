@@ -1,6 +1,6 @@
 # Animation: controller, tweens, curves and animated props
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Agreed (the user said "ok" on the draft, 2026-10-11, taking its six proposals)
 - **Crates:** `tantu-view` (`animation` module), `examples/gallery` (an Animation section)
 - **Plan item:** Phase 3, "Animation", sub-item "`AnimationController`, `Tween`, curves, and
   `animated()` props"
@@ -201,7 +201,7 @@ allocates per tick after creation.
 
 ## Open questions
 
-Proposals (say "continue" to take them, or change them):
+Resolved (2026-10-11; the user said "ok" on the draft, taking these proposals):
 
 1. **The module lives in `tantu-view`** (not `tantu-reactive`): it needs `IntoProp` and the
    core value types; `tantu-reactive` keeps only the clock.
