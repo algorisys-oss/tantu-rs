@@ -107,6 +107,8 @@ breaking change, but nothing outside tantu-text calls it today.
   [Icon](../widgets/icon.md).)
 - **VIEW-STYLES-02:** `BuildCx::ensure_font` queues on the tree's table. (Added with
   [Icon](../widgets/icon.md).)
+- **VIEW-STYLES-03:** `BuildCx::text_styles` returns the tree's table handle. (Added with
+  [RichText](../widgets/rich-text.md).)
 
 ## Performance and allocation
 

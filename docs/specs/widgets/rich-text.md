@@ -83,6 +83,12 @@ impl TextSystem {
 }
 
 // tantu-view
+impl BuildCx<'_> {
+    /// The tree's style table (a clone of the handle), so a binding can resolve style keys
+    /// when a reactive span changes (VIEW-STYLES-03).
+    pub fn text_styles(&self) -> TextStyles;
+}
+
 pub trait TextPainter {
     // ...
     /// `paint_text` with spans. Default: `paint_text`, ignoring them.
@@ -163,6 +169,8 @@ plain spans add nothing). The paragraph's text is the concatenation.
   `TextSystem::paint_rich`; `PaintCx::paint_rich` forwards to the pass's painter; and
   `ParagraphPaint` paints the paragraph's spans, so a `RenderParagraph` with spans paints
   its colored runs through a `SystemText`.
+- **VIEW-STYLES-03:** `BuildCx::text_styles` returns the tree's table: keys made through it
+  resolve in the tree, as `text_style` does. (Added to [shared text styles](../text/styles.md).)
 - **WIDGETS-RICHTEXT-01:** `TextSpan` flattens as described: `to_plain_text` concatenates;
   the `StyleSpan`s cover each span's own text with the effective style key (resolved through
   the tree's style table) and color, inheriting through the tree, and spans with the base
