@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/paint.md`, rules VIEW-PAINT-01..06.
+//! Tests for `docs/specs/view/paint.md`, rules VIEW-PAINT-01..07.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -6,7 +6,8 @@ use std::rc::Rc;
 use tantu_core::{Affine, Color, Rect, Size, Vec2};
 use tantu_layout::{BoxConstraints, NoTextMeasure, RenderConstrainedBox, RenderFlex};
 use tantu_scene::{Clip, Command, Scene};
-use tantu_view::{AnyView, BuildCx, ElementId, NoPaint, Paint, PaintCx, View, ViewTree};
+use tantu_view::reactive::{Signal, signal};
+use tantu_view::{AnyView, BuildCx, ElementId, NoPaint, Paint, PaintCx, Prop, View, ViewTree};
 
 fn s(w: f32, h: f32) -> Size {
     Size::new(w, h)
@@ -415,4 +416,56 @@ fn view_paint_06_deterministic() {
     let second = paint_only(&tree);
     assert_eq!(first, second);
     assert_eq!(tree.len(), len);
+}
+
+/// A paint that reads one signal and writes another.
+struct Signalling {
+    read: Signal<u32>,
+    write: Signal<u32>,
+    seen: Rc<Cell<u32>>,
+}
+
+impl Paint for Signalling {
+    fn paint(&self, _: &mut PaintCx<'_, '_>) {
+        self.seen.set(self.read.get_untracked());
+        self.write.set(self.read.get_untracked() + 1);
+    }
+}
+
+struct SignallingView(Rc<Cell<u32>>, Rc<Cell<Option<Signal<u32>>>>);
+
+impl View for SignallingView {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let (read, write) = (signal(41u32), signal(0u32));
+        self.1.set(Some(read));
+        let id = cx.render(RenderConstrainedBox::sized(Some(10.0), Some(10.0)), []);
+        cx.set_paint(
+            id,
+            Signalling {
+                read,
+                write,
+                seen: self.0,
+            },
+        );
+        // A binding on the written signal, so a write asks for a frame.
+        cx.bind(id, Prop::Dynamic(Box::new(move || write.get())), |_, _| {});
+        id
+    }
+}
+
+#[test]
+fn view_paint_07_runtime_current() {
+    let seen: Rc<Cell<u32>> = Rc::default();
+    let read: Rc<Cell<Option<Signal<u32>>>> = Rc::default();
+    let mut tree = {
+        let (seen, read) = (seen.clone(), read.clone());
+        ViewTree::new(move || SignallingView(seen, read))
+    };
+    render(&mut tree);
+    assert_eq!(seen.get(), 41);
+    assert!(tree.needs_frame());
+    let read = read.get().expect("built");
+    tree.enter(|| read.set(7));
+    render(&mut tree);
+    assert_eq!(seen.get(), 7);
 }
