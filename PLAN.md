@@ -141,7 +141,7 @@ faster or more portable without changing how apps are written.
   - [x] `RenderViewport` and `ScrollView`: wheel/trackpad deltas, clamping, scrollbar, clipping (specs `docs/specs/layout/viewport.md`, `docs/specs/widgets/scroll.md`)
   - [x] keyboard scrolling (arrows, PageUp/Down, Home/End) (WIDGETS-SCROLL-06)
   - [x] smooth wheel animation and `ScrollController::animate_to` (WIDGETS-SCROLL-07, -08; kinetic fling deferred, see `docs/specs/widgets/transitions.md`)
-  - [ ] `ensure_visible` (with focus scopes)
+  - [ ] `ensure_visible` and focus scopes: Tab and `ScrollIntoView` reveal the focus through every enclosing `ScrollView`; `FocusScope` confines traversal and restores focus (spec `docs/specs/view/focus-scope.md`)
 - [x] Virtualized `ListView` (100k items at 60fps)
   - [x] fixed-extent `ListView::builder` on the viewport (specs `docs/specs/layout/list.md`, `docs/specs/widgets/list-view.md`)
   - [x] variable item extents, separators, keyboard navigation (spec `docs/specs/widgets/list-view-advanced.md`)

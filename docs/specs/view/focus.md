@@ -42,9 +42,10 @@ Out of scope (and where it goes):
 - `Button` activation with Space/Enter and its focus indicator: the `Button` amendment after
   this.
 - Text entry, IME and `TextField`: the Phase 3 widgets item.
-- Focus scopes and groups (`FocusScope`, `FocusTraversalGroup`), directional (arrow-key)
-  traversal and restoring focus when a window regains it: later, when dialogs and grids need
-  them.
+- Focus scopes and scrolling the focus into view: [focus scopes](focus-scope.md) (added
+  2026-10-12; VIEW-SCOPE-02 confines VIEW-FOCUS-03's traversal to the innermost scope).
+  `FocusTraversalGroup`, directional (arrow-key) traversal and restoring focus when a window
+  regains it: later, when dialogs and grids need them.
 - Accessibility focus: `tantu-a11y`.
 
 ## Public API

@@ -118,6 +118,8 @@ least 24 px; its position is `track_start + (track − thumb) · offset / max`.
 
 - **WIDGETS-SCROLL-07:** Wheel steps animate to an accumulating target; **WIDGETS-SCROLL-08:**
   `ScrollController::animate_to`. See [transitions](transitions.md).
+- **WIDGETS-SCROLL-09:** A scroll view reveals a descendant on `ScrollIntoView`; see
+  [focus scopes](../view/focus-scope.md).
 
 ## Open questions
 

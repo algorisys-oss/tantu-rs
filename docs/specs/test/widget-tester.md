@@ -91,6 +91,8 @@ impl WidgetTester {
     pub fn theme(&self) -> Signal<Theme>;
     /// Moves the tester's clock by `by`, ticks the tree and pumps one frame (TEST-WT-13).
     pub fn advance(&mut self, by: Duration);
+    /// Calls `ensure_visible` on the found element, then pumps (TEST-WT-15).
+    pub fn ensure_visible(&mut self, finder: &Finder);
     /// The tester's clock (starts at the tester's creation).
     pub fn now(&self) -> Instant;
     /// Dispatches a raw pointer event (no pump).
@@ -162,6 +164,7 @@ impl Finder {
 - **TEST-WT-13:** The tester's clock: `pump` ticks at the current time and `advance` moves it;
   see [timers and tickers](../reactive/timers.md).
 - **TEST-WT-14:** `a11y_tree` and `perform_action`; see [semantics](../a11y/semantics.md).
+- **TEST-WT-15:** `ensure_visible`; see [focus scopes](../view/focus-scope.md).
 
 ## Open questions
 

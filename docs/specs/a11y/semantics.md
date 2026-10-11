@@ -179,9 +179,11 @@ Widget semantics:
   presses as the element's role suggests (a slider steps, a scroll view scrolls); `SetValue`
   and `ScrollIntoView` are delivered to the action handlers registered with
   `BuildCx::on_action` on the element and then its ancestors (an `ActionCx` naming the
-  target and giving read access to the tree), stopping at the first that returns true: a text field handles `SetValue`
+  target and giving read access to the tree): `SetValue` stops at the first that returns
+  true, while `ScrollIntoView` is `ViewTree::ensure_visible` (VIEW-REVEAL-03: every
+  enclosing container reveals, each the container below it). A text field handles `SetValue`
   by replacing its text, a scroll view handles `ScrollIntoView` for a descendant by scrolling
-  the least amount that shows it (`ScrollIntoView` is accepted on any element with
+  the least amount that shows it (WIDGETS-SCROLL-09) (`ScrollIntoView` is accepted on any element with
   semantics, whether or not its `actions` list it, since assistive technology asks for any
   node; the handlers decide). An element without semantics, or whose `actions` lack one of
   the other actions, or with no handler taking it, returns false. Actions never panic on
