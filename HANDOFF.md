@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-11 (theme)_
+_Last updated: 2026-10-12 (ListView extents, separators and keys)_
 
 ## Resume here (2026-10-11)
 
@@ -24,13 +24,14 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
   **the animation controller, tweens, curves and `animated()` props** (decision 64; the
   gallery has an Animation section) and **transitions** (decision 65: `Opacity`,
   `AnimatedSwitcher`, the caret blink, double-click word selection, smooth wheel scrolling
-  and `ScrollController::animate_to`). **The Animation item is complete.** Left in Phase 3:
-  `ensure_visible` (needs focus scopes), the `ListView` leftovers (variable extents,
-  separators, keyboard navigation), `tantu-a11y`.
+  and `ScrollController::animate_to`), and on 2026-10-12 **the `ListView` leftovers**
+  (decision 66: per-item extents, separators, selection and keys). **The Animation and
+  Virtualized `ListView` items are complete.** Left in Phase 3: `ensure_visible` (needs focus
+  scopes) and `tantu-a11y`.
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 65 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 66 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally. CI was not checked from this session.
 
@@ -41,14 +42,14 @@ stops; the user says "continue" to accept the proposals; the agent then does
 recommended option at forks, marks it for review and pushes at each milestone (decision 34).
 Additions made while agreeing a spec are marked "review" in its Open questions.
 
-**For the user to review:** decisions 49 to 65 (made by the agent, marked in the specs), and the
+**For the user to review:** decisions 49 to 66 (made by the agent, marked in the specs), and the
 open questions below.
 
 **Next (PLAN.md order, Phase 3):**
 
-1. `ListView` leftovers (variable item extents, separators, keyboard navigation).
-2. `ensure_visible` (scroll a focused child into view), with focus scopes.
-3. `tantu-a11y`: the AccessKit tree for every widget.
+1. `tantu-a11y`: the AccessKit tree for every widget (the last big Phase 3 item).
+2. `ensure_visible` (scroll a focused child into view), with focus scopes; small, can go
+   with a11y's focus work or after it.
 
 ## Current state
 
@@ -632,6 +633,18 @@ open questions below.
     animating; `jump_to`, keys, the thumb and `animate_to` interrupt it. Kinetic fling is
     deferred until touch or trackpad gesture events exist. The older wheel tests set a zero
     wheel duration.
+66. **ListView extents, separators and keys** (2026-10-12, spec
+    `docs/specs/widgets/list-view-advanced.md`; the user said "continue" on the draft's five
+    proposals): `ListExtents` (`Fixed` or a `Table` of prefix sums, `Arc<[f32]>`) on
+    `RenderListContent`, which is no longer `Copy`; the widget maps "slots" (items, or items
+    interleaved with separators) to a table built by a memo once per count change (the
+    extent builder runs exactly `count` times) and finds the visible range by binary search,
+    excluding the slot that starts exactly at the viewport's end; `builder_with_extents` and
+    `separated` share the engine; selection is an app-owned `Signal<Option<usize>>`, the
+    list's capture-phase key handler (before the scroll view's own keys) moves it with
+    arrows, Home/End, PageUp/Down (items that fit) and jumps it into view, Enter and
+    double-click call `on_activate`, a press selects and still bubbles to the item. Measured
+    extents stay a later mode. The gallery's Lists section has a contacts list with headers.
 
 ## Commit log
 
@@ -995,15 +1008,20 @@ open questions below.
 | `b84aa22` | spec: transitions (WIDGETS-OPACITY-01..02, WIDGETS-SWITCHER-01..03, WIDGETS-TEXTFIELD-10..11, WIDGETS-SCROLL-07..08, GALLERY-07) |
 | `a2b5398` | test: transitions, stubs + 11 failing tests |
 | `872b5d7` | impl: transitions: Opacity, AnimatedSwitcher, caret blink, double-click, smooth wheel, animate_to; the gallery's switcher |
-| _this commit_ | docs: HANDOFF.md for the transitions |
+| `6c82565` | docs: HANDOFF.md for the transitions |
+| `7065d41` | docs: draft ListView extents, separators and keys spec for review |
+| `604e01d` | spec: ListView variable extents, separators and keyboard navigation (LAYOUT-LIST-03, WIDGETS-LIST-04..06, GALLERY-08) |
+| `c79b3cc` | test: ListView variable extents, separators and keys, stubs + 5 failing tests |
+| `cf8d447` | impl: ListView extent table, separators, selection and keys; the gallery's contacts list |
+| _this commit_ | docs: HANDOFF.md for the ListView leftovers |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: animation and timers, then the scroll and list leftovers, then
-`tantu-a11y`. After Phase 3 comes Phase 4 (enterprise features) in PLAN.md order.
+See "Resume here" above: `tantu-a11y`, then `ensure_visible`. After Phase 3 comes Phase 4
+(enterprise features) in PLAN.md order.
 
 ## Open questions
 
