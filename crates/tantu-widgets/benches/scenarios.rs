@@ -8,9 +8,9 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use tantu_test::{Finder, WidgetTester};
-use tantu_view::Keyed;
-use tantu_view::core::Vec2;
+use tantu_view::core::{Point, Vec2};
 use tantu_view::layout::RenderParagraph;
+use tantu_view::{Keyed, PointerEvent, PointerKind};
 use tantu_widgets::{CellValue, DataGrid, FnSource, GridColumn, ScrollController};
 
 /// The grid's rows.
@@ -29,6 +29,9 @@ pub const WINDOW: (f32, f32) = (1280.0, 720.0);
 pub struct GridScroll {
     tester: WidgetTester,
     vertical: ScrollController,
+    /// The grid's center, looked up once (the tester's finder walks every element, which
+    /// would dominate a step).
+    center: Point,
 }
 
 impl GridScroll {
@@ -57,16 +60,22 @@ impl GridScroll {
         };
         // The cells appear one frame after the first paint records the extents.
         tester.pump();
+        let center = tester.rect(tester.find(&Finder::key("g"))).center();
         GridScroll {
             tester,
             vertical: out.get().expect("built"),
+            center,
         }
     }
 
-    /// One wheel step of a row, and its frame.
+    /// One wheel step of a row (dispatched at the cached center, as `WidgetTester::scroll`
+    /// does after its lookup), and its frame.
     pub fn step(&mut self) {
-        self.tester
-            .scroll(&Finder::key("g"), Vec2::new(0.0, ROW_HEIGHT));
+        self.tester.pointer(PointerEvent {
+            kind: PointerKind::Scroll(Vec2::new(0.0, ROW_HEIGHT)),
+            position: self.center,
+        });
+        self.tester.pump();
     }
 
     /// The row at the top of the body.
