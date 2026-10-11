@@ -227,7 +227,8 @@ fn widgets_scroll_05_hit_testing_follows_the_scroll() {
                     .child(Keyed::new(
                         "b",
                         Button::new("Go").on_press(move || presses.set(presses.get() + 1)),
-                    )),
+                    ))
+                    .child(SizedBox::new(300.0, 500.0)),
             )
         })
     };
