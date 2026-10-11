@@ -60,9 +60,16 @@ option, mark it for review, push at each milestone).
     `RenderImage` (LAYOUT-IMAGE-01..02, LAYOUT-CONS-18), `Resources::intern_image`
     (SCENE-RES-11), `PaintCx::image_id` (VIEW-TEXT-06); golden `image.png`.
 
+  - **`RichText` and `TextSpan`** (2026-10-11, `docs/specs/widgets/rich-text.md`, decision
+    54, decided by the agent while the user was away): style spans (`StyleSpan`) through
+    `TextMeasure::measure_rich` / `TextPainter::paint_rich` (defaults ignore spans), parley
+    ranges with colors as brushes, `RenderParagraph::spans`, `MeasureCache` keys with spans;
+    `BuildCx::text_styles` (VIEW-STYLES-03); golden `rich-text.png`.
+
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `RichText` (multi-style paragraphs in `tantu-text`), then `TextField` in three parts.
+1. `TextField` in three parts: the editing model (text, selection, undo), the widget (caret,
+   selection painting, keys), then IME.
 
 After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
 animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
@@ -600,6 +607,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     (`TextPainter::image_id` → `Resources::intern_image`, once per pixel buffer; renaming the
     trait `FramePainter` is a later cleanup); no eviction yet; `Image::new` takes decoded
     `ImageData`.
+54. **RichText** (2026-10-11, spec `docs/specs/widgets/rich-text.md`, decided by the agent
+    while the user was away; review): spans as a parallel `&[StyleSpan]` list (byte range,
+    style key, optional color) rather than a new text model, with `measure_rich` /
+    `min_intrinsic_width_rich` / `paint_rich` defaulting to the plain methods so every
+    measurer and painter stays valid; colors ride as parley brushes (`Layout<SpanBrush>`), so
+    runs split by color and the painter emits one glyph run per parley run; `TextSpan` sets
+    a full style or field overrides (`size`, `bold`, `italic`, `family`, `color`) instead of
+    Flutter's partial `TextStyle.merge`; the measure and layout caches key by the spans too;
+    underline/strikethrough, inline widgets and tap recognizers deferred to `TextField`/links.
 
 ## Commit log
 
@@ -880,7 +896,14 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `630f3ae` | spec: Image (WIDGETS-IMAGE-01..05), RenderImage (LAYOUT-IMAGE-01..02, LAYOUT-CONS-18), Resources::intern_image (SCENE-RES-11), PaintCx::image_id (VIEW-TEXT-06) |
 | `f0fba6a` | test: Image, RenderImage, intern_image and image_id, stubs + 11 failing tests |
 | `83fd47b` | impl: Image and decode_png, RenderImage, Resources::intern_image, PaintCx::image_id; image golden |
-| _this commit_ | docs: HANDOFF.md for Image |
+| `f951983` | docs: HANDOFF.md for Image |
+| `61304f7` | spec: RichText and TextSpan (WIDGETS-RICHTEXT-01..03); style spans in measuring and painting (LAYOUT-TEXT-11..12, TEXT-SYS-10..11, VIEW-TEXT-07) |
+| `e61beb3` | test: RichText, TextSpan and style spans, stubs + 8 failing tests |
+| `503f051` | spec: BuildCx::text_styles (VIEW-STYLES-03), for reactive spans |
+| `7b27a42` | test: BuildCx::text_styles, stub + 1 failing test |
+| `8330414` | test: WIDGETS-RICHTEXT-02 expects the bigger span as its own run |
+| `97502d4` | impl: RichText and TextSpan; style spans through measuring, the text system (parley ranges and brushes) and painting; rich-text golden |
+| _this commit_ | docs: HANDOFF.md for RichText |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -889,7 +912,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `RichText` next (see "Resume here").
+3. Phase 3 widgets: `TextField` next, the editing model first (see "Resume here").
 
 ## Open questions
 
