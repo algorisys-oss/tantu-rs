@@ -31,6 +31,7 @@ mod layout;
 mod slider;
 mod toggles;
 mod tooltip;
+mod util;
 
 pub use basic::{Button, Text};
 pub use divider::{Divider, VerticalDivider};

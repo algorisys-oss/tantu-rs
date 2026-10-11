@@ -1,7 +1,7 @@
 # Checkbox, Radio and Switch
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-11; review the
-  Open questions)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-11; review
+  the Open questions)
 - **Crate:** `tantu-widgets`
 - **Plan item:** Phase 3, "Widgets" → "`Checkbox`, `Radio`, `Switch`"
 - **Related:** [Text and Button](basic.md), [Button keyboard](button-keyboard.md),

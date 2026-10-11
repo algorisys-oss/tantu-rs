@@ -12,6 +12,8 @@ use tantu_view::{
     PaintCx, Phase, PointerButton, PointerKind, Prop, View,
 };
 
+use crate::util::dynamic;
+
 /// The slider's height (Material 3's touch target).
 const HEIGHT: f32 = 48.0;
 /// Its width in an unbounded width: a 144 px track plus the state layer.
@@ -118,14 +120,6 @@ impl Slider {
     pub fn on_change_end(mut self, f: impl Fn(f64) + 'static) -> Self {
         self.on_change_end = Some(Rc::new(f));
         self
-    }
-}
-
-/// A prop as a function of the current value.
-fn dynamic<T: Copy + 'static>(prop: Prop<T>) -> Rc<dyn Fn() -> T> {
-    match prop {
-        Prop::Value(value) => Rc::new(move || value),
-        Prop::Dynamic(f) => Rc::from(f),
     }
 }
 
