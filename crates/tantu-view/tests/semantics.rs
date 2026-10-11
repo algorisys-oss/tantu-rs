@@ -403,9 +403,10 @@ fn view_sem_03_perform_action() {
     // Unsupported, missing or removed: false, no panic.
     assert!(!tree.perform_action(plain, SemanticsAction::Click));
     assert!(!tree.perform_action(button, SemanticsAction::Increment));
-    // ScrollIntoView is offered to any semantic element: the handler ran and declined.
+    // ScrollIntoView on the scroll view itself is `ensure_visible` (VIEW-REVEAL-03): it asks
+    // the view's ancestors, none of which handle it, never the view's own handler.
     assert!(!tree.perform_action(scroll, SemanticsAction::ScrollIntoView));
-    assert_eq!(take(&log), ["scroll action ScrollIntoView -> false"]);
+    assert!(take(&log).is_empty());
     assert!(!tree.perform_action(plain, SemanticsAction::ScrollIntoView));
     assert!(!tree.perform_action(
         ElementId::from_raw(u64::MAX).expect("non-zero"),

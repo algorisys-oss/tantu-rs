@@ -100,12 +100,12 @@ const NOT_TRAVERSABLE: FocusOptions = FocusOptions {
 /// │  └─ inner   scroller
 /// │     ├─ leaf     focusable, with semantics
 /// │     └─ plain    nothing
+/// ├─ d          focusable
 /// ├─ S          scope (a region)
 /// │  ├─ b       focusable
 /// │  ├─ c       focusable
 /// │  └─ T       scope (a render element)
 /// │     └─ t    focusable
-/// ├─ d          focusable
 /// └─ E          scope (a region)
 ///    └─ e       focusable, not traversable
 /// ```
@@ -164,6 +164,7 @@ impl Fixture {
                             .child(Keyed::new("plain", node("plain"))),
                     )),
                 ))
+                .child(Keyed::new("d", focusable("d", TRAVERSABLE)))
                 .child(Keyed::new(
                     "S",
                     scope("S", true)
@@ -174,7 +175,6 @@ impl Fixture {
                             scope("T", false).child(Keyed::new("t", focusable("t", TRAVERSABLE))),
                         )),
                 ))
-                .child(Keyed::new("d", focusable("d", TRAVERSABLE)))
                 .child(Keyed::new(
                     "E",
                     scope("E", true).child(Keyed::new("e", focusable("e", NOT_TRAVERSABLE))),
@@ -197,9 +197,9 @@ impl Fixture {
 
     fn focused(&self) -> Option<&'static str> {
         let focused = self.tree.focused()?;
-        ["a", "leaf", "b", "c", "t", "d", "e"]
+        ["a", "leaf", "d", "b", "c", "t", "e"]
             .into_iter()
-            .find(|name| self.id(name) == focused)
+            .find(|name| self.tree.find_key(&Key::from(*name)).first() == Some(&focused))
     }
 }
 
@@ -233,7 +233,7 @@ fn view_reveal_01_every_container_reveals_the_one_below() {
 #[test]
 fn view_reveal_02_traversal_reveals_the_new_focus() {
     let mut f = Fixture::new();
-    let (a, leaf, b) = (f.id("a"), f.id("leaf"), f.id("b"));
+    let (a, leaf, d, b) = (f.id("a"), f.id("leaf"), f.id("d"), f.id("b"));
     // `focus` doesn't scroll.
     assert!(f.tree.focus(leaf));
     assert!(f.take().is_empty());
@@ -242,11 +242,13 @@ fn view_reveal_02_traversal_reveals_the_new_focus() {
     assert_eq!(f.tree.focus_next(), Some(leaf));
     assert_eq!(f.take(), ["inner reveals leaf", "outer reveals inner"]);
     // Backward too.
-    f.tree.focus(b);
+    f.tree.focus(d);
     f.take();
     assert_eq!(f.tree.focus_previous(), Some(leaf));
     assert_eq!(f.take(), ["inner reveals leaf", "outer reveals inner"]);
     // Moving to an element with no container above calls nothing.
+    assert_eq!(f.tree.focus_next(), Some(d));
+    assert!(f.take().is_empty());
     assert_eq!(f.tree.focus_next(), Some(b));
     assert!(f.take().is_empty());
     // `focus_into` doesn't scroll either.
@@ -297,33 +299,35 @@ fn view_scope_01_innermost_scope() {
 #[test]
 fn view_scope_02_traversal_stays_in_the_scope() {
     let mut f = Fixture::new();
-    // Inside S: b → c → t (the nested scope's contents) → b (wrapping within S).
+    // Inside S: b → c → t (the nested scope's contents); from t the innermost scope is T,
+    // whose only traversable element is t, so Tab stays there (nested scopes trap Tab).
     f.tree.focus(f.id("b"));
     f.tree.focus_next();
     assert_eq!(f.focused(), Some("c"));
     f.tree.focus_next();
     assert_eq!(f.focused(), Some("t"));
     f.tree.focus_next();
+    assert_eq!(f.focused(), Some("t"));
+    f.tree.focus_previous();
+    assert_eq!(f.focused(), Some("t"));
+    // Backward within S wraps into the nested scope's contents: c → b → t.
+    f.tree.focus(f.id("c"));
+    f.tree.focus_previous();
     assert_eq!(f.focused(), Some("b"));
     f.tree.focus_previous();
     assert_eq!(f.focused(), Some("t"));
-    f.tree.focus_previous();
-    assert_eq!(f.focused(), Some("c"));
-    // Inside T, the only traversable element is t: Tab stays there.
-    f.tree.focus(f.id("t"));
-    f.tree.focus_next();
-    assert_eq!(f.focused(), Some("t"));
-    // The root scope covers everything: a → leaf → b … d → a.
+    // The root scope covers everything: a → leaf → d → b (entering S); backward from a
+    // wraps to the last traversable element, t, inside the nested scopes.
     f.tree.focus(f.id("a"));
     f.tree.focus_next();
     assert_eq!(f.focused(), Some("leaf"));
     f.tree.focus_next();
-    assert_eq!(f.focused(), Some("b"));
-    f.tree.focus(f.id("d"));
-    f.tree.focus_next();
-    assert_eq!(f.focused(), Some("a"));
-    f.tree.focus_previous();
     assert_eq!(f.focused(), Some("d"));
+    f.tree.focus_next();
+    assert_eq!(f.focused(), Some("b"));
+    f.tree.focus(f.id("a"));
+    f.tree.focus_previous();
+    assert_eq!(f.focused(), Some("t"));
     // A scope with no traversable element leaves the focus unchanged.
     f.tree.focus(f.id("e"));
     assert_eq!(f.tree.focus_next(), Some(f.id("e")));
@@ -335,7 +339,7 @@ fn view_scope_02_traversal_stays_in_the_scope() {
     assert_eq!(f.focused(), Some("a"));
     f.tree.unfocus();
     f.tree.focus_previous();
-    assert_eq!(f.focused(), Some("d"));
+    assert_eq!(f.focused(), Some("t"));
 }
 
 #[test]
@@ -347,16 +351,18 @@ fn view_scope_03_focus_into_restores_or_starts() {
     assert_eq!(f.tree.focus_into(s), Some(f.id("b")));
     assert_eq!(f.focused(), Some("b"));
     assert_eq!(f.tree.focus_into(t), Some(f.id("t")));
-    // Every enclosing scope remembers the focus.
+    // Every enclosing scope remembers the focus: focusing c updates S and the root, not T.
     f.tree.focus(f.id("c"));
     f.tree.unfocus();
+    assert_eq!(f.tree.focus_into(root), Some(f.id("c")));
     assert_eq!(f.tree.focus_into(s), Some(f.id("c")));
     assert_eq!(f.tree.focus_into(t), Some(f.id("t")));
+    // Focusing t (inside T, inside S) updates all three; focusing d then updates the root only.
     f.tree.focus(f.id("d"));
-    assert_eq!(f.tree.focus_into(root), Some(f.id("d")));
     f.tree.unfocus();
     assert_eq!(f.tree.focus_into(root), Some(f.id("d")));
-    assert_eq!(f.tree.focus_into(s), Some(f.id("c")));
+    assert_eq!(f.tree.focus_into(s), Some(f.id("t")));
+    assert_eq!(f.tree.focus_into(t), Some(f.id("t")));
     // Neither remembered nor traversable: nothing changes.
     f.tree.focus(a);
     assert_eq!(f.tree.focus_into(e), None);
@@ -382,10 +388,8 @@ fn view_scope_04_removal_forgets() {
     assert_eq!(f.tree.focus_into(s), None);
     assert_eq!(f.tree.focus_scope_of(s), None);
     assert_eq!(f.tree.focused(), None);
-    // Traversal no longer sees the scope's contents.
-    f.tree.focus(f.id("a"));
+    // Traversal no longer sees the scope's contents: d wraps to a.
+    f.tree.focus(f.id("d"));
     f.tree.focus_next();
-    assert_eq!(f.focused(), Some("leaf"));
-    f.tree.focus_next();
-    assert_eq!(f.focused(), Some("d"));
+    assert_eq!(f.focused(), Some("a"));
 }
