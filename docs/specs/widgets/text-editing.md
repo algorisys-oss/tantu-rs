@@ -146,10 +146,11 @@ word. `LineBoundary` is the start or end of the line of hard breaks (`\n`) the c
   selection) and `redo` reapplies; a new `edit` or `set_value` clears the redo stack;
   `can_undo`/`can_redo` report the stacks; `undo`/`redo` with nothing to do return false and
   change nothing. `set_value` and `set_text` are steps of their own.
-- **WIDGETS-EDIT-07:** Coalescing: consecutive `edit`s that each insert a single grapheme
-  which isn't whitespace, at the caret (a collapsed selection), form one undo step; a
-  whitespace insert, a deletion, a multi-grapheme insert, `select`, `set_value` or an
-  undo/redo ends the group, so typing "ab cd" then undoing twice gives "ab " then "". 
+- **WIDGETS-EDIT-07:** Coalescing: consecutive `edit`s that each insert a single grapheme at
+  the caret (a collapsed selection) form one undo step; a whitespace grapheme joins the
+  group and then ends it, and a deletion, a multi-grapheme insert, `select`, `set_value` or
+  an undo/redo ends it (each a step of its own where it changes the value), so typing
+  "ab cd" then undoing twice gives "ab " then "".
 - **WIDGETS-EDIT-08:** The controller is reactive: a memo or effect reading `value()` or
   `text()` re-runs after `edit`, `set_text`, `select`, `undo` and `redo`; `value()` inside
   `edit`'s closure sees the current value.

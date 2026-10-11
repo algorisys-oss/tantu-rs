@@ -2407,6 +2407,7 @@ dependencies = [
  "tantu-test",
  "tantu-view",
  "tracing",
+ "unicode-segmentation",
 ]
 
 [[package]]

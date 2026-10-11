@@ -34,6 +34,7 @@ mod image;
 mod layout;
 mod rich_text;
 mod slider;
+mod text_editing;
 mod toggles;
 mod tooltip;
 mod util;
@@ -48,6 +49,9 @@ pub use icons::Icons;
 pub use image::{BoxFit, Image, ImageError, decode_png};
 pub use rich_text::{RichText, TextSpan};
 pub use slider::Slider;
+pub use text_editing::{
+    Direction, EditingValue, Movement, TextEditingController, TextRange, TextSelection,
+};
 pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;
 
