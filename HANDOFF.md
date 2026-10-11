@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 1 drafted for review)_
+_Last updated: 2026-10-12 (DataGrid part 1 implemented; rust-analyzer removed)_
 
 ## Resume here (2026-10-12)
 
@@ -37,7 +37,7 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 69 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 71 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** the two
   pushes before this one were red on macOS only (the text field's chord test pressed Control
@@ -54,16 +54,17 @@ Additions made while agreeing a spec are marked "review" in its Open questions.
 open questions below. **Please run the gallery under a screen reader** (Orca on Linux,
 Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
 
+**Phase 4 has started.** **`DataGrid` part 1 is done** (decision 70, 2026-10-12): the data
+source, columns, pinned header, two-dimensional virtualization and scrolling, roles, the
+gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row wheel step on a
+1 000 000 × 20 grid at 1280 × 720, target under 8 ms). PLAN.md splits the item in seven parts.
+
 **Next (PLAN.md order): Phase 4, enterprise features.**
 
-1. **`DataGrid` part 1 is drafted and waits for review:** PLAN.md splits the item in seven
-   parts; `docs/specs/layout/grid.md` (`RenderGridBody`, a two-dimensional
-   `RenderListContent` with frozen columns) and `docs/specs/widgets/data-grid.md`
-   (`DataSource`/`CellValue`/`FnSource`, `GridColumn`, `DataGrid` with a pinned header,
-   per-cell virtualization keyed by (row, column), wheel and scrollbars on both axes,
-   provisional keys, `revision`, three roles, a gallery section and a `GridScroll`
-   benchmark) are Drafts with nine and three proposals. Say "continue" to accept them; the
-   agent then does the `spec:`/`test:`/`impl:` commits.
+1. `DataGrid` part 2, frozen columns: `RenderGridBody` already places them (LAYOUT-GRID-04);
+   the widget needs a `frozen_columns` builder, paint order (frozen cells above the scrolling
+   ones, via the cell wrapper's z-index) and a clip so scrolling cells don't show under them.
+   Draft the spec for review (the usual pattern), then parts 3 to 7.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -99,7 +100,9 @@ Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
   - `LICENSE-MIT`, `LICENSE-APACHE`: dual license
   - `Cargo.toml`: workspace manifest (`[workspace.package]`, internal crates in
     `[workspace.dependencies]`, shared lints in `[workspace.lints]`)
-  - `rust-toolchain.toml`: pins Rust 1.85, which is also the MSRV; `clippy.toml`
+  - `rust-toolchain.toml`: pins Rust 1.88, which is also the MSRV, with `rustfmt` and `clippy`
+    (rust-analyzer was removed on 2026-10-12 at the user's request: it slowed the machine, and
+    the agent works from cargo; `rust-analyzer.toml` stays for an editor's own server); `clippy.toml`
   - `crates/`: one directory per crate; `crates/tantu` is the facade
   - `docs/adr/`: ADRs 0001–0013 plus `README.md` (index, template, how to supersede)
   - `docs/specs/`: `TEMPLATE.md` and `README.md` (location, rule-id and test-name conventions)
@@ -712,6 +715,29 @@ Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
     restores it or focuses the first traversable descendant; removal forgets. `FocusScope`
     widget (a region), with no golden or gallery entry since it paints nothing (review).
     `WidgetTester::ensure_visible`. Phase 3 is complete with this item.
+70. **DataGrid part 1** (2026-10-12, specs `docs/specs/layout/grid.md` and
+    `docs/specs/widgets/data-grid.md`; the user said "continue" on the drafts' twelve
+    proposals): `RenderGridBody` in `tantu-layout` is the two-dimensional
+    `RenderListContent` (row and column `ListExtents`, a `Vec2` offset, `GridSlot` parent
+    data, the incoming maximum on bounded axes, frozen columns placed from the start);
+    `DataSource` is synchronous and pull-based (`row_count`, `cell(row, column) ->
+    CellValue`) with an optional `revision` signal for changes (default text cells re-read
+    in place, builder cells rebuild through a `Dyn`); `FnSource` for generated data;
+    `GridColumn` (title, width, optional cell builder); `DataGrid` composes a column of two
+    `RenderGridBody` instances (a one-row header strip following the horizontal offset only,
+    and the body) and paints its own two scrollbars, sharing the scroll view's bar geometry
+    and controller internals (`pub(crate)` in `scroll.rs`); cells are one `For` keyed by
+    (row, column) over the visible range with one of buffer each side, each a clipping
+    wrapper with grid lines; wheel `y` scrolls rows and `x` columns (the smooth wheel
+    animation applies), the thumbs drag, provisional keys scroll (arrows one row or 40 px,
+    PageUp/Down the body, Home/End) until the selection part; roles `Grid`, `ColumnHeader`
+    and `Cell` in `tantu-view` and the AccessKit mapping; the gallery's Data grid section
+    (every gallery golden regenerated because the sidebar gained a button). **Benchmark:**
+    `cargo bench -p tantu-widgets`, scenario shared with a test; 1.30 ms per step. The first
+    measurement read 30 ms because `WidgetTester::scroll` looks its element up by key on
+    every call and that walk dominated; the scenario now dispatches at a cached position
+    (open question below). Found while writing the tests: cells appear one frame after the
+    first paint records the extents (as list items), so the tests pump twice.
 
 ## Commit log
 
@@ -1102,15 +1128,26 @@ Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
 | `80b650f` | test: WIDGETS-TEXTFIELD-05 presses the platform's primary modifier (fixes CI on macOS) |
 | `e81504e` | docs: HANDOFF.md, the macOS CI fix |
 | `94c2b74` | chore: rust-analyzer builds in its own target directory (`rust-analyzer.toml`) |
-| _this commit_ | docs: draft DataGrid part 1 specs for review; PLAN.md DataGrid item split in seven |
+| `be5605a` | docs: draft DataGrid part 1 specs for review; PLAN.md DataGrid item split in seven |
+| `557c9fc` | spec: DataGrid part 1: grid body layout (LAYOUT-GRID-01..04) and the widget (WIDGETS-GRID-01..08, GALLERY-10); roles Grid, ColumnHeader and Cell |
+| `4b056e1` | test: DataGrid part 1, stubs + 13 failing tests |
+| `0524bce` | test: grid tests pump a second frame after construction |
+| `b0270d5` | test: GALLERY-10 lets the wheel animation finish |
+| `3103820` | test: LAYOUT-GRID-03 checks the moved cell's offset |
+| `c5c7b25` | test: WIDGETS-GRID-03 and -04 read cells that exist |
+| `903f3cf` | test: WIDGETS-GRID-03's builder asks for one unwrapped line |
+| `b73b950` | test: WIDGETS-GRID-03 checks the clip, not the paragraph's constrained rect |
+| `074ff46` | test: the GridScroll step dispatches the wheel at a cached position (the tester's lookup hid the frame's cost) |
+| `ae4575f` | impl: DataGrid part 1: RenderGridBody, CellValue/DataSource/FnSource/GridColumn/DataGrid, roles, the gallery section, the benchmark at 1.30 ms per step |
+| _this commit_ | docs: HANDOFF.md for DataGrid part 1; rust-analyzer removed from the toolchain |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: Phase 4 (enterprise features) in PLAN.md order, starting with
-splitting the `DataGrid` item and drafting its first spec.
+See "Resume here" above: `DataGrid` part 2 (frozen columns) next, then parts 3 to 7, then the
+rest of Phase 4 in PLAN.md order.
 
 ## Open questions
 
@@ -1119,6 +1156,11 @@ splitting the `DataGrid` item and drafting its first spec.
   gallery under Orca (Linux), Narrator (Windows) and VoiceOver (macOS) and note what each
   reads and what it misses; text-editing semantics (caret and selection as AccessKit text
   ranges) are a known gap (ADR 0013).
+- **`WidgetTester` finders walk every element on every call** (found with the grid
+  benchmark): `find`/`find_all` evaluate the finder against each element, and `Finder::key`
+  took about 30 ms on a tree of about 1 500 elements, which dwarfs a 1.4 ms frame. Harmless
+  for tests, misleading for benchmarks. Proposal: a key index on `ViewTree` (`find_key` is
+  already a lookup) and `Finder::key` using it, as a `test/widget-tester.md` amendment.
 - **Nested focus scopes trap Tab** (decision 69, VIEW-SCOPE-02): Tab enters a nested
   `FocusScope` from its parent scope and then cycles inside it; leaving needs `focus_into`
   or `focus` from the app (Flutter behaves the same, and dialogs want exactly that). If a
@@ -1146,8 +1188,8 @@ splitting the `DataGrid` item and drafting its first spec.
 - **Autopilot decisions to review:** decisions 20/21 and ADR 0007 (reactive shape, disposed
   handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
-  0008 (renderer conformance) and 49 to 69 (the Phase 3 widgets, the theme, animation,
-  lists, accessibility and focus scopes).
+  0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
+  lists, accessibility and focus scopes) and 70 (DataGrid part 1).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
