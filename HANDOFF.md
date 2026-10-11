@@ -82,11 +82,20 @@ option, mark it for review, push at each milestone).
 
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `TextField`, part three: IME composition. Needs IME events in `tantu-platform` and the
-   winit shell (`Ime::Preedit`/`Commit`), the runner forwarding them, and the field editing
-   `composing`. Spec it first (it touches the platform trait).
+1. `TextField`, part three: IME composition. **Drafted** in
+   `docs/specs/widgets/text-field-ime.md` (status Draft, five proposals). It adds IME events
+   and two calls to the platform trait, so it waits for the user's "continue" rather than
+   going straight through. Then `spec:`/`test:`/`impl:` as usual.
 2. Then the Phase 3 items after widgets: scroll views, the virtualized `ListView`,
    `tantu-theme`, animation, `tantu-a11y`, `examples/gallery`.
+
+**Session summary (2026-10-11, the user away for ~4 hours):** Divider, Slider, Checkbox/Radio/
+Switch, Icon/IconButton, Image, RichText, the text editing model and the TextField widget
+were specified, tested and implemented (decisions 49 to 56, all marked for review), with one
+layout-tree bug fixed on the way (LAYOUT-TEXT-13's `queued` flag, `96a932b`). Every push was
+green locally (`fmt`, `clippy -D warnings`, tests, rustdoc, `spec-coverage`: 54 specs); CI
+results were not checked from this session. **For the user to review:** decisions 49 to 56
+and the Draft IME spec.
 
 After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
 animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
@@ -948,7 +957,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `6e0d221` | test: TextField tests compare paint in the editor's coordinates and give Tab a next element |
 | `3fe08e2` | spec: the TextField's outer element holds its focus, handlers and outline |
 | `f1664ce` | impl: TextField widget, TextGeometry and its queries, TextSystem::geometry, PaintCx::text_geometry, WidgetTester::enter_text; text-field golden |
-| _this commit_ | docs: HANDOFF.md for the TextField widget |
+| `219157b` | docs: HANDOFF.md for the TextField widget |
+| `a7f25e6` | docs: draft TextField IME spec for review |
+| _this commit_ | docs: HANDOFF.md, paused at the IME draft |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -957,7 +968,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `TextField` IME next (see "Resume here").
+3. Phase 3 widgets: `TextField` IME next, drafted (see "Resume here").
 
 ## Open questions
 
