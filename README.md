@@ -2,9 +2,10 @@
 
 **Compose once. Render your way.**
 
-Tantu is a cross-platform UI framework for Rust, designed around declarative widgets, fine-grained
-reactivity, and independent rendering backends. Its API is Flutter-style and its core is
-renderer-agnostic.
+Tantu is a general-purpose GUI library for building desktop apps in Rust: declarative widgets,
+fine-grained reactivity and independent rendering backends. Its API is Flutter-style and its core
+is renderer-agnostic. It is meant to carry anything from a small utility to a large
+enterprise application (data grids, docking, forms, accessibility, i18n).
 
 *Tantu* (pronounced "tan-too") is Sanskrit for "thread": small pieces (widgets, state, layout,
 rendering) woven into something larger. The name is about composition, not multithreading.
@@ -24,11 +25,12 @@ By Algorisys Technologies.
   app code.
 - **Flutter-like authoring.** Declarative, composable widget trees written in plain Rust, with
   Flutter's layout model: constraints go down, sizes go up, and the parent positions its children.
-- **Built for large apps.** Retained element tree with fine-grained reactive signals, so only what
-  changed is rebuilt, re-laid out or repainted. Planned: virtualized lists and data grids, docking,
-  multi-window, accessibility (AccessKit), full text shaping with IME and right-to-left support,
-  i18n and theming.
-- **Also for small apps.** Fast startup and a single, reasonably small binary.
+- **General purpose.** Everyday desktop apps first: windows, text, input, scrolling, theming,
+  and a small, fast-starting binary.
+- **Scales to large apps.** Retained element tree with fine-grained reactive signals, so only what
+  changed is rebuilt, re-laid out or repainted. Virtualized lists today; planned: data grids,
+  docking, multi-window, accessibility (AccessKit), full text shaping with IME and right-to-left
+  support, i18n.
 
 ## Using Tantu in your app
 
@@ -86,16 +88,18 @@ fn main() -> tantu::Result<()> {
 - **State:** `signal`, `memo`, `effect`; every widget prop takes a value, a closure or a signal.
 - **Input:** pointer events, keyboard focus and Tab traversal, `Shortcuts` and `Actions`,
   overlays anchored to widgets.
+- **Scrolling:** `ScrollView` with a scrollbar, and `ListView::builder` that builds only the
+  rows in view (100 000 rows cost what a dozen do).
+- **Theming:** `Theme::light()` and `Theme::dark()` (Material 3 colors, text presets, shape,
+  density); every window gets a `Signal<Theme>` it can switch at run time, and `ThemeProvider`
+  scopes a theme to a subtree.
 - **Testing:** `tantu-test::WidgetTester` pumps frames, taps, types and compares goldens without
   a window.
 
-- **Scrolling:** `ScrollView` with a scrollbar, and `ListView::builder` that builds only the
-  rows in view (100 000 rows cost what a dozen do).
-
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
-window; `examples/counter` and `examples/layout-demo` are smaller. Things still to come are
-listed in [PLAN.md](PLAN.md): theming, animation, accessibility, the data grid and the other
-enterprise widgets.
+window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
+Things still to come are listed in [PLAN.md](PLAN.md): animation, accessibility, the data grid
+and the other enterprise widgets.
 
 ## The counter, in full
 

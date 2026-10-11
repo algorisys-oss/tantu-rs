@@ -3,215 +3,49 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-11_
+_Last updated: 2026-10-11 (theme)_
 
-## Resume here (paused 2026-10-11)
+## Resume here (2026-10-11)
 
-Paused at the user's request with everything committed and pushed; `main` and branch
-`phase3/focus` point at the same commit, and CI was green on Linux, Windows and macOS for
-every push of the session. When resuming, tell the agent: "Read HANDOFF.md and continue."
+Everything is committed on branch `phase3/focus` (fast-forward it into `main` and push when
+the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 **Where things stand:**
 
-- **Phases 0, 1 and 2 are done.** Phase 2 ended 2026-10-10 with the milestone met:
-  `cargo run -p counter` and `cargo run -p layout-demo` run on Linux Wayland and X11 (checked
-  by the agent) and on Windows and macOS (checked by the user).
-- **Phase 3 is in progress** on branch `phase3/focus`. Done so far:
-  - **Focus, keyboard navigation and shortcuts** (the whole first item):
-    - keyboard events and focus: `docs/specs/view/focus.md`;
-    - shortcuts and commands: `docs/specs/view/shortcuts.md`;
-    - `Button` keyboard activation and focus indicator: `docs/specs/widgets/button-keyboard.md`.
-  - **Overlay and anchored positioning**: `docs/specs/view/overlay.md` (`OverlayPortal`,
-    `Anchor`).
-  - **`Tooltip`**: `docs/specs/widgets/tooltip.md`, plus `BuildCx::on_focus_within`
-    (VIEW-FOCUS-09). Rendered and checked by eye: a dark rounded box 4 px under the hovered
-    widget.
-  - **`Divider` and `VerticalDivider`** (2026-10-11, `docs/specs/widgets/divider.md`), which
-    brought Flutter's `LimitedBox` (`RenderLimitedBox`, LAYOUT-SINGLE-16; the widget,
-    WIDGETS-LAYOUT-07) and the first widget golden
-    (`crates/tantu-widgets/tests/goldens/divider.png`). Writing its reactive test found a
-    layout-tree bug: a boundary queued as dirty, then laid out by an ancestor's pass, stayed
-    flagged "queued", so a later mark that stopped at it was never laid out. Fixed in the
-    `spec:`/`test:`/`fix:` triple `fece7dc`/`3e63827`/`96a932b` (LAYOUT-TREE-13).
-- Workspace: 46 specs (one draft), every rule covered (`cargo xtask spec-coverage`).
+- **Phases 0, 1 and 2 are done** (Phase 2 on 2026-10-10, checked on Linux by the agent and on
+  Windows and macOS by the user).
+- **Phase 3 is in progress.** Done: focus, keyboard navigation and shortcuts; the overlay and
+  anchored positioning; the whole widget item (`Text`, `Button`, `Tooltip`, `Divider`, `Slider`,
+  `Checkbox`/`Radio`/`Switch`, `Icon`/`IconButton`, `Image`, `RichText`, `TextField` with undo
+  and IME); `ScrollView` with wheel, scrollbar and keyboard scrolling; fixed-extent
+  `ListView::builder`; inherited values; `examples/gallery`; and, on 2026-10-11, **the theme**
+  (decision 62, below). Left in Phase 3: kinetic scrolling and `ensure_visible`, variable list
+  extents, animation and timers, `tantu-a11y`.
+- **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
+  apps, from small utilities to enterprise applications. README, AGENTS.md and the
+  architecture doc now say so.
+- Workspace: 62 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+  warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
+  (`-D warnings`) are green locally. CI was not checked from this session.
 
-**The user left for ~4 hours on 2026-10-11** after saying "continue" on the Divider and
-Slider drafts, asking the agent to keep going (decision 34 applies: take the recommended
-option, mark it for review, push at each milestone).
+**Working pattern:** the agent writes each spec as a Draft with open questions and proposals and
+stops; the user says "continue" to accept the proposals; the agent then does
+`spec:`/`test:`/`impl:` commits, checks with `fmt`, `clippy -D warnings`, `test` and
+`spec-coverage`, and pushes with this file updated. When the user is away, the agent takes the
+recommended option at forks, marks it for review and pushes at each milestone (decision 34).
+Additions made while agreeing a spec are marked "review" in its Open questions.
 
-  - **`Slider`** (2026-10-11, `docs/specs/widgets/slider.md`, decision 50): drag, keys,
-    state layers, golden `crates/tantu-widgets/tests/goldens/slider.png`;
-    `WidgetTester::drag` (TEST-WT-08).
-
-  - **`Checkbox`, `Radio`, `Switch`** (2026-10-11, `docs/specs/widgets/toggles.md`, decision
-    51, decided by the agent while the user was away): one shared toggle core (handlers,
-    focus, state layers), a paint per widget, goldens `checkbox.png`, `radio.png`,
-    `switch.png`.
-
-  - **`Icon` and `IconButton`** (2026-10-11, `docs/specs/widgets/icon.md`, decision 52,
-    decided by the agent while the user was away): Material Icons Regular (Apache 2.0,
-    357 KB) embedded behind the default `material-icons` feature with a generated
-    `Icons` table (`crates/tantu-widgets/src/icons.rs`, 2 234 constants); widgets bring
-    their own fonts through `TextStyles::ensure_font` / `BuildCx::ensure_font`
-    (TEXT-STYLES-05, VIEW-STYLES-02); goldens `icon.png`, `icon-button.png`.
-
-  - **`Image`** (2026-10-11, `docs/specs/widgets/image.md` and `docs/specs/layout/image.md`,
-    decision 53, decided by the agent while the user was away): `decode_png`, `BoxFit`,
-    `RenderImage` (LAYOUT-IMAGE-01..02, LAYOUT-CONS-18), `Resources::intern_image`
-    (SCENE-RES-11), `PaintCx::image_id` (VIEW-TEXT-06); golden `image.png`.
-
-  - **`RichText` and `TextSpan`** (2026-10-11, `docs/specs/widgets/rich-text.md`, decision
-    54, decided by the agent while the user was away): style spans (`StyleSpan`) through
-    `TextMeasure::measure_rich` / `TextPainter::paint_rich` (defaults ignore spans), parley
-    ranges with colors as brushes, `RenderParagraph::spans`, `MeasureCache` keys with spans;
-    `BuildCx::text_styles` (VIEW-STYLES-03); golden `rich-text.png`.
-
-  - **Text editing model** (2026-10-11, `docs/specs/widgets/text-editing.md`, decision 55,
-    decided by the agent while the user was away): `EditingValue` (byte offsets, grapheme and
-    UAX #29 word movement through `unicode-segmentation`), `TextEditingController` (two
-    signals behind a `Copy` handle, undo/redo, coalescing by edit kind).
-
-  - **`TextField` widget** (2026-10-11, `docs/specs/widgets/text-field.md`, decision 56,
-    decided by the agent while the user was away): `TextGeometry` (lines and cluster boxes,
-    pure queries: caret, hit-test, selection rects; LAYOUT-TEXT-13) produced by
-    `TextSystem::geometry` (TEXT-SYS-12) through `PaintCx::text_geometry` (VIEW-TEXT-08) and
-    kept by the widget between frames; keys through `on_key`, select-all/undo/redo chords
-    through `Shortcuts`/`Actions` intents; pointer drag selection; Material 3 outlined look;
-    `WidgetTester::enter_text` (TEST-WT-09); golden `text-field.png`. No clipboard,
-    double-click, scrolling or IME yet (see the spec's Scope).
-
-  - **`TextField` IME composition** (2026-10-12, `docs/specs/widgets/text-field-ime.md`,
-    decision 57; the user said "continue" on the draft): `ImeEvent` and `WindowEvent::Ime`,
-    `PlatformContext::set_ime_allowed`/`set_ime_cursor_area` (winit shell and
-    `FakePlatform`), `BuildCx::on_ime`/`ime_area` and `ViewTree::dispatch_ime`/`ime_area`,
-    the runner keeping the platform's IME in step with the focused element's area after each
-    frame, `EditingValue::compose`/`commit` (one undo step per composition), the composing
-    underline, `WidgetTester::ime`. **The widget item of Phase 3 is complete.**
-  - **README** now says how to depend on Tantu from another app (git dependency, a hello app
-    with a text field, what works today); the snippet was compile-checked against the facade.
-    The user's goal: build all their Rust desktop apps on Tantu, and let others do the same.
-
-  - **Scroll, part one** (2026-10-12, `docs/specs/layout/viewport.md` and
-    `docs/specs/widgets/scroll.md`, decision 58): `RenderViewport` (the offset as the
-    child's layout offset), `ScrollView` + `ScrollController` (wheel/trackpad deltas,
-    clamping, innermost-view-first nesting, a draggable scrollbar, clipping and culling),
-    `WidgetTester::scroll` (TEST-WT-11). **VIEW-PAINT-07** (added on the way): the paint
-    pass runs with the runtime current, so paints can read and write signals. Kinetic and
-    keyboard scrolling wait for timers and focus scopes (PLAN.md sub-item).
-
-  - **`ListView::builder`** (2026-10-12, `docs/specs/layout/list.md` and
-    `docs/specs/widgets/list-view.md`, decision 59): fixed-extent virtualization, a
-    `RenderListContent` as long as every item placing built items by `ListIndex` parent data,
-    a keyed `For` over the visible range (one item of buffer each side); 100 000 items keep
-    at most 8 elements. Variable extents, separators and keyboard navigation remain (PLAN.md
-    sub-item).
-
-  - **`examples/gallery`** (2026-10-12, `docs/specs/examples/gallery.md`, decision 60): six
-    sections (Buttons, Text, Selection, Text field, Lists, Media) behind a sidebar, samples
-    reporting their state as text, goldens `gallery-buttons.png` and `gallery-selection.png`;
-    `cargo run -p gallery`. The README points at it.
-
-  - **TextField caret following** (2026-10-12, WIDGETS-TEXTFIELD-09): a single-line field
-    shifts its content inside a transform scope so the caret stays visible; the pointer and
-    the IME area account for the shift. Found by typing long text in the gallery.
-
-  - **Inherited values** (2026-10-12, `docs/specs/view/inherited.md`, decision 61):
-    `BuildCx::provide`/`inherit`, the `Provide` region, `ViewTree::inherited_on`; values are
-    looked up at build time, reactive ones are provided as signals. The groundwork for the
-    theme.
-
-  - **ScrollView keyboard scrolling** (2026-10-12, WIDGETS-SCROLL-06): a press focuses a
-    scroll view (Tab doesn't stop at it); arrows, PageUp/Down, Home/End scroll it.
-  - **Theme: drafted** in `docs/specs/theme/theme.md` (status Draft). It proposes a change to
-    the AGENTS.md dependency table (`tantu-widgets` → `theme`, or tokens in widgets), so it
-    waits for the user. Everything else in it is ready to go straight through.
+**For the user to review:** decisions 49 to 62 (made by the agent, marked in the specs), and the
+open questions below.
 
 **Next (PLAN.md order, Phase 3):**
 
-1. `tantu-theme` (draft above; needs the user's "continue" and the table decision).
-2. Animation and timers (also a platform addition: a wake-up time for the event loop), then
-   `tantu-a11y`.
-2. Animation (tickers, tweens, curves), which brings timers: tooltip delay, caret blink,
-   double-click, kinetic scrolling. Needs a timer in the platform trait (winit's
-   `WaitUntil`).
+1. **Animation and timers**: tickers, tweens, curves, implicit transitions. Needs a wake-up
+   time in the `Platform` trait (winit's `WaitUntil`). Unblocks the tooltip delay, caret blink,
+   double-click, kinetic scrolling and smooth wheel scrolling.
+2. Scroll leftovers (kinetic, `ensure_visible`) and `ListView` leftovers (variable extents,
+   separators, keyboard navigation).
 3. `tantu-a11y`: the AccessKit tree for every widget.
-
-**Session summary (2026-10-11, the user away for ~4 hours):** Divider, Slider, Checkbox/Radio/
-Switch, Icon/IconButton, Image, RichText, the text editing model and the TextField widget
-were specified, tested and implemented (decisions 49 to 56, all marked for review), with one
-layout-tree bug fixed on the way (LAYOUT-TEXT-13's `queued` flag, `96a932b`). Every push was
-green locally (`fmt`, `clippy -D warnings`, tests, rustdoc, `spec-coverage`: 54 specs); CI
-results were not checked from this session. **For the user to review:** decisions 49 to 56
-and the Draft IME spec.
-
-After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
-animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
-`examples/gallery`.
-
-**Working pattern this session:** the agent writes each spec as a Draft with open questions
-and proposals and stops. The user says "continue" to accept the proposals. The agent then
-does `spec:`/`test:`/`impl:` commits, checks with `fmt`, `clippy -D warnings`, `test` and
-`spec-coverage`, and pushes with this file updated. Additions made while agreeing a spec are
-marked "review" in its Open questions and below.
-
-**For the user to review** (made by the agent, marked in the specs):
-
-- decisions 33 to 47 below;
-- `ElementMut::set_focusable` (VIEW-FOCUS-08) and `BuildCx::on_focus_within` (VIEW-FOCUS-09);
-- the open question on **handler ownership**: handlers registered on another element outlive
-  the component that registered them.
-
-The history of the session follows.
-
-**Phase 1 is done. Phase 2: `tantu-layout` (all layouts), text measurement (ADR 0010) and the
-layout benchmark are done** (10k-node full layout in 635 µs, target < 1 ms). Specs in
-`docs/specs/layout/` are all Implemented.
-
-The user is away for ~5 hours from 2026-10-10 and asked the agent to continue and push at each
-milestone, deciding forks with the recommended option and marking them for review (decision
-34). Their answers before leaving: components **run once with fine-grained reactive props**
-(Solid/Leptos style), order **as PLAN.md** (tantu-view, then tantu-text, events, facade,
-WidgetTester), and AGENTS.md now says every crate may depend on `tantu-core`.
-
-Progress while the user is away: **the `tantu-view` item is done** (ADR 0011, five specs in
-`docs/specs/view/`, all Implemented): `tree.md` (VIEW-TREE-01..11), `paint.md`
-(VIEW-PAINT-01..06), `frame.md` (VIEW-FRAME-01..08), `dynamic.md` (VIEW-DYN-01..07),
-`layout-builder.md` (VIEW-LB-01..06). **`tantu-text`'s text system is done**
-(`docs/specs/text/system.md`, TEXT-SYS-01..09): parley 0.12 behind `TextMeasure`, glyph runs
-into Scenes. MSRV raised to 1.88 for parley (decision 12), and AGENTS.md now lets `tantu-text`
-depend on `tantu-layout` (decision 36, review). **Text in views is done**
-(`docs/specs/view/text.md`, VIEW-TEXT-01..05): `ViewTree::paint` takes a `TextPainter`, `frame` a
-`TextContext`, `SystemText` adapts a `TextSystem` + `Resources`, `ParagraphPaint` draws a
-`RenderParagraph`. A CI failure on `ab86cee` (Linux runners lack fontconfig's development
-package) is fixed in `a19b609` with fontique's `fontconfig-dlopen` (CI green again on
-`af91790`). **Glyph rasterizer done** (`docs/specs/text/raster.md`, TEXT-RASTER-01..04): swash
-coverage masks shared by both renderers. **The software renderer draws text**
-(RENDER-SOFT-27/28; RENDER-SOFT-04 now counts only unreadable fonts), **and so does the wgpu
-renderer** (RENDER-WGPU-18/19, a shelf-packed R8 glyph atlas; checked on Intel Vulkan and
-lavapipe, output matches the software renderer). **The glyph-rasterization item is done**,
-including a `text` reference Scene and golden (RENDER-CONF-14) that every backend is checked
-against. **Event dispatch is done** (`docs/specs/view/events.md`, VIEW-EVENT-01..06; the user
-said "continue" on the draft, taking its proposals). The user said "continue" on the facade drafts (2026-10-10), taking their proposals. **Done
-since:** shared text styles (`docs/specs/text/styles.md`), layout widgets
-(`docs/specs/widgets/layout.md`) and `Text`/`Button` (`docs/specs/widgets/basic.md`), all
-Implemented, **and so are the `tantu` facade (`docs/specs/facade/app.md`) and
-`examples/counter` (`docs/specs/examples/counter.md`): the facade item is done.** `cargo run
--p counter` opens the AGENTS.md counter (its `main.rs` is the snippet, checked by a test);
-checked on Wayland with wgpu (no errors logged) and offscreen after scripted clicks.
-**`WidgetTester` is done** (`docs/specs/test/widget-tester.md`, the user said "continue" on the
-draft): pump, tap, hover, finders by key/text/render type, `rect`, `text`, goldens through the
-software renderer; `Keyed` in `tantu-view`; typing text moves to Phase 3. Left in Phase 2: the
-`tantu-text` parent item (bidi and font fallback aren't covered by a rule yet) and the
-milestone. **The layout demo is done** (`docs/specs/examples/layout-demo.md`; `cargo run -p
-layout-demo`). Running it in a real window found a bug, fixed in a `spec:`/`test:`/`fix:` triple
-(FACADE-APP-10): nothing painted the window behind the content, so it was black on an opaque
-surface. Each window now has a background color (`Window::background`, default white).
-**The Phase 2 milestone is met** (ticked 2026-10-10): `counter` and `layout-demo` run on
-Linux Wayland and X11 (checked by the agent) and on Windows and macOS (checked by the user).
-Then the `tantu-text` parent item: `docs/specs/text/scripts.md` (bidi rules; per-character
-font fallback through every registered family, a bug fixed in `aa4809b`). Phase 2 is done.
-
-When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 ## Current state
 
@@ -219,7 +53,7 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
 - **Phase:** Phases 0, 1 and 2 are done (Phase 2 on 2026-10-10); Phase 3 (core widget set and
-  interaction) is next. Earlier detail: Phase 2 (Layout, views
+  interaction) is in progress, see "Resume here". Earlier detail: Phase 2 (Layout, views
   and text) is in progress: `tantu-layout` (constraints, layout tree, all Flutter layout
   objects in scope, text measurement, benchmarks) is done. Phase 1 delivered:
   `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform`,
@@ -233,7 +67,7 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   `tantu-render-soft` (decisions 25 and 26), and `tantu-platform` with `tantu-platform-winit`
   (decision 28), `tantu-render-wgpu` (decision 29), the `scene-window` demo (decision 30) and
   `tantu-render-conformance` (decision 31).
-  The other crates are still empty.
+  `tantu-theme` is implemented (decision 62). `tantu-a11y` is still empty.
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -736,6 +570,24 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     its parent) and are found by walking up at build time; reactivity comes from providing
     `Copy` signal handles; no reactive re-lookup (a provider must be above its consumers when
     they build).
+62. **Theme** (2026-10-11, spec `docs/specs/theme/theme.md`, ADR 0012; the user said
+    "continue" on the draft's five proposals; additions marked *review*): `tantu-theme` holds
+    `Theme { colors: ColorScheme, text: TextTheme, shape: Shape, density: Density }` with
+    `Theme::light()` (the widgets' old constants; `surface` is white, not Material's
+    `0xFFFFFBFE`) and `Theme::dark()` (Material 3 baseline dark). The carrier is a
+    `Signal<Theme>` provided as an inherited value (`Theme::of`, `Theme::signal`,
+    `ThemeProvider`); **AGENTS.md table change:** `tantu-widgets | view, theme` and
+    `tantu-test | view, theme, render-soft, render-headless`. Widgets keep a `ColorScheme`
+    snapshot in their paints, bound to the signal; density (4 px per step, clamped to ±3)
+    adjusts the minimum extents of buttons, toggles, icon buttons and text fields; text presets
+    are read at build time only. The runner provides the light theme per window
+    (`default-theme` feature, now a behavior flag, `tantu-theme` always compiled) and the
+    window background follows the theme's `surface` unless `Window::background` was set; the
+    tester provides it too (`tester.theme()`) and composites goldens over the surface (every
+    golden regenerated, opaque now). `Builder` (Flutter's) added to `tantu-view` so app code
+    reaches a `BuildCx`. The tooltip captures the theme at the portal, because the overlay
+    layer hangs off the root and inherits nothing from the app (open question). The gallery
+    has a "Dark" switch and a dark golden.
 
 ## Commit log
 
@@ -996,7 +848,6 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `96a932b` | fix: dirty boundaries leave the queue when a pass handles them |
 | `6dfb402` | impl: Divider and VerticalDivider, RenderLimitedBox and LimitedBox; divider golden |
 | `8b879cb` | docs: HANDOFF.md for the Divider |
-| `8b879cb` | docs: HANDOFF.md for the Divider |
 | `5ace032` | spec: Slider (WIDGETS-SLIDER-01..08) and WidgetTester::drag (TEST-WT-08) |
 | `aa62f9a` | test: Slider and WidgetTester::drag, stubs + 9 failing tests |
 | `54428be` | spec: the Slider's outer element holds its handlers, focus and paint |
@@ -1046,7 +897,6 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `a0668cc` | impl: TextField IME composition: platform IME events and context calls, winit conversion, view dispatch and IME area, runner sync, compose/commit edits, composing underline, WidgetTester::ime |
 | `981277b` | docs: README, how to use Tantu in an app (git dependency, a hello app, what works today) |
 | `a06a919` | docs: HANDOFF.md for IME and the README |
-| `a06a919` | docs: HANDOFF.md for IME and the README |
 | `9b28f44` | spec: RenderViewport (LAYOUT-VIEWPORT-01..02) and ScrollView (WIDGETS-SCROLL-01..05, TEST-WT-11); PLAN.md scroll item split |
 | `48a56f4` | test: RenderViewport, ScrollView and WidgetTester::scroll, stubs + 8 failing tests |
 | `62fe08e` | spec: paint runs with the runtime current (VIEW-PAINT-07) |
@@ -1077,56 +927,54 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `ddd4190` | spec: ScrollView keyboard scrolling (WIDGETS-SCROLL-06) |
 | `6f35fe5` | test: ScrollView keyboard scrolling (WIDGETS-SCROLL-06), failing |
 | `6eb1958` | impl: ScrollView keyboard scrolling (arrows, PageUp/Down, Home/End on a focused view) |
-| _this commit_ | docs: HANDOFF.md for keyboard scrolling and the theme draft |
+| `cfb3d60` | docs: HANDOFF.md for keyboard scrolling and the theme draft |
+| `afa673e` | spec: theme (THEME-01..03, WIDGETS-THEME-01..04, FACADE-APP-13, TEST-WT-12, VIEW-TREE-12, GALLERY-05); ADR 0012, AGENTS.md table, architecture doc and diagram |
+| `8d3c0f1` | test: theme, stubs + 11 failing tests |
+| `09863bf` | spec: WIDGETS-THEME-03 allows content taller than the minimum; goldens render over the theme's surface |
+| `121f8ff` | impl: theme: tokens and default themes, Builder, widgets reading the theme, runner and tester providing it, goldens over the surface, the gallery's dark-mode switch; PLAN.md ticked |
+| _this commit_ | docs: general-purpose framing (README, AGENTS.md, architecture), CLAUDE.md skill note, HANDOFF.md cleanup |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
-## Next steps (Phase 2 in PLAN.md)
+## Next steps
 
-1. (`tantu-view` done.)
-   content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: `tantu-theme` next, drafted (see "Resume here").
+See "Resume here" above: animation and timers, then the scroll and list leftovers, then
+`tantu-a11y`. After Phase 3 comes Phase 4 (enterprise features) in PLAN.md order.
 
 ## Open questions
 
-- **Theme dependency edge:** `tantu-widgets` must read the theme's tokens; AGENTS.md lets
-  neither crate depend on the other. Proposal in `docs/specs/theme/theme.md`: `tantu-widgets
-  | view, theme`.
+- **Overlays don't inherit from the app.** The overlay layer is the root's last child, so
+  content shown through `OverlayPortal` (tooltips, later menus and dialogs) sees no value
+  provided inside the app, including the theme; the tooltip captures the theme at the portal.
+  Proposal: make overlay content inherit from the portal's element (build it with the portal
+  as its inherited-value parent), as a `view/overlay.md` amendment before menus.
+- **Reactive text presets:** a theme's `text` is read at build time; changing font sizes live
+  would need paragraphs re-keyed (decision 62). Revisit with the theme's second user (Fluent)
+  or an accessibility font-scale setting.
 - **Clipboard for `TextField`:** the `Platform` trait has no clipboard yet (PLAN.md puts it
-  in Phase 4). The widget part of `TextField` will ship without copy/paste unless a small
-  clipboard addition to `tantu-platform` is agreed; proposal: add `Platform::clipboard_text`
-  / `set_clipboard_text` with the widget, as a spec amendment.
+  in Phase 4), so `TextField` has no copy/paste. Proposal: add `Platform::clipboard_text` /
+  `set_clipboard_text` as a small platform spec amendment, before Phase 4 if the user wants
+  copy/paste sooner.
 - **Handler ownership:** pointer, key and focus handlers live on the element they are
   registered on. A component that registers on another element (e.g. its parent, or the root)
   leaves its handlers there after it is removed, and they may read its disposed signals (a
   panic per ADR 0007). Proposal: tie each registration to the registering scope (remove it on
   that scope's cleanup). Found while testing focus; not fixed yet.
-- **Autopilot decisions to review:** decisions 26 (render-soft), 28 (platform) and 29 (wgpu), as
-  well as 20/21 and ADR 0007.
+- **Autopilot decisions to review:** decisions 20/21 and ADR 0007 (reactive shape, disposed
+  handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
+  ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
+  0008 (renderer conformance) and 49 to 62 (the Phase 3 widgets and the theme).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
   change.
-- **CLAUDE.md mention of the skill** (proposed, not applied): "`/code-to-docs`
-  (`.claude/skills/code-to-docs/`) generates the interactive docs page
-  `docs/interactive/index.html` from the repo (read-only; it reports spec-coverage and
-  dependency-rule problems, it doesn't fix them)."
-
-- ADR 0007 (reads of disposed handles panic) and the reactive shape (decision 20) were decided in
-  autopilot. Confirm or change them before `tantu-view` depends on them.
-- Glyph rendering in the soft renderer: tiny-skia has no text. Rasterizing glyphs needs a font
-  rasterizer (swash, per ADR 0005, or similar) in `tantu-render-soft`, or glyph runs are left
-  for Phase 2 and counted as `missing_fonts` until then. Decide in the render-soft spec.
 - **Shadows with a radius over half a side** still use the quadrant approximation in the wgpu
   blur shader (Evan Wallace's closed form supports one radius per quadrant). Not covered by a
   reference Scene yet; check when shadows get a closer look.
-- **Review decision 36** (text system, the AGENTS.md `tantu-text` → `layout` edge, MSRV 1.88).
-- **Review ADR 0011 and the view-tree spec** (decided by the agent while the user was away,
-  decision 35).
-- **Review the agent's decisions in the flex, stack and wrap specs** (decision 33).
-- **Review ADR 0008** and the new AGENTS.md row for `tantu-render-conformance` (made under
-  "your pick").
-
+- **A debug build printed an ICU4X "No segmentation model" message** to stderr for Japanese
+  text (decision 43); find where it comes from with Phase 4 i18n.
+- **`.agents/` is untracked** in the working tree (a `skills` folder, not project code); decide
+  whether to gitignore or commit it.
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the
   first publish. Same for a domain / GitHub org name if wanted.

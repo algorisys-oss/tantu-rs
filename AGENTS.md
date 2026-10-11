@@ -5,9 +5,10 @@ Tool-specific notes live in `CLAUDE.md`; the roadmap lives in `PLAN.md`.
 
 ## What this project is
 
-**Tantu** (`tantu`) is a cross-platform desktop UI framework in Rust for building both large enterprise
-applications (data grids, docking layouts, forms, thousands of widgets, accessibility, i18n) and
-general-purpose apps. It is inspired by [Knots](https://github.com/knots-ui/knots) (Zig) and Flutter.
+**Tantu** (`tantu`) is a general-purpose GUI library for building desktop apps in Rust, from small
+utilities to large enterprise applications (data grids, docking layouts, forms, thousands of
+widgets, accessibility, i18n). It is inspired by [Knots](https://github.com/knots-ui/knots) (Zig)
+and Flutter.
 
 Two non-negotiable design goals:
 

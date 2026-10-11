@@ -29,6 +29,9 @@
 - Record significant design decisions as ADRs in `docs/adr/`. If a decision in `AGENTS.md` needs
   to change, propose it first rather than making the change unilaterally.
 - Do not commit or push unless asked. Branch off `main` for feature work.
+- `/code-to-docs` (`.claude/skills/code-to-docs/`) generates the interactive docs page
+  `docs/interactive/index.html` from the repo (read-only; it reports spec-coverage and
+  dependency-rule problems, it doesn't fix them).
 - At the start of a session, read `HANDOFF.md`. Before every push, update `HANDOFF.md`
   (state, decisions, commit log rows, next steps, open questions) and include it in the last commit
   of the push.

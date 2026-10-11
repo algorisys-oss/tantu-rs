@@ -28,8 +28,10 @@ inkscape "$PWD/docs/architecture/tantu-architecture.svg" \
    data-only `Scene`, and any backend (GPU, CPU, headless, later web) can draw it.
 2. **Flutter-like authoring.** Apps compose widgets in plain Rust. Layout follows Flutter's
    protocol: constraints go down, sizes come up, the parent positions its children.
-3. **Scale to enterprise UIs.** A retained tree with fine-grained reactivity means that a change
-   touches only what depends on it, which is what makes 50k-row grids and docking layouts workable.
+3. **General purpose, and it scales.** Everyday desktop apps need windows, text, input,
+   scrolling and theming to work out of the box. A retained tree with fine-grained reactivity
+   means that a change touches only what depends on it, which is what also makes 50k-row grids
+   and docking layouts workable.
 
 ## The pipeline
 
