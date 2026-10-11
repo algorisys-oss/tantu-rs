@@ -204,9 +204,10 @@ fn widgets_grid_03_column_builder_and_clipping() {
     // The header keeps its title.
     assert!(has(&tester, "B") && has(&tester, "Narrow"));
     // The wide content overflows its 40 px cell and is clipped to it.
-    let wide = rect(
-        &tester,
-        "a cell text much wider than its forty pixel column",
+    let wide = tester.rect(
+        tester.find_all(&Finder::text(
+            "a cell text much wider than its forty pixel column",
+        ))[0],
     );
     assert!(wide.width() > 40.0, "{wide:?}");
     let clipped = tester
@@ -231,12 +232,13 @@ fn widgets_grid_04_scrolling() {
         (600.0, 1800.0)
     );
     let header = rect(&tester, "Col 0");
-    let cell = rect(&tester, "r0c0");
-    // y scrolls the rows; the header stays.
+    let cell = rect(&tester, "r3c0");
+    // y scrolls the rows (row 0 leaves the built range); the header stays.
     tester.scroll(&Finder::key("g"), Vec2::new(0.0, 100.0));
     assert_eq!(offset(&tester, vertical), 100.0);
     assert_eq!(rect(&tester, "Col 0"), header);
-    assert_eq!(rect(&tester, "r0c0").top, cell.top - 100.0);
+    assert_eq!(rect(&tester, "r3c0").top, cell.top - 100.0);
+    assert!(!has(&tester, "r0c0"));
     // x scrolls the columns, header included.
     tester.scroll(&Finder::key("g"), Vec2::new(240.0, 0.0));
     assert_eq!(offset(&tester, horizontal), 240.0);
