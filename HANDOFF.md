@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (ListView extents, separators and keys)_
+_Last updated: 2026-10-12 (accessibility: semantics, the AccessKit tree and the platform side)_
 
 ## Resume here (2026-10-11)
 
@@ -25,15 +25,20 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
   gallery has an Animation section) and **transitions** (decision 65: `Opacity`,
   `AnimatedSwitcher`, the caret blink, double-click word selection, smooth wheel scrolling
   and `ScrollController::animate_to`), and on 2026-10-12 **the `ListView` leftovers**
-  (decision 66: per-item extents, separators, selection and keys). **The Animation and
-  Virtualized `ListView` items are complete.** Left in Phase 3: `ensure_visible` (needs focus
-  scopes) and `tantu-a11y`.
+  (decision 66: per-item extents, separators, selection and keys) and **accessibility**
+  (decisions 67 and 68, ADR 0013: `Semantics` on elements, the AccessKit tree built by
+  `tantu-a11y`, actions routed back as synthesized input, every widget annotated, the
+  platform events and `update_accessibility`, the `accesskit_winit` adapter per window, the
+  runner sending a tree per frame while a screen reader is attached). **The `tantu-a11y`
+  item is complete** but **not checked with a real screen reader** (see open questions). Left
+  in Phase 3: `ensure_visible` (needs focus scopes).
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 66 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 68 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
-  (`-D warnings`) are green locally. CI was not checked from this session.
+  (`-D warnings`) are green locally (checked 2026-10-12 before this push). CI was not checked
+  from this session.
 
 **Working pattern:** the agent writes each spec as a Draft with open questions and proposals and
 stops; the user says "continue" to accept the proposals; the agent then does
@@ -42,14 +47,16 @@ stops; the user says "continue" to accept the proposals; the agent then does
 recommended option at forks, marks it for review and pushes at each milestone (decision 34).
 Additions made while agreeing a spec are marked "review" in its Open questions.
 
-**For the user to review:** decisions 49 to 66 (made by the agent, marked in the specs), and the
-open questions below.
+**For the user to review:** decisions 49 to 68 (made by the agent, marked in the specs), and the
+open questions below. **Please run the gallery under a screen reader** (Orca on Linux,
+Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
 
-**Next (PLAN.md order, Phase 3):**
+**Next (PLAN.md order):**
 
-1. `tantu-a11y`: the AccessKit tree for every widget (the last big Phase 3 item).
-2. `ensure_visible` (scroll a focused child into view), with focus scopes; small, can go
-   with a11y's focus work or after it.
+1. `ensure_visible` (scroll a focused child into view), with focus scopes: the last Phase 3
+   item, small.
+2. Phase 4 starts with `DataGrid`; the first spec should split that PLAN.md item (data source
+   trait, row and column virtualization, frozen columns, sort/filter, editors, selection).
 
 ## Current state
 
@@ -71,7 +78,7 @@ open questions below.
   `tantu-render-soft` (decisions 25 and 26), and `tantu-platform` with `tantu-platform-winit`
   (decision 28), `tantu-render-wgpu` (decision 29), the `scene-window` demo (decision 30) and
   `tantu-render-conformance` (decision 31).
-  `tantu-theme` is implemented (decision 62). `tantu-a11y` is still empty.
+  `tantu-theme` is implemented (decision 62) and so is `tantu-a11y` (decision 67).
 - **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
@@ -85,7 +92,7 @@ open questions below.
     `[workspace.dependencies]`, shared lints in `[workspace.lints]`)
   - `rust-toolchain.toml`: pins Rust 1.85, which is also the MSRV; `clippy.toml`
   - `crates/`: one directory per crate; `crates/tantu` is the facade
-  - `docs/adr/`: ADRs 0001–0010 plus `README.md` (index, template, how to supersede)
+  - `docs/adr/`: ADRs 0001–0013 plus `README.md` (index, template, how to supersede)
   - `docs/specs/`: `TEMPLATE.md` and `README.md` (location, rule-id and test-name conventions)
   - `.github/workflows/ci.yml`: fmt, clippy + rustdoc (`-D warnings`), test on Linux/Windows/macOS,
     spec coverage
@@ -646,6 +653,39 @@ open questions below.
     double-click call `on_activate`, a press selects and still bubbles to the item. Measured
     extents stay a later mode. The gallery's Lists section has a contacts list with headers.
 
+67. **Semantics and the AccessKit tree** (2026-10-12, spec `docs/specs/a11y/semantics.md`,
+    ADR 0013; the user said "continue" on the draft's seven proposals; VIEW-SEM-03 amended
+    twice while implementing): `Semantics { role, label, value, states, range }` with a
+    `Role` enum is plain data on elements in `tantu-view` (`BuildCx::set_semantics`,
+    `ElementMut::update_semantics`), so the view layer and the widgets never see AccessKit;
+    `tantu-a11y` walks the element tree and emits one node per semantic element (unsemantic
+    layout and region elements are skipped and their descendants re-parented, so trees stay
+    shallow), node ids are the element ids' bits, bounds come from the layout tree, focus
+    from the tree; full-tree updates, AccessKit diffs; `Focus`, `Click`, `Increment` and
+    `Decrement` are synthesized as user input (a click is a press and release at the
+    center, increment an arrow key), while `SetValue` and `ScrollIntoView` go to `on_action`
+    handlers that take an `ActionCx` and bubble up from the target (the scroll view's offset
+    lives in the widget), and `ScrollIntoView` is accepted on any semantic element;
+    `semantics_label` builders on `Icon`, `IconButton` and `Image` instead of a `Semantics`
+    wrapper widget; `WidgetTester::a11y_tree` and `perform_action` (**AGENTS.md table
+    change:** `tantu-test` may depend on `tantu-a11y`); a gallery test checks every widget
+    has a node. AccessKit 0.24 as a plain dependency of `tantu-a11y` and `tantu-platform`.
+    Text-editing semantics (caret and selection ranges) are a later addition.
+68. **Accessibility through the platform** (2026-10-12, spec `docs/specs/a11y/platform.md`;
+    the user said "continue" on the draft's four proposals): AccessKit's own `TreeUpdate`
+    and `ActionRequest` cross the `Platform` trait, as `AccessibilityEvent::{Activated,
+    Deactivated, Action}` in `WindowEvent::Accessibility` and
+    `PlatformContext::update_accessibility`; `FakePlatform` scripts the events and records
+    every update in `FakeWindow::accessibility_updates`; the winit shell creates an
+    `accesskit_winit` 0.32 adapter per window before showing it (the window is created
+    hidden, then shown), its events arrive through an event-loop proxy as the loop's user
+    event, every winit window event goes to the adapter first, and updates use
+    `update_if_active`; the runner sends a full tree on activation and after every frame of
+    an active window, nothing while inactive, and maps actions with
+    `AccessibilityTree::map_action` to `ViewTree::perform_action`; the app name is the first
+    window's title. Checked by the opt-in window test (an update is sent after the adapter
+    requests the tree), not by a screen reader.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1013,18 +1053,35 @@ open questions below.
 | `604e01d` | spec: ListView variable extents, separators and keyboard navigation (LAYOUT-LIST-03, WIDGETS-LIST-04..06, GALLERY-08) |
 | `c79b3cc` | test: ListView variable extents, separators and keys, stubs + 5 failing tests |
 | `cf8d447` | impl: ListView extent table, separators, selection and keys; the gallery's contacts list |
-| _this commit_ | docs: HANDOFF.md for the ListView leftovers |
+| `196781e` | docs: HANDOFF.md for the ListView leftovers |
+| `9cf4076` | docs: draft accessibility specs and ADR 0013 for review; PLAN.md a11y item split in two |
+| `71102b7` | spec: semantics and the AccessKit tree (VIEW-SEM-01..03, A11Y-TREE-01..04, WIDGETS-SEM-01..02, TEST-WT-14, GALLERY-09); ADR 0013 accepted, AGENTS.md rows and dependency rule, architecture doc and diagram |
+| `c11b5ee` | spec: VIEW-SEM-03 routes SetValue and ScrollIntoView to bubbling on_action handlers |
+| `86eff45` | test: semantics and the AccessKit tree, stubs + 12 failing tests |
+| `ade8e36` | spec: on_action handlers take an ActionCx |
+| `6d8d2f5` | test: VIEW-SEM-03 handlers take an ActionCx (still failing) |
+| `69713ca` | spec: VIEW-SEM-03 accepts ScrollIntoView on any semantic element |
+| `1f441bd` | impl: semantics on elements, the AccessKit tree in tantu-a11y, WidgetTester::a11y_tree and perform_action, every widget annotated |
+| `1c7a8ab` | spec: accessibility through the platform (PLATFORM-A11Y-01, PLATFORM-FAKE-13, PLATFORM-WINIT-15, FACADE-APP-15) |
+| `1d4ded5` | test: accessibility through the platform, stubs + 3 failing tests |
+| `798032d` | impl: accessibility through the platform: FakePlatform recording, the accesskit_winit adapter per window, the runner sending trees and routing actions; PLAN.md tantu-a11y ticked |
+| _this commit_ | docs: HANDOFF.md for accessibility |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: `tantu-a11y`, then `ensure_visible`. After Phase 3 comes Phase 4
-(enterprise features) in PLAN.md order.
+See "Resume here" above: `ensure_visible` closes Phase 3; then Phase 4 (enterprise
+features) in PLAN.md order, starting with `DataGrid`.
 
 ## Open questions
 
+- **Accessibility is unchecked with a real screen reader.** The tree and the adapter are
+  tested through `FakePlatform` and the opt-in window test only. The user should run the
+  gallery under Orca (Linux), Narrator (Windows) and VoiceOver (macOS) and note what each
+  reads and what it misses; text-editing semantics (caret and selection as AccessKit text
+  ranges) are a known gap (ADR 0013).
 - **Overlays don't inherit from the app.** The overlay layer is the root's last child, so
   content shown through `OverlayPortal` (tooltips, later menus and dialogs) sees no value
   provided inside the app, including the theme; the tooltip captures the theme at the portal.
@@ -1045,7 +1102,8 @@ See "Resume here" above: `tantu-a11y`, then `ensure_visible`. After Phase 3 come
 - **Autopilot decisions to review:** decisions 20/21 and ADR 0007 (reactive shape, disposed
   handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
-  0008 (renderer conformance) and 49 to 62 (the Phase 3 widgets and the theme).
+  0008 (renderer conformance) and 49 to 68 (the Phase 3 widgets, the theme, animation,
+  lists and accessibility).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
