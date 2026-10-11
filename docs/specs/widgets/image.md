@@ -1,7 +1,7 @@
 # Image
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-11; review the
-  Open questions)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-11; review
+  the Open questions)
 - **Crates:** `tantu-widgets` (plus `Resources::intern_image` in `tantu-scene`,
   `TextPainter::image_id` / `PaintCx::image_id` in `tantu-view`; sizing in
   [RenderImage](../layout/image.md))

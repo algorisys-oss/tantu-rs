@@ -131,7 +131,7 @@ faster or more portable without changing how apps are written.
   - [x] `Slider` (spec `docs/specs/widgets/slider.md`)
   - [x] `Checkbox`, `Radio`, `Switch` (the check mark is two rotated bars in Scene transform scopes; spec `docs/specs/widgets/toggles.md`)
   - [x] `Icon` and `IconButton` (Material Icons Regular behind the `material-icons` feature; spec `docs/specs/widgets/icon.md`)
-  - [ ] `Image` (decoding, fit, sizing; specs `docs/specs/widgets/image.md` and `docs/specs/layout/image.md`)
+  - [x] `Image` (decoding, fit, sizing; specs `docs/specs/widgets/image.md` and `docs/specs/layout/image.md`)
   - [ ] `RichText` (multi-style paragraphs in `tantu-text`)
   - [ ] `TextField`, in parts: editing model (text, selection, undo), the widget (caret, selection painting, keys), then IME
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling

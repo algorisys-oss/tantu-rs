@@ -160,6 +160,8 @@ fn next_handle() -> u64 {
 pub struct Resources {
     images: HashMap<ImageId, ImageData>,
     fonts: HashMap<FontId, FontData>,
+    /// Ids of interned images by (pixel buffer address, width, height) (SCENE-RES-11).
+    interned: HashMap<(usize, u32, u32), ImageId>,
     revision: u64,
 }
 
@@ -181,8 +183,19 @@ impl Resources {
     /// The handle of `image`'s pixel buffer: the id an image with the same buffer and size
     /// was added with, or a new one from `add_image` (SCENE-RES-11).
     pub fn intern_image(&mut self, image: &ImageData) -> ImageId {
-        let _ = image;
-        todo!("SCENE-RES-11")
+        let key = (
+            Arc::as_ptr(&image.pixels).cast::<u8>() as usize,
+            image.width,
+            image.height,
+        );
+        if let Some(id) = self.interned.get(&key) {
+            if self.images.contains_key(id) {
+                return *id;
+            }
+        }
+        let id = self.add_image(image.clone());
+        self.interned.insert(key, id);
+        id
     }
 
     /// The image for `id`, or `None` if it was removed or never added here.
@@ -193,6 +206,7 @@ impl Resources {
     /// Removes and returns the image for `id`.
     pub fn remove_image(&mut self, id: ImageId) -> Option<ImageData> {
         let image = self.images.remove(&id)?;
+        self.interned.retain(|_, interned| *interned != id);
         self.revision += 1;
         Some(image)
     }

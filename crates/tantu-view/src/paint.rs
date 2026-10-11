@@ -108,8 +108,7 @@ impl<'b> PaintCx<'_, 'b> {
     /// Interns `image` in the frame's resources through the pass's painter and returns its
     /// handle (`None` without resources, VIEW-TEXT-06).
     pub fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
-        let _ = image;
-        todo!("VIEW-TEXT-06")
+        self.text.image_id(image)
     }
 
     /// The element's constraints from the last layout.

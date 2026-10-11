@@ -1,6 +1,6 @@
 # RenderImage
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-11; review)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-11; review)
 - **Crate:** `tantu-layout`
 - **Plan item:** Phase 3, "Widgets" → "`Image` (decoding, fit, sizing)" (the sizing part)
 - **Related:** [constraints](constraints.md) (LAYOUT-CONS-18, added here), [layout tree](tree.md),

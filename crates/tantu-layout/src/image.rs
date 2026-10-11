@@ -27,33 +27,47 @@ impl RenderImage {
     }
 }
 
+impl RenderImage {
+    /// The size for `constraints` (LAYOUT-IMAGE-01, Flutter's `_sizeForConstraints`).
+    fn size_for(&self, constraints: BoxConstraints) -> Size {
+        BoxConstraints::tight_for(self.width, self.height)
+            .enforce(constraints)
+            .constrain_size_and_attempt_to_preserve_aspect_ratio(self.natural)
+    }
+
+    fn has_explicit_size(&self) -> bool {
+        self.width.is_some() || self.height.is_some()
+    }
+}
+
 impl RenderBox for RenderImage {
-    fn perform_layout(
-        &mut self,
-        constraints: BoxConstraints,
-        children: &mut LayoutChildren<'_>,
-    ) -> Size {
-        let _ = (constraints, children);
-        todo!("LAYOUT-IMAGE-01")
+    fn perform_layout(&mut self, constraints: BoxConstraints, _: &mut LayoutChildren<'_>) -> Size {
+        self.size_for(constraints)
     }
 
     fn min_intrinsic_width(&self, height: f32, _: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = height;
-        todo!("LAYOUT-IMAGE-02")
+        if !self.has_explicit_size() {
+            return 0.0;
+        }
+        self.size_for(BoxConstraints::tight_for_finite(f32::INFINITY, height))
+            .width
     }
 
     fn max_intrinsic_width(&self, height: f32, _: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = height;
-        todo!("LAYOUT-IMAGE-02")
+        self.size_for(BoxConstraints::tight_for_finite(f32::INFINITY, height))
+            .width
     }
 
     fn min_intrinsic_height(&self, width: f32, _: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = width;
-        todo!("LAYOUT-IMAGE-02")
+        if !self.has_explicit_size() {
+            return 0.0;
+        }
+        self.size_for(BoxConstraints::tight_for_finite(width, f32::INFINITY))
+            .height
     }
 
     fn max_intrinsic_height(&self, width: f32, _: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = width;
-        todo!("LAYOUT-IMAGE-02")
+        self.size_for(BoxConstraints::tight_for_finite(width, f32::INFINITY))
+            .height
     }
 }

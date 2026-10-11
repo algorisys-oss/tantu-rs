@@ -79,8 +79,7 @@ impl TextMeasure for SystemText<'_> {
 
 impl TextPainter for SystemText<'_> {
     fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
-        let _ = image;
-        todo!("VIEW-TEXT-06")
+        Some(self.resources.intern_image(image))
     }
 
     fn paint_text(

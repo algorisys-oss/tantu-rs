@@ -66,8 +66,32 @@ impl BoxConstraints {
     /// Flutter's `constrainSizeAndAttemptToPreserveAspectRatio`: `size` fitted into these
     /// constraints keeping its aspect ratio where they allow (LAYOUT-CONS-18).
     pub fn constrain_size_and_attempt_to_preserve_aspect_ratio(self, size: Size) -> Size {
-        let _ = size;
-        todo!("LAYOUT-CONS-18")
+        if self.is_tight() {
+            return self.smallest();
+        }
+        let usable = |v: f32| v.is_finite() && v > 0.0;
+        if !(usable(size.width) && usable(size.height)) {
+            return self.constrain(Size::ZERO);
+        }
+        let (mut width, mut height) = (size.width, size.height);
+        let aspect = width / height;
+        if width > self.max_width {
+            width = self.max_width;
+            height = width / aspect;
+        }
+        if height > self.max_height {
+            height = self.max_height;
+            width = height * aspect;
+        }
+        if width < self.min_width {
+            width = self.min_width;
+            height = width / aspect;
+        }
+        if height < self.min_height {
+            height = self.min_height;
+            width = height * aspect;
+        }
+        self.constrain(Size::new(width, height))
     }
 
     /// `0..=size` on both axes.
