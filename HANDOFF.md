@@ -3,9 +3,9 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (accessibility: semantics, the AccessKit tree and the platform side)_
+_Last updated: 2026-10-12 (focus scopes and scrolling into view; Phase 3 done)_
 
-## Resume here (2026-10-11)
+## Resume here (2026-10-12)
 
 Everything is committed on branch `phase3/focus` (fast-forward it into `main` and push when
 the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
@@ -29,13 +29,15 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
   (decisions 67 and 68, ADR 0013: `Semantics` on elements, the AccessKit tree built by
   `tantu-a11y`, actions routed back as synthesized input, every widget annotated, the
   platform events and `update_accessibility`, the `accesskit_winit` adapter per window, the
-  runner sending a tree per frame while a screen reader is attached). **The `tantu-a11y`
-  item is complete** but **not checked with a real screen reader** (see open questions). Left
-  in Phase 3: `ensure_visible` (needs focus scopes).
+  runner sending a tree per frame while a screen reader is attached), and **focus scopes
+  and scrolling into view** (decision 69: `ensure_visible` through every enclosing
+  `ScrollView`, Tab reveals the focus, `FocusScope` confines Tab and remembers the focus).
+  **Phase 3 is done** (2026-10-12), except that the gallery is **not checked with a real
+  screen reader** (see open questions).
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 68 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 69 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). CI was not checked
   from this session.
@@ -51,20 +53,24 @@ Additions made while agreeing a spec are marked "review" in its Open questions.
 open questions below. **Please run the gallery under a screen reader** (Orca on Linux,
 Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
 
-**Next (PLAN.md order):**
+**Next (PLAN.md order): Phase 4, enterprise features.**
 
-1. `ensure_visible` (scroll a focused child into view), with focus scopes: the last Phase 3
-   item, small.
-2. Phase 4 starts with `DataGrid`; the first spec should split that PLAN.md item (data source
-   trait, row and column virtualization, frozen columns, sort/filter, editors, selection).
+1. `DataGrid`. The PLAN.md item is too big for one spec: first split it in PLAN.md (a data
+   source trait with a 1M-row test source; row and column virtualization over the viewport
+   and list machinery; frozen columns; sort and filter; column resize and reorder; cell
+   editors; selection models), then draft the first spec (the data source and the
+   virtualized grid body) for review. The `ListView` extent table and the scroll view are the
+   building blocks; menus and dialogs come after.
+2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
+   both will need the theme inside overlays; `FocusScope` is ready for them.
 
 ## Current state
 
 - **Name:** **Tantu** (pronounced "tan-too", Sanskrit for "thread"). Tagline: *Compose once. Render
   your way.* Crates: `tantu`, `tantu-core`, `tantu-reactive`, `tantu-layout`, `tantu-widgets`,
   `tantu-render-wgpu`, … (full list in AGENTS.md). App import: `use tantu::prelude::*;`
-- **Phase:** Phases 0, 1 and 2 are done (Phase 2 on 2026-10-10); Phase 3 (core widget set and
-  interaction) is in progress, see "Resume here". Earlier detail: Phase 2 (Layout, views
+- **Phase:** Phases 0 to 3 are done (Phase 2 on 2026-10-10, Phase 3 on 2026-10-12); Phase 4
+  (enterprise features) is next, see "Resume here". Earlier detail: Phase 2 (Layout, views
   and text) is in progress: `tantu-layout` (constraints, layout tree, all Flutter layout
   objects in scope, text measurement, benchmarks) is done. Phase 1 delivered:
   `tantu-scene`, `tantu-render-headless`, `tantu-render-soft`, `tantu-platform`,
@@ -685,6 +691,24 @@ Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
     `AccessibilityTree::map_action` to `ViewTree::perform_action`; the app name is the first
     window's title. Checked by the opt-in window test (an update is sent after the adapter
     requests the tree), not by a screen reader.
+69. **Focus scopes and scrolling into view** (2026-10-12, spec
+    `docs/specs/view/focus-scope.md`; decided by the agent while the user was away, review):
+    `ViewTree::ensure_visible(element)` delivers the `ScrollIntoView` action to the
+    `on_action` handlers of every ancestor, parent to root, and a container that handles it
+    becomes the target for the containers above it (Flutter's `Scrollable.ensureVisible`
+    walk-up, so nested scroll views both scroll from current bounds); `focus_next` and
+    `focus_previous` (so Tab) call it on the new focus, while `focus`, a focusing press and
+    `focus_into` don't; `perform_action(ScrollIntoView)` is `ensure_visible` (VIEW-SEM-03
+    amended: every container, not the first). The `ScrollView` aligns a target's start when
+    it is longer than the viewport or starts before it, else its end, immediately and
+    clamped, and takes its extents from the last layout so a culled (never painted) view
+    still scrolls. Focus scopes: `BuildCx::focus_scope` marks a render or region element;
+    traversal is confined to the innermost scope enclosing the focus (nested scopes'
+    contents included, so Tab enters a nested scope and is then trapped there, as in
+    Flutter); every enclosing scope remembers the focus and `ViewTree::focus_into(scope)`
+    restores it or focuses the first traversable descendant; removal forgets. `FocusScope`
+    widget (a region), with no golden or gallery entry since it paints nothing (review).
+    `WidgetTester::ensure_visible`. Phase 3 is complete with this item.
 
 ## Commit log
 
@@ -1065,15 +1089,21 @@ Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
 | `1c7a8ab` | spec: accessibility through the platform (PLATFORM-A11Y-01, PLATFORM-FAKE-13, PLATFORM-WINIT-15, FACADE-APP-15) |
 | `1d4ded5` | test: accessibility through the platform, stubs + 3 failing tests |
 | `798032d` | impl: accessibility through the platform: FakePlatform recording, the accesskit_winit adapter per window, the runner sending trees and routing actions; PLAN.md tantu-a11y ticked |
-| _this commit_ | docs: HANDOFF.md for accessibility |
+| `3e0b2ed` | docs: HANDOFF.md for accessibility |
+| `9f8111f` | spec: focus scopes and scrolling into view (VIEW-REVEAL-01..03, VIEW-SCOPE-01..04, WIDGETS-SCROLL-09, WIDGETS-FOCUSSCOPE-01, TEST-WT-15); VIEW-SEM-03 amended |
+| `aa5bf32` | test: focus scopes and scrolling into view, stubs + 13 failing tests |
+| `709425d` | spec: WIDGETS-SCROLL-09 takes the extents from the last layout (a culled view still reveals) |
+| `9f451a4` | test: focus-scope fixture and expectations follow VIEW-SCOPE-02/03 and VIEW-REVEAL-03 |
+| `202a8d4` | impl: ensure_visible, scoped traversal, focus_into, the ScrollView's reveal, FocusScope, WidgetTester::ensure_visible; Phase 3 ticked |
+| _this commit_ | docs: HANDOFF.md for focus scopes; Phase 3 done |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: `ensure_visible` closes Phase 3; then Phase 4 (enterprise
-features) in PLAN.md order, starting with `DataGrid`.
+See "Resume here" above: Phase 4 (enterprise features) in PLAN.md order, starting with
+splitting the `DataGrid` item and drafting its first spec.
 
 ## Open questions
 
@@ -1082,6 +1112,13 @@ features) in PLAN.md order, starting with `DataGrid`.
   gallery under Orca (Linux), Narrator (Windows) and VoiceOver (macOS) and note what each
   reads and what it misses; text-editing semantics (caret and selection as AccessKit text
   ranges) are a known gap (ADR 0013).
+- **Nested focus scopes trap Tab** (decision 69, VIEW-SCOPE-02): Tab enters a nested
+  `FocusScope` from its parent scope and then cycles inside it; leaving needs `focus_into`
+  or `focus` from the app (Flutter behaves the same, and dialogs want exactly that). If a
+  grouping that Tab can leave is wanted, add Flutter's `FocusTraversalGroup` as a separate
+  concept rather than changing scopes.
+- **`FocusScope` has no gallery entry or golden** (decision 69): it paints nothing. Decide
+  whether AGENTS.md's "golden and gallery entry" rule should say "visible widgets".
 - **Overlays don't inherit from the app.** The overlay layer is the root's last child, so
   content shown through `OverlayPortal` (tooltips, later menus and dialogs) sees no value
   provided inside the app, including the theme; the tooltip captures the theme at the portal.
@@ -1102,8 +1139,8 @@ features) in PLAN.md order, starting with `DataGrid`.
 - **Autopilot decisions to review:** decisions 20/21 and ADR 0007 (reactive shape, disposed
   handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
-  0008 (renderer conformance) and 49 to 68 (the Phase 3 widgets, the theme, animation,
-  lists and accessibility).
+  0008 (renderer conformance) and 49 to 69 (the Phase 3 widgets, the theme, animation,
+  lists, accessibility and focus scopes).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
