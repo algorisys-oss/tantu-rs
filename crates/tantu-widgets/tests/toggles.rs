@@ -22,13 +22,13 @@ const SURFACE_CONTAINER_HIGHEST: Color = Color::from_argb32(0xFFE6_E0E9);
 const ON_SURFACE_38: Color = Color::from_argb32(0x611C_1B1F);
 const ON_SURFACE_12: Color = Color::from_argb32(0x1F1C_1B1F);
 
-/// The drawing commands of the last frame (the toggle is the only painter).
-fn commands(tester: &WidgetTester) -> Vec<Command> {
+/// The drawing commands the toggle keyed `key` painted in the last frame (the transform scope
+/// the tree opens around every render element belongs to its parent, so it isn't included).
+fn commands_of(tester: &WidgetTester, key: &str) -> Vec<Command> {
+    let toggle = tester.find(&Finder::key(key));
     tester
         .frame()
-        .scene
-        .entries()
-        .iter()
+        .entries_for(toggle)
         .filter(|e| {
             matches!(
                 e.command,
@@ -40,6 +40,11 @@ fn commands(tester: &WidgetTester) -> Vec<Command> {
         })
         .map(|e| e.command.clone())
         .collect()
+}
+
+/// The commands of the toggle keyed "t".
+fn commands(tester: &WidgetTester) -> Vec<Command> {
+    commands_of(tester, "t")
 }
 
 fn circle(cx: f32, cy: f32, r: f32) -> RoundedRect {
@@ -132,21 +137,10 @@ fn close(a: Point, b: Point) -> bool {
 
 #[test]
 fn widgets_toggle_01_sizes() {
-    let tester = window(Checkbox::new(false));
-    assert_eq!(
-        tester.rect(tester.find(&Finder::key("t"))),
-        Rect::from_ltrb(0.0, 0.0, 40.0, 40.0)
-    );
-    let tester = window(Radio::new(1, || 1));
-    assert_eq!(
-        tester.rect(tester.find(&Finder::key("t"))),
-        Rect::from_ltrb(0.0, 0.0, 40.0, 40.0)
-    );
-    let tester = window(Switch::new(false));
-    assert_eq!(
-        tester.rect(tester.find(&Finder::key("t"))),
-        Rect::from_ltrb(0.0, 0.0, 60.0, 40.0)
-    );
+    let size = |tester: &WidgetTester| tester.rect(tester.find(&Finder::key("t"))).size();
+    assert_eq!(size(&window(Checkbox::new(false))), Size::new(40.0, 40.0));
+    assert_eq!(size(&window(Radio::new(1, || 1))), Size::new(40.0, 40.0));
+    assert_eq!(size(&window(Switch::new(false))), Size::new(60.0, 40.0));
 }
 
 #[test]
@@ -443,9 +437,9 @@ fn widgets_toggle_06_pointer() {
 fn widgets_toggle_07_keyboard() {
     let (calls, record) = recorder::<bool>();
     let mut tester = window(Checkbox::new(false).on_change(record));
-    // A press doesn't focus it; Tab does.
+    // A press doesn't focus it (only the hover layer shows after the tap); Tab does.
     tester.tap(&Finder::key("t"));
-    assert_eq!(layer(&tester), None);
+    assert_eq!(layer_alpha(&tester), Some(0.08));
     key(&mut tester, LogicalKey::Named(NamedKey::Tab));
     assert_eq!(layer_alpha(&tester), Some(0.10));
     key(&mut tester, space());
@@ -547,7 +541,12 @@ fn widgets_toggle_09_reactive() {
         })
     };
     let (value, indeterminate, group, enabled) = out.get().expect("built");
-    let count = |tester: &WidgetTester| commands(tester).len();
+    let count = |tester: &WidgetTester| {
+        ["c", "r", "s"]
+            .iter()
+            .map(|key| commands_of(tester, key).len())
+            .sum::<usize>()
+    };
     assert_eq!(count(&tester), 1 + 1 + 3);
     tester.enter(|| value.set(true));
     assert!(tester.pump());
@@ -560,6 +559,9 @@ fn widgets_toggle_09_reactive() {
     assert_eq!(count(&tester), 2 + 2 + 2);
     tester.enter(|| enabled.set(false));
     assert!(tester.pump());
-    assert_eq!(commands(&tester)[0], fill(checkbox_box(), ON_SURFACE_38));
+    assert_eq!(
+        commands_of(&tester, "c")[0],
+        fill(checkbox_box(), ON_SURFACE_38)
+    );
     assert!(!tester.pump());
 }
