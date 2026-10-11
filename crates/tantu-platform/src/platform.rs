@@ -3,6 +3,8 @@
 use std::fmt;
 use std::sync::Arc;
 
+use tantu_core::{Point, Size};
+
 use crate::types::{PhysicalSize, WindowAttributes, WindowEvent, WindowId};
 
 /// Why a platform operation failed.
@@ -73,6 +75,12 @@ pub trait PlatformContext {
     /// Handles a renderer can draw into, or `None` (unknown window, or a platform without native
     /// windows such as [`FakePlatform`](crate::FakePlatform)).
     fn surface_target(&self, window: WindowId) -> Option<SurfaceTarget>;
+
+    /// Lets the window receive IME events (off by default) (PLATFORM-IME-01).
+    fn set_ime_allowed(&mut self, window: WindowId, allowed: bool);
+
+    /// Where the caret is, in logical pixels, so the IME can place its candidate window.
+    fn set_ime_cursor_area(&mut self, window: WindowId, origin: Point, size: Size);
 
     /// Ends the event loop after the current callback returns. [`Platform::run`] then returns.
     fn exit(&mut self);

@@ -8,6 +8,8 @@ use std::sync::Arc;
 
 use tantu_scene::ElementId;
 
+use tantu_core::Rect;
+
 use crate::shortcuts::{ActionBox, IntentBox};
 use crate::{BuildCx, Handled, Phase, SingleActivator, ViewTree};
 
@@ -21,6 +23,8 @@ type FocusHandler = Rc<dyn Fn(bool)>;
 pub(crate) struct FocusState {
     focusables: HashMap<ElementId, FocusOptions>,
     keys: HashMap<ElementId, Vec<(Phase, KeyHandler)>>,
+    ime: HashMap<ElementId, Vec<ImeHandler>>,
+    ime_areas: HashMap<ElementId, ImeAreaProvider>,
     changes: HashMap<ElementId, Vec<FocusHandler>>,
     within: HashMap<ElementId, Vec<FocusHandler>>,
     pub(crate) shortcuts: HashMap<ElementId, Vec<(SingleActivator, IntentBox)>>,
@@ -33,6 +37,8 @@ impl FocusState {
     pub(crate) fn forget(&mut self, id: ElementId) {
         self.focusables.remove(&id);
         self.keys.remove(&id);
+        self.ime.remove(&id);
+        self.ime_areas.remove(&id);
         self.changes.remove(&id);
         self.within.remove(&id);
         self.shortcuts.remove(&id);
@@ -154,6 +160,36 @@ impl Default for FocusOptions {
     }
 }
 
+/// An input-method event (the view's own type; the runner converts the platform's)
+/// (VIEW-IME-01). Offsets are byte offsets into `text`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ImeEvent {
+    /// The IME became active.
+    Enabled,
+    /// The text being composed, and the IME's cursor range within it (`None`: hidden).
+    Preedit {
+        /// The composed text so far.
+        text: String,
+        /// The IME's cursor as a byte range of `text`.
+        cursor: Option<(usize, usize)>,
+    },
+    /// The composed text is final.
+    Commit(String),
+    /// The IME was deactivated.
+    Disabled,
+}
+
+/// What an IME handler receives.
+pub struct ImeCx<'a> {
+    /// The event.
+    pub event: &'a ImeEvent,
+    /// The focused element the handler belongs to.
+    pub element: ElementId,
+}
+
+type ImeHandler = Rc<dyn Fn(&ImeCx<'_>)>;
+type ImeAreaProvider = Rc<dyn Fn() -> Option<Rect>>;
+
 /// What a key handler receives.
 pub struct KeyCx<'a> {
     /// The event.
@@ -191,6 +227,25 @@ impl BuildCx<'_> {
         if self.tree.contains(element) {
             let handlers = self.tree.focus_state.within.entry(element).or_default();
             handlers.push(Rc::new(handler));
+        }
+    }
+
+    /// Calls `handler` for IME events while `element` has focus (VIEW-IME-01).
+    pub fn on_ime(&mut self, element: ElementId, handler: impl Fn(&ImeCx<'_>) + 'static) {
+        if self.tree.contains(element) {
+            let handlers = self.tree.focus_state.ime.entry(element).or_default();
+            handlers.push(Rc::new(handler));
+        }
+    }
+
+    /// Registers how `element` reports its caret area (in its own coordinates) while it wants
+    /// IME input; asked through `ViewTree::ime_area` while it is focused (VIEW-IME-02).
+    pub fn ime_area(&mut self, element: ElementId, provider: impl Fn() -> Option<Rect> + 'static) {
+        if self.tree.contains(element) {
+            self.tree
+                .focus_state
+                .ime_areas
+                .insert(element, Rc::new(provider));
         }
     }
 
@@ -252,6 +307,18 @@ impl ViewTree {
     /// Moves focus to the previous traversable element in tree order, wrapping.
     pub fn focus_previous(&mut self) -> Option<ElementId> {
         self.traverse(false)
+    }
+
+    /// Delivers `event` to the focused element's IME handlers; returns whether any ran
+    /// (VIEW-IME-01).
+    pub fn dispatch_ime(&mut self, event: ImeEvent) -> bool {
+        let _ = event;
+        todo!("VIEW-IME-01")
+    }
+
+    /// The focused element's IME area in window coordinates, if it provides one (VIEW-IME-02).
+    pub fn ime_area(&self) -> Option<Rect> {
+        todo!("VIEW-IME-02")
     }
 
     /// Delivers `event` to the focused path (capture, then bubble); an unhandled Tab or

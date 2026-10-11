@@ -1,5 +1,7 @@
 //! [`FakePlatform`]: a scripted platform for tests without a display.
 
+use tantu_core::{Point, Size};
+
 use crate::platform::{Platform, PlatformContext, PlatformError, PlatformHandler, SurfaceTarget};
 use crate::types::{PhysicalSize, WindowAttributes, WindowEvent, WindowId};
 
@@ -43,6 +45,10 @@ pub struct FakeWindow {
     pub closed: bool,
     /// `RedrawRequested` events delivered to it.
     pub redraws: u32,
+    /// What the handler last passed to `set_ime_allowed` (PLATFORM-FAKE-11).
+    pub ime_allowed: bool,
+    /// What the handler last passed to `set_ime_cursor_area`.
+    pub ime_area: Option<(Point, Size)>,
 }
 
 /// A platform without a display: runs a handler against a script of events.
@@ -195,6 +201,8 @@ impl PlatformContext for FakeContext {
             scale_factor: self.scale_factor,
             closed: false,
             redraws: 0,
+            ime_allowed: false,
+            ime_area: None,
         });
         self.mark_pending(index);
         Ok(id)
@@ -230,6 +238,16 @@ impl PlatformContext for FakeContext {
 
     fn surface_target(&self, _window: WindowId) -> Option<SurfaceTarget> {
         None
+    }
+
+    fn set_ime_allowed(&mut self, window: WindowId, allowed: bool) {
+        let _ = (window, allowed);
+        todo!("PLATFORM-FAKE-11")
+    }
+
+    fn set_ime_cursor_area(&mut self, window: WindowId, origin: Point, size: Size) {
+        let _ = (window, origin, size);
+        todo!("PLATFORM-FAKE-11")
     }
 
     fn exit(&mut self) {

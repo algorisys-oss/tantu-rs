@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
-use tantu_core::Point;
+use tantu_core::{Point, Size};
 use tantu_platform::{
     PhysicalSize, Platform, PlatformContext, PlatformError, PlatformHandler, SurfaceTarget,
     WindowAttributes, WindowId,
@@ -177,6 +177,21 @@ impl PlatformContext for Context<'_> {
     fn surface_target(&self, window: WindowId) -> Option<SurfaceTarget> {
         let entry = self.windows.entries.get(&window)?;
         Some(entry.window.clone())
+    }
+
+    fn set_ime_allowed(&mut self, window: WindowId, allowed: bool) {
+        if let Some(entry) = self.windows.entries.get(&window) {
+            entry.window.set_ime_allowed(allowed);
+        }
+    }
+
+    fn set_ime_cursor_area(&mut self, window: WindowId, origin: Point, size: Size) {
+        if let Some(entry) = self.windows.entries.get(&window) {
+            entry.window.set_ime_cursor_area(
+                winit::dpi::LogicalPosition::new(origin.x, origin.y),
+                winit::dpi::LogicalSize::new(size.width, size.height),
+            );
+        }
     }
 
     fn exit(&mut self) {

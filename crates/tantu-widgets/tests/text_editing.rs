@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/text-editing.md`, rules WIDGETS-EDIT-01..08.
+//! Tests for `docs/specs/widgets/text-editing.md`, rules WIDGETS-EDIT-01..09.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -337,5 +337,43 @@ fn widgets_edit_08_reactive() {
             v.insert("!")
         });
         assert_eq!(c.text(), "xyz!");
+    });
+}
+
+#[test]
+fn widgets_edit_09_compose_and_commit() {
+    let v = at("ab", 2).compose("x", None);
+    assert_eq!(v.text, "abx");
+    assert_eq!(v.composing, Some(TextRange { start: 2, end: 3 }));
+    assert_eq!(v.selection, TextSelection::collapsed(3));
+    let v = v.compose("xy", Some((1, 1)));
+    assert_eq!(v.text, "abxy");
+    assert_eq!(v.composing, Some(TextRange { start: 2, end: 4 }));
+    assert_eq!(v.selection, TextSelection::collapsed(3));
+    let v = v.compose("xyz", Some((0, 2)));
+    assert_eq!(v.selection, TextSelection::new(2, 4));
+    let v = v.commit("z");
+    assert_eq!((v.text.as_str(), v.composing), ("abz", None));
+    assert_eq!(v.selection, TextSelection::collapsed(3));
+    // An empty preedit clears the composition; composing replaces a selection.
+    let v = at("ab", 2).compose("x", None).compose("", None);
+    assert_eq!(v, at("ab", 2));
+    let v = sel("hello", 1, 4).compose("i", None);
+    assert_eq!(
+        (v.text.as_str(), v.composing),
+        ("hio", Some(TextRange { start: 1, end: 2 }))
+    );
+    let v = sel("hello", 1, 4).commit("i");
+    assert_eq!(v, at("hio", 2));
+    // The composition and its commit are one undo step.
+    Runtime::new().enter(|| {
+        let c = TextEditingController::new("ab");
+        c.edit(|v| v.compose("x", None));
+        c.edit(|v| v.compose("xy", None));
+        c.edit(|v| v.commit("xy"));
+        assert_eq!(c.text(), "abxy");
+        assert!(c.undo());
+        assert_eq!(c.text(), "ab");
+        assert!(!c.undo());
     });
 }

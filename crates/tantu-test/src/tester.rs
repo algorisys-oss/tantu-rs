@@ -10,8 +10,8 @@ use tantu_view::layout::{BoxConstraints, RenderBox, RenderParagraph};
 use tantu_view::scene::{Renderer, Resources, Scene};
 use tantu_view::text::{FontFamily, TextSystem};
 use tantu_view::{
-    ElementId, ElementKind, Key, KeyEvent, LogicalKey, Modifiers, PointerButton, PointerEvent,
-    PointerKind, SystemText, View, ViewTree,
+    ElementId, ElementKind, ImeEvent, Key, KeyEvent, LogicalKey, Modifiers, PointerButton,
+    PointerEvent, PointerKind, SystemText, View, ViewTree,
 };
 
 /// Liberation Sans Regular (SIL Open Font License 1.1, see `fonts/LICENSE-OFL.txt`).
@@ -191,6 +191,12 @@ impl WidgetTester {
                 .dispatch_key(KeyEvent::release(key, Modifiers::default()));
             self.pump();
         }
+    }
+
+    /// Dispatches an IME event to the focused element, then pumps (TEST-WT-10).
+    pub fn ime(&mut self, event: ImeEvent) {
+        let _ = event;
+        todo!("TEST-WT-10")
     }
 
     /// Presses and releases `key` (with `modifiers`) on the focused element, then pumps.

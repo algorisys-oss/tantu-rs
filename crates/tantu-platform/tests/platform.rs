@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use tantu_core::{Point, Size, Vec2};
 use tantu_platform::{
-    ButtonState, FakePlatform, FakeStep, Key, KeyEvent, KeyLocation, Modifiers, NamedKey,
+    ButtonState, FakePlatform, FakeStep, ImeEvent, Key, KeyEvent, KeyLocation, Modifiers, NamedKey,
     PhysicalSize, Platform, PlatformContext, PlatformError, PlatformHandler, PointerButton,
     PointerId, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };
@@ -532,4 +532,75 @@ fn platform_fake_10_steps_delivered() {
         repeat: false,
         text: Some("a".to_owned()),
     };
+}
+
+#[test]
+fn platform_ime_01_events_and_context() {
+    let preedit = ImeEvent::Preedit {
+        text: "ab".into(),
+        cursor: Some((0, 2)),
+    };
+    assert_eq!(preedit.clone(), preedit);
+    assert_ne!(ImeEvent::Commit("ab".into()), ImeEvent::Disabled);
+    assert_ne!(
+        WindowEvent::Ime(ImeEvent::Enabled),
+        WindowEvent::Ime(ImeEvent::Disabled)
+    );
+    // Delivered like any window event, and the context calls exist.
+    let seen: Rc<RefCell<Vec<WindowEvent>>> = Rc::default();
+    let log = seen.clone();
+    let mut handler = Recorder::with(move |cx, seen| {
+        if *seen == Seen::Started {
+            cx.create_window(&WindowAttributes::new("A")).unwrap();
+        }
+        if let Seen::Event(w, event @ WindowEvent::Ime(_)) = seen {
+            log.borrow_mut().push(event.clone());
+            cx.set_ime_allowed(*w, true);
+            cx.set_ime_cursor_area(*w, Point::new(1.0, 2.0), Size::new(3.0, 4.0));
+        }
+    });
+    FakePlatform::new()
+        .event(0, WindowEvent::Ime(ImeEvent::Enabled))
+        .event(0, WindowEvent::Ime(preedit.clone()))
+        .run_logged(&mut handler);
+    assert_eq!(
+        *seen.borrow(),
+        [
+            WindowEvent::Ime(ImeEvent::Enabled),
+            WindowEvent::Ime(preedit)
+        ]
+    );
+}
+
+#[test]
+fn platform_fake_11_records_ime_calls() {
+    let mut handler = Recorder::with(|cx, seen| {
+        if *seen == Seen::Started {
+            cx.create_window(&WindowAttributes::new("A")).unwrap();
+        }
+        if let Seen::Event(w, WindowEvent::Focused(true)) = seen {
+            cx.set_ime_allowed(*w, true);
+            cx.set_ime_cursor_area(*w, Point::new(1.0, 2.0), Size::new(3.0, 4.0));
+            cx.set_ime_allowed(WindowId::from_raw(999), true);
+        }
+        if let Seen::Event(w, WindowEvent::Focused(false)) = seen {
+            cx.set_ime_allowed(*w, false);
+        }
+    });
+    let log = FakePlatform::new()
+        .event(0, WindowEvent::Focused(true))
+        .run_logged(&mut handler);
+    assert!(log.windows[0].ime_allowed);
+    assert_eq!(
+        log.windows[0].ime_area,
+        Some((Point::new(1.0, 2.0), Size::new(3.0, 4.0)))
+    );
+    let log = FakePlatform::new()
+        .event(0, WindowEvent::Focused(true))
+        .event(0, WindowEvent::Focused(false))
+        .run_logged(&mut handler);
+    assert!(!log.windows[0].ime_allowed);
+    let log = FakePlatform::new().run_logged(&mut handler);
+    assert!(!log.windows[0].ime_allowed);
+    assert_eq!(log.windows[0].ime_area, None);
 }

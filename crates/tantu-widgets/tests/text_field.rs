@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..06.
+//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..08.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -9,10 +9,12 @@ use tantu_view::layout::{BoxConstraints, NoTextMeasure};
 use tantu_view::reactive::signal;
 use tantu_view::scene::{Command, Scene};
 use tantu_view::{
-    CursorIcon, ElementId, Keyed, LogicalKey, Modifiers, NamedKey, PointerButton, PointerEvent,
-    PointerKind, ViewTree,
+    CursorIcon, ElementId, ImeEvent, Key, Keyed, LogicalKey, Modifiers, NamedKey, PointerButton,
+    PointerEvent, PointerKind, ViewTree,
 };
-use tantu_widgets::{Button, Column, Row, TextEditingController, TextField, TextSelection};
+use tantu_widgets::{
+    Button, Column, Row, TextEditingController, TextField, TextRange, TextSelection,
+};
 
 const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
 const OUTLINE: Color = Color::from_argb32(0xFF79_747E);
@@ -389,4 +391,77 @@ fn widgets_textfield_06_pointer() {
         position: Point::new(20.0, 20.0),
     });
     assert_eq!(tree.cursor(), CursorIcon::Text);
+}
+
+fn preedit(text: &str) -> ImeEvent {
+    ImeEvent::Preedit {
+        text: text.into(),
+        cursor: None,
+    }
+}
+
+#[test]
+fn widgets_textfield_07_ime_events_and_area() {
+    let (mut tester, c) = plain("");
+    tester.focus(&Finder::key("f"));
+    tester.ime(preedit("ni"));
+    assert_eq!(tester.enter(|| c.value().text), "ni");
+    assert_eq!(
+        tester.enter(|| c.value().composing),
+        Some(TextRange { start: 0, end: 2 })
+    );
+    tester.ime(preedit("你"));
+    assert_eq!(tester.enter(|| c.value().text), "你");
+    tester.ime(ImeEvent::Commit("你好".into()));
+    assert_eq!(tester.enter(|| c.value()).text, "你好");
+    assert_eq!(tester.enter(|| c.value().composing), None);
+    // `Disabled` commits the pending preedit.
+    tester.ime(preedit("x"));
+    tester.ime(ImeEvent::Disabled);
+    assert_eq!(tester.enter(|| c.value()).text, "你好x");
+    assert_eq!(tester.enter(|| c.value().composing), None);
+    // The IME area: the caret rect plus the padding, while focused and enabled.
+    let mut tree = ViewTree::new(|| {
+        Column::new()
+            .child(Keyed::new(
+                "f",
+                TextField::new(TextEditingController::new("x")),
+            ))
+            .child(Keyed::new(
+                "d",
+                TextField::new(TextEditingController::new("y")).enabled(false),
+            ))
+    });
+    let mut scene = Scene::new();
+    let constraints = BoxConstraints::tight(Size::new(400.0, 200.0));
+    tree.frame(constraints, &mut NoTextMeasure, &mut scene);
+    assert_eq!(tree.ime_area(), None);
+    let field = tree.find_key(&Key::from("f"))[0];
+    assert!(tree.focus(field));
+    tree.frame(constraints, &mut NoTextMeasure, &mut scene);
+    assert_eq!(tree.ime_area(), Some(Rect::from_ltrb(16.0, 8.0, 18.0, 8.0)));
+    tree.unfocus();
+    assert_eq!(tree.ime_area(), None);
+    assert!(!tree.focus(tree.find_key(&Key::from("d"))[0]));
+}
+
+#[test]
+fn widgets_textfield_08_composing_underline() {
+    let (mut tester, _) = plain("");
+    tester.focus(&Finder::key("f"));
+    let underline = |tester: &WidgetTester| {
+        fills(tester)
+            .into_iter()
+            .find(|(r, c)| r.height() == 1.0 && *c == PRIMARY)
+            .map(|(r, _)| r)
+    };
+    assert_eq!(underline(&tester), None);
+    tester.ime(preedit("ab"));
+    let line = underline(&tester).expect("an underline under the composing text");
+    let editor = tester.rect(tester.find(&Finder::text("ab")));
+    assert_eq!(line.left, 0.0);
+    assert!(line.right > 0.0 && line.right <= editor.width());
+    assert!(line.bottom <= editor.height());
+    tester.ime(ImeEvent::Commit("ab".into()));
+    assert_eq!(underline(&tester), None);
 }

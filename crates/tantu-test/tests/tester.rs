@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/test/widget-tester.md`, rules TEST-WT-01..09.
+//! Tests for `docs/specs/test/widget-tester.md`, rules TEST-WT-01..10.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
@@ -12,7 +12,8 @@ use tantu_view::layout::{RenderConstrainedBox, RenderParagraph};
 use tantu_view::reactive::{Signal, signal};
 use tantu_view::scene::Command;
 use tantu_view::{
-    BuildCx, Dyn, ElementId, Handled, Keyed, Phase, PointerButton, PointerEvent, PointerKind, View,
+    BuildCx, Dyn, ElementId, Handled, ImeEvent, Keyed, Phase, PointerButton, PointerEvent,
+    PointerKind, View,
 };
 use tantu_widgets::{
     Button, Center, Column, Padding, SizedBox, Text, TextEditingController, TextField,
@@ -297,4 +298,28 @@ fn test_wt_09_enter_text() {
     tester.enter_text(&Finder::key("f"), "é!");
     assert_eq!(tester.enter(|| controller.text()), "abé!");
     tester.find(&Finder::text("abé!"));
+}
+
+#[test]
+fn test_wt_10_ime() {
+    let out: Rc<RefCell<Option<TextEditingController>>> = Rc::default();
+    let mut tester = {
+        let out = out.clone();
+        WidgetTester::new(move || {
+            let controller = TextEditingController::new("");
+            *out.borrow_mut() = Some(controller);
+            Column::new().child(Keyed::new("f", TextField::new(controller)))
+        })
+    };
+    let controller = out.borrow().expect("built");
+    tester.tap(&Finder::key("f"));
+    tester.ime(ImeEvent::Preedit {
+        text: "ab".into(),
+        cursor: None,
+    });
+    assert_eq!(tester.enter(|| controller.value().text), "ab");
+    assert!(tester.enter(|| controller.value().composing).is_some());
+    tester.ime(ImeEvent::Commit("ab".into()));
+    assert_eq!(tester.enter(|| controller.value().composing), None);
+    tester.find(&Finder::text("ab"));
 }

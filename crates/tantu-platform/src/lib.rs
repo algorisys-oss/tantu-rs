@@ -52,6 +52,6 @@ pub use platform::{
 /// The `raw-window-handle` version surface targets implement.
 pub use raw_window_handle;
 pub use types::{
-    ButtonState, Key, KeyEvent, KeyLocation, Modifiers, NamedKey, PhysicalSize, PointerButton,
-    PointerId, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
+    ButtonState, ImeEvent, Key, KeyEvent, KeyLocation, Modifiers, NamedKey, PhysicalSize,
+    PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };

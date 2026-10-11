@@ -294,6 +294,25 @@ pub struct KeyEvent {
     pub text: Option<String>,
 }
 
+/// An input-method event (winit's shape; offsets are byte offsets into `text`)
+/// (PLATFORM-IME-01).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ImeEvent {
+    /// The IME became active for the window (after `set_ime_allowed(true)`).
+    Enabled,
+    /// The text being composed, and the IME's cursor range within it (`None`: hidden).
+    Preedit {
+        /// The composed text so far.
+        text: String,
+        /// The IME's cursor as a byte range of `text`.
+        cursor: Option<(usize, usize)>,
+    },
+    /// The composed text is final.
+    Commit(String),
+    /// The IME was deactivated.
+    Disabled,
+}
+
 /// Something that happened to a window. Positions are in logical pixels relative to the
 /// window's inner top-left corner.
 #[derive(Clone, Debug, PartialEq)]
@@ -351,4 +370,6 @@ pub enum WindowEvent {
     Keyboard(KeyEvent),
     /// The held modifier keys changed.
     ModifiersChanged(Modifiers),
+    /// An input-method event (PLATFORM-IME-01).
+    Ime(ImeEvent),
 }

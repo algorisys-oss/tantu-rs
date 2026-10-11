@@ -149,6 +149,21 @@ impl EditingValue {
         moved
     }
 
+    /// Replaces the composing region (or the selection, when there is none) with `text`,
+    /// marks it as composing, and puts the caret at `cursor` within it (its end when `None`)
+    /// (WIDGETS-EDIT-09).
+    pub fn compose(&self, text: &str, cursor: Option<(usize, usize)>) -> Self {
+        let _ = (text, cursor);
+        todo!("WIDGETS-EDIT-09")
+    }
+
+    /// Replaces the composing region (or the selection) with `text` and clears it
+    /// (WIDGETS-EDIT-09).
+    pub fn commit(&self, text: &str) -> Self {
+        let _ = text;
+        todo!("WIDGETS-EDIT-09")
+    }
+
     /// Selects the whole text (WIDGETS-EDIT-05).
     pub fn select_all(&self) -> Self {
         self.clone()

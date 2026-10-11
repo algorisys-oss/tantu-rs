@@ -2,8 +2,8 @@
 
 use tantu_core::{Point, Vec2};
 use tantu_platform::{
-    ButtonState, Key, KeyEvent, KeyLocation, Modifiers, NamedKey, PhysicalSize, PointerButton,
-    PointerId, ScrollDelta, WindowAttributes, WindowEvent,
+    ButtonState, ImeEvent, Key, KeyEvent, KeyLocation, Modifiers, NamedKey, PhysicalSize,
+    PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent,
 };
 use winit::event::{ElementState, MouseButton, MouseScrollDelta};
 use winit::keyboard::ModifiersState;
@@ -215,6 +215,7 @@ pub(crate) fn window_event(
             position: *pointer,
         },
         W::ModifiersChanged(m) => WindowEvent::ModifiersChanged(modifiers(m.state())),
+        W::Ime(ime) => WindowEvent::Ime(ime_event(ime)),
         // Keys held when focus arrives are replayed by winit; they must not type.
         W::KeyboardInput {
             is_synthetic: true, ..
@@ -228,6 +229,12 @@ pub(crate) fn window_event(
         )),
         _ => return None,
     })
+}
+
+/// winit's IME event as the platform's (PLATFORM-WINIT-13).
+pub(crate) fn ime_event(ime: winit::event::Ime) -> ImeEvent {
+    let _ = ime;
+    todo!("PLATFORM-WINIT-13")
 }
 
 #[cfg(test)]
@@ -474,6 +481,39 @@ mod tests {
                 2.0
             ),
             ScrollDelta::Pixels(Vec2::new(-5.0, 20.0))
+        );
+    }
+
+    #[test]
+    fn platform_winit_13_ime_events() {
+        use winit::event::Ime;
+        let mut last = Point::ZERO;
+        let mut convert = |e: W| window_event(e, 1.0, &mut last);
+        assert_eq!(
+            convert(W::Ime(Ime::Enabled)),
+            Some(WindowEvent::Ime(ImeEvent::Enabled))
+        );
+        assert_eq!(
+            convert(W::Ime(Ime::Preedit("ab".into(), Some((0, 2))))),
+            Some(WindowEvent::Ime(ImeEvent::Preedit {
+                text: "ab".into(),
+                cursor: Some((0, 2)),
+            }))
+        );
+        assert_eq!(
+            convert(W::Ime(Ime::Preedit(String::new(), None))),
+            Some(WindowEvent::Ime(ImeEvent::Preedit {
+                text: String::new(),
+                cursor: None,
+            }))
+        );
+        assert_eq!(
+            convert(W::Ime(Ime::Commit("x".into()))),
+            Some(WindowEvent::Ime(ImeEvent::Commit("x".into())))
+        );
+        assert_eq!(
+            convert(W::Ime(Ime::Disabled)),
+            Some(WindowEvent::Ime(ImeEvent::Disabled))
         );
     }
 

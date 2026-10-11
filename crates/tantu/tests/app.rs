@@ -3,7 +3,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use tantu::core::{Point, Size, Vec2};
+use tantu::core::{Point, Rect, Size, Vec2};
 use tantu::layout::RenderConstrainedBox;
 use tantu::platform::{
     ButtonState, FakeLog, FakePlatform, PhysicalSize, PlatformContext, PointerButton, PointerId,
@@ -543,4 +543,95 @@ fn facade_app_11_keyboard_events_are_forwarded() {
         *keys.borrow(),
         ["Enter false", "A true", "F(5) true", "ArrowLeft false"]
     );
+}
+
+/// A focusable view logging IME events, providing an IME area while `area` holds one.
+struct ImeLogger {
+    log: Rc<RefCell<Vec<String>>>,
+    area: Rc<Cell<Option<Rect>>>,
+}
+
+impl View for ImeLogger {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        use tantu::view::{FocusOptions, ImeEvent};
+        let id = cx.render(RenderConstrainedBox::expand(), []);
+        cx.focusable(
+            id,
+            FocusOptions {
+                traversable: true,
+                focus_on_press: true,
+            },
+        );
+        let (log, area) = (self.log, self.area.clone());
+        let tick = tantu::reactive::signal(0u32);
+        cx.on_ime(id, move |i| {
+            log.borrow_mut().push(format!("{:?}", i.event));
+            if matches!(i.event, ImeEvent::Commit(_)) {
+                // After a commit the view stops wanting IME input (and asks for a frame).
+                area.set(None);
+                tick.update(|t| *t += 1);
+            }
+        });
+        cx.bind(
+            id,
+            tantu::view::Prop::Dynamic(Box::new(move || tick.get())),
+            |_, _| {},
+        );
+        let area = self.area;
+        cx.ime_area(id, move || area.get());
+        id
+    }
+}
+
+#[test]
+fn facade_app_12_ime_events_and_area() {
+    use tantu::platform::ImeEvent;
+    let log: Rc<RefCell<Vec<String>>> = Rc::default();
+    let area: Rc<Cell<Option<Rect>>> =
+        Rc::new(Cell::new(Some(Rect::from_ltwh(1.0, 2.0, 3.0, 4.0))));
+    let (l, a) = (log.clone(), area.clone());
+    let app = App::new().window(Window::new("A").size(200.0, 100.0), move || ImeLogger {
+        log: l,
+        area: a,
+    });
+    let platform = FakePlatform::new()
+        .event(0, button(ButtonState::Pressed, 5.0, 5.0))
+        .event(0, button(ButtonState::Released, 5.0, 5.0))
+        .event(
+            0,
+            WindowEvent::Ime(ImeEvent::Preedit {
+                text: "ab".into(),
+                cursor: Some((0, 2)),
+            }),
+        )
+        .event(0, WindowEvent::Ime(ImeEvent::Commit("ab".into())));
+    let (fake, _) = run(app, platform, &Recorders::default());
+    assert_eq!(
+        *log.borrow(),
+        [
+            "Preedit { text: \"ab\", cursor: Some((0, 2)) }",
+            "Commit(\"ab\")"
+        ]
+    );
+    // The IME was allowed with the area once the view was focused, and disallowed after the
+    // commit (the frame after it saw no area).
+    assert!(!fake.windows[0].ime_allowed);
+    assert_eq!(
+        fake.windows[0].ime_area,
+        Some((Point::new(1.0, 2.0), Size::new(3.0, 4.0)))
+    );
+    // Without a focused provider, the IME is never enabled.
+    let area: Rc<Cell<Option<Rect>>> = Rc::default();
+    let log: Rc<RefCell<Vec<String>>> = Rc::default();
+    let (l, a) = (log.clone(), area.clone());
+    let app = App::new().window(Window::new("A").size(200.0, 100.0), move || ImeLogger {
+        log: l,
+        area: a,
+    });
+    let platform = FakePlatform::new()
+        .event(0, button(ButtonState::Pressed, 5.0, 5.0))
+        .event(0, button(ButtonState::Released, 5.0, 5.0));
+    let (fake, _) = run(app, platform, &Recorders::default());
+    assert!(!fake.windows[0].ime_allowed);
+    assert_eq!(fake.windows[0].ime_area, None);
 }
