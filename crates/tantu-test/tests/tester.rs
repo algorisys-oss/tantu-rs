@@ -242,7 +242,10 @@ impl View for Recorder {
         let id = cx.render(Sized100::sized(Some(100.0), Some(100.0)), []);
         let log = self.0;
         cx.on_pointer(id, Phase::Bubble, move |p| {
-            log.borrow_mut().push((p.event.kind, p.local));
+            // Hover enter/leave (after the release) isn't part of the drag.
+            if !matches!(p.event.kind, PointerKind::Enter | PointerKind::Leave) {
+                log.borrow_mut().push((p.event.kind, p.local));
+            }
             Handled::Stop
         });
         id
