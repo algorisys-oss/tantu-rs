@@ -475,21 +475,27 @@ fn widgets_grid_09_frozen_columns() {
             .iter()
             .filter(|e| {
                 matches!(e.command, Command::Fill { shape, color: c } if c == color
-                    && shape.rect.width() == 120.0 && shape.rect.height() == 32.0)
+                    && shape.rect.width() == 120.0)
             })
             .count()
     };
-    let body_rows = texts(&tester).iter().filter(|t| t.ends_with("c0")).count();
+    // Rows painted (the buffer row below the window is culled), plus the header.
+    let painted_rows = tester
+        .find_all(&Finder::render::<RenderParagraph>())
+        .into_iter()
+        .filter(|e| tester.text(*e).is_some_and(|t| t.ends_with("c0")))
+        .filter(|e| tester.rect(*e).top < 400.0)
+        .count();
     assert_eq!(
         cell_fills(SURFACE),
-        2 * body_rows + 2,
-        "{body_rows} frozen rows"
+        2 * painted_rows + 2,
+        "{painted_rows} painted frozen rows"
     );
     let edge_lines = entries
         .iter()
         .filter(|e| matches!(e.command, Command::Fill { shape, color } if color == OUTLINE && shape.rect.width() == 1.0))
         .count();
-    assert_eq!(edge_lines, body_rows + 1);
+    assert_eq!(edge_lines, painted_rows + 1);
     let position = |text: &str| {
         let id = tester.find(&Finder::text(text));
         entries

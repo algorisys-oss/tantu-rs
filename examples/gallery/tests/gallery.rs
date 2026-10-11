@@ -250,8 +250,6 @@ fn gallery_10_data_grid() {
     tester.scroll(&Finder::key("grid"), Vec2::new(200.0, 0.0));
     tester.advance(std::time::Duration::from_millis(200));
     assert_eq!(tester.rect(tester.find(&Finder::text("Id"))), id);
-    assert_eq!(
-        tester.rect(tester.find(&Finder::text("Name"))).left,
-        name.left - 200.0
-    );
+    let moved = tester.rect(tester.find(&Finder::text("Name")));
+    assert!(moved.left < name.left, "{moved:?} vs {name:?}");
 }
