@@ -112,6 +112,8 @@ impl Paint for ParagraphPaint { /* ... */ }
 - **VIEW-TEXT-05:** `SystemText` measures exactly as its `TextSystem` does and paints with
   `TextSystem::paint` into its `Resources`: a paragraph laid out and painted in a frame with a
   `SystemText` yields glyph runs whose fonts are in those `Resources`.
+- **VIEW-TEXT-06:** `TextPainter::image_id` (default `None`; `SystemText` interns in its
+  resources) and `PaintCx::image_id`; see [Image](../widgets/image.md), where they were added.
 
 ## Performance and allocation
 

@@ -198,6 +198,8 @@ Resources
   return `None`.
 - **SCENE-RES-10:** A clone of `Resources` has the same contents and revision, and changes to one
   don't affect the other. `Resources`, `ImageData` and `FontData` are `Send + Sync`.
+- **SCENE-RES-11:** `intern_image(&image)` returns the id an image with the same pixel buffer and
+  size was added with, or adds it; see [Image](../widgets/image.md), where it was added.
 
 Renderer types
 

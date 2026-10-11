@@ -201,6 +201,8 @@ impl Default for BoxConstraints {
 - **LAYOUT-CONS-16:** `flip` swaps the width and height ranges; `flip(flip(c)) == c`.
 - **LAYOUT-CONS-17:** `width_constraints` keeps `min_width`/`max_width` and sets the height to
   `0..=∞`; `height_constraints` mirrors it.
+- **LAYOUT-CONS-18:** `constrain_size_and_attempt_to_preserve_aspect_ratio` is Flutter's: see
+  [RenderImage](image.md), where it was added.
 
 ## Performance and allocation
 
