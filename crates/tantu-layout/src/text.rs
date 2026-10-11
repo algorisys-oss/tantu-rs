@@ -8,7 +8,9 @@ use std::fmt::Write;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 
-use tantu_core::{Color, Size};
+use std::ops::Range;
+
+use tantu_core::{Color, Point, Rect, Size};
 
 use crate::{BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox};
 
@@ -430,5 +432,72 @@ impl RenderBox for RenderParagraph {
 
     fn max_intrinsic_height(&self, width: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
         self.height_at(width, children.text())
+    }
+}
+
+/// One laid-out cluster: its byte range and horizontal extent in the paragraph
+/// (LAYOUT-TEXT-13).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClusterGeometry {
+    /// The cluster's byte range in the text.
+    pub range: Range<usize>,
+    /// Its left edge.
+    pub left: f32,
+    /// Its right edge.
+    pub right: f32,
+}
+
+/// One laid-out line (LAYOUT-TEXT-13).
+#[derive(Clone, Debug, PartialEq)]
+pub struct LineGeometry {
+    /// The line's byte range (a trailing newline belongs to it).
+    pub range: Range<usize>,
+    /// The line's top.
+    pub top: f32,
+    /// Its height.
+    pub height: f32,
+    /// Its baseline, from the paragraph's top.
+    pub baseline: f32,
+    /// Its clusters in visual order (left to right).
+    pub clusters: Vec<ClusterGeometry>,
+}
+
+/// The geometry of a laid-out paragraph: what a text field needs between frames
+/// (LAYOUT-TEXT-13).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextGeometry {
+    /// The lines, top to bottom.
+    pub lines: Vec<LineGeometry>,
+}
+
+impl TextGeometry {
+    /// The line holding `offset`: the last line whose range starts at or before it.
+    pub fn line_of(&self, offset: usize) -> Option<usize> {
+        let _ = offset;
+        todo!("LAYOUT-TEXT-13")
+    }
+
+    /// The caret rect for `offset`: zero width, the line's top and height.
+    pub fn caret(&self, offset: usize) -> Rect {
+        let _ = offset;
+        todo!("LAYOUT-TEXT-13")
+    }
+
+    /// The offset under `point`.
+    pub fn hit_test(&self, point: Point) -> usize {
+        let _ = point;
+        todo!("LAYOUT-TEXT-13")
+    }
+
+    /// `hit_test` within line `line` at `x`.
+    pub fn offset_at(&self, line: usize, x: f32) -> usize {
+        let _ = (line, x);
+        todo!("LAYOUT-TEXT-13")
+    }
+
+    /// The rects covering `start..end`, one per line touched.
+    pub fn selection_rects(&self, start: usize, end: usize) -> Vec<Rect> {
+        let _ = (start, end);
+        todo!("LAYOUT-TEXT-13")
     }
 }

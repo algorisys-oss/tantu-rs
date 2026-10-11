@@ -35,6 +35,7 @@ mod layout;
 mod rich_text;
 mod slider;
 mod text_editing;
+mod text_field;
 mod toggles;
 mod tooltip;
 mod util;
@@ -52,6 +53,7 @@ pub use slider::Slider;
 pub use text_editing::{
     Direction, EditingValue, Movement, TextEditingController, TextRange, TextSelection,
 };
+pub use text_field::{RedoIntent, SelectAllIntent, TextField, UndoIntent};
 pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;
 

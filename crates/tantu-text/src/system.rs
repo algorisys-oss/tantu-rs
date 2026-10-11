@@ -10,7 +10,7 @@ use parley::{
     LineHeight, PositionedLayoutItem, StyleProperty,
 };
 use tantu_core::{Color, Point};
-use tantu_layout::{StyleSpan, TextMeasure, TextMetrics, TextStyleKey};
+use tantu_layout::{StyleSpan, TextGeometry, TextMeasure, TextMetrics, TextStyleKey};
 use tantu_scene::{FontData, FontId, Glyph, Resources, SceneBuilder};
 
 /// A font family: a name, or a generic family resolved by the font system.
@@ -456,6 +456,21 @@ fn wrap_width(max_width: f32) -> Option<f32> {
 /// How many lines `max_lines` keeps.
 fn lines_to_keep(max_lines: Option<u32>) -> usize {
     max_lines.map_or(usize::MAX, |n| usize::try_from(n).unwrap_or(usize::MAX))
+}
+
+impl TextSystem {
+    /// The geometry of `text` laid out as `measure_rich` lays it out (TEXT-SYS-12).
+    pub fn geometry(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> TextGeometry {
+        let _ = (text, style, spans, max_width, max_lines);
+        todo!("TEXT-SYS-12")
+    }
 }
 
 impl TextMeasure for TextSystem {

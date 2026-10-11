@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/text.md`, rules VIEW-TEXT-01..07.
+//! Tests for `docs/specs/view/text.md`, rules VIEW-TEXT-01..08.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -418,4 +418,73 @@ fn view_text_07_paint_rich() {
         })
         .collect();
     assert_eq!(runs, [(2, red), (3, Color::BLACK)]);
+}
+
+/// A paint asking for the geometry.
+struct GeometryProbe(Rc<Cell<Option<Option<usize>>>>);
+
+impl Paint for GeometryProbe {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        let lines = cx
+            .text_geometry("hello", TextStyleKey(0), &[], f32::INFINITY, None)
+            .map(|g| g.lines.len());
+        self.0.set(Some(lines));
+    }
+}
+
+struct Geometric(Rc<Cell<Option<Option<usize>>>>);
+
+impl View for Geometric {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::sized(Some(10.0), Some(10.0)), []);
+        cx.set_paint(id, GeometryProbe(self.0));
+        id
+    }
+}
+
+#[test]
+fn view_text_08_text_geometry() {
+    assert_eq!(
+        NoTextMeasure.text_geometry("hello", TextStyleKey(0), &[], 100.0, None),
+        None
+    );
+    let mut system = TextSystem::without_system_fonts();
+    system.register_font(FONT.to_vec());
+    system.set_default_family(FontFamily::Named("Liberation Sans".into()));
+    let style = system.style(TextStyle::body());
+    let mut resources = Resources::new();
+    let mut painter = SystemText {
+        system: &mut system,
+        resources: &mut resources,
+    };
+    let g = painter
+        .text_geometry("hello", style, &[], f32::INFINITY, None)
+        .expect("a geometry");
+    assert_eq!(g.lines.len(), 1);
+    assert_eq!(g.lines[0].clusters.len(), 5);
+    // Through a paint pass: `None` without a text system, the geometry with one.
+    let seen: Rc<Cell<Option<Option<usize>>>> = Rc::default();
+    let mut tree = {
+        let seen = seen.clone();
+        ViewTree::with_text_styles(system.styles(), move || Geometric(seen))
+    };
+    tree.layout(
+        BoxConstraints::loose(Size::new(100.0, 100.0)),
+        &mut NoTextMeasure,
+    );
+    let mut scene = Scene::new();
+    let mut b = scene.begin(Size::new(100.0, 100.0));
+    tree.paint(&mut b, &mut NoTextMeasure);
+    b.finish().expect("balanced");
+    assert_eq!(seen.get(), Some(None));
+    let mut b = scene.begin(Size::new(100.0, 100.0));
+    tree.paint(
+        &mut b,
+        &mut SystemText {
+            system: &mut system,
+            resources: &mut resources,
+        },
+    );
+    b.finish().expect("balanced");
+    assert_eq!(seen.get(), Some(Some(1)));
 }

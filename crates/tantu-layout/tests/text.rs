@@ -1,10 +1,11 @@
-//! Tests for `docs/specs/layout/text.md`, rules LAYOUT-TEXT-01..12.
+//! Tests for `docs/specs/layout/text.md`, rules LAYOUT-TEXT-01..13.
 
-use tantu_core::Size;
+use tantu_core::{Point, Rect, Size};
 use tantu_layout::{
     BoxConstraints, IntrinsicChildren, LayoutChildren, LayoutTree, MeasureCache, NoTextMeasure,
     RenderBox, RenderParagraph, StyleSpan, TextMeasure, TextMetrics, TextStyleKey, TextWidthBasis,
 };
+use tantu_layout::{ClusterGeometry, LineGeometry, TextGeometry};
 
 const INF: f32 = f32::INFINITY;
 const NAN: f32 = f32::NAN;
@@ -563,4 +564,116 @@ fn layout_text_12_cache_keys_spans() {
     assert_eq!((cache.misses(), cache.hits()), (6, 5));
     cache.measure("hi", S1, 500.0, None);
     assert_eq!((cache.misses(), cache.hits()), (7, 5));
+}
+
+fn cluster(range: std::ops::Range<usize>, left: f32, right: f32) -> ClusterGeometry {
+    ClusterGeometry { range, left, right }
+}
+
+/// "ab\ncd": two 20 px lines of 10 px clusters, the newline a zero-width cluster.
+fn two_lines() -> TextGeometry {
+    TextGeometry {
+        lines: vec![
+            LineGeometry {
+                range: 0..3,
+                top: 0.0,
+                height: 20.0,
+                baseline: 16.0,
+                clusters: vec![
+                    cluster(0..1, 0.0, 10.0),
+                    cluster(1..2, 10.0, 20.0),
+                    cluster(2..3, 20.0, 20.0),
+                ],
+            },
+            LineGeometry {
+                range: 3..5,
+                top: 20.0,
+                height: 20.0,
+                baseline: 36.0,
+                clusters: vec![cluster(3..4, 0.0, 10.0), cluster(4..5, 10.0, 20.0)],
+            },
+        ],
+    }
+}
+
+#[test]
+fn layout_text_13_geometry_queries() {
+    let g = two_lines();
+    assert_eq!(TextGeometry::default().line_of(0), None);
+    assert_eq!(g.line_of(0), Some(0));
+    assert_eq!(g.line_of(2), Some(0));
+    assert_eq!(g.line_of(3), Some(1));
+    assert_eq!(g.line_of(5), Some(1));
+    assert_eq!(g.line_of(99), Some(1));
+    // Carets.
+    assert_eq!(
+        TextGeometry::default().caret(0),
+        Rect::from_ltrb(0.0, 0.0, 0.0, 0.0)
+    );
+    assert_eq!(g.caret(0), Rect::from_ltrb(0.0, 0.0, 0.0, 20.0));
+    assert_eq!(g.caret(1), Rect::from_ltrb(10.0, 0.0, 10.0, 20.0));
+    assert_eq!(g.caret(2), Rect::from_ltrb(20.0, 0.0, 20.0, 20.0));
+    assert_eq!(g.caret(3), Rect::from_ltrb(0.0, 20.0, 0.0, 40.0));
+    assert_eq!(g.caret(5), Rect::from_ltrb(20.0, 20.0, 20.0, 40.0));
+    // Hit-testing.
+    assert_eq!(TextGeometry::default().hit_test(Point::new(5.0, 5.0)), 0);
+    assert_eq!(g.hit_test(Point::new(4.0, 5.0)), 0);
+    assert_eq!(g.hit_test(Point::new(6.0, 5.0)), 1);
+    assert_eq!(g.hit_test(Point::new(10.0, 5.0)), 1);
+    assert_eq!(g.hit_test(Point::new(15.0, 5.0)), 2);
+    assert_eq!(g.hit_test(Point::new(100.0, 5.0)), 2);
+    assert_eq!(g.hit_test(Point::new(-5.0, 30.0)), 3);
+    assert_eq!(g.hit_test(Point::new(100.0, 30.0)), 5);
+    assert_eq!(g.hit_test(Point::new(10.0, -50.0)), 1);
+    assert_eq!(g.hit_test(Point::new(4.0, 999.0)), 3);
+    assert_eq!(g.offset_at(1, 4.0), 3);
+    assert_eq!(g.offset_at(0, 100.0), 2);
+    assert_eq!(g.offset_at(9, 0.0), 5);
+    // Selection rects.
+    assert_eq!(
+        g.selection_rects(1, 4),
+        [
+            Rect::from_ltrb(10.0, 0.0, 20.0, 20.0),
+            Rect::from_ltrb(0.0, 20.0, 10.0, 40.0)
+        ]
+    );
+    assert_eq!(g.selection_rects(0, 0), []);
+    assert_eq!(
+        g.selection_rects(4, 5),
+        [Rect::from_ltrb(10.0, 20.0, 20.0, 40.0)]
+    );
+    // An empty line inside the selection shows as a 2 px rect.
+    let three = TextGeometry {
+        lines: vec![
+            LineGeometry {
+                range: 0..2,
+                top: 0.0,
+                height: 20.0,
+                baseline: 16.0,
+                clusters: vec![cluster(0..1, 0.0, 10.0), cluster(1..2, 10.0, 10.0)],
+            },
+            LineGeometry {
+                range: 2..3,
+                top: 20.0,
+                height: 20.0,
+                baseline: 36.0,
+                clusters: vec![cluster(2..3, 0.0, 0.0)],
+            },
+            LineGeometry {
+                range: 3..4,
+                top: 40.0,
+                height: 20.0,
+                baseline: 56.0,
+                clusters: vec![cluster(3..4, 0.0, 10.0)],
+            },
+        ],
+    };
+    assert_eq!(
+        three.selection_rects(0, 4),
+        [
+            Rect::from_ltrb(0.0, 0.0, 10.0, 20.0),
+            Rect::from_ltrb(0.0, 20.0, 2.0, 40.0),
+            Rect::from_ltrb(0.0, 40.0, 10.0, 60.0)
+        ]
+    );
 }

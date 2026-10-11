@@ -175,6 +175,14 @@ impl WidgetTester {
         }
     }
 
+    /// Taps the single element `finder` matches (focusing a field), then presses and releases,
+    /// for each character of `text`, a key carrying it as text, pumping after each
+    /// (TEST-WT-09).
+    pub fn enter_text(&mut self, finder: &Finder, text: &str) {
+        let _ = (self.find(finder), text);
+        todo!("TEST-WT-09")
+    }
+
     /// Presses and releases `key` (with `modifiers`) on the focused element, then pumps.
     pub fn press_key(&mut self, key: LogicalKey, modifiers: Modifiers) {
         self.tree

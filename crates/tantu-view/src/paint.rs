@@ -4,7 +4,7 @@
 use std::any::Any;
 
 use tantu_core::{Color, Point, Size};
-use tantu_layout::{BoxConstraints, RenderBox, StyleSpan, TextStyleKey};
+use tantu_layout::{BoxConstraints, RenderBox, StyleSpan, TextGeometry, TextStyleKey};
 use tantu_scene::{ElementId, ImageData, ImageId, SceneBuilder};
 
 use crate::{TextPainter, ViewTree};
@@ -103,6 +103,20 @@ impl<'b> PaintCx<'_, 'b> {
     ) {
         self.text
             .paint_text(self.scene, text, style, max_width, max_lines, color, origin);
+    }
+
+    /// The paragraph's geometry from the pass's painter (`None` without a text system,
+    /// VIEW-TEXT-08).
+    pub fn text_geometry(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> Option<TextGeometry> {
+        let _ = (text, style, spans, max_width, max_lines);
+        todo!("VIEW-TEXT-08")
     }
 
     /// `paint_text` with `spans` (VIEW-TEXT-07).

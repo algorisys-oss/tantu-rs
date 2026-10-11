@@ -3,7 +3,7 @@
 
 use tantu_core::{Color, Point};
 use tantu_layout::{
-    NoTextMeasure, RenderParagraph, StyleSpan, TextMeasure, TextMetrics, TextStyleKey,
+    NoTextMeasure, RenderParagraph, StyleSpan, TextGeometry, TextMeasure, TextMetrics, TextStyleKey,
 };
 use tantu_scene::{ImageData, ImageId, Resources, SceneBuilder};
 use tantu_text::TextSystem;
@@ -30,6 +30,20 @@ pub trait TextPainter {
     /// painter has no resources (VIEW-TEXT-06). Default `None`.
     fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
         let _ = image;
+        None
+    }
+
+    /// The paragraph's geometry as `measure_rich` lays it out; `None` for a painter with
+    /// no text system (VIEW-TEXT-08). Default `None`.
+    fn text_geometry(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> Option<TextGeometry> {
+        let _ = (text, style, spans, max_width, max_lines);
         None
     }
 
@@ -100,6 +114,18 @@ impl TextMeasure for SystemText<'_> {
 impl TextPainter for SystemText<'_> {
     fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
         Some(self.resources.intern_image(image))
+    }
+
+    fn text_geometry(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> Option<TextGeometry> {
+        let _ = (text, style, spans, max_width, max_lines);
+        todo!("VIEW-TEXT-08")
     }
 
     fn paint_rich(

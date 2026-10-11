@@ -60,8 +60,8 @@ pub use single_child::{
 };
 pub use stack::{RenderStack, StackFit, StackParentData};
 pub use text::{
-    MeasureCache, NoTextMeasure, RenderParagraph, StyleSpan, TextMeasure, TextMetrics,
-    TextStyleKey, TextWidthBasis,
+    ClusterGeometry, LineGeometry, MeasureCache, NoTextMeasure, RenderParagraph, StyleSpan,
+    TextGeometry, TextMeasure, TextMetrics, TextStyleKey, TextWidthBasis,
 };
 pub use tree::{
     IntrinsicChildren, LayoutChildren, LayoutId, LayoutSession, LayoutTree, RenderBox, TreeError,

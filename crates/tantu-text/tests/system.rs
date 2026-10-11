@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/text/system.md`, rules TEXT-SYS-01..11. They use Liberation Sans
+//! Tests for `docs/specs/text/system.md`, rules TEXT-SYS-01..12. They use Liberation Sans
 //! (SIL OFL 1.1, `tests/fonts/`) in a system without system fonts, so results don't depend on
 //! the machine.
 
@@ -376,4 +376,45 @@ fn text_sys_11_rich_paint() {
     assert_eq!((runs[2].0, runs[2].1), (6, black));
     assert_eq!(runs[1].2, runs[2].2);
     assert!(runs[1].2 > runs[0].2);
+}
+
+#[test]
+fn text_sys_12_geometry() {
+    let mut text = system();
+    let base = body(&mut text);
+    let g = text.geometry("ab cd", base, &[], INF, None);
+    let m = text.measure("ab cd", base, INF, None);
+    assert_eq!(g.lines.len(), 1);
+    let line = &g.lines[0];
+    assert_eq!(line.range, 0..5);
+    assert_eq!(
+        (line.top, line.height, line.baseline),
+        (0.0, m.size.height, m.first_baseline)
+    );
+    assert_eq!(line.clusters.len(), 5);
+    assert_eq!(line.clusters[0].range, 0..1);
+    assert_eq!(line.clusters[0].left, 0.0);
+    assert!(line.clusters[0].right > 0.0);
+    assert_eq!(line.clusters[4].range, 4..5);
+    assert!((line.clusters[4].right - m.size.width).abs() < 0.01);
+    assert!((g.caret(5).left - m.size.width).abs() < 0.01);
+    assert_eq!(g.hit_test(Point::new(line.clusters[2].left, 1.0)), 2);
+    // Wrapped text: two lines, the second starting after the space.
+    let width = text.measure("ab", base, INF, None).size.width + 2.0;
+    let g = text.geometry("ab cd", base, &[], width, None);
+    assert_eq!(g.lines.len(), 2);
+    assert_eq!(
+        (g.lines[0].range.clone(), g.lines[1].range.clone()),
+        (0..3, 3..5)
+    );
+    assert_eq!(g.lines[1].top, g.lines[0].top + g.lines[0].height);
+    assert_eq!(g.lines[1].clusters[0].left, 0.0);
+    assert_eq!(
+        text.geometry("ab cd", base, &[], width, Some(1))
+            .lines
+            .len(),
+        1
+    );
+    // Empty text: no lines.
+    assert!(text.geometry("", base, &[], INF, None).lines.is_empty());
 }

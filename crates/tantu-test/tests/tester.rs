@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/test/widget-tester.md`, rules TEST-WT-01..08.
+//! Tests for `docs/specs/test/widget-tester.md`, rules TEST-WT-01..09.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
@@ -14,7 +14,9 @@ use tantu_view::scene::Command;
 use tantu_view::{
     BuildCx, Dyn, ElementId, Handled, Keyed, Phase, PointerButton, PointerEvent, PointerKind, View,
 };
-use tantu_widgets::{Button, Center, Column, Padding, SizedBox, Text};
+use tantu_widgets::{
+    Button, Center, Column, Padding, SizedBox, Text, TextEditingController, TextField,
+};
 
 fn glyph_counts(tester: &WidgetTester) -> Vec<usize> {
     let frame = tester.frame();
@@ -278,4 +280,21 @@ fn test_wt_08_drag() {
     }));
     let message = *result.unwrap_err().downcast::<String>().expect("a message");
     assert!(message.contains("nope"), "{message}");
+}
+
+#[test]
+fn test_wt_09_enter_text() {
+    let out: Rc<RefCell<Option<TextEditingController>>> = Rc::default();
+    let mut tester = {
+        let out = out.clone();
+        WidgetTester::new(move || {
+            let controller = TextEditingController::new("ab");
+            *out.borrow_mut() = Some(controller);
+            Column::new().child(Keyed::new("f", TextField::new(controller)))
+        })
+    };
+    let controller = out.borrow().expect("built");
+    tester.enter_text(&Finder::key("f"), "é!");
+    assert_eq!(tester.enter(|| controller.text()), "abé!");
+    tester.find(&Finder::text("abé!"));
 }
