@@ -11,13 +11,14 @@ use tantu_layout::{
 use tantu_reactive::{Signal, signal};
 use tantu_scene::Scene;
 use tantu_view::{
-    AnyView, BuildCx, Dyn, ElementId, FocusOptions, Handled, LogicalKey, Modifiers, NamedKey,
-    Phase, PointerKind, Prop, Role, Semantics, SemanticsAction, SemanticsActions, View, ViewTree,
+    ActionCx, AnyView, BuildCx, Dyn, ElementId, FocusOptions, Handled, LogicalKey, Modifiers,
+    NamedKey, Phase, PointerKind, Prop, Role, Semantics, SemanticsAction, SemanticsActions, View,
+    ViewTree,
 };
 
 type Log = Rc<RefCell<Vec<String>>>;
 /// An action handler a test node installs.
-type ActionHandler = Box<dyn Fn(ElementId, &SemanticsAction) -> bool>;
+type ActionHandler = Box<dyn Fn(&ActionCx<'_>) -> bool>;
 
 /// A box with semantics, optional focus, and handlers logging what reaches it.
 struct Node {
@@ -121,10 +122,10 @@ impl View for Node {
         });
         if let Some(handler) = self.handles {
             let (name, log) = (self.name, self.log.clone());
-            cx.on_action(id, move |target, action| {
-                let handled = handler(target, action);
+            cx.on_action(id, move |cx| {
+                let handled = handler(cx);
                 log.borrow_mut()
-                    .push(format!("{name} action {action:?} -> {handled}"));
+                    .push(format!("{name} action {:?} -> {handled}", cx.action));
                 handled
             });
         }
@@ -323,8 +324,8 @@ fn view_sem_03_perform_action() {
                 ..Default::default()
             });
             field.focus = Some(FocusOptions::default());
-            field.handles = Some(Box::new(|_, action| {
-                matches!(action, SemanticsAction::SetValue(_))
+            field.handles = Some(Box::new(|cx| {
+                matches!(cx.action, SemanticsAction::SetValue(_))
             }));
             // A scroll-view-like ancestor handling ScrollIntoView for descendants.
             let mut item = node("item", &log);
@@ -341,8 +342,10 @@ fn view_sem_03_perform_action() {
                 role: Role::ScrollView,
                 ..Default::default()
             });
-            scroll.handles = Some(Box::new(|_, action| {
-                matches!(action, SemanticsAction::ScrollIntoView)
+            scroll.handles = Some(Box::new(|cx| {
+                // The target is the item, the handler's element the scroll view.
+                matches!(cx.action, SemanticsAction::ScrollIntoView)
+                    && cx.tree.parent(cx.target) == Some(cx.element)
             }));
             scroll.children = vec![AnyView::new(item)];
             let mut plain = node("plain", &log);
