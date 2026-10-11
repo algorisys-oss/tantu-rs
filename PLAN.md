@@ -129,7 +129,7 @@ faster or more portable without changing how apps are written.
   - [x] `Tooltip`: the overlay's first user (spec `docs/specs/widgets/tooltip.md`)
   - [x] `Divider` and `VerticalDivider` (brings Flutter's `LimitedBox`) (spec `docs/specs/widgets/divider.md`)
   - [x] `Slider` (spec `docs/specs/widgets/slider.md`)
-  - [ ] `Checkbox`, `Radio`, `Switch` (needs a check-mark shape: Scene paths or an icon glyph, decided in the spec)
+  - [ ] `Checkbox`, `Radio`, `Switch` (the check mark is two rotated bars in Scene transform scopes; spec `docs/specs/widgets/toggles.md`)
   - [ ] `Icon` and `IconButton` (an icon font)
   - [ ] `Image` (decoding, fit, sizing)
   - [ ] `RichText` (multi-style paragraphs in `tantu-text`)
