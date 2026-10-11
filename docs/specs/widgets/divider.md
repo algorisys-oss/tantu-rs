@@ -1,6 +1,6 @@
 # Divider and VerticalDivider
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-widgets` (plus one layout object added to `tantu-layout` and one widget to
   the layout widgets)
 - **Plan item:** Phase 3, "Widgets" → "`Divider`"

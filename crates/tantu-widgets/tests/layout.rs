@@ -392,14 +392,20 @@ fn widgets_layout_07_limited_box() {
     assert_eq!(size(&tree, top(&tree)), Size::new(30.0, 20.0));
     assert_eq!(render(&tree, top(&tree)), Some(RenderLimitedBox::default()));
     // The limits are reactive.
-    let max_width = signal(100.0f32);
-    let mut tree = ViewTree::new(move || {
-        Row::new().child(
-            LimitedBox::new()
-                .max_width(max_width)
-                .child(SizedBox::expand()),
-        )
-    });
+    let out: Rc<Cell<Option<Signal<f32>>>> = Rc::default();
+    let mut tree = {
+        let out = out.clone();
+        ViewTree::new(move || {
+            let max_width = signal(100.0f32);
+            out.set(Some(max_width));
+            Row::new().child(
+                LimitedBox::new()
+                    .max_width(max_width)
+                    .child(SizedBox::expand()),
+            )
+        })
+    };
+    let max_width = out.get().expect("built");
     frame(&mut tree, tight(300.0, 100.0));
     assert_eq!(size(&tree, child(&tree, top(&tree), 0)).width, 100.0);
     tree.enter(|| max_width.set(50.0));

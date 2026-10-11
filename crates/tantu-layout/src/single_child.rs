@@ -436,13 +436,60 @@ impl Default for RenderLimitedBox {
     }
 }
 
+impl RenderLimitedBox {
+    /// A limit, or infinity for a negative or NaN one (LAYOUT-SINGLE-16).
+    fn limit(value: f32) -> f32 {
+        if value.is_nan() || value < 0.0 {
+            f32::INFINITY
+        } else {
+            value
+        }
+    }
+
+    /// The incoming constraints with unbounded axes capped (Flutter's `_limitConstraints`).
+    fn limited(&self, c: BoxConstraints) -> BoxConstraints {
+        BoxConstraints {
+            max_width: if c.has_bounded_width() {
+                c.max_width
+            } else {
+                c.constrain_width(Self::limit(self.max_width))
+            },
+            max_height: if c.has_bounded_height() {
+                c.max_height
+            } else {
+                c.constrain_height(Self::limit(self.max_height))
+            },
+            ..c
+        }
+    }
+}
+
 impl RenderBox for RenderLimitedBox {
     fn perform_layout(
         &mut self,
         constraints: BoxConstraints,
         children: &mut LayoutChildren<'_>,
     ) -> Size {
-        let _ = (constraints, children);
-        todo!("LAYOUT-SINGLE-16")
+        let limited = self.limited(constraints);
+        if children.is_empty() {
+            return limited.smallest();
+        }
+        children.layout(0, limited)
+    }
+
+    fn min_intrinsic_width(&self, height: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
+        children.min_intrinsic_width(0, height)
+    }
+
+    fn max_intrinsic_width(&self, height: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
+        children.max_intrinsic_width(0, height)
+    }
+
+    fn min_intrinsic_height(&self, width: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
+        children.min_intrinsic_height(0, width)
+    }
+
+    fn max_intrinsic_height(&self, width: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
+        children.max_intrinsic_height(0, width)
     }
 }

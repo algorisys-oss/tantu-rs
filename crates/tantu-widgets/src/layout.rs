@@ -675,7 +675,13 @@ impl Default for LimitedBox {
 
 impl View for LimitedBox {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (cx, RenderLimitedBox::default());
-        todo!("WIDGETS-LAYOUT-07")
+        let id = cx.render(RenderLimitedBox::default(), self.child);
+        bind_render(cx, id, self.max_width, |r: &mut RenderLimitedBox, w| {
+            r.max_width = w
+        });
+        bind_render(cx, id, self.max_height, |r: &mut RenderLimitedBox, h| {
+            r.max_height = h
+        });
+        id
     }
 }
