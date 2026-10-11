@@ -134,7 +134,9 @@ on-surface 38 % `0x611C1B1F`), `CursorIcon::Pointer`.
 - **WIDGETS-ICON-02:** An `Icon` is `size × size` and paints one glyph run: font size `size`,
   the `color`, one glyph that isn't the missing glyph (id 0), from the icon's font, which the
   widget ensured. Checked against a golden (`crates/tantu-widgets/tests/goldens/icon.png`).
-- **WIDGETS-ICON-03:** `icon` and `color` are reactive; a change repaints the icon.
+- **WIDGETS-ICON-03:** `icon` and `color` are reactive; a change repaints the icon. The
+  family and its font come from the first `icon` value (the style key is made at build
+  time, like `size`); a later value contributes its code point only.
 - **WIDGETS-ICON-04:** An `IconButton` is 40 × 40 with the icon centered; a primary press
   released inside, or Space/Enter while focused (no repeats), calls `on_press`; it has the
   pressable core's state layer and focus rules. Disabled (`enabled(false)` or no `on_press`)
