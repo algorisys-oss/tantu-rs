@@ -39,12 +39,15 @@ every push of the session. When resuming, tell the agent: "Read HANDOFF.md and c
 Slider drafts, asking the agent to keep going (decision 34 applies: take the recommended
 option, mark it for review, push at each milestone).
 
+  - **`Slider`** (2026-10-11, `docs/specs/widgets/slider.md`, decision 50): drag, keys,
+    state layers, golden `crates/tantu-widgets/tests/goldens/slider.png`;
+    `WidgetTester::drag` (TEST-WT-08).
+
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `Slider` (`docs/specs/widgets/slider.md`, agreed; next to implement).
-2. `Checkbox`, `Radio`, `Switch`. The check mark needs Scene paths or an icon glyph; decide in
+1. `Checkbox`, `Radio`, `Switch`. The check mark needs Scene paths or an icon glyph; decide in
    that spec.
-3. `Icon`/`IconButton`, `Image`, `RichText`, then `TextField` in three parts.
+2. `Icon`/`IconButton`, `Image`, `RichText`, then `TextField` in three parts.
 
 After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
 animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
@@ -813,7 +816,14 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `3e63827` | test: a boundary cleaned by an ancestor's pass is queued again, failing |
 | `96a932b` | fix: dirty boundaries leave the queue when a pass handles them |
 | `6dfb402` | impl: Divider and VerticalDivider, RenderLimitedBox and LimitedBox; divider golden |
-| _this commit_ | docs: HANDOFF.md for the Divider |
+| `8b879cb` | docs: HANDOFF.md for the Divider |
+| `8b879cb` | docs: HANDOFF.md for the Divider |
+| `5ace032` | spec: Slider (WIDGETS-SLIDER-01..08) and WidgetTester::drag (TEST-WT-08) |
+| `aa62f9a` | test: Slider and WidgetTester::drag, stubs + 9 failing tests |
+| `54428be` | spec: the Slider's outer element holds its handlers, focus and paint |
+| `377570f` | test: TEST-WT-08's recorder ignores the hover enter after the release |
+| `b04a955` | impl: Slider and WidgetTester::drag; slider golden |
+| _this commit_ | docs: HANDOFF.md for the Slider |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -822,7 +832,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `Slider` next (see "Resume here").
+3. Phase 3 widgets: `Checkbox`, `Radio`, `Switch` next (see "Resume here").
 
 ## Open questions
 
