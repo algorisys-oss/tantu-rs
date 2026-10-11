@@ -41,6 +41,7 @@
 mod alignment;
 mod constraints;
 mod flex;
+mod grid;
 mod image;
 mod list;
 mod single_child;
@@ -55,6 +56,7 @@ pub use constraints::BoxConstraints;
 pub use flex::{
     Axis, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment, MainAxisSize, RenderFlex,
 };
+pub use grid::{GridSlot, RenderGridBody};
 pub use image::RenderImage;
 pub use list::{ListExtents, ListIndex, RenderListContent};
 pub use single_child::{

@@ -47,6 +47,12 @@ pub enum Role {
     ScrollView,
     /// A tooltip.
     Tooltip,
+    /// A table of cells (WIDGETS-GRID-07).
+    Grid,
+    /// A column's header cell in a grid.
+    ColumnHeader,
+    /// A cell in a grid.
+    Cell,
 }
 
 /// A checkable element's state.

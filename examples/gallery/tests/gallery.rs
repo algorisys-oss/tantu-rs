@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..09.
+//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..10.
 
 use gallery::{SECTIONS, gallery};
 use tantu::core::{Rect, Vec2};
@@ -226,4 +226,18 @@ fn gallery_09_every_sample_has_a_node() {
     tester.tap(&Finder::key(nav("Buttons")));
     assert!(tester.perform_action(&Finder::key("press"), SemanticsAction::Click));
     assert_eq!(text_of(&tester, "press-count"), "Pressed 1 times");
+}
+
+#[test]
+fn gallery_10_data_grid() {
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    tester.tap(&Finder::key(nav("Data grid")));
+    tester.find(&Finder::key("grid"));
+    assert_eq!(text_of(&tester, "first-row"), "First row: 0");
+    tester.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-grid.png"
+    ));
+    tester.scroll(&Finder::key("grid"), Vec2::new(0.0, 320.0));
+    assert_eq!(text_of(&tester, "first-row"), "First row: 10");
 }

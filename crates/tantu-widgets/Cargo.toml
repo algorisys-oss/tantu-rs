@@ -7,6 +7,8 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+# `benches/scenarios.rs` is included by the bench and a test, not a bench of its own.
+autobenches = false
 
 [features]
 default = ["material-icons"]
@@ -30,3 +32,9 @@ unicode-segmentation = "1.13.3"
 # WidgetTester for widget tests (tantu-test depends on tantu-view only, so no cycle).
 [dev-dependencies]
 tantu-test = { workspace = true }
+# Benchmark harness (spec docs/specs/widgets/data-grid.md), as in tantu-layout.
+criterion = { version = "0.7.0", default-features = false }
+
+[[bench]]
+name = "grid"
+harness = false

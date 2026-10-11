@@ -2906,6 +2906,7 @@ dependencies = [
 name = "tantu-widgets"
 version = "0.0.0"
 dependencies = [
+ "criterion",
  "png",
  "tantu-test",
  "tantu-theme",

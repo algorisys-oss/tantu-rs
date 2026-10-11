@@ -26,6 +26,7 @@
 #![forbid(unsafe_code)]
 
 mod basic;
+mod data_grid;
 mod divider;
 mod focus_scope;
 mod icon;
@@ -47,6 +48,7 @@ mod tooltip;
 mod util;
 
 pub use basic::{Button, Text};
+pub use data_grid::{CellValue, DataGrid, DataSource, FnSource, GridColumn};
 pub use divider::{Divider, VerticalDivider};
 pub use focus_scope::FocusScope;
 pub use icon::{Icon, IconButton, IconData};
