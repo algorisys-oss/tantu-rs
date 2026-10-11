@@ -66,10 +66,15 @@ option, mark it for review, push at each milestone).
     ranges with colors as brushes, `RenderParagraph::spans`, `MeasureCache` keys with spans;
     `BuildCx::text_styles` (VIEW-STYLES-03); golden `rich-text.png`.
 
+  - **Text editing model** (2026-10-11, `docs/specs/widgets/text-editing.md`, decision 55,
+    decided by the agent while the user was away): `EditingValue` (byte offsets, grapheme and
+    UAX #29 word movement through `unicode-segmentation`), `TextEditingController` (two
+    signals behind a `Copy` handle, undo/redo, coalescing by edit kind).
+
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `TextField` in three parts: the editing model (text, selection, undo), the widget (caret,
-   selection painting, keys), then IME.
+1. `TextField`, the widget: caret, selection painting, keys, pointer (clipboard needs the
+   platform first, see the open question), then IME.
 
 After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
 animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
@@ -616,6 +621,14 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     a full style or field overrides (`size`, `bold`, `italic`, `family`, `color`) instead of
     Flutter's partial `TextStyle.merge`; the measure and layout caches key by the spans too;
     underline/strikethrough, inline widgets and tap recognizers deferred to `TextField`/links.
+55. **Text editing model** (2026-10-11, spec `docs/specs/widgets/text-editing.md`, decided by
+    the agent while the user was away; review): byte offsets on character boundaries (not
+    Flutter's UTF-16 units); `unicode-segmentation` 1.13 (already a transitive dependency)
+    for graphemes and words, a word being a UAX #29 segment with an alphanumeric character;
+    forward-by-word goes to the next word's end, backward to the previous word's start;
+    undo coalescing by edit kind (single graphemes typed at the caret; whitespace joins and
+    ends the group) instead of Flutter's 500 ms throttle; `edit`s that only move the
+    selection record no step, like `select`; the model lives in `tantu-widgets`.
 
 ## Commit log
 
@@ -903,7 +916,13 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `7b27a42` | test: BuildCx::text_styles, stub + 1 failing test |
 | `8330414` | test: WIDGETS-RICHTEXT-02 expects the bigger span as its own run |
 | `97502d4` | impl: RichText and TextSpan; style spans through measuring, the text system (parley ranges and brushes) and painting; rich-text golden |
-| _this commit_ | docs: HANDOFF.md for RichText |
+| `5a266d2` | docs: HANDOFF.md for RichText |
+| `83e9521` | spec: text editing model (WIDGETS-EDIT-01..08); PLAN.md TextField item split in three |
+| `1c0bcf7` | spec: WIDGETS-EDIT-07, a whitespace grapheme joins the coalescing group and ends it |
+| `4d2ee26` | test: text editing model, stubs + 8 failing tests |
+| `661ba04` | test: WIDGETS-EDIT-08 expects redo to restore the moved caret |
+| `0b04547` | impl: text editing model (EditingValue, TextEditingController with undo and coalescing) |
+| _this commit_ | docs: HANDOFF.md for the text editing model |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -912,10 +931,14 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `TextField` next, the editing model first (see "Resume here").
+3. Phase 3 widgets: the `TextField` widget next (see "Resume here").
 
 ## Open questions
 
+- **Clipboard for `TextField`:** the `Platform` trait has no clipboard yet (PLAN.md puts it
+  in Phase 4). The widget part of `TextField` will ship without copy/paste unless a small
+  clipboard addition to `tantu-platform` is agreed; proposal: add `Platform::clipboard_text`
+  / `set_clipboard_text` with the widget, as a spec amendment.
 - **Handler ownership:** pointer, key and focus handlers live on the element they are
   registered on. A component that registers on another element (e.g. its parent, or the root)
   leaves its handlers there after it is removed, and they may read its disposed signals (a
