@@ -1,7 +1,9 @@
-# DataGrid: data source, columns, header and virtualization
+# DataGrid: data source, columns, header, virtualization and frozen columns
 
 - **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its nine
-  proposals)
+  proposals); **part 2, frozen columns (WIDGETS-GRID-09), Agreed** on 2026-10-12 (decided by
+  the agent on the user's "continue and then commit and push"; proposals 10 to 12 are marked
+  for review)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`, `DataSource`, `CellValue`,
   `FnSource`), `tantu-view` and `tantu-a11y` (three roles), `examples/gallery`
 - **Plan item:** Phase 4, "`DataGrid`" → "data source, columns, header, row and column
@@ -109,6 +111,9 @@ impl DataGrid {
     /// How long a wheel step takes (default 150 ms; zero applies deltas at once), as
     /// `ScrollView::wheel_duration`.
     pub fn wheel_duration(self, duration: Duration) -> Self;
+    /// The first `count` columns stay at the left while the others scroll (clamped to the
+    /// column count; default 0) (WIDGETS-GRID-09).
+    pub fn frozen_columns(self, count: usize) -> Self;
 }
 
 // tantu-view
@@ -175,10 +180,23 @@ background with a 1 px `outline_variant` line below the strip. Body rows get a 1
   one row height (a `tester.scroll` and its frame). The scenario is also a test: after a step
   the first visible row advanced by one and the built cell count is within WIDGETS-GRID-02's
   bound for that window.
+- **WIDGETS-GRID-09:** Frozen columns (part 2): with `frozen_columns(n)`, the first `n`
+  columns (clamped to the column count) are placed at their own starts whatever the
+  horizontal offset (LAYOUT-GRID-04), in the header and the body, and are always built; the
+  scrolling columns visible are those between the frozen width and the right edge (one
+  column of buffer each side, never a frozen one), so a 20-column grid with two frozen 120 px
+  columns in a 600 px window scrolled by 240 px builds columns 0, 1 and 3 to 7 and shows
+  column 4 at x = 240. Frozen cells are painted after the scrolling cells and over an opaque
+  `surface` background, so scrolling content passes under them, and the last frozen column's
+  right line is the theme's `outline` (the others stay `outline_variant`). The horizontal
+  extents are unchanged (the content width minus the grid width). `frozen_columns(0)` is the
+  part 1 behavior.
 - **GALLERY-10:** A "Data grid" section (key `grid`): a 1 000 000-row `FnSource` with six
-  columns (Id, Name, City, Amount, Active, Score), a "First row: N" text (key `first-row`)
-  following the vertical controller, and a golden `tests/goldens/gallery-grid.png`; a wheel
-  scroll of 320 px changes the text to "First row: 10".
+  columns (Id, Name, City, Amount, Active, Score), the Id column frozen, a "First row: N"
+  text (key `first-row`) following the vertical controller, and a golden
+  `tests/goldens/gallery-grid.png`; a wheel scroll of 320 px changes the text to "First row:
+  10", and a horizontal wheel scroll of 200 px leaves the "Id" header where it was while
+  "Name" moves left.
 
 ## Performance and allocation
 
@@ -233,3 +251,18 @@ Proposals (decided by the agent for the draft; say "continue" to accept, or chan
    measures, not layout alone. Numbers are compared by hand, no CI assertion.
 9. **The default cell text is one line, clipped,** no ellipsis: an ellipsis needs text
    measuring per cell (a later `Text::overflow` feature); clipping is free.
+
+Part 2, frozen columns (decided by the agent, 2026-10-12; review):
+
+10. **Paint order by element order, not z-index:** the visible-slot list puts the frozen
+    cells after the scrolling ones, so the `For` orders them last and they paint on top.
+    A z-index set inside a cell's paint would not reorder its transform scope among its
+    siblings (the scope's z-index is the one in force when it is pushed), and setting it
+    from the strip would need per-child painting the paint API doesn't have.
+11. **Frozen cells are opaque** (a `surface` fill) rather than the strip clipping the
+    scrolling cells to the region right of the frozen width, which `paint_children` can't
+    do per child either. The last frozen column's `outline` line marks the edge.
+12. **The frozen width counts against the horizontal extents as before** (max offset =
+    content width − grid width): the scrolling region is narrower by the frozen width, and so
+    is the scrolling content, so the arithmetic is unchanged and `jump_to`/`animate_to`
+    targets keep their meaning.
