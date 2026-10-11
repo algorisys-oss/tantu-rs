@@ -21,14 +21,16 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
   `ListView::builder`; inherited values; `examples/gallery`; on 2026-10-11 **the theme**
   (decision 62), **timers and tickers** (decision 63: the reactive runtime has a clock, the
   platform wakes the loop up at deadlines, the tester has `advance`, the tooltip waits 500 ms)
-  and **the animation controller, tweens, curves and `animated()` props** (decision 64; the
-  gallery has an Animation section). Left in Phase 3: enter/exit transitions (the third
-  animation sub-item), kinetic scrolling and `ensure_visible`, variable list extents,
-  `tantu-a11y`.
+  **the animation controller, tweens, curves and `animated()` props** (decision 64; the
+  gallery has an Animation section) and **transitions** (decision 65: `Opacity`,
+  `AnimatedSwitcher`, the caret blink, double-click word selection, smooth wheel scrolling
+  and `ScrollController::animate_to`). **The Animation item is complete.** Left in Phase 3:
+  `ensure_visible` (needs focus scopes), the `ListView` leftovers (variable extents,
+  separators, keyboard navigation), `tantu-a11y`.
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 64 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 65 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally. CI was not checked from this session.
 
@@ -39,16 +41,13 @@ stops; the user says "continue" to accept the proposals; the agent then does
 recommended option at forks, marks it for review and pushes at each milestone (decision 34).
 Additions made while agreeing a spec are marked "review" in its Open questions.
 
-**For the user to review:** decisions 49 to 64 (made by the agent, marked in the specs), and the
+**For the user to review:** decisions 49 to 65 (made by the agent, marked in the specs), and the
 open questions below.
 
 **Next (PLAN.md order, Phase 3):**
 
-1. **Animation, sub-item 3** (PLAN.md): enter/exit transitions (`Opacity`, `AnimatedSwitcher`,
-   animated `Show`) with caret blink, double-click and kinetic scrolling as users. Timers,
-   tickers, the controller, tweens, curves and `animated()` are in.
-2. Scroll leftovers (kinetic, `ensure_visible`) and `ListView` leftovers (variable extents,
-   separators, keyboard navigation).
+1. `ListView` leftovers (variable item extents, separators, keyboard navigation).
+2. `ensure_visible` (scroll a focused child into view), with focus scopes.
 3. `tantu-a11y`: the AccessKit tree for every widget.
 
 ## Current state
@@ -618,6 +617,21 @@ open questions below.
     constructed while views are built must read signals untracked unless it means to re-run
     the enclosing `Dyn`. The gallery's Animation section has a painted `ColorBox` (a local
     custom-paint view, the first in an example since the layout demo's `Swatch`).
+65. **Transitions** (2026-10-11, spec `docs/specs/widgets/transitions.md`; the user said "next"
+    on the draft's seven proposals): `Opacity` pushes a Scene layer only between 0 and 1
+    (nothing at 0, no layer at 1; hit-testing unchanged); `AnimatedSwitcher` is a `Stack` over
+    a keyed `For` of entries (key, fade controller, leaving flag) with per-entry effects that
+    drop an entry once its fade out reaches `Dismissed`, so a key coming back reverses its
+    fade in place; the animated `Show` is a switcher on a `bool`, not a change to `Show`; the
+    caret blinks with a chain of 500 ms timers in the field's scope, restarted by an effect on
+    focus, text and selection; double-click uses a pending 500 ms timer as the click interval
+    (handlers have no clock), Flutter's 4 px slop, and UAX #29 segments (`segment_at`), with
+    drags extending by whole segments; wheel steps animate to an accumulating target over
+    150 ms with `EaseOut` (`ScrollView::wheel_duration`, zero for the old behavior), driven by
+    an `AnimationController` inside `ScrollController` whose effect writes the offset while
+    animating; `jump_to`, keys, the thumb and `animate_to` interrupt it. Kinetic fling is
+    deferred until touch or trackpad gesture events exist. The older wheel tests set a zero
+    wheel duration.
 
 ## Commit log
 
@@ -976,7 +990,12 @@ open questions below.
 | `f3911fd` | spec: VIEW-ANIM-08 covers animated()'s first read |
 | `bb26bce` | test: VIEW-ANIM-08, an animated prop inside a Dyn doesn't rebuild it |
 | `633c536` | impl: animation: curves, Lerp/Tween, AnimationController, Animation and animated(); the gallery's Animation section |
-| _this commit_ | docs: HANDOFF.md for the animation controller |
+| `742be89` | docs: HANDOFF.md for the animation controller |
+| `9b10155` | docs: draft transitions spec for review |
+| `b84aa22` | spec: transitions (WIDGETS-OPACITY-01..02, WIDGETS-SWITCHER-01..03, WIDGETS-TEXTFIELD-10..11, WIDGETS-SCROLL-07..08, GALLERY-07) |
+| `a2b5398` | test: transitions, stubs + 11 failing tests |
+| `872b5d7` | impl: transitions: Opacity, AnimatedSwitcher, caret blink, double-click, smooth wheel, animate_to; the gallery's switcher |
+| _this commit_ | docs: HANDOFF.md for the transitions |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
