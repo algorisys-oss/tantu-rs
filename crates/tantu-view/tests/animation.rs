@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/animation.md`, rules VIEW-ANIM-01..07.
+//! Tests for `docs/specs/view/animation.md`, rules VIEW-ANIM-01..08.
 
 use std::cell::{Cell, RefCell};
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -10,8 +10,8 @@ use tantu_layout::{BoxConstraints, NoTextMeasure, RenderConstrainedBox};
 use tantu_reactive::{Scope, Signal, Wake, effect, signal};
 use tantu_scene::Scene;
 use tantu_view::{
-    Animated, AnimationController, AnimationStatus, BuildCx, Curve, ElementId, IntoProp, Lerp,
-    Prop, Tween, View, ViewTree, animated,
+    Animated, AnimationController, AnimationStatus, AnyView, BuildCx, Curve, Dyn, ElementId,
+    IntoProp, Lerp, Prop, Tween, View, ViewTree, animated,
 };
 
 fn ms(n: u64) -> Duration {
@@ -204,8 +204,8 @@ fn view_anim_03_forward_and_reverse() {
         c.set_value(0.5);
         c.forward();
     });
-    tree.tick(t0 + ms(240));
-    tree.tick(t0 + ms(265));
+    // The run started at the clock's last tick (230 ms): 25 ms in, it is at 0.75.
+    tree.tick(t0 + ms(255));
     tree.enter(|| assert!(close(c.value(), 0.75), "{}", c.value()));
     tree.tick(t0 + ms(290));
     tree.enter(|| assert_eq!(c.status(), AnimationStatus::Completed));
@@ -444,4 +444,38 @@ fn view_anim_07_animated_props() {
     frame(&mut tree2);
     assert_eq!(width_of(&tree2, leaf2), 9.0);
     let _: Option<Animated<f32>> = None;
+}
+
+#[test]
+fn view_anim_08_control_methods_do_not_subscribe_the_caller() {
+    let builds = Rc::new(Cell::new(0u32));
+    let out: Rc<Cell<Option<ElementId>>> = Rc::default();
+    let mut tree = {
+        let (builds, out) = (builds.clone(), out.clone());
+        ViewTree::new(move || {
+            let (builds, out) = (builds.clone(), out.clone());
+            Dyn::new(move || {
+                builds.set(builds.get() + 1);
+                let c = AnimationController::new(ms(100));
+                c.repeat(true);
+                c.set_value(0.0);
+                c.forward();
+                AnyView::new(Leaf {
+                    width: c.drive(Tween::new(0.0f32, 100.0)).into_prop(),
+                    out: out.clone(),
+                })
+            })
+        })
+    };
+    let leaf = out.get().expect("built");
+    let t0 = Instant::now();
+    tree.tick(t0);
+    frame(&mut tree);
+    for i in 1..=5u64 {
+        tree.tick(t0 + ms(10 * i));
+        frame(&mut tree);
+    }
+    assert_eq!(builds.get(), 1, "the Dyn built once");
+    assert_eq!(out.get(), Some(leaf), "and kept its element");
+    assert!((width_of(&tree, leaf) - 50.0).abs() < 1e-3);
 }
