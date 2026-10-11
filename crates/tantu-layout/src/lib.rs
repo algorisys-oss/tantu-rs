@@ -56,7 +56,7 @@ pub use flex::{
     Axis, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment, MainAxisSize, RenderFlex,
 };
 pub use image::RenderImage;
-pub use list::{ListIndex, RenderListContent};
+pub use list::{ListExtents, ListIndex, RenderListContent};
 pub use single_child::{
     RenderAspectRatio, RenderConstrainedBox, RenderFractionallySizedBox, RenderLimitedBox,
     RenderPadding, RenderPositionedBox,

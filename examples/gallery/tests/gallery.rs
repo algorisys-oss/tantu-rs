@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..07.
+//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..08.
 
 use gallery::{SECTIONS, gallery};
 use tantu::core::{Rect, Vec2};
@@ -165,4 +165,26 @@ fn gallery_07_switcher() {
     tester.advance(Duration::from_millis(150));
     assert!(tester.find_all(&Finder::text("One")).is_empty());
     assert!(!tester.find_all(&Finder::text("Two")).is_empty());
+}
+
+#[test]
+fn gallery_08_contacts_list() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    tester.tap(&Finder::key(nav("Lists")));
+    tester.pump();
+    tester.find(&Finder::key("contacts"));
+    assert_eq!(text_of(&tester, "selected"), "Selected: none");
+    tester.find(&Finder::text("Group 0"));
+    tester.tap(&Finder::text("Contact 1"));
+    assert_eq!(text_of(&tester, "selected"), "Selected: 1");
+    tester.press_key(LogicalKey::Named(NamedKey::ArrowDown), Modifiers::default());
+    assert_eq!(text_of(&tester, "selected"), "Selected: 2");
+    tester.press_key(LogicalKey::Named(NamedKey::End), Modifiers::default());
+    assert_eq!(text_of(&tester, "selected"), "Selected: 199");
+    tester.find(&Finder::text("Contact 199"));
+    assert!(
+        tester.find_all(&Finder::text("Contact 1")).is_empty(),
+        "scrolled away"
+    );
 }

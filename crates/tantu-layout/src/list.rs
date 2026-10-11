@@ -1,9 +1,74 @@
 //! [`RenderListContent`] and [`ListIndex`]: a virtualized list's content. Spec:
 //! `docs/specs/layout/list.md`.
 
+use std::sync::Arc;
+
 use tantu_core::{Size, Vec2};
 
 use crate::{BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox, ScrollAxis};
+
+/// How long each item of a [`RenderListContent`] is along the axis (LAYOUT-LIST-03).
+#[derive(Clone, Debug, PartialEq)]
+pub enum ListExtents {
+    /// Every item the same; negative or NaN counts as 0.
+    Fixed(f32),
+    /// Item `i` ends at `ends[i]` (prefix sums, non-decreasing; `ends.len()` is the count).
+    Table(Arc<[f32]>),
+}
+
+impl ListExtents {
+    /// Prefix sums of `extents` (negative or NaN entries count as 0).
+    pub fn table(extents: impl IntoIterator<Item = f32>) -> ListExtents {
+        let _ = extents.into_iter();
+        todo!()
+    }
+
+    /// Where item `index` starts.
+    pub fn start(&self, index: usize) -> f32 {
+        match self {
+            ListExtents::Fixed(extent) => index as f32 * clean(*extent),
+            ListExtents::Table(_) => todo!(),
+        }
+    }
+
+    /// Item `index`'s extent.
+    pub fn extent(&self, index: usize) -> f32 {
+        match self {
+            ListExtents::Fixed(extent) => clean(*extent),
+            ListExtents::Table(_) => {
+                let _ = index;
+                todo!()
+            }
+        }
+    }
+
+    /// The total length of `count` items.
+    pub fn total(&self, count: usize) -> f32 {
+        match self {
+            ListExtents::Fixed(extent) => count as f32 * clean(*extent),
+            ListExtents::Table(_) => todo!(),
+        }
+    }
+
+    /// The index of the item containing `position` (the last item at or past the end, 0
+    /// before the start), among `count` items; `None` when `count` is 0.
+    pub fn index_at(&self, position: f32, count: usize) -> Option<usize> {
+        let _ = position;
+        if count == 0 {
+            return None;
+        }
+        todo!()
+    }
+}
+
+/// A non-negative finite extent, else 0.
+fn clean(extent: f32) -> f32 {
+    if extent.is_finite() && extent >= 0.0 {
+        extent
+    } else {
+        0.0
+    }
+}
 
 /// Which item a built child of a [`RenderListContent`] is (parent data).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -11,40 +76,31 @@ pub struct ListIndex(pub usize);
 
 /// Sizes to `count` items of `item_extent` along `axis` and places its children by their
 /// [`ListIndex`] (Flutter's `RenderSliverFixedExtentList`, as a box).
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RenderListContent {
     /// The list's axis.
     pub axis: ScrollAxis,
     /// How many items the list has (built or not).
     pub count: usize,
-    /// Each item's extent along the axis; negative or NaN counts as 0.
-    pub item_extent: f32,
+    /// Each item's extent along the axis (LAYOUT-LIST-03).
+    pub extents: ListExtents,
 }
 
 impl RenderListContent {
-    /// `count` items of `item_extent` along `axis`.
+    /// `count` items of `item_extent` along `axis` (`ListExtents::Fixed`).
     pub const fn new(axis: ScrollAxis, count: usize, item_extent: f32) -> Self {
         RenderListContent {
             axis,
             count,
-            item_extent,
+            extents: ListExtents::Fixed(item_extent),
         }
     }
 }
 
 impl RenderListContent {
-    /// The item extent, with negative or NaN counting as 0.
-    fn extent(&self) -> f32 {
-        if self.item_extent.is_finite() && self.item_extent >= 0.0 {
-            self.item_extent
-        } else {
-            0.0
-        }
-    }
-
-    /// `count · extent`.
+    /// The total length along the axis.
     fn main_size(&self) -> f32 {
-        self.count as f32 * self.extent()
+        self.extents.total(self.count)
     }
 }
 
@@ -54,7 +110,6 @@ impl RenderBox for RenderListContent {
         constraints: BoxConstraints,
         children: &mut LayoutChildren<'_>,
     ) -> Size {
-        let extent = self.extent();
         let (bounded, cross_max) = match self.axis {
             ScrollAxis::Vertical => (constraints.has_bounded_width(), constraints.max_width),
             ScrollAxis::Horizontal => (constraints.has_bounded_height(), constraints.max_height),
@@ -66,6 +121,10 @@ impl RenderBox for RenderListContent {
         };
         let mut cross = if bounded { cross_max } else { 0.0 };
         for i in 0..children.len() {
+            let index = children
+                .parent_data::<ListIndex>(i)
+                .map_or(i, |data| data.0);
+            let extent = self.extents.extent(index);
             let child_constraints = match self.axis {
                 ScrollAxis::Vertical => BoxConstraints::new(cross_min, cross_limit, extent, extent),
                 ScrollAxis::Horizontal => {
@@ -79,10 +138,7 @@ impl RenderBox for RenderListContent {
                     ScrollAxis::Horizontal => size.height,
                 });
             }
-            let index = children
-                .parent_data::<ListIndex>(i)
-                .map_or(i, |data| data.0);
-            let along = index as f32 * extent;
+            let along = self.extents.start(index);
             children.set_offset(
                 i,
                 match self.axis {
