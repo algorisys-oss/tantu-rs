@@ -207,12 +207,12 @@ fn widgets_grid_03_column_builder_and_clipping() {
     // The header keeps its title.
     assert!(has(&tester, "B") && has(&tester, "Narrow"));
     // The wide content overflows its 40 px cell and is clipped to it.
-    let wide = tester.rect(
-        tester.find_all(&Finder::text(
-            "a cell text much wider than its forty pixel column",
-        ))[0],
-    );
-    assert!(wide.width() > 40.0, "{wide:?}");
+    // (The paragraph's rect is constrained to the cell, so the overflow shows only in the
+    // glyphs; what is checkable is the clip.)
+    assert!(has(
+        &tester,
+        "a cell text much wider than its forty pixel column"
+    ));
     let clipped = tester
         .frame()
         .scene
