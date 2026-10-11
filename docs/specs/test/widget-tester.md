@@ -153,7 +153,8 @@ impl Finder {
 - **TEST-WT-11:** `scroll` dispatches a wheel scroll at the element's center and pumps; see
   [ScrollView](../widgets/scroll.md).
 - **TEST-WT-12:** The tester provides a `Signal<Theme>` holding `Theme::light()` around the app
-  view and returns it from `theme()`; see [theme](../theme/theme.md).
+  view and returns it from `theme()`; `matches_golden` renders over the theme's `surface`. See
+  [theme](../theme/theme.md).
 
 ## Open questions
 

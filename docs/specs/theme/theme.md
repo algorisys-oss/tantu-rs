@@ -174,8 +174,9 @@ geometry, not shape tokens). Density: `Density(0)`.
 - **WIDGETS-THEME-03:** Density changes the minimum extents of controls through
   `Density::apply`, reactively: at `Density(-1)` a `Button` is at least 36 px tall (64 wide),
   a `Checkbox`, `Radio` and `IconButton` element is 36 × 36, a `Switch` 56 × 36 and a
-  `TextField` at least 36 px tall; at `Density(-2)` 32, 32 × 32, 52 × 32 and 32. The slider
-  and the layout widgets are unaffected.
+  `TextField` at least 36 px tall; at `Density(-2)` 32, 32 × 32, 52 × 32 and 32. A button's
+  or field's content can still make it taller than the minimum (a 14 px label with 10 px of
+  padding above and below is 36 px). The slider and the layout widgets are unaffected.
 - **WIDGETS-THEME-04:** `Text` defaults to the theme's `text.body`, `Button` labels use
   `text.label`, `TextField` uses `text.body` at 16 px and `Tooltip` `text.body` at 12 px, read
   from the theme in effect at build time (not reactive); a theme whose `body` is 20 px makes a
@@ -190,6 +191,8 @@ geometry, not shape tokens). Density: `Density(0)`.
   provided and the background is `Window::background` (default white).
 - **TEST-WT-12:** `WidgetTester` provides a `Signal<Theme>` holding `Theme::light()` around
   the app view; `tester.theme()` returns it, so a test can switch the theme and pump.
+  `matches_golden` renders the frame over the theme's `surface` (white in the light theme,
+  where goldens were transparent before), so a golden shows what a window shows.
 - **VIEW-TREE-12:** `Builder::new(f)` builds the view `f(cx)` returns in place (same parent,
   same scope), so `f` can read inherited values and the text styles.
 - **GALLERY-05:** The header holds a "Dark" `Switch` (key `dark`) that sets the provided theme
