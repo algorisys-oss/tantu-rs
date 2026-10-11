@@ -70,6 +70,16 @@ fn control() -> Modifiers {
     }
 }
 
+/// The platform's primary modifier for chords: Command on macOS, Control elsewhere (as
+/// `SingleActivator::primary`).
+fn primary() -> Modifiers {
+    Modifiers {
+        control: !cfg!(target_os = "macos"),
+        super_key: cfg!(target_os = "macos"),
+        ..Modifiers::default()
+    }
+}
+
 /// The fills of the field: (rect, color).
 fn fills(tester: &WidgetTester) -> Vec<(Rect, Color)> {
     tester
@@ -322,22 +332,21 @@ fn widgets_textfield_05_chords() {
     for ch in ["a", "b"] {
         tester.press_key(LogicalKey::Character(ch.into()), Modifiers::default());
     }
-    tester.press_key(LogicalKey::Character("a".into()), control());
+    tester.press_key(LogicalKey::Character("a".into()), primary());
     assert_eq!(sel(&tester, c), TextSelection::new(0, 2));
-    tester.press_key(LogicalKey::Character("z".into()), control());
+    tester.press_key(LogicalKey::Character("z".into()), primary());
     assert_eq!(tester.enter(|| c.text()), "");
     tester.press_key(
         LogicalKey::Character("z".into()),
         Modifiers {
-            control: true,
             shift: true,
-            ..Modifiers::default()
+            ..primary()
         },
     );
     assert_eq!(tester.enter(|| c.text()), "ab");
-    tester.press_key(LogicalKey::Character("z".into()), control());
+    tester.press_key(LogicalKey::Character("z".into()), primary());
     assert_eq!(tester.enter(|| c.text()), "");
-    tester.press_key(LogicalKey::Character("y".into()), control());
+    tester.press_key(LogicalKey::Character("y".into()), primary());
     assert_eq!(tester.enter(|| c.text()), "ab");
 }
 
