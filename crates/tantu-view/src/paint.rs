@@ -117,8 +117,9 @@ impl<'b> PaintCx<'_, 'b> {
         color: Color,
         origin: Point,
     ) {
-        let _ = (text, style, spans, max_width, max_lines, color, origin);
-        todo!("VIEW-TEXT-07")
+        self.text.paint_rich(
+            self.scene, text, style, spans, max_width, max_lines, color, origin,
+        );
     }
 
     /// Interns `image` in the frame's resources through the pass's painter and returns its

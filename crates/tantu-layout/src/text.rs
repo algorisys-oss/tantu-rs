@@ -2,7 +2,9 @@
 //! [`MeasureCache`] in front of it, and [`RenderParagraph`], the layout object behind `Text`.
 //! Spec: `docs/specs/layout/text.md`.
 
+use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 
@@ -225,6 +227,32 @@ impl<M: TextMeasure> MeasureCache<M> {
     }
 }
 
+impl<M: TextMeasure> MeasureCache<M> {
+    /// The cache's text for a rich paragraph: the text, then its spans, so the same text with
+    /// different spans is a different entry (LAYOUT-TEXT-12).
+    fn rich_text<'a>(text: &'a str, spans: &[StyleSpan]) -> Cow<'a, str> {
+        if spans.is_empty() {
+            return Cow::Borrowed(text);
+        }
+        let mut key = String::with_capacity(text.len() + 32 * spans.len());
+        key.push_str(text);
+        for span in spans {
+            let _ = write!(key, "\u{1F}{},{},{}", span.start, span.end, span.style.0);
+            if let Some(c) = span.color {
+                let _ = write!(
+                    key,
+                    ",{:x},{:x},{:x},{:x}",
+                    c.r.to_bits(),
+                    c.g.to_bits(),
+                    c.b.to_bits(),
+                    c.a.to_bits()
+                );
+            }
+        }
+        Cow::Owned(key)
+    }
+}
+
 impl<M: TextMeasure> TextMeasure for MeasureCache<M> {
     fn measure(
         &mut self,
@@ -233,9 +261,25 @@ impl<M: TextMeasure> TextMeasure for MeasureCache<M> {
         max_width: f32,
         max_lines: Option<u32>,
     ) -> TextMetrics {
-        let hash = text_hash(text);
+        self.measure_rich(text, style, &[], max_width, max_lines)
+    }
+
+    fn min_intrinsic_width(&mut self, text: &str, style: TextStyleKey) -> f32 {
+        self.min_intrinsic_width_rich(text, style, &[])
+    }
+
+    fn measure_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> TextMetrics {
+        let keyed = Self::rich_text(text, spans);
+        let hash = text_hash(&keyed);
         let key = (hash, style, max_width.to_bits(), max_lines);
-        if let Some(metrics) = self.paragraphs.get(key, text) {
+        if let Some(metrics) = self.paragraphs.get(key, &keyed) {
             self.hits += 1;
             return metrics;
         }
@@ -243,7 +287,7 @@ impl<M: TextMeasure> TextMeasure for MeasureCache<M> {
         // (LAYOUT-TEXT-03).
         if max_width.is_finite() {
             let single_key = (hash, style, f32::INFINITY.to_bits(), None);
-            if let Some(single) = self.paragraphs.get(single_key, text) {
+            if let Some(single) = self.paragraphs.get(single_key, &keyed) {
                 if single.size.width <= max_width
                     && max_lines.is_none_or(|lines| lines >= single.line_count)
                 {
@@ -253,25 +297,33 @@ impl<M: TextMeasure> TextMeasure for MeasureCache<M> {
             }
         }
         self.misses += 1;
-        let metrics = self.inner.measure(text, style, max_width, max_lines);
-        self.paragraphs.insert(key, text, metrics);
+        let metrics = self
+            .inner
+            .measure_rich(text, style, spans, max_width, max_lines);
+        self.paragraphs.insert(key, &keyed, metrics);
         metrics
     }
 
-    fn min_intrinsic_width(&mut self, text: &str, style: TextStyleKey) -> f32 {
-        let key = (text_hash(text), style);
-        if let Some(width) = self.widths.get(key, text) {
+    fn min_intrinsic_width_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+    ) -> f32 {
+        let keyed = Self::rich_text(text, spans);
+        let key = (text_hash(&keyed), style);
+        if let Some(width) = self.widths.get(key, &keyed) {
             self.hits += 1;
             return width;
         }
         self.misses += 1;
-        let width = self.inner.min_intrinsic_width(text, style);
-        self.widths.insert(key, text, width);
+        let width = self.inner.min_intrinsic_width_rich(text, style, spans);
+        self.widths.insert(key, &keyed, width);
         width
     }
 }
 
-/// How a paragraph's width is chosen (Flutter's `TextWidthBasis`).
+/// How a paragraph chooses its width (Flutter's `TextWidthBasis`).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum TextWidthBasis {
     /// As wide as the text on one line, up to the incoming maximum: wrapped text takes the
@@ -324,14 +376,15 @@ impl RenderParagraph {
 
     /// The text on one line, ignoring the line limit (Flutter's max intrinsic width).
     fn single_line(&self, text: &mut dyn TextMeasure) -> TextMetrics {
-        text.measure(&self.text, self.style, f32::INFINITY, None)
+        text.measure_rich(&self.text, self.style, &self.spans, f32::INFINITY, None)
     }
 
     /// The height of the text wrapped at `width`.
     fn height_at(&self, width: f32, text: &mut dyn TextMeasure) -> f32 {
-        text.measure(
+        text.measure_rich(
             &self.text,
             self.style,
+            &self.spans,
             self.wrap_width(width),
             self.max_lines,
         )
@@ -347,9 +400,10 @@ impl RenderBox for RenderParagraph {
         children: &mut LayoutChildren<'_>,
     ) -> Size {
         let text = children.text();
-        let metrics = text.measure(
+        let metrics = text.measure_rich(
             &self.text,
             self.style,
+            &self.spans,
             self.wrap_width(constraints.max_width),
             self.max_lines,
         );
@@ -361,7 +415,9 @@ impl RenderBox for RenderParagraph {
     }
 
     fn min_intrinsic_width(&self, _: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        children.text().min_intrinsic_width(&self.text, self.style)
+        children
+            .text()
+            .min_intrinsic_width_rich(&self.text, self.style, &self.spans)
     }
 
     fn max_intrinsic_width(&self, _: f32, children: &mut IntrinsicChildren<'_>) -> f32 {

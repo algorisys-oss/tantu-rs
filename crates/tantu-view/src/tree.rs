@@ -137,7 +137,7 @@ impl BuildCx<'_> {
     /// The tree's style table (a clone of the handle), so a binding can resolve style keys
     /// later (VIEW-STYLES-03).
     pub fn text_styles(&self) -> TextStyles {
-        todo!("VIEW-STYLES-03")
+        self.tree.text_styles.clone()
     }
 
     /// Queues `font` for the text system to register before it next measures

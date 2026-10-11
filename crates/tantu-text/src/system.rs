@@ -84,15 +84,52 @@ impl TextStyle {
     }
 }
 
+/// A span's color, carried through parley as the brush of its range (TEXT-SYS-11); `None`
+/// paints in the paragraph's color.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+struct SpanBrush(Option<Color>);
+
+/// A style span as a hashable cache key: range, style and color bits.
+type SpanKey = (usize, usize, TextStyleKey, Option<[u32; 4]>);
+
+/// A layout cache key: the text, its base style and its (valid) spans.
+type LayoutKey = (String, TextStyleKey, Vec<SpanKey>);
+
 /// Shaped layouts kept between calls: two generations, like `MeasureCache`.
 #[derive(Default)]
 struct LayoutCache {
-    current: HashMap<(String, TextStyleKey), Layout<()>>,
-    old: HashMap<(String, TextStyleKey), Layout<()>>,
+    current: HashMap<LayoutKey, Layout<SpanBrush>>,
+    old: HashMap<LayoutKey, Layout<SpanBrush>>,
 }
 
-/// One glyph run read out of a layout: the font (a cheap handle), face index, size, glyphs.
-type ShapedRun = (Blob<u8>, u32, f32, Vec<Glyph>);
+/// One glyph run read out of a layout: the font (a cheap handle), face index, size, glyphs
+/// and the span color, if any.
+type ShapedRun = (Blob<u8>, u32, f32, Vec<Glyph>, Option<Color>);
+
+/// The spans that apply to `text`: non-empty, inside it and on character boundaries
+/// (TEXT-SYS-10).
+fn valid_spans(text: &str, spans: &[StyleSpan]) -> Vec<StyleSpan> {
+    spans
+        .iter()
+        .filter(|s| {
+            s.start < s.end
+                && s.end <= text.len()
+                && text.is_char_boundary(s.start)
+                && text.is_char_boundary(s.end)
+        })
+        .copied()
+        .collect()
+}
+
+fn span_key(span: &StyleSpan) -> SpanKey {
+    (
+        span.start,
+        span.end,
+        span.style,
+        span.color
+            .map(|c| [c.r.to_bits(), c.g.to_bits(), c.b.to_bits(), c.a.to_bits()]),
+    )
+}
 
 /// How many shaped layouts each cache generation holds.
 const LAYOUTS_PER_GENERATION: usize = 512;
@@ -100,7 +137,7 @@ const LAYOUTS_PER_GENERATION: usize = 512;
 /// Fonts, styles, shaping and line breaking for one app.
 pub struct TextSystem {
     fonts: FontContext,
-    layouts: LayoutContext<()>,
+    layouts: LayoutContext<SpanBrush>,
     styles: crate::TextStyles,
     default_family: FontFamily,
     /// Families added by `register_font`, in registration order (the fallback list,
@@ -210,11 +247,40 @@ impl TextSystem {
         color: Color,
         origin: Point,
     ) {
+        self.paint_rich(
+            scene,
+            resources,
+            text,
+            style,
+            &[],
+            max_width,
+            max_lines,
+            color,
+            origin,
+        );
+    }
+
+    /// `paint` with `spans` styling and coloring parts of `text`: one glyph run per parley
+    /// run, each in its span's color or `color` (TEXT-SYS-11).
+    #[allow(clippy::too_many_arguments)]
+    pub fn paint_rich(
+        &mut self,
+        scene: &mut SceneBuilder<'_>,
+        resources: &mut Resources,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+        color: Color,
+        origin: Point,
+    ) {
         if text.is_empty() {
             return;
         }
         let keep = lines_to_keep(max_lines);
-        let layout = self.broken_layout(text, style, max_width);
+        let spans = valid_spans(text, spans);
+        let layout = self.broken_layout(text, style, &spans, max_width);
         let mut runs: Vec<ShapedRun> = Vec::new();
         for line in layout.lines().take(keep) {
             for item in line.items() {
@@ -230,14 +296,20 @@ impl TextSystem {
                         y: g.y,
                     })
                     .collect();
-                runs.push((font.data.clone(), font.index, run.run().font_size(), glyphs));
+                runs.push((
+                    font.data.clone(),
+                    font.index,
+                    run.run().font_size(),
+                    glyphs,
+                    run.style().brush.0,
+                ));
             }
         }
-        for (blob, index, size, glyphs) in runs {
+        for (blob, index, size, glyphs, brush) in runs {
             let Some(font) = self.font_id(resources, &blob, index) else {
                 continue;
             };
-            scene.glyph_run(font, size, color, origin, &glyphs);
+            scene.glyph_run(font, size, brush.unwrap_or(color), origin, &glyphs);
         }
     }
 
@@ -262,23 +334,38 @@ impl TextSystem {
     }
 
     /// The shaped layout of `text` in `style` (cached), with its lines broken at `max_width`.
-    fn broken_layout(&mut self, text: &str, style: TextStyleKey, max_width: f32) -> &Layout<()> {
-        let layout = self.layout(text, style);
+    fn broken_layout(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+    ) -> &Layout<SpanBrush> {
+        let layout = self.layout(text, style, spans);
         layout.break_all_lines(wrap_width(max_width));
         layout
     }
 
     /// The shaped layout of `text` in `style`, from the cache or shaped now.
-    fn layout(&mut self, text: &str, style: TextStyleKey) -> &mut Layout<()> {
+    fn layout(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+    ) -> &mut Layout<SpanBrush> {
         // Fonts widgets queued through the shared table (TEXT-STYLES-05).
         for font in self.styles.take_pending_fonts() {
             self.register_font(font.to_vec());
         }
-        let key = (text.to_owned(), style);
+        let key = (
+            text.to_owned(),
+            style,
+            spans.iter().map(span_key).collect::<Vec<_>>(),
+        );
         if !self.cache.current.contains_key(&key) {
             let layout = match self.cache.old.remove(&key) {
                 Some(layout) => layout,
-                None => self.shape(text, style),
+                None => self.shape(text, style, spans),
             };
             if self.cache.current.len() >= LAYOUTS_PER_GENERATION {
                 self.cache.old = std::mem::take(&mut self.cache.current);
@@ -291,33 +378,65 @@ impl TextSystem {
             .expect("inserted just above if it was missing")
     }
 
-    /// Shapes `text` in `style` (the default style for an unknown key) with parley.
-    fn shape(&mut self, text: &str, style: TextStyleKey) -> Layout<()> {
-        let style = self.text_style(style).unwrap_or_default();
+    /// Shapes `text` in `style` (the default style for an unknown key) with parley, with each
+    /// span's style and color on its range (TEXT-SYS-10, -11).
+    fn shape(&mut self, text: &str, style: TextStyleKey, spans: &[StyleSpan]) -> Layout<SpanBrush> {
+        let base = self.text_style(style).unwrap_or_default();
+        let span_styles: Vec<(StyleSpan, TextStyle)> = spans
+            .iter()
+            .map(|span| (*span, self.text_style(span.style).unwrap_or_default()))
+            .collect();
+        let (registered, default_family) = (&self.registered, &self.default_family);
         // The style's family, the default family, then every registered family in order
         // (TEXT-SCRIPT-03); parley falls back per character along this list.
-        let mut stack = vec![style.family.to_parley(), self.default_family.to_parley()];
-        for name in &self.registered {
-            let family = FontFamily::Named(Arc::clone(name)).to_parley();
-            if !stack.contains(&family) {
-                stack.push(family);
+        let stack = |family: &FontFamily| {
+            let mut stack = vec![family.to_parley(), default_family.to_parley()];
+            for name in registered {
+                let family = FontFamily::Named(Arc::clone(name)).to_parley();
+                if !stack.contains(&family) {
+                    stack.push(family);
+                }
             }
-        }
+            parley::FontFamily::List(Cow::Owned(stack))
+        };
         let mut builder = self
             .layouts
             .ranged_builder(&mut self.fonts, text, 1.0, true);
-        builder.push_default(StyleProperty::FontSize(style.size));
-        builder.push_default(StyleProperty::FontFamily(parley::FontFamily::List(
-            Cow::Owned(stack),
-        )));
-        builder.push_default(StyleProperty::FontWeight(FontWeight::new(style.weight)));
-        if style.italic {
+        builder.push_default(StyleProperty::FontSize(base.size));
+        builder.push_default(StyleProperty::FontFamily(stack(&base.family)));
+        builder.push_default(StyleProperty::FontWeight(FontWeight::new(base.weight)));
+        if base.italic {
             builder.push_default(StyleProperty::FontStyle(FontStyle::Italic));
         }
-        if let Some(height) = style.line_height {
+        if let Some(height) = base.line_height {
             builder.push_default(StyleProperty::LineHeight(LineHeight::FontSizeRelative(
                 height,
             )));
+        }
+        for (span, style) in &span_styles {
+            let range = span.start..span.end;
+            builder.push(StyleProperty::FontSize(style.size), range.clone());
+            builder.push(
+                StyleProperty::FontFamily(stack(&style.family)),
+                range.clone(),
+            );
+            builder.push(
+                StyleProperty::FontWeight(FontWeight::new(style.weight)),
+                range.clone(),
+            );
+            let slant = if style.italic {
+                FontStyle::Italic
+            } else {
+                FontStyle::Normal
+            };
+            builder.push(StyleProperty::FontStyle(slant), range.clone());
+            if let Some(height) = style.line_height {
+                builder.push(
+                    StyleProperty::LineHeight(LineHeight::FontSizeRelative(height)),
+                    range.clone(),
+                );
+            }
+            builder.push(StyleProperty::Brush(SpanBrush(span.color)), range);
         }
         builder.build(text)
     }
@@ -339,29 +458,21 @@ fn lines_to_keep(max_lines: Option<u32>) -> usize {
     max_lines.map_or(usize::MAX, |n| usize::try_from(n).unwrap_or(usize::MAX))
 }
 
-impl TextSystem {
-    /// `paint` with `spans` styling and coloring parts of `text` (TEXT-SYS-11).
-    #[allow(clippy::too_many_arguments)]
-    pub fn paint_rich(
+impl TextMeasure for TextSystem {
+    fn measure(
         &mut self,
-        scene: &mut SceneBuilder<'_>,
-        resources: &mut Resources,
         text: &str,
         style: TextStyleKey,
-        spans: &[StyleSpan],
         max_width: f32,
         max_lines: Option<u32>,
-        color: Color,
-        origin: Point,
-    ) {
-        let _ = (
-            scene, resources, text, style, spans, max_width, max_lines, color, origin,
-        );
-        todo!("TEXT-SYS-11")
+    ) -> TextMetrics {
+        self.measure_rich(text, style, &[], max_width, max_lines)
     }
-}
 
-impl TextMeasure for TextSystem {
+    fn min_intrinsic_width(&mut self, text: &str, style: TextStyleKey) -> f32 {
+        self.min_intrinsic_width_rich(text, style, &[])
+    }
+
     fn measure_rich(
         &mut self,
         text: &str,
@@ -370,32 +481,12 @@ impl TextMeasure for TextSystem {
         max_width: f32,
         max_lines: Option<u32>,
     ) -> TextMetrics {
-        let _ = (text, style, spans, max_width, max_lines);
-        todo!("TEXT-SYS-10")
-    }
-
-    fn min_intrinsic_width_rich(
-        &mut self,
-        text: &str,
-        style: TextStyleKey,
-        spans: &[StyleSpan],
-    ) -> f32 {
-        let _ = (text, style, spans);
-        todo!("TEXT-SYS-10")
-    }
-
-    fn measure(
-        &mut self,
-        text: &str,
-        style: TextStyleKey,
-        max_width: f32,
-        max_lines: Option<u32>,
-    ) -> TextMetrics {
         if text.is_empty() {
             return TextMetrics::default();
         }
         let keep = lines_to_keep(max_lines);
-        let layout = self.broken_layout(text, style, max_width);
+        let spans = valid_spans(text, spans);
+        let layout = self.broken_layout(text, style, &spans, max_width);
         let mut metrics = TextMetrics::default();
         for line in layout.lines().take(keep) {
             let m = line.metrics();
@@ -410,10 +501,18 @@ impl TextMeasure for TextSystem {
         metrics
     }
 
-    fn min_intrinsic_width(&mut self, text: &str, style: TextStyleKey) -> f32 {
+    fn min_intrinsic_width_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+    ) -> f32 {
         if text.is_empty() {
             return 0.0;
         }
-        self.layout(text, style).calculate_content_widths().min
+        let spans = valid_spans(text, spans);
+        self.layout(text, style, &spans)
+            .calculate_content_widths()
+            .min
     }
 }

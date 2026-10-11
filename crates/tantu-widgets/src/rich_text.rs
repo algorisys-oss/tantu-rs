@@ -1,8 +1,11 @@
 //! [`TextSpan`] and [`RichText`]. Spec: `docs/specs/widgets/rich-text.md`.
 
+use std::sync::Arc;
+
 use tantu_view::core::Color;
-use tantu_view::text::{FontFamily, TextStyle};
-use tantu_view::{BuildCx, ElementId, IntoProp, Prop, View};
+use tantu_view::layout::{RenderParagraph, StyleSpan, TextStyleKey};
+use tantu_view::text::{FontFamily, TextStyle, TextStyles};
+use tantu_view::{BuildCx, ElementId, IntoProp, ParagraphPaint, Prop, View};
 
 /// `RichText`'s default color (Material 3's on-surface).
 const ON_SURFACE: Color = Color::from_argb32(0xFF1C_1B1F);
@@ -96,7 +99,73 @@ impl TextSpan {
 
     /// The concatenated text of the span and its children, in order.
     pub fn to_plain_text(&self) -> String {
-        todo!("WIDGETS-RICHTEXT-01")
+        let mut text = String::new();
+        self.collect_text(&mut text);
+        text
+    }
+
+    fn collect_text(&self, out: &mut String) {
+        out.push_str(&self.text);
+        for child in &self.children {
+            child.collect_text(out);
+        }
+    }
+
+    /// This span's effective style: `inherited`, replaced by `style`, with the overrides on
+    /// top (WIDGETS-RICHTEXT-01).
+    fn effective_style(&self, inherited: &TextStyle) -> TextStyle {
+        let mut style = self.style.clone().unwrap_or_else(|| inherited.clone());
+        if let Some(size) = self.size {
+            style.size = size;
+        }
+        if let Some(weight) = self.weight {
+            style.weight = weight;
+        }
+        if let Some(italic) = self.italic {
+            style.italic = italic;
+        }
+        if let Some(family) = &self.family {
+            style.family = family.clone();
+        }
+        style
+    }
+
+    /// Flattens the tree into `text` and `spans` (WIDGETS-RICHTEXT-01).
+    fn flatten_into(
+        &self,
+        styles: &TextStyles,
+        base_key: TextStyleKey,
+        inherited: &TextStyle,
+        inherited_color: Option<Color>,
+        text: &mut String,
+        spans: &mut Vec<StyleSpan>,
+    ) {
+        let style = self.effective_style(inherited);
+        let color = self.color.or(inherited_color);
+        if !self.text.is_empty() {
+            let key = styles.key(style.clone());
+            let start = text.len();
+            text.push_str(&self.text);
+            if key != base_key || color.is_some() {
+                spans.push(StyleSpan {
+                    start,
+                    end: text.len(),
+                    style: key,
+                    color,
+                });
+            }
+        }
+        for child in &self.children {
+            child.flatten_into(styles, base_key, &style, color, text, spans);
+        }
+    }
+
+    /// The paragraph's text and style spans for a base style.
+    fn flatten(&self, styles: &TextStyles, base: &TextStyle) -> (String, Vec<StyleSpan>) {
+        let base_key = styles.key(base.clone());
+        let (mut text, mut spans) = (String::new(), Vec::new());
+        self.flatten_into(styles, base_key, base, None, &mut text, &mut spans);
+        (text, spans)
     }
 }
 
@@ -154,14 +223,24 @@ impl RichText {
 
 impl View for RichText {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            cx,
-            self.span,
-            self.style,
-            self.color,
-            self.max_lines,
-            self.soft_wrap,
-        );
-        todo!("WIDGETS-RICHTEXT-02")
+        let styles = cx.text_styles();
+        let base = self.style;
+        let base_key = styles.key(base.clone());
+        let mut paragraph = RenderParagraph::new("", base_key);
+        paragraph.max_lines = self.max_lines;
+        paragraph.soft_wrap = self.soft_wrap;
+        let id = cx.render(paragraph, []);
+        cx.set_paint(id, ParagraphPaint { color: ON_SURFACE });
+        cx.bind(id, self.span, move |e, span: TextSpan| {
+            let (text, spans) = span.flatten(&styles, &base);
+            e.update_render::<RenderParagraph>(|p| {
+                p.text = Arc::from(text);
+                p.spans = Arc::from(spans);
+            });
+        });
+        cx.bind(id, self.color, |e, color| {
+            e.update_paint::<ParagraphPaint>(|p| p.color = color);
+        });
+        id
     }
 }

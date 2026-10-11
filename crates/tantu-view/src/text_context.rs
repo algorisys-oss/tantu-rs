@@ -113,10 +113,17 @@ impl TextPainter for SystemText<'_> {
         color: Color,
         origin: Point,
     ) {
-        let _ = (
-            scene, text, style, spans, max_width, max_lines, color, origin,
-        );
-        todo!("VIEW-TEXT-07")
+        self.system.paint_rich(
+            scene,
+            self.resources,
+            text,
+            style,
+            spans,
+            max_width,
+            max_lines,
+            color,
+            origin,
+        )
     }
 
     fn paint_text(
@@ -154,14 +161,26 @@ impl Paint for ParagraphPaint {
         let Some(paragraph) = cx.render::<RenderParagraph>() else {
             return;
         };
-        let (text, style, max_lines) =
-            (paragraph.text.clone(), paragraph.style, paragraph.max_lines);
-        // Wrap where layout wrapped (VIEW-TEXT-04).
+        let (text, style, max_lines, spans) = (
+            paragraph.text.clone(),
+            paragraph.style,
+            paragraph.max_lines,
+            paragraph.spans.clone(),
+        );
+        // Wrap where layout wrapped (VIEW-TEXT-04); spans paint with their colors (VIEW-TEXT-07).
         let width = if paragraph.soft_wrap {
             cx.constraints().max_width
         } else {
             f32::INFINITY
         };
-        cx.paint_text(&text, style, width, max_lines, self.color, Point::ZERO);
+        cx.paint_rich(
+            &text,
+            style,
+            &spans,
+            width,
+            max_lines,
+            self.color,
+            Point::ZERO,
+        );
     }
 }
