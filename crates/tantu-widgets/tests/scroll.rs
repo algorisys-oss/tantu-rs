@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/scroll.md`, rules WIDGETS-SCROLL-01..08.
+//! Tests for `docs/specs/widgets/scroll.md`, rules WIDGETS-SCROLL-01..09.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -373,4 +373,130 @@ fn widgets_scroll_08_animate_to() {
     tester.advance(ms(150));
     let after = offset(&tester, c);
     assert!((after - 240.0).abs() < 1e-3, "{after}");
+}
+
+/// Ten boxes of 100 px (keys `c0`..`c9`) in a 300 × 200 view.
+fn boxes() -> ScrollView {
+    ScrollView::new(
+        Column::new()
+            .children((0..10).map(|i| Keyed::new(format!("c{i}"), SizedBox::new(300.0, 100.0)))),
+    )
+    .wheel_duration(Duration::ZERO)
+}
+
+#[test]
+fn widgets_scroll_09_reveals_a_descendant() {
+    let (mut tester, c) = view(boxes);
+    // Ends after the view: the end aligns with the view's end.
+    tester.ensure_visible(&Finder::key("c7"));
+    assert_eq!(offset(&tester, c), 600.0);
+    assert_eq!(
+        tester.rect(tester.find(&Finder::key("c7"))),
+        Rect::from_ltwh(0.0, 100.0, 300.0, 100.0)
+    );
+    // Starts before the view: the start aligns with the view's start.
+    tester.ensure_visible(&Finder::key("c3"));
+    assert_eq!(offset(&tester, c), 300.0);
+    // Already visible: unchanged.
+    tester.ensure_visible(&Finder::key("c4"));
+    assert_eq!(offset(&tester, c), 300.0);
+    tester.ensure_visible(&Finder::key("c0"));
+    assert_eq!(offset(&tester, c), 0.0);
+    // A running animation stops at the revealed offset.
+    tester.enter(|| c.animate_to(900.0, Duration::from_secs(1), Curve::Linear));
+    tester.advance(Duration::from_millis(100));
+    assert!(offset(&tester, c) > 0.0 && offset(&tester, c) < 800.0);
+    tester.ensure_visible(&Finder::key("c9"));
+    assert_eq!(offset(&tester, c), 800.0);
+    tester.advance(Duration::from_secs(1));
+    assert_eq!(offset(&tester, c), 800.0);
+}
+
+#[test]
+fn widgets_scroll_09_a_target_longer_than_the_viewport_aligns_its_start() {
+    let (mut tester, c) = view(|| {
+        ScrollView::new(
+            Column::new()
+                .child(Keyed::new("pad", SizedBox::new(300.0, 100.0)))
+                .child(Keyed::new("big", SizedBox::new(300.0, 500.0)))
+                .child(Keyed::new("tail", SizedBox::new(300.0, 100.0))),
+        )
+        .wheel_duration(Duration::ZERO)
+    });
+    // From below (the view shows 300..500 of the content): the start, not the end.
+    tester.enter(|| c.jump_to(300.0));
+    tester.pump();
+    tester.ensure_visible(&Finder::key("big"));
+    assert_eq!(offset(&tester, c), 100.0);
+    // From above (0..200): the end is past the view, but the start still wins.
+    tester.enter(|| c.jump_to(0.0));
+    tester.pump();
+    tester.ensure_visible(&Finder::key("big"));
+    assert_eq!(offset(&tester, c), 100.0);
+    // The cross axis is ignored: a horizontal view never moves for a vertical overflow.
+    let (mut tester, c) = view(|| {
+        ScrollView::new(Keyed::new("wide", SizedBox::new(300.0, 1000.0)))
+            .horizontal()
+            .wheel_duration(Duration::ZERO)
+    });
+    tester.ensure_visible(&Finder::key("wide"));
+    assert_eq!(offset(&tester, c), 0.0);
+}
+
+#[test]
+fn widgets_scroll_09_nested_views_both_reveal() {
+    type Two = Rc<Cell<Option<(ScrollController, ScrollController)>>>;
+    let out: Two = Rc::default();
+    let mut tester = {
+        let out = out.clone();
+        WidgetTester::with_size(300.0, 200.0, move || {
+            let (outer, inner) = (ScrollController::new(), ScrollController::new());
+            out.set(Some((outer, inner)));
+            Keyed::new(
+                "o",
+                ScrollView::new(
+                    Column::new()
+                        .child(SizedBox::new(300.0, 300.0))
+                        .child(
+                            SizedBox::new(300.0, 200.0)
+                                .child(Keyed::new("i", boxes().controller(inner))),
+                        )
+                        .child(SizedBox::new(300.0, 300.0)),
+                )
+                .controller(outer)
+                .wheel_duration(Duration::ZERO),
+            )
+        })
+    };
+    let (outer, inner) = out.get().expect("built");
+    tester.ensure_visible(&Finder::key("c7"));
+    // The inner view reveals c7; the outer view reveals the inner view (300..500 of its
+    // content), not c7's stale bounds.
+    assert_eq!(offset(&tester, inner), 600.0);
+    assert_eq!(offset(&tester, outer), 300.0);
+    assert_eq!(
+        tester.rect(tester.find(&Finder::key("c7"))),
+        Rect::from_ltwh(0.0, 100.0, 300.0, 100.0)
+    );
+}
+
+#[test]
+fn widgets_scroll_09_tab_reveals_the_focused_button() {
+    let (mut tester, c) =
+        view(|| {
+            ScrollView::new(Column::new().children(
+                (0..10).map(|i| Keyed::new(format!("b{i}"), Button::new(format!("{i}")))),
+            ))
+            .wheel_duration(Duration::ZERO)
+        });
+    tester.focus(&Finder::key("b0"));
+    assert_eq!(offset(&tester, c), 0.0);
+    let b5 = tester.find(&Finder::key("b5"));
+    let below = tester.rect(b5);
+    assert!(below.bottom > 200.0, "b5 starts off screen: {below:?}");
+    for _ in 0..5 {
+        tester.press_key(LogicalKey::Named(NamedKey::Tab), Modifiers::default());
+    }
+    assert_eq!(offset(&tester, c), below.bottom - 200.0);
+    assert_eq!(tester.rect(b5).bottom, 200.0);
 }

@@ -437,3 +437,27 @@ fn test_wt_14_a11y_tree_and_actions() {
     assert_eq!(presses.get(), 1);
     assert!(!tester.perform_action(&Finder::key("b"), tantu_view::SemanticsAction::Increment));
 }
+
+#[test]
+fn test_wt_15_ensure_visible() {
+    let out: Rc<RefCell<Option<ScrollController>>> = Rc::default();
+    let mut tester = {
+        let out = out.clone();
+        WidgetTester::with_size(300.0, 200.0, move || {
+            let controller = ScrollController::new();
+            *out.borrow_mut() = Some(controller);
+            ScrollView::new(Column::new().children(
+                (0..10).map(|i| Keyed::new(format!("c{i}"), SizedBox::new(300.0, 100.0))),
+            ))
+            .controller(controller)
+            .wheel_duration(std::time::Duration::ZERO)
+        })
+    };
+    let controller = out.borrow().expect("built");
+    let c7 = tester.find(&Finder::key("c7"));
+    assert_eq!(tester.rect(c7).top, 700.0);
+    // Scrolled and pumped: the element's rect is inside the window.
+    tester.ensure_visible(&Finder::key("c7"));
+    assert_eq!(tester.enter(|| controller.offset()), 600.0);
+    assert_eq!(tester.rect(c7), Rect::from_ltwh(0.0, 100.0, 300.0, 100.0));
+}

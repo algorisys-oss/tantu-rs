@@ -523,3 +523,41 @@ impl ViewTree {
         }
     }
 }
+
+// Focus scopes and scrolling into view. Spec: `docs/specs/view/focus-scope.md`.
+
+impl BuildCx<'_> {
+    /// Makes `element` a focus scope: Tab traversal from inside it stays inside it, and it
+    /// remembers its last focused descendant (VIEW-SCOPE-01). Render or region elements; an
+    /// unknown element is ignored.
+    pub fn focus_scope(&mut self, element: ElementId) {
+        let _ = element;
+        todo!()
+    }
+}
+
+impl ViewTree {
+    /// Asks every container enclosing `element` to scroll it into view, innermost first: each
+    /// ancestor's `on_action` handlers get a `ScrollIntoView` request, and a container that
+    /// handles it becomes the target for the containers above it (VIEW-REVEAL-01). True when
+    /// any handled it; false for an unknown element.
+    pub fn ensure_visible(&mut self, element: ElementId) -> bool {
+        let _ = element;
+        todo!()
+    }
+
+    /// The innermost focus scope among `element` and its ancestors; the root when none is
+    /// marked; `None` for an unknown element (VIEW-SCOPE-01).
+    pub fn focus_scope_of(&self, element: ElementId) -> Option<ElementId> {
+        let _ = element;
+        todo!()
+    }
+
+    /// Focuses the element `scope` last had the focus on, else its first traversable
+    /// descendant; returns the focus, or `None` (changing nothing) when there is neither or
+    /// `scope` isn't a scope (VIEW-SCOPE-03).
+    pub fn focus_into(&mut self, scope: ElementId) -> Option<ElementId> {
+        let _ = scope;
+        todo!()
+    }
+}

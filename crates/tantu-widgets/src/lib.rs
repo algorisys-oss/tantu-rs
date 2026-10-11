@@ -27,6 +27,7 @@
 
 mod basic;
 mod divider;
+mod focus_scope;
 mod icon;
 #[cfg(feature = "material-icons")]
 mod icons;
@@ -47,6 +48,7 @@ mod util;
 
 pub use basic::{Button, Text};
 pub use divider::{Divider, VerticalDivider};
+pub use focus_scope::FocusScope;
 pub use icon::{Icon, IconButton, IconData};
 #[cfg(feature = "material-icons")]
 pub use icon::{MATERIAL_ICONS_FAMILY, MATERIAL_ICONS_FONT};
