@@ -326,8 +326,9 @@ fn widgets_edit_08_reactive() {
         assert_eq!((runs.get(), seen.get()), (3, 2));
         c.undo();
         assert_eq!((runs.get(), seen.get()), (4, 2));
+        // Redo restores the value as it was when undone: "ab" with the caret moved to 0.
         c.redo();
-        assert_eq!((runs.get(), seen.get()), (5, 4));
+        assert_eq!((runs.get(), seen.get()), (5, 2));
         c.set_text("xyz");
         assert_eq!((runs.get(), seen.get()), (6, 6));
         // `value()` inside `edit` sees the current value.
