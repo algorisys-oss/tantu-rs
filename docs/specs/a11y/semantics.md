@@ -86,6 +86,9 @@ pub enum SemanticsAction { Focus, Click, Increment, Decrement, SetValue(String),
 impl BuildCx<'_> {
     /// Sets the element's semantics (a render element only; false for a region).
     pub fn set_semantics(&mut self, element: ElementId, semantics: Semantics) -> bool;
+    /// Handles `SetValue` and `ScrollIntoView` requests for `element` and its descendants
+    /// (`target` is the element the request named); true when handled.
+    pub fn on_action(&mut self, element: ElementId, handler: impl Fn(ElementId, &SemanticsAction) -> bool + 'static);
 }
 impl ElementMut<'_> {
     /// Changes the semantics in place (for reactive props); false without semantics.
@@ -164,11 +167,12 @@ Widget semantics:
   `on_press` runs and a checkbox toggles) and returns whether a handler ran; `Increment` and
   `Decrement` focus the element and dispatch ArrowRight/ArrowUp or ArrowLeft/ArrowDown key
   presses as the element's role suggests (a slider steps, a scroll view scrolls); `SetValue`
-  dispatches an IME-like replace: for an element with `set_value` in its actions, it focuses
-  it, selects all and inserts the text (through the key path: select-all intent and a
-  character event with `text`); `ScrollIntoView` scrolls every enclosing scroll view the least
-  amount that shows the element. An element without semantics, or whose `actions` lack the
-  action, returns false. Actions never panic on removed ids.
+  and `ScrollIntoView` are delivered to the action handlers registered with
+  `BuildCx::on_action` on the element and then its ancestors (the target element as the
+  first argument), stopping at the first that returns true: a text field handles `SetValue`
+  by replacing its text, a scroll view handles `ScrollIntoView` for a descendant by scrolling
+  the least amount that shows it. An element without semantics, or whose `actions` lack the
+  action, or with no handler taking it, returns false. Actions never panic on removed ids.
 
 ### `tantu-a11y`
 
@@ -224,9 +228,10 @@ Resolved (2026-10-12; the user said "continue" on the draft, taking these propos
 1. **Semantics are plain data on elements in `tantu-view`** (ADR 0013), with a `Role` enum
    that mirrors the AccessKit roles the widgets need, so `tantu-view` and the widgets never
    see AccessKit.
-2. **Actions are synthesized as user input** (press/release, keys, the select-all intent),
-   not routed to per-widget handlers: one behavior path, no new widget API; a widget that
-   needs something smarter can get an `on_action` hook later.
+2. **Focus, Click, Increment and Decrement are synthesized as user input** (press/release,
+   keys), one behavior path; `SetValue` and `ScrollIntoView` have no key equivalent, so they
+   go to `on_action` handlers that bubble up from the target (amended while writing the
+   tests: the scroll view's offset lives in the widget, out of `tantu-view`'s reach).
 3. **Full-tree updates**; AccessKit diffs against its own copy. Incremental updates can
    replace the body of `update` later.
 4. **Unsemantic elements are skipped, not grouped**: AccessKit trees stay shallow (window →
