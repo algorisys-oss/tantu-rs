@@ -486,7 +486,7 @@ fn widgets_textfield_09_caret_following() {
     let long: String = "w".repeat(80);
     tester.enter(|| c.set_text(long.clone()));
     tester.pump();
-    let editor = tester.rect(tester.find(&Finder::text(&long)));
+    let editor = tester.rect(tester.find(&Finder::text(long.as_str())));
     let caret_rect = caret(&tester).expect("a caret");
     assert!(
         caret_rect.left > editor.width(),
@@ -521,7 +521,8 @@ fn widgets_textfield_09_caret_following() {
     // A multi-line field never shifts.
     let (mut tester, c) = field("", |f| f.max_lines(None));
     tester.focus(&Finder::key("f"));
-    tester.enter(|| c.set_text("w ".repeat(80)));
+    let wrapped = "w ".repeat(80);
+    tester.enter(|| c.set_text(wrapped.clone()));
     tester.pump();
-    assert_eq!(content_shift(&tester, &long), 0.0);
+    assert_eq!(content_shift(&tester, &wrapped), 0.0);
 }
