@@ -180,8 +180,11 @@ Widget semantics:
   `BuildCx::on_action` on the element and then its ancestors (an `ActionCx` naming the
   target and giving read access to the tree), stopping at the first that returns true: a text field handles `SetValue`
   by replacing its text, a scroll view handles `ScrollIntoView` for a descendant by scrolling
-  the least amount that shows it. An element without semantics, or whose `actions` lack the
-  action, or with no handler taking it, returns false. Actions never panic on removed ids.
+  the least amount that shows it (`ScrollIntoView` is accepted on any element with
+  semantics, whether or not its `actions` list it, since assistive technology asks for any
+  node; the handlers decide). An element without semantics, or whose `actions` lack one of
+  the other actions, or with no handler taking it, returns false. Actions never panic on
+  removed ids.
 
 ### `tantu-a11y`
 
