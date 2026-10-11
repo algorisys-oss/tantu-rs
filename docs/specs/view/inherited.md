@@ -1,6 +1,6 @@
 # Inherited values
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-12; review)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-12; review)
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 3, "`tantu-theme`" (groundwork: how a theme reaches widgets)
 - **Related:** [view tree](tree.md), [dynamic content](dynamic.md), Flutter's

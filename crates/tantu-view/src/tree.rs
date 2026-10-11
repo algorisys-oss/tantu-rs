@@ -1,7 +1,7 @@
 //! [`ViewTree`], [`View`], [`AnyView`] and [`BuildCx`]: views that build elements once, and
 //! the per-window tree of elements (ADR 0011). Spec: `docs/specs/view/tree.md`.
 
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -143,14 +143,25 @@ impl BuildCx<'_> {
     /// Attaches `value` to the element being built, for the views built under it
     /// (VIEW-INHERIT-01); a second value of the same type replaces the first.
     pub fn provide<T: 'static>(&mut self, value: T) {
-        let _ = value;
-        todo!("VIEW-INHERIT-01")
+        let Some(element) = self.tree.element_mut(self.parent) else {
+            return;
+        };
+        let id = TypeId::of::<T>();
+        element.inherited.retain(|(t, _)| *t != id);
+        element.inherited.push((id, Rc::new(value)));
     }
 
     /// The nearest `T` provided on the element being built or one of its ancestors
     /// (VIEW-INHERIT-01).
     pub fn inherit<T: Clone + 'static>(&self) -> Option<T> {
-        todo!("VIEW-INHERIT-01")
+        let mut next = Some(self.parent);
+        while let Some(id) = next {
+            if let Some(value) = self.tree.inherited_on::<T>(id) {
+                return Some(value);
+            }
+            next = self.tree.parent(id);
+        }
+        None
     }
 
     /// Queues `font` for the text system to register before it next measures
@@ -176,6 +187,8 @@ pub(crate) struct Element {
     children: Vec<ElementId>,
     scope: Scope,
     pub(crate) kind: Kind,
+    /// Values provided on this element (VIEW-INHERIT-01), by type.
+    inherited: Vec<(TypeId, Rc<dyn Any>)>,
 }
 
 /// The element kind, with a render element's layout node and paint behavior.
@@ -263,6 +276,7 @@ impl ViewTree {
                 children: Vec::new(),
                 scope,
                 kind: Kind::Render(layout, Box::new(NoPaint)),
+                inherited: Vec::new(),
             }));
             tree.root = Some(root);
             scope.run(|| {
@@ -337,8 +351,12 @@ impl ViewTree {
     /// The `T` provided on `element` itself through `BuildCx::provide`, if any
     /// (VIEW-INHERIT-03).
     pub fn inherited_on<T: Clone + 'static>(&self, element: ElementId) -> Option<T> {
-        let _ = element;
-        todo!("VIEW-INHERIT-03")
+        let id = TypeId::of::<T>();
+        self.element(element)?
+            .inherited
+            .iter()
+            .find(|(t, _)| *t == id)
+            .and_then(|(_, value)| value.downcast_ref::<T>().cloned())
     }
 
     /// The layout tree (read-only; it changes only through the view tree).
@@ -498,6 +516,10 @@ impl ViewTree {
         self.elements.get(arena_id(id)?)
     }
 
+    fn element_mut(&mut self, id: ElementId) -> Option<&mut Element> {
+        self.elements.get_mut(arena_id(id)?)
+    }
+
     /// Adds an element of `kind` as the last child of `parent`, with a scope owned by the
     /// parent's scope.
     pub(crate) fn add_element(&mut self, parent: ElementId, kind: Kind) -> ElementId {
@@ -510,6 +532,7 @@ impl ViewTree {
             children: Vec::new(),
             scope,
             kind,
+            inherited: Vec::new(),
         }));
         if let Some(p) = arena_id(parent).and_then(|a| self.elements.get_mut(a)) {
             p.children.push(id);

@@ -18,7 +18,10 @@ impl<T: 'static, V: View> Provide<T, V> {
 
 impl<T: 'static, V: View> View for Provide<T, V> {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (cx, self.value, self.child);
-        todo!("VIEW-INHERIT-02")
+        let (value, child) = (self.value, self.child);
+        cx.region(move |cx| {
+            cx.provide(value);
+            child.build(cx);
+        })
     }
 }
