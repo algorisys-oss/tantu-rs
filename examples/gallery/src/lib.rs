@@ -6,13 +6,14 @@ use tantu::scene::ImageData;
 use tantu::view::Keyed;
 
 /// The section names, in sidebar order.
-pub const SECTIONS: [&str; 6] = [
+pub const SECTIONS: [&str; 7] = [
     "Buttons",
     "Text",
     "Selection",
     "Text field",
     "Lists",
     "Media",
+    "Animation",
 ];
 
 const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
@@ -100,6 +101,7 @@ fn content(section: Signal<&'static str>) -> impl View {
             "Text field" => AnyView::new(text_field_section()),
             "Lists" => AnyView::new(lists_section()),
             "Media" => AnyView::new(media_section()),
+            "Animation" => AnyView::new(animation_section()),
             _ => AnyView::new(buttons_section()),
         };
         Column::new()
@@ -297,6 +299,11 @@ fn media_section() -> impl View {
                 .children(icons.map(|icon| Icon::new(icon).size(32.0).color(PRIMARY))),
         )
         .child(image)
+}
+
+/// The Animation section (GALLERY-06).
+fn animation_section() -> impl View {
+    SizedBox::shrink()
 }
 
 /// A `width` × `height` image fading from the primary color to white.

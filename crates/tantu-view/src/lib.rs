@@ -39,6 +39,7 @@
 
 #![forbid(unsafe_code)]
 
+mod animation;
 mod builder;
 mod dynamic;
 mod events;
@@ -54,6 +55,9 @@ mod shortcuts;
 mod text_context;
 mod tree;
 
+pub use animation::{
+    Animated, Animation, AnimationController, AnimationStatus, Curve, Lerp, Tween, animated,
+};
 pub use builder::Builder;
 pub use dynamic::{Dyn, For, Show};
 pub use events::{CursorIcon, Handled, Phase, PointerButton, PointerCx, PointerEvent, PointerKind};

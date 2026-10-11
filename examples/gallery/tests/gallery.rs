@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..05.
+//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..06.
 
 use gallery::{SECTIONS, gallery};
 use tantu::core::{Rect, Vec2};
@@ -116,4 +116,26 @@ fn gallery_05_dark_mode() {
     ));
     tester.tap(&Finder::key("dark"));
     assert_eq!(fill_of(&tester, "press"), Theme::light().colors.primary);
+}
+
+#[test]
+fn gallery_06_animation_section() {
+    use std::time::Duration;
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    tester.tap(&Finder::key(nav("Animation")));
+    assert_eq!(rect(&tester, "box").width(), 100.0);
+    let dot_before = rect(&tester, "dot");
+    tester.tap(&Finder::key("grow"));
+    tester.advance(Duration::from_millis(150));
+    assert_eq!(rect(&tester, "box").width(), 150.0);
+    assert_ne!(rect(&tester, "dot"), dot_before, "the dot keeps moving");
+    tester.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-animation.png"
+    ));
+    tester.advance(Duration::from_millis(150));
+    assert_eq!(rect(&tester, "box").width(), 200.0);
+    tester.tap(&Finder::key("grow"));
+    tester.advance(Duration::from_millis(300));
+    assert_eq!(rect(&tester, "box").width(), 100.0);
 }
