@@ -206,6 +206,22 @@ impl ViewTree {
         self.shared.needs_frame.get()
     }
 
+    /// `Runtime::tick` with the tree's runtime current (VIEW-TIME-01).
+    pub fn tick(&mut self, now: std::time::Instant) -> usize {
+        let _ = now;
+        todo!()
+    }
+
+    /// The clock: the time of the last `tick`, or `None` before the first (VIEW-TIME-01).
+    pub fn now(&self) -> Option<std::time::Instant> {
+        todo!()
+    }
+
+    /// When the tree next needs a tick (VIEW-TIME-01).
+    pub fn next_wake(&self) -> Option<tantu_reactive::Wake> {
+        todo!()
+    }
+
     /// Called once each time the tree goes from not needing a frame to needing one (the app
     /// runner asks the platform for a redraw).
     pub fn set_frame_requester(&mut self, requester: impl Fn() + 'static) {

@@ -12,6 +12,7 @@ use tantu_view::core::{Point, Rect, Size, Vec2};
 use tantu_view::layout::RenderConstrainedBox as Sized100;
 use tantu_view::layout::{RenderConstrainedBox, RenderParagraph};
 use tantu_view::reactive::{Signal, signal};
+use tantu_view::reactive::{ticker, timer};
 use tantu_view::scene::Command;
 use tantu_view::{
     BuildCx, Dyn, ElementId, Handled, ImeEvent, Keyed, Phase, PointerButton, PointerEvent,
@@ -363,4 +364,41 @@ fn test_wt_12_theme() {
     assert_eq!(tester.enter(|| inner.get()), Theme::light());
     tester.enter(|| tester.theme().set(Theme::dark()));
     assert_eq!(tester.enter(|| inner.get()), Theme::dark());
+}
+
+#[test]
+fn test_wt_13_clock_and_advance() {
+    let mut tester = WidgetTester::new(|| {
+        let (fired, ticks) = (signal(false), signal(0u32));
+        timer(std::time::Duration::from_millis(500), move || {
+            fired.set(true)
+        });
+        ticker(move |_| ticks.update(|n| *n += 1)).start();
+        Column::new()
+            .child(Keyed::new(
+                "fired",
+                Text::new(move || if fired.get() { "yes" } else { "no" }.to_owned()),
+            ))
+            .child(Keyed::new(
+                "ticks",
+                Text::new(move || ticks.get().to_string()),
+            ))
+    });
+    let text = |tester: &WidgetTester, key: &str| {
+        let id = tester.find(&Finder::key(key));
+        tester.text(id).expect("a text")
+    };
+    let start = tester.now();
+    // The first pump ticked once.
+    assert_eq!(text(&tester, "ticks"), "1");
+    assert_eq!(text(&tester, "fired"), "no");
+    tester.pump();
+    assert_eq!(text(&tester, "ticks"), "2");
+    assert_eq!(tester.now(), start);
+    tester.advance(std::time::Duration::from_millis(499));
+    assert_eq!(text(&tester, "fired"), "no");
+    assert_eq!(text(&tester, "ticks"), "3");
+    tester.advance(std::time::Duration::from_millis(1));
+    assert_eq!(text(&tester, "fired"), "yes");
+    assert_eq!(tester.now(), start + std::time::Duration::from_millis(500));
 }

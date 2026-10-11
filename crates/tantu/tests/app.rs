@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..13.
+//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..14.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -6,10 +6,11 @@ use std::rc::Rc;
 use tantu::core::{Point, Rect, Size, Vec2};
 use tantu::layout::RenderConstrainedBox;
 use tantu::platform::{
-    ButtonState, FakeLog, FakePlatform, PhysicalSize, PlatformContext, PointerButton, PointerId,
-    ScrollDelta, WindowEvent, WindowId,
+    ButtonState, FakeLog, FakePlatform, FakeStep, PhysicalSize, PlatformContext, PointerButton,
+    PointerId, ScrollDelta, WindowEvent, WindowId,
 };
 use tantu::prelude::*;
+use tantu::reactive::{ticker, timer};
 use tantu::scene::{Command, RenderError, RenderReport, Renderer, Resources, Scene};
 use tantu::view::{BuildCx, ElementId, Handled, Phase, PointerKind};
 use tantu::{AppHandler, Error};
@@ -701,4 +702,49 @@ fn facade_app_13_without_the_feature() {
     let renderer = renderer.borrow();
     let frame = renderer.last_frame().expect("a frame");
     assert_eq!(first_fill(frame).1, Color::WHITE);
+}
+
+#[test]
+fn facade_app_14_ticks_and_wake_ups() {
+    use std::time::Duration;
+    // A timer: the runner asks for one wake-up, then redraws once the deadline passed.
+    let recorders = Recorders::default();
+    let app = with_font(App::new()).window(Window::new("A").size(200.0, 100.0), || {
+        let text = signal("a".to_owned());
+        timer(Duration::from_millis(20), move || {
+            text.set("abc".to_owned())
+        });
+        Text::new(text)
+    });
+    let platform = FakePlatform::new()
+        .step(FakeStep::Idle)
+        .step(FakeStep::Advance(Duration::from_millis(10)))
+        .step(FakeStep::Advance(Duration::from_millis(15)));
+    let (log, _) = run(app, platform, &recorders);
+    assert_eq!(log.wakes, [Some(Duration::from_millis(20))]);
+    assert_eq!(
+        log.windows[0].redraws, 2,
+        "the initial frame and the one after the deadline"
+    );
+    let renderer = recorders.get(0);
+    let renderer = renderer.borrow();
+    assert_eq!(glyph_counts(renderer.last_frame().expect("a frame")), [3]);
+
+    // A ticker: every idle requests the next frame, no wake-ups.
+    let recorders = Recorders::default();
+    let app = with_font(App::new()).window(Window::new("A").size(200.0, 100.0), || {
+        let count = signal(0usize);
+        ticker(move |_| count.update(|n| *n += 1)).start();
+        Text::new(move || "x".repeat(count.get()))
+    });
+    let platform = FakePlatform::new()
+        .step(FakeStep::Idle)
+        .step(FakeStep::Idle)
+        .step(FakeStep::Idle);
+    let (log, _) = run(app, platform, &recorders);
+    assert!(log.wakes.is_empty());
+    assert_eq!(log.windows[0].redraws, 4);
+    let renderer = recorders.get(0);
+    let renderer = renderer.borrow();
+    assert_eq!(glyph_counts(renderer.last_frame().expect("a frame")), [4]);
 }

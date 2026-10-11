@@ -197,4 +197,13 @@ impl PlatformContext for Context<'_> {
     fn exit(&mut self) {
         self.event_loop.exit();
     }
+
+    fn now(&self) -> std::time::Instant {
+        todo!()
+    }
+
+    fn wake_at(&mut self, deadline: Option<std::time::Instant>) {
+        let _ = deadline;
+        todo!()
+    }
 }

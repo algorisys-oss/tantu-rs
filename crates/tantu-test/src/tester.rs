@@ -145,6 +145,17 @@ impl WidgetTester {
         changed
     }
 
+    /// Moves the tester's clock by `by`, ticks the tree and pumps one frame (TEST-WT-13).
+    pub fn advance(&mut self, by: std::time::Duration) {
+        let _ = by;
+        todo!()
+    }
+
+    /// The tester's clock, starting at the tester's creation (TEST-WT-13).
+    pub fn now(&self) -> std::time::Instant {
+        todo!()
+    }
+
     /// The theme signal provided at the root, initially `Theme::light()` (TEST-WT-12).
     pub fn theme(&self) -> Signal<Theme> {
         self.theme

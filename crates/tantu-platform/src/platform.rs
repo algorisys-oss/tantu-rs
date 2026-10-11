@@ -84,6 +84,13 @@ pub trait PlatformContext {
 
     /// Ends the event loop after the current callback returns. [`Platform::run`] then returns.
     fn exit(&mut self);
+
+    /// The platform's monotonic clock (PLATFORM-TIME-01).
+    fn now(&self) -> std::time::Instant;
+
+    /// Asks for an `idle` call at `deadline` (or earlier) even if no event arrives; `None`
+    /// cancels. Each call replaces the previous deadline (PLATFORM-TIME-01).
+    fn wake_at(&mut self, deadline: Option<std::time::Instant>);
 }
 
 /// The app side of the event loop.

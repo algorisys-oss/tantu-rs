@@ -17,6 +17,8 @@ pub enum FakeStep {
     },
     /// Deliver nothing; just let pending redraws and `idle` run.
     Idle,
+    /// Moves the fake clock forward, then runs a redraw round and `idle` (PLATFORM-FAKE-12).
+    Advance(std::time::Duration),
 }
 
 /// What the handler asked a [`FakePlatform`] for.
@@ -28,6 +30,9 @@ pub struct FakeLog {
     pub exited: bool,
     /// How many script steps were delivered (skipped steps not counted).
     pub steps_delivered: usize,
+    /// Every `wake_at` call, as offsets from the run's start (`None` for a cancel)
+    /// (PLATFORM-FAKE-12).
+    pub wakes: Vec<Option<std::time::Duration>>,
 }
 
 /// A window of a [`FakePlatform`], as last seen.
@@ -120,6 +125,10 @@ impl FakePlatform {
                     handler.window_event(&mut cx, id, event);
                 }
                 FakeStep::Idle => cx.log.steps_delivered += 1,
+                FakeStep::Advance(by) => {
+                    let _ = by;
+                    todo!()
+                }
             }
             if cx.log.exited {
                 break;
@@ -254,5 +263,14 @@ impl PlatformContext for FakeContext {
 
     fn exit(&mut self) {
         self.log.exited = true;
+    }
+
+    fn now(&self) -> std::time::Instant {
+        todo!()
+    }
+
+    fn wake_at(&mut self, deadline: Option<std::time::Instant>) {
+        let _ = deadline;
+        todo!()
     }
 }

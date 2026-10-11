@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/frame.md`, rules VIEW-FRAME-01..08.
+//! Tests for `docs/specs/view/frame.md`, rules VIEW-FRAME-01..08 and VIEW-TIME-01.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use tantu_core::{Color, Rect, Size};
 use tantu_layout::{BoxConstraints, NoTextMeasure, RenderConstrainedBox, RenderFlex};
-use tantu_reactive::{Signal, batch, memo, signal};
+use tantu_reactive::{Signal, Wake, batch, memo, signal, timer};
 use tantu_scene::{Command, Scene};
 use tantu_view::{
     AnyView, BuildCx, ElementId, ElementMut, FrameReport, IntoProp, Paint, PaintCx, Prop, View,
@@ -417,4 +417,37 @@ fn view_frame_08_robustness() {
     let (report, _) = frame(&mut tree);
     assert_eq!(report.applied, 1);
     assert_eq!(log.borrow().last().map(String::as_str), Some("b 20"));
+}
+
+#[test]
+fn view_time_01_tree_forwards_the_clock() {
+    let applied: Rc<RefCell<Vec<f32>>> = Rc::default();
+    let mut tree = {
+        let applied = applied.clone();
+        ViewTree::new(move || {
+            let width = signal(10.0f32);
+            timer(std::time::Duration::from_millis(5), move || width.set(20.0));
+            SizedBox {
+                width: (move || width.get()).into_prop(),
+                applied,
+                out: Rc::default(),
+            }
+        })
+    };
+    let t0 = std::time::Instant::now();
+    assert_eq!(tree.now(), None);
+    assert_eq!(tree.next_wake(), Some(Wake::Now));
+    assert_eq!(tree.tick(t0), 0);
+    assert_eq!(tree.now(), Some(t0));
+    assert_eq!(
+        tree.next_wake(),
+        Some(Wake::At(t0 + std::time::Duration::from_millis(5)))
+    );
+    frame(&mut tree);
+    assert!(!tree.needs_frame());
+    assert_eq!(tree.tick(t0 + std::time::Duration::from_millis(5)), 1);
+    assert!(tree.needs_frame(), "the timer's write asks for a frame");
+    assert_eq!(tree.next_wake(), None);
+    frame(&mut tree);
+    assert_eq!(*applied.borrow(), [10.0, 20.0]);
 }

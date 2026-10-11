@@ -24,7 +24,10 @@
 //! });
 //! ```
 //!
-//! Spec: `docs/specs/reactive/signals.md`.
+//! Timers and tickers ([`timer`], [`ticker`], [`Runtime::tick`]) share the owner tree, so a
+//! widget creates them where it creates signals and they stop with its scope.
+//!
+//! Specs: `docs/specs/reactive/signals.md`, `docs/specs/reactive/timers.md`.
 
 #![forbid(unsafe_code)]
 
@@ -33,9 +36,11 @@ mod memo;
 mod runtime;
 mod scope;
 mod signal;
+mod time;
 
 pub use effect::{Effect, effect};
 pub use memo::{Memo, memo};
 pub use runtime::Runtime;
 pub use scope::{Scope, batch, on_cleanup, untrack};
 pub use signal::{Signal, signal};
+pub use time::{Ticker, Timer, Wake, ticker, timer};

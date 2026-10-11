@@ -1,7 +1,8 @@
-//! Tests for `docs/specs/widgets/tooltip.md`, rules WIDGETS-TOOLTIP-01..06.
+//! Tests for `docs/specs/widgets/tooltip.md`, rules WIDGETS-TOOLTIP-01..07.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::time::Duration;
 
 use tantu_test::{Finder, WidgetTester};
 use tantu_view::core::{Color, Point, Rect};
@@ -26,6 +27,12 @@ fn tooltip_box(tester: &WidgetTester) -> Option<ElementId> {
         })
 }
 
+/// Hovers the element and waits out the show delay (WIDGETS-TOOLTIP-07).
+fn hover_and_wait(tester: &mut WidgetTester, key: &str) {
+    tester.hover(&Finder::key(key));
+    tester.advance(Duration::from_millis(500));
+}
+
 fn move_to(tester: &mut WidgetTester, p: Point) {
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
@@ -48,7 +55,7 @@ fn widgets_tooltip_01_hover_shows_leave_and_press_hide() {
     let mut tester = target(false);
     assert!(tooltip_box(&tester).is_none());
     assert!(tester.find_all(&Finder::text("Tip")).is_empty());
-    tester.hover(&Finder::key("target"));
+    hover_and_wait(&mut tester, "target");
     let tip_box = tooltip_box(&tester).expect("shown");
     let text = tester.find(&Finder::text("Tip"));
     assert!(tester.rect(tip_box).height() >= 24.0);
@@ -66,7 +73,7 @@ fn widgets_tooltip_01_hover_shows_leave_and_press_hide() {
     move_to(&mut tester, Point::new(250.0, 250.0));
     assert!(tooltip_box(&tester).is_none());
     // A press hides it too.
-    tester.hover(&Finder::key("target"));
+    hover_and_wait(&mut tester, "target");
     assert!(tooltip_box(&tester).is_some());
     let center = tester.rect(tester.find(&Finder::key("target"))).center();
     tester.pointer(PointerEvent {
@@ -80,7 +87,7 @@ fn widgets_tooltip_01_hover_shows_leave_and_press_hide() {
 #[test]
 fn widgets_tooltip_02_placement() {
     let mut tester = target(false);
-    tester.hover(&Finder::key("target"));
+    hover_and_wait(&mut tester, "target");
     let child = tester.rect(tester.find(&Finder::key("target")));
     let tip = tester.rect(tooltip_box(&tester).expect("shown"));
     assert!(
@@ -93,7 +100,7 @@ fn widgets_tooltip_02_placement() {
     );
 
     let mut tester = target(true);
-    tester.hover(&Finder::key("target"));
+    hover_and_wait(&mut tester, "target");
     let child = tester.rect(tester.find(&Finder::key("target")));
     let tip = tester.rect(tooltip_box(&tester).expect("shown"));
     assert!(
@@ -120,7 +127,7 @@ fn widgets_tooltip_03_pointer_passes_through() {
                 )),
         )
     });
-    tester.hover(&Finder::key("target"));
+    hover_and_wait(&mut tester, "target");
     let tip = tester.rect(tooltip_box(&tester).expect("shown"));
     let under = tester.rect(tester.find(&Finder::key("under")));
     let spot = Point::new(tip.center().x, tip.bottom - 2.0);
@@ -159,7 +166,7 @@ fn widgets_tooltip_04_focus_shows_it() {
     assert!(tooltip_box(&tester).is_none());
     // Hovered while focus leaves: still shown.
     tester.focus(&Finder::key("inner"));
-    tester.hover(&Finder::key("inner"));
+    hover_and_wait(&mut tester, "inner");
     tester.focus(&Finder::key("other"));
     assert!(tooltip_box(&tester).is_some());
 }
@@ -177,7 +184,7 @@ fn widgets_tooltip_05_reactive_message() {
         ))
     });
     let message = sig.borrow_mut().take().expect("built");
-    tester.hover(&Finder::key("target"));
+    hover_and_wait(&mut tester, "target");
     tester.find(&Finder::text("Tip"));
     tester.enter(|| message.set("Changed".to_owned()));
     tester.pump();
@@ -192,7 +199,44 @@ fn widgets_tooltip_06_region_child_never_shows() {
             Dyn::new(|| Keyed::new("target", SizedBox::new(100.0, 20.0))),
         ))
     });
-    tester.hover(&Finder::key("target"));
+    hover_and_wait(&mut tester, "target");
     assert!(tooltip_box(&tester).is_none());
     let _ = Rect::ZERO;
+}
+
+#[test]
+fn widgets_tooltip_07_show_delay() {
+    let mut tester = target(false);
+    tester.hover(&Finder::key("target"));
+    assert!(tooltip_box(&tester).is_none());
+    tester.advance(Duration::from_millis(499));
+    assert!(tooltip_box(&tester).is_none());
+    tester.advance(Duration::from_millis(1));
+    assert!(tooltip_box(&tester).is_some());
+    // Leaving before the delay cancels the show.
+    move_to(&mut tester, Point::new(250.0, 250.0));
+    tester.hover(&Finder::key("target"));
+    tester.advance(Duration::from_millis(100));
+    move_to(&mut tester, Point::new(250.0, 250.0));
+    tester.advance(Duration::from_millis(500));
+    assert!(tooltip_box(&tester).is_none());
+    // A press before the delay cancels it too.
+    tester.hover(&Finder::key("target"));
+    tester.advance(Duration::from_millis(100));
+    let center = tester.rect(tester.find(&Finder::key("target"))).center();
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: center,
+    });
+    tester.advance(Duration::from_millis(500));
+    assert!(tooltip_box(&tester).is_none());
+    // A zero wait shows at once.
+    let mut tester = WidgetTester::with_size(300.0, 300.0, || {
+        Padding::all(40.0).child(
+            Tooltip::new("Tip", Keyed::new("target", SizedBox::new(100.0, 20.0)))
+                .wait_duration(Duration::ZERO),
+        )
+    });
+    tester.hover(&Finder::key("target"));
+    assert!(tooltip_box(&tester).is_some());
 }

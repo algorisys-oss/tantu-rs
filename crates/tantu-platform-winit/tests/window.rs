@@ -1,4 +1,4 @@
-//! Rules PLATFORM-WINIT-01..04 against a real window (spec `docs/specs/platform-winit/shell.md`,
+//! Rules PLATFORM-WINIT-01..04 and -14 against a real window (spec `docs/specs/platform-winit/shell.md`,
 //! "Testing"). winit needs the main thread, so this target runs without the test harness. It runs
 //! only with `TANTU_WINDOW_TESTS=1`; otherwise it reports that it was skipped.
 
@@ -6,6 +6,7 @@
 #![allow(clippy::print_stdout)]
 
 use std::process::ExitCode;
+use std::time::{Duration, Instant};
 
 use tantu_platform::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use tantu_platform::{
@@ -26,6 +27,9 @@ struct Run {
     handles_ok: bool,
     redraws: u32,
     after_close: Option<(Option<PhysicalSize>, Option<f32>, bool)>,
+    /// When the wake-up was requested (for 50 ms later) and when `idle` saw it due.
+    wake_requested: Option<Instant>,
+    woke: Option<Instant>,
 }
 
 impl PlatformHandler for Run {
@@ -55,7 +59,10 @@ impl PlatformHandler for Run {
             match self.redraws {
                 1 => {
                     cx.set_title(window, "Tantu window test (renamed)");
-                    cx.request_redraw(window);
+                    // The second redraw comes from the wake-up (PLATFORM-WINIT-14).
+                    let now = cx.now();
+                    self.wake_requested = Some(now);
+                    cx.wake_at(Some(now + Duration::from_millis(50)));
                 }
                 2 => {
                     cx.close_window(window);
@@ -71,9 +78,31 @@ impl PlatformHandler for Run {
         }
     }
 
-    fn idle(&mut self, _cx: &mut dyn PlatformContext) {
+    fn idle(&mut self, cx: &mut dyn PlatformContext) {
         self.idle += 1;
+        if let (Some(requested), None, Some(window)) = (self.wake_requested, self.woke, self.window)
+        {
+            let now = cx.now();
+            if now >= requested + Duration::from_millis(50) {
+                self.woke = Some(now);
+                cx.wake_at(None);
+                cx.request_redraw(window);
+            }
+        }
     }
+}
+
+fn platform_winit_14_wake_at(run: &Run) {
+    let (requested, woke) = (
+        run.wake_requested
+            .expect("the first redraw asked for a wake-up"),
+        run.woke.expect("idle ran once the deadline passed"),
+    );
+    assert!(woke - requested >= Duration::from_millis(50));
+    assert!(
+        woke - requested < Duration::from_secs(2),
+        "the loop woke without an event"
+    );
 }
 
 fn platform_winit_01_run_lifecycle(run: &Run, result: &Result<(), tantu_platform::PlatformError>) {
@@ -127,6 +156,7 @@ fn main() -> ExitCode {
     platform_winit_02_create_window(&run);
     platform_winit_03_close_window(&run);
     platform_winit_04_surface_target(&run);
+    platform_winit_14_wake_at(&run);
     println!("window tests passed");
     ExitCode::SUCCESS
 }

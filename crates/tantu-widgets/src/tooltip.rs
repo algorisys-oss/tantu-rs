@@ -2,6 +2,7 @@
 //! `docs/specs/widgets/tooltip.md`.
 
 use std::rc::Rc;
+use std::time::Duration;
 
 use tantu_view::core::{Color, EdgeInsets, Rect};
 use tantu_view::layout::{Alignment, BoxConstraints};
@@ -24,6 +25,7 @@ pub struct Tooltip<V> {
     message: Prop<String>,
     child: V,
     above: bool,
+    wait: Duration,
 }
 
 impl<V: View> Tooltip<V> {
@@ -33,7 +35,15 @@ impl<V: View> Tooltip<V> {
             message: message.into_prop(),
             child,
             above: false,
+            wait: Duration::from_millis(500),
         }
+    }
+
+    /// How long the pointer must rest on the child before the tooltip shows (default 500 ms;
+    /// zero shows at once) (WIDGETS-TOOLTIP-07).
+    pub fn wait_duration(mut self, duration: Duration) -> Self {
+        self.wait = duration;
+        self
     }
 
     /// Show above the child instead of below (it still flips when there's no room).
@@ -46,6 +56,7 @@ impl<V: View> Tooltip<V> {
 impl<V: View> View for Tooltip<V> {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let (hovered, focused) = (signal(false), signal(false));
+        let _wait = self.wait;
         let message: Rc<dyn Fn() -> String> = match self.message {
             Prop::Value(text) => Rc::new(move || text.clone()),
             Prop::Dynamic(f) => Rc::from(f),

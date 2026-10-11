@@ -1,8 +1,9 @@
 //! Tests for `docs/specs/platform/platform.md`: PLATFORM-TYPES-NN and PLATFORM-FAKE-NN.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::error::Error;
 use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 use tantu_core::{Point, Size, Vec2};
 use tantu_platform::{
@@ -603,4 +604,83 @@ fn platform_fake_11_records_ime_calls() {
     let log = FakePlatform::new().run_logged(&mut handler);
     assert!(!log.windows[0].ime_allowed);
     assert_eq!(log.windows[0].ime_area, None);
+}
+
+#[test]
+fn platform_time_01_now_and_wake_at() {
+    let clock: Rc<RefCell<Vec<Instant>>> = Rc::default();
+    let c = clock.clone();
+    let mut handler = Recorder::with(move |cx, seen| {
+        c.borrow_mut().push(cx.now());
+        match seen {
+            Seen::Started => {
+                cx.create_window(&WindowAttributes::default()).unwrap();
+                let now = cx.now();
+                cx.wake_at(Some(now + Duration::from_millis(30)));
+            }
+            Seen::Idle if c.borrow().len() == 3 => {
+                // The second idle (after the first advance): replace, then cancel.
+                let now = cx.now();
+                cx.wake_at(Some(now + Duration::from_millis(100)));
+                cx.wake_at(None);
+            }
+            _ => {}
+        }
+    });
+    let log = FakePlatform::new()
+        .step(FakeStep::Idle)
+        .step(FakeStep::Advance(Duration::from_millis(10)))
+        .step(FakeStep::Advance(Duration::from_millis(25)))
+        .run_logged(&mut handler);
+    let clock = clock.borrow();
+    assert!(clock.windows(2).all(|w| w[0] <= w[1]), "monotonic");
+    assert_eq!(
+        log.wakes,
+        [
+            Some(Duration::from_millis(30)),
+            Some(Duration::from_millis(110)),
+            None
+        ]
+    );
+}
+
+#[test]
+fn platform_fake_12_clock_and_advance() {
+    let start: Rc<Cell<Option<Instant>>> = Rc::default();
+    let seen_now: Rc<RefCell<Vec<Duration>>> = Rc::default();
+    let (st, sn) = (start.clone(), seen_now.clone());
+    let mut handler = Recorder::with(move |cx, seen| match seen {
+        Seen::Started => {
+            st.set(Some(cx.now()));
+            cx.create_window(&WindowAttributes::default()).unwrap();
+        }
+        Seen::Idle => {
+            sn.borrow_mut()
+                .push(cx.now() - st.get().expect("started first"));
+            let w = WindowId::from_raw(1);
+            cx.request_redraw(w);
+        }
+        _ => {}
+    });
+    let log = FakePlatform::new()
+        .step(FakeStep::Idle)
+        .step(FakeStep::Advance(Duration::from_millis(10)))
+        .event(0, WindowEvent::Focused(true))
+        .step(FakeStep::Advance(Duration::from_millis(5)))
+        .run_logged(&mut handler);
+    // The clock only moves on `Advance`.
+    assert_eq!(
+        *seen_now.borrow(),
+        [
+            Duration::ZERO,
+            Duration::from_millis(10),
+            Duration::from_millis(10),
+            Duration::from_millis(15)
+        ]
+    );
+    assert_eq!(log.steps_delivered, 4);
+    // Each advance ran a redraw round (the redraw requested at the previous idle) and idle.
+    assert_eq!(log.windows[0].redraws, 1 + 4);
+    assert_eq!(handler.seen.iter().filter(|s| **s == Seen::Idle).count(), 4);
+    assert!(log.wakes.is_empty());
 }

@@ -76,6 +76,25 @@ impl Runtime {
         f()
     }
 
+    /// Advances the clock to `now` and runs what is due: timers whose deadline has passed
+    /// (earliest first), then every active ticker once. Returns how many callbacks ran
+    /// (REACTIVE-TIME-01).
+    pub fn tick(&self, now: std::time::Instant) -> usize {
+        let _ = now;
+        todo!()
+    }
+
+    /// The clock: the time of the last `tick`, or `None` before the first.
+    pub fn now(&self) -> Option<std::time::Instant> {
+        todo!()
+    }
+
+    /// `Wake::Now` while a ticker is active, else the earliest pending timer, else `None`
+    /// (REACTIVE-TIME-05).
+    pub fn next_wake(&self) -> Option<crate::Wake> {
+        todo!()
+    }
+
     /// Number of live nodes (signals, memos, effects and scopes). For leak tests.
     pub fn node_count(&self) -> usize {
         let graph = self.inner.graph.borrow();
