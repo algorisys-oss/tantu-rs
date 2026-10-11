@@ -20,6 +20,7 @@ instead.
 | [0010](0010-text-measurement-in-layout.md) | Text measurement in layout | Accepted |
 | [0011](0011-view-layer.md) | The view layer: run-once components over a retained element arena | Accepted (partly decided by the agent; review) |
 | [0012](0012-theme-tokens-through-inherited-signals.md) | Theme tokens reach widgets through inherited signals; `tantu-widgets` depends on `tantu-theme` | Accepted |
+| [0013](0013-accessibility-pipeline.md) | Accessibility: semantics in the view tree, AccessKit trees from `tantu-a11y`, delivered through the platform trait | Proposed |
 
 ## Writing a new ADR
 
