@@ -133,10 +133,10 @@ faster or more portable without changing how apps are written.
   - [x] `Icon` and `IconButton` (Material Icons Regular behind the `material-icons` feature; spec `docs/specs/widgets/icon.md`)
   - [x] `Image` (decoding, fit, sizing; specs `docs/specs/widgets/image.md` and `docs/specs/layout/image.md`)
   - [x] `RichText` (multi-style paragraphs in `tantu-text`; spec `docs/specs/widgets/rich-text.md`)
-  - [ ] `TextField`, in parts:
+  - [x] `TextField`, in parts:
     - [x] editing model: text, selection, undo (spec `docs/specs/widgets/text-editing.md`)
     - [x] the widget: caret, selection painting, keys, pointer (spec `docs/specs/widgets/text-field.md`; clipboard waits for the platform)
-    - [ ] IME composition (spec `docs/specs/widgets/text-field-ime.md`)
+    - [x] IME composition (spec `docs/specs/widgets/text-field-ime.md`)
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
 - [ ] Virtualized `ListView` (100k items at 60fps)
 - [ ] `tantu-theme`: design tokens, light/dark, density, live theme switching

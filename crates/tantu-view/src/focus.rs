@@ -312,13 +312,41 @@ impl ViewTree {
     /// Delivers `event` to the focused element's IME handlers; returns whether any ran
     /// (VIEW-IME-01).
     pub fn dispatch_ime(&mut self, event: ImeEvent) -> bool {
-        let _ = event;
-        todo!("VIEW-IME-01")
+        let Some(focused) = self.focus_state.focused else {
+            return false;
+        };
+        let handlers: Vec<ImeHandler> = self
+            .focus_state
+            .ime
+            .get(&focused)
+            .cloned()
+            .unwrap_or_default();
+        if handlers.is_empty() {
+            return false;
+        }
+        self.enter(|| {
+            for handler in &handlers {
+                handler(&ImeCx {
+                    event: &event,
+                    element: focused,
+                });
+            }
+        });
+        true
     }
 
     /// The focused element's IME area in window coordinates, if it provides one (VIEW-IME-02).
     pub fn ime_area(&self) -> Option<Rect> {
-        todo!("VIEW-IME-02")
+        let focused = self.focus_state.focused?;
+        let provider = self.focus_state.ime_areas.get(&focused)?.clone();
+        let area = self.enter(|| provider())?;
+        let origin = self.origin(focused);
+        Some(Rect::from_ltrb(
+            area.left + origin.x,
+            area.top + origin.y,
+            area.right + origin.x,
+            area.bottom + origin.y,
+        ))
     }
 
     /// Delivers `event` to the focused path (capture, then bubble); an unhandled Tab or

@@ -241,13 +241,15 @@ impl PlatformContext for FakeContext {
     }
 
     fn set_ime_allowed(&mut self, window: WindowId, allowed: bool) {
-        let _ = (window, allowed);
-        todo!("PLATFORM-FAKE-11")
+        if let Some(index) = self.open_index(window) {
+            self.log.windows[index].ime_allowed = allowed;
+        }
     }
 
     fn set_ime_cursor_area(&mut self, window: WindowId, origin: Point, size: Size) {
-        let _ = (window, origin, size);
-        todo!("PLATFORM-FAKE-11")
+        if let Some(index) = self.open_index(window) {
+            self.log.windows[index].ime_area = Some((origin, size));
+        }
     }
 
     fn exit(&mut self) {

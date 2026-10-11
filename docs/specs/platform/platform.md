@@ -349,11 +349,6 @@ FakePlatform
   added.
 - **PLATFORM-FAKE-11:** `FakePlatform` scripts `Ime` events and records the IME calls; see
   [TextField IME](../widgets/text-field-ime.md).
-- **PLATFORM-IME-01:** `ImeEvent`, `WindowEvent::Ime`, `PlatformContext::set_ime_allowed` and
-  `set_ime_cursor_area`; see [TextField IME](../widgets/text-field-ime.md), where they were
-  added.
-- **PLATFORM-FAKE-11:** `FakePlatform` scripts `Ime` events and records the IME calls; see
-  [TextField IME](../widgets/text-field-ime.md).
 
 ## Performance and allocation
 

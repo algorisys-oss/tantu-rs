@@ -1,6 +1,6 @@
 # TextField: IME composition
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-platform` (IME events and context calls), `tantu-platform-winit`
   (conversion), `tantu-view` (dispatch to the focused element, the IME area), `tantu`
   (the runner), `tantu-widgets` (`EditingValue` composing edits, `TextField`), `tantu-test`

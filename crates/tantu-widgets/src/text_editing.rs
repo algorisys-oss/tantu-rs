@@ -153,15 +153,36 @@ impl EditingValue {
     /// marks it as composing, and puts the caret at `cursor` within it (its end when `None`)
     /// (WIDGETS-EDIT-09).
     pub fn compose(&self, text: &str, cursor: Option<(usize, usize)>) -> Self {
-        let _ = (text, cursor);
-        todo!("WIDGETS-EDIT-09")
+        let (start, end) = self.composing_or_selection();
+        let mut composed = self.replace(start, end, text);
+        if text.is_empty() {
+            return composed;
+        }
+        composed.composing = Some(TextRange {
+            start,
+            end: start + text.len(),
+        });
+        if let Some((from, to)) = cursor {
+            let within = |offset: usize| start + offset.min(text.len());
+            let selection = TextSelection::new(within(from), within(to));
+            composed = composed.with_selection(selection);
+        }
+        composed
     }
 
     /// Replaces the composing region (or the selection) with `text` and clears it
     /// (WIDGETS-EDIT-09).
     pub fn commit(&self, text: &str) -> Self {
-        let _ = text;
-        todo!("WIDGETS-EDIT-09")
+        let (start, end) = self.composing_or_selection();
+        self.replace(start, end, text)
+    }
+
+    /// The composing region, or the selection when there is none.
+    fn composing_or_selection(&self) -> (usize, usize) {
+        match self.composing {
+            Some(range) => (range.start, range.end),
+            None => (self.selection.start(), self.selection.end()),
+        }
     }
 
     /// Selects the whole text (WIDGETS-EDIT-05).
@@ -314,6 +335,18 @@ impl TextEditingController {
         }
         if next.text == current.text {
             self.history.update(|h| h.typing = false);
+            self.value.set(next);
+            return;
+        }
+        // A composition and its commit are one step (WIDGETS-EDIT-09).
+        if current.composing.is_some() || next.composing.is_some() {
+            self.history.update(|h| {
+                if current.composing.is_none() {
+                    h.undo.push(current.clone());
+                }
+                h.redo.clear();
+                h.typing = false;
+            });
             self.value.set(next);
             return;
         }

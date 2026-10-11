@@ -195,8 +195,8 @@ impl WidgetTester {
 
     /// Dispatches an IME event to the focused element, then pumps (TEST-WT-10).
     pub fn ime(&mut self, event: ImeEvent) {
-        let _ = event;
-        todo!("TEST-WT-10")
+        self.tree.dispatch_ime(event);
+        self.pump();
     }
 
     /// Presses and releases `key` (with `modifiers`) on the focused element, then pumps.

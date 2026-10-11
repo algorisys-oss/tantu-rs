@@ -564,6 +564,8 @@ impl View for ImeLogger {
         );
         let (log, area) = (self.log, self.area.clone());
         let tick = tantu::reactive::signal(0u32);
+        // Focus changes ask for a frame (a real widget repaints its focus indicator).
+        cx.on_focus_change(id, move |_| tick.update(|t| *t += 1));
         cx.on_ime(id, move |i| {
             log.borrow_mut().push(format!("{:?}", i.event));
             if matches!(i.event, ImeEvent::Commit(_)) {

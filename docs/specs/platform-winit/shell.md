@@ -112,8 +112,6 @@ Conversions
   and visible flags.
 - **PLATFORM-WINIT-13:** winit's `Ime` events convert one to one and the IME context calls reach
   the winit window; see [TextField IME](../widgets/text-field-ime.md).
-- **PLATFORM-WINIT-13:** winit's `Ime` events convert one to one and the IME context calls reach
-  the winit window; see [TextField IME](../widgets/text-field-ime.md).
 
 ## Testing
 

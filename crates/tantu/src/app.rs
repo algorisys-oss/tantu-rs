@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use tantu_core::{Color, Point, Vec2};
+use tantu_core::{Color, Point, Rect, Size, Vec2};
 use tantu_layout::BoxConstraints;
 use tantu_layout::RenderConstrainedBox;
 use tantu_platform::{
@@ -259,6 +259,23 @@ struct WindowState {
     tree: ViewTree,
     renderer: Box<dyn Renderer>,
     scene: Scene,
+    /// The IME area last told to the platform (FACADE-APP-12).
+    ime_area: Option<Rect>,
+}
+
+/// The platform's IME event as the view's (FACADE-APP-12).
+fn ime_event(ime: &tantu_platform::ImeEvent) -> tantu_view::ImeEvent {
+    use tantu_platform::ImeEvent as P;
+    use tantu_view::ImeEvent as V;
+    match ime {
+        P::Enabled => V::Enabled,
+        P::Preedit { text, cursor } => V::Preedit {
+            text: text.clone(),
+            cursor: *cursor,
+        },
+        P::Commit(text) => V::Commit(text.clone()),
+        P::Disabled => V::Disabled,
+    }
 }
 
 /// The app runner (a [`PlatformHandler`]).
@@ -309,6 +326,7 @@ impl AppHandler {
             tree,
             renderer,
             scene: Scene::new(),
+            ime_area: None,
         });
     }
 
@@ -324,6 +342,24 @@ impl AppHandler {
             resources: &mut self.resources,
         };
         state.tree.frame(constraints, &mut text, &mut state.scene);
+        // Keep the platform's IME in step with the focused element's area (FACADE-APP-12).
+        let area = state.tree.ime_area();
+        if area != state.ime_area {
+            match area {
+                Some(rect) => {
+                    if state.ime_area.is_none() {
+                        cx.set_ime_allowed(state.id, true);
+                    }
+                    cx.set_ime_cursor_area(
+                        state.id,
+                        Point::new(rect.left, rect.top),
+                        Size::new(rect.width(), rect.height()),
+                    );
+                }
+                None => cx.set_ime_allowed(state.id, false),
+            }
+            state.ime_area = area;
+        }
         match state.renderer.render(&state.scene, &self.resources) {
             Ok(report) => {
                 if !report.is_clean() {
@@ -512,6 +548,9 @@ impl PlatformHandler for AppHandler {
                 if let Some(event) = key_event(key, self.modifiers) {
                     self.windows[index].tree.dispatch_key(event);
                 }
+            }
+            WindowEvent::Ime(ref ime) => {
+                self.windows[index].tree.dispatch_ime(ime_event(ime));
             }
             ref other => {
                 if let Some(pointer) = pointer_event(other) {

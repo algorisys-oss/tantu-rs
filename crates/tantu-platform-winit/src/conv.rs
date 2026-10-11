@@ -233,8 +233,13 @@ pub(crate) fn window_event(
 
 /// winit's IME event as the platform's (PLATFORM-WINIT-13).
 pub(crate) fn ime_event(ime: winit::event::Ime) -> ImeEvent {
-    let _ = ime;
-    todo!("PLATFORM-WINIT-13")
+    use winit::event::Ime;
+    match ime {
+        Ime::Enabled => ImeEvent::Enabled,
+        Ime::Preedit(text, cursor) => ImeEvent::Preedit { text, cursor },
+        Ime::Commit(text) => ImeEvent::Commit(text),
+        Ime::Disabled => ImeEvent::Disabled,
+    }
 }
 
 #[cfg(test)]

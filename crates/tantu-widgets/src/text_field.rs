@@ -13,11 +13,11 @@ use tantu_view::reactive::{Signal, signal};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::text::TextStyle;
 use tantu_view::{
-    AnyView, BuildCx, CursorIcon, ElementId, FocusOptions, Handled, IntoProp, LogicalKey, NamedKey,
-    Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, SingleActivator, View,
+    AnyView, BuildCx, CursorIcon, ElementId, FocusOptions, Handled, ImeEvent, IntoProp, LogicalKey,
+    NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, SingleActivator, View,
 };
 
-use crate::text_editing::{Direction, EditingValue, Movement, TextSelection};
+use crate::text_editing::{Direction, EditingValue, Movement, TextRange, TextSelection};
 use crate::util::dynamic;
 use crate::{Padding, TextEditingController};
 
@@ -378,6 +378,7 @@ impl View for FieldBox {
         {
             let (geometry, dragging, anchor) =
                 (Rc::clone(&self.geometry), self.dragging, self.anchor);
+            let enabled = Rc::clone(&enabled);
             cx.on_pointer(id, Phase::Bubble, move |p| {
                 let local = Point::new(p.local.x - PADDING.left, p.local.y - PADDING.top);
                 match p.event.kind {
@@ -399,6 +400,46 @@ impl View for FieldBox {
                     }
                     _ => Handled::Continue,
                 }
+            });
+        }
+        // The IME (WIDGETS-TEXTFIELD-07).
+        {
+            let (enabled, on_change) = (Rc::clone(&enabled), self.on_change.clone());
+            cx.on_ime(id, move |i| {
+                if !enabled() {
+                    return;
+                }
+                match i.event {
+                    ImeEvent::Preedit { text, cursor } => {
+                        apply(controller, &on_change, |v| v.compose(text, *cursor));
+                    }
+                    ImeEvent::Commit(text) => {
+                        apply(controller, &on_change, |v| v.commit(text));
+                    }
+                    ImeEvent::Disabled => {
+                        let value = controller.value();
+                        if let Some(range) = value.composing {
+                            let preedit = value.text[range.start..range.end].to_string();
+                            apply(controller, &on_change, |v| v.commit(&preedit));
+                        }
+                    }
+                    ImeEvent::Enabled => {}
+                }
+            });
+        }
+        {
+            let (enabled, geometry) = (Rc::clone(&enabled), Rc::clone(&self.geometry));
+            cx.ime_area(id, move || {
+                if !(focused.get_untracked() && enabled()) {
+                    return None;
+                }
+                let caret = geometry.borrow().caret(controller.value().selection.extent);
+                Some(Rect::from_ltrb(
+                    caret.left + PADDING.left,
+                    caret.top + PADDING.top,
+                    caret.left + PADDING.left + CARET_WIDTH,
+                    caret.bottom + PADDING.top,
+                ))
             });
         }
         cx.set_cursor(id, CursorIcon::Text);
@@ -482,6 +523,7 @@ impl View for Editor {
                 enabled: true,
                 focused: false,
                 selection: TextSelection::default(),
+                composing: None,
             },
         );
         let (controller, placeholder) = (self.controller, self.placeholder);
@@ -504,6 +546,13 @@ impl View for Editor {
             Prop::Dynamic(Box::new(move || controller.value().selection)),
             |e, selection| {
                 e.update_paint::<EditorPaint>(|p| p.selection = selection);
+            },
+        );
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || controller.value().composing)),
+            |e, composing| {
+                e.update_paint::<EditorPaint>(|p| p.composing = composing);
             },
         );
         let focused = self.focused;
@@ -530,6 +579,7 @@ struct EditorPaint {
     enabled: bool,
     focused: bool,
     selection: TextSelection,
+    composing: Option<TextRange>,
 }
 
 impl Paint for EditorPaint {
@@ -573,6 +623,15 @@ impl Paint for EditorPaint {
             ON_SURFACE
         };
         cx.paint_text(&text, style, width, max_lines, color, Point::ZERO);
+        // The composing range is underlined (WIDGETS-TEXTFIELD-08).
+        if let Some(range) = self.composing.filter(|_| active && !self.empty) {
+            for rect in geometry.selection_rects(range.start, range.end) {
+                cx.scene().fill_rect(
+                    Rect::from_ltrb(rect.left, rect.bottom - 1.0, rect.right, rect.bottom),
+                    PRIMARY,
+                );
+            }
+        }
         if active {
             let caret = geometry.caret(self.selection.extent);
             cx.scene().fill_rect(
