@@ -55,9 +55,14 @@ option, mark it for review, push at each milestone).
     their own fonts through `TextStyles::ensure_font` / `BuildCx::ensure_font`
     (TEXT-STYLES-05, VIEW-STYLES-02); goldens `icon.png`, `icon-button.png`.
 
+  - **`Image`** (2026-10-11, `docs/specs/widgets/image.md` and `docs/specs/layout/image.md`,
+    decision 53, decided by the agent while the user was away): `decode_png`, `BoxFit`,
+    `RenderImage` (LAYOUT-IMAGE-01..02, LAYOUT-CONS-18), `Resources::intern_image`
+    (SCENE-RES-11), `PaintCx::image_id` (VIEW-TEXT-06); golden `image.png`.
+
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `Image` (decoding, fit, sizing), `RichText`, then `TextField` in three parts.
+1. `RichText` (multi-style paragraphs in `tantu-text`), then `TextField` in three parts.
 
 After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
 animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
@@ -586,6 +591,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     tester setup; `IconData { code_point, family, font }`; `Icon::size` not reactive and the
     family fixed at build; `IconButton` on the toggles' pressable core (no `on_press` =
     disabled, on-surface state layer).
+53. **Image** (2026-10-11, specs `docs/specs/widgets/image.md` and `docs/specs/layout/image.md`,
+    decided by the agent while the user was away; review): `RenderImage` sizing in
+    `tantu-layout` (Flutter's, with `BoxConstraints::constrain_size_and_attempt_to_preserve_aspect_ratio`),
+    the fit paint-only in the widget (Flutter's `applyBoxFit` table in the spec); PNG decoding
+    in `tantu-widgets` with the `png` crate (`decode_png`; the software renderer keeps its
+    copy); images reach the renderer's resources through the frame's painter
+    (`TextPainter::image_id` → `Resources::intern_image`, once per pixel buffer; renaming the
+    trait `FramePainter` is a later cleanup); no eviction yet; `Image::new` takes decoded
+    `ImageData`.
 
 ## Commit log
 
@@ -862,7 +876,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `a554d35` | test: Icon, IconButton and the font queue, stubs + 5 failing tests; Material Icons font and Icons table |
 | `501226d` | spec: an Icon's family and font come from its first value (WIDGETS-ICON-03) |
 | `ce84ffa` | impl: Icon and IconButton, the font queue in TextStyles; icon goldens |
-| _this commit_ | docs: HANDOFF.md for Icon and IconButton |
+| `ae06e43` | docs: HANDOFF.md for Icon and IconButton |
+| `630f3ae` | spec: Image (WIDGETS-IMAGE-01..05), RenderImage (LAYOUT-IMAGE-01..02, LAYOUT-CONS-18), Resources::intern_image (SCENE-RES-11), PaintCx::image_id (VIEW-TEXT-06) |
+| `f0fba6a` | test: Image, RenderImage, intern_image and image_id, stubs + 11 failing tests |
+| `83fd47b` | impl: Image and decode_png, RenderImage, Resources::intern_image, PaintCx::image_id; image golden |
+| _this commit_ | docs: HANDOFF.md for Image |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -871,7 +889,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `Image` next (see "Resume here").
+3. Phase 3 widgets: `RichText` next (see "Resume here").
 
 ## Open questions
 
