@@ -146,7 +146,7 @@ faster or more portable without changing how apps are written.
 - [ ] `tantu-theme`: design tokens, light/dark, density, live theme switching
 - [ ] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
 - [ ] `tantu-a11y`: AccessKit tree for every standard widget
-- [ ] `examples/gallery`
+- [ ] `examples/gallery` (spec `docs/specs/examples/gallery.md`)
 
 ### Phase 4 — Enterprise features (weeks 17–26)
 - [ ] `DataGrid`: virtualized rows **and** columns, frozen columns, sort/filter, resize/reorder, cell editors, selection models, 1M-row data source trait
