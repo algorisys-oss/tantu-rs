@@ -1,6 +1,6 @@
 # Slider
 
-- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
+- **Status:** Implemented (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-widgets` (plus `WidgetTester::drag` in `tantu-test`)
 - **Plan item:** Phase 3, "Widgets" → "`Slider`"
 - **Related:** [Divider](divider.md) (`LimitedBox`), [Text and Button](basic.md),

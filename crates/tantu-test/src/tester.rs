@@ -163,8 +163,16 @@ impl WidgetTester {
     /// `delta`, and a release there, pumping after each. Panics if it matches no element or
     /// several.
     pub fn drag(&mut self, finder: &Finder, delta: Vec2) {
-        let _ = (self.find(finder), delta);
-        todo!("TEST-WT-08")
+        let start = self.rect(self.find(finder)).center();
+        let end = start + delta;
+        for (kind, position) in [
+            (PointerKind::Down(PointerButton::Primary), start),
+            (PointerKind::Move, end),
+            (PointerKind::Up(PointerButton::Primary), end),
+        ] {
+            self.pointer(PointerEvent { kind, position });
+            self.pump();
+        }
     }
 
     /// Presses and releases `key` (with `modifiers`) on the focused element, then pumps.
