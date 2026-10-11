@@ -27,6 +27,9 @@
 
 mod basic;
 mod divider;
+mod icon;
+#[cfg(feature = "material-icons")]
+mod icons;
 mod layout;
 mod slider;
 mod toggles;
@@ -35,6 +38,11 @@ mod util;
 
 pub use basic::{Button, Text};
 pub use divider::{Divider, VerticalDivider};
+pub use icon::{Icon, IconButton, IconData};
+#[cfg(feature = "material-icons")]
+pub use icon::{MATERIAL_ICONS_FAMILY, MATERIAL_ICONS_FONT};
+#[cfg(feature = "material-icons")]
+pub use icons::Icons;
 pub use slider::Slider;
 pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;

@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/text/styles.md`, rules TEXT-STYLES-01..04.
+//! Tests for `docs/specs/text/styles.md`, rules TEXT-STYLES-01..05.
 
 use tantu_layout::{TextMeasure, TextStyleKey};
 use tantu_text::{FontFamily, TextStyle, TextStyles, TextSystem};
@@ -72,4 +72,29 @@ fn text_styles_04_presets() {
         assert!(!style.italic);
         assert_eq!(style.line_height, None);
     }
+}
+
+#[test]
+fn text_styles_05_ensure_font() {
+    let styles = TextStyles::new();
+    assert!(styles.take_pending_fonts().is_empty());
+    styles.ensure_font(FONT);
+    styles.ensure_font(FONT);
+    assert_eq!(styles.take_pending_fonts(), vec![FONT]);
+    assert!(styles.take_pending_fonts().is_empty());
+    // Once per table: the same data isn't queued again after it was taken.
+    styles.ensure_font(FONT);
+    assert!(styles.take_pending_fonts().is_empty());
+    // The system registers queued fonts before measuring, so the family resolves.
+    let styles = TextStyles::new();
+    let mut text = TextSystem::without_system_fonts().with_styles(styles.clone());
+    let key = styles.key(TextStyle {
+        family: FontFamily::Named("Liberation Sans".into()),
+        ..sized(20.0)
+    });
+    styles.ensure_font(FONT);
+    let m = text.measure("Hello", key, f32::INFINITY, None);
+    assert!(m.size.width > 0.0);
+    assert_eq!(m.line_count, 1);
+    assert!(styles.take_pending_fonts().is_empty());
 }

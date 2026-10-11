@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/text/styles.md`, rule VIEW-STYLES-01.
+//! Tests for `docs/specs/text/styles.md`, rules VIEW-STYLES-01..02.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -37,4 +37,25 @@ fn view_styles_01_build_time_keys() {
     };
     assert_eq!(own.text_styles().len(), 1);
     assert_eq!(styles.len(), 2);
+}
+
+/// A view that brings a "font".
+struct Fonted;
+
+const FAKE_FONT: &[u8] = b"not really a font";
+
+impl View for Fonted {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        cx.ensure_font(FAKE_FONT);
+        cx.ensure_font(FAKE_FONT);
+        cx.render(RenderConstrainedBox::sized(Some(1.0), Some(1.0)), [])
+    }
+}
+
+#[test]
+fn view_styles_02_ensure_font() {
+    let styles = TextStyles::new();
+    let _tree = ViewTree::with_text_styles(styles.clone(), || Fonted);
+    assert_eq!(styles.take_pending_fonts(), vec![FAKE_FONT]);
+    assert!(styles.take_pending_fonts().is_empty());
 }

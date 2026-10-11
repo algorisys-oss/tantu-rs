@@ -8,6 +8,11 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[features]
+default = ["material-icons"]
+## Embeds Material Icons Regular (Apache 2.0, 357 KB) and the `Icons` table.
+material-icons = []
+
 [lints]
 workspace = true
 

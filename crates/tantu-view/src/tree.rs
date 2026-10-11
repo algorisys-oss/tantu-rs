@@ -134,6 +134,13 @@ impl BuildCx<'_> {
         self.tree.text_styles.key(style)
     }
 
+    /// Queues `font` for the text system to register before it next measures
+    /// (`TextStyles::ensure_font`, VIEW-STYLES-02), so a widget can bring its own font.
+    pub fn ensure_font(&mut self, font: &'static [u8]) {
+        let _ = font;
+        todo!("VIEW-STYLES-02")
+    }
+
     /// The current parent element.
     pub fn parent(&self) -> ElementId {
         self.parent

@@ -12,7 +12,7 @@ repository.workspace = true
 workspace = true
 
 [features]
-default = ["wgpu", "winit", "default-theme"]
+default = ["wgpu", "winit", "default-theme", "material-icons"]
 ## GPU renderer (tantu-render-wgpu).
 wgpu = ["dep:tantu-render-wgpu"]
 ## CPU renderer (tantu-render-soft).
@@ -21,6 +21,8 @@ soft = ["dep:tantu-render-soft"]
 winit = ["dep:tantu-platform-winit"]
 ## Default themes (tantu-theme).
 default-theme = ["dep:tantu-theme"]
+## Material Icons and the `Icons` table (tantu-widgets).
+material-icons = ["tantu-widgets/material-icons"]
 
 [dependencies]
 tantu-core = { workspace = true }

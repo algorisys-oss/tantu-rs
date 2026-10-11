@@ -51,6 +51,18 @@ impl TextStyles {
     pub fn is_empty(&self) -> bool {
         self.styles.borrow().is_empty()
     }
+
+    /// Queues `font` for registration by the text system before its next measure or paint
+    /// (TEXT-STYLES-05). The same data (by address) is queued once per table.
+    pub fn ensure_font(&self, font: &'static [u8]) {
+        let _ = font;
+        todo!("TEXT-STYLES-05")
+    }
+
+    /// Takes the queued fonts (what the text system calls before measuring).
+    pub fn take_pending_fonts(&self) -> Vec<&'static [u8]> {
+        todo!("TEXT-STYLES-05")
+    }
 }
 
 impl TextStyle {
