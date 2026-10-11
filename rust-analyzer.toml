@@ -1,0 +1,5 @@
+# rust-analyzer builds in its own directory (target/rust-analyzer), so its check-on-save never
+# holds the file lock that `cargo build`/`test` in a terminal or an agent session waits on,
+# and vice versa. Costs a second build tree on disk.
+[cargo]
+targetDir = true
