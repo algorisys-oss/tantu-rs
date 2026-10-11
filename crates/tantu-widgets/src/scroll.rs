@@ -2,14 +2,15 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
+use std::time::Duration;
 
 use tantu_view::core::{Color, Point, Rect, Size};
 use tantu_view::layout::{RenderViewport, ScrollAxis};
 use tantu_view::reactive::{Signal, signal};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::{
-    AnyView, BuildCx, ElementId, FocusOptions, Handled, LogicalKey, NamedKey, Paint, PaintCx,
-    Phase, PointerButton, PointerKind, Prop, View,
+    AnyView, BuildCx, Curve, ElementId, FocusOptions, Handled, LogicalKey, NamedKey, Paint,
+    PaintCx, Phase, PointerButton, PointerKind, Prop, View,
 };
 
 use crate::theme::{ThemeHandle, at};
@@ -51,6 +52,14 @@ impl ScrollController {
     /// Sets the offset; clamped to `0..=max_scroll_extent` at the next frame.
     pub fn jump_to(&self, offset: f32) {
         self.offset.set(offset);
+    }
+
+    /// Animates the offset to `offset` (clamped to the extents at each frame) over `duration`
+    /// along `curve`; a wheel step or a jump during the animation takes over
+    /// (WIDGETS-SCROLL-08). A zero duration is `jump_to`.
+    pub fn animate_to(&self, offset: f32, duration: Duration, curve: Curve) {
+        let _ = (offset, duration, curve);
+        todo!()
     }
 
     /// The largest offset: content minus viewport along the axis, at least 0 (0 before the
@@ -101,6 +110,7 @@ pub struct ScrollView {
     child: AnyView,
     horizontal: bool,
     controller: Option<ScrollController>,
+    wheel: Duration,
 }
 
 impl ScrollView {
@@ -110,7 +120,15 @@ impl ScrollView {
             child: AnyView::new(child),
             horizontal: false,
             controller: None,
+            wheel: Duration::from_millis(150),
         }
+    }
+
+    /// How long a wheel step takes (default 150 ms; zero applies deltas at once)
+    /// (WIDGETS-SCROLL-07).
+    pub fn wheel_duration(mut self, duration: Duration) -> Self {
+        self.wheel = duration;
+        self
     }
 
     /// Scrolls left and right instead.
@@ -200,6 +218,7 @@ impl View for ScrollView {
             ScrollAxis::Vertical
         };
         let theme = ThemeHandle::of(cx);
+        let _wheel = self.wheel;
         let id = cx.render(RenderViewport::new(axis), [self.child]);
         let shared: Shared = Rc::default();
         cx.set_paint(

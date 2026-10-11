@@ -1,9 +1,11 @@
-//! Tests for `docs/specs/widgets/scroll.md`, rules WIDGETS-SCROLL-01..06.
+//! Tests for `docs/specs/widgets/scroll.md`, rules WIDGETS-SCROLL-01..08.
 
 use std::cell::Cell;
 use std::rc::Rc;
+use std::time::Duration;
 
 use tantu_test::{Finder, WidgetTester};
+use tantu_view::Curve;
 use tantu_view::core::{Color, Point, Rect, Vec2};
 use tantu_view::scene::Command;
 use tantu_view::{
@@ -33,8 +35,9 @@ fn view(make: impl FnOnce() -> ScrollView + 'static) -> (WidgetTester, ScrollCon
     (tester, controller)
 }
 
+/// A 1000 px tall content, with wheel steps applied at once (the pre-animation rules).
 fn tall() -> ScrollView {
-    ScrollView::new(Keyed::new("c", SizedBox::new(300.0, 1000.0)))
+    ScrollView::new(Keyed::new("c", SizedBox::new(300.0, 1000.0))).wheel_duration(Duration::ZERO)
 }
 
 fn offset(tester: &WidgetTester, c: ScrollController) -> f32 {
@@ -102,7 +105,11 @@ fn widgets_scroll_02_wheel() {
     tester.scroll(&Finder::key("s"), Vec2::new(0.0, -5000.0));
     assert_eq!(offset(&tester, c), 0.0);
     // A horizontal view ignores vertical motion.
-    let (mut tester, c) = view(|| ScrollView::new(SizedBox::new(1000.0, 100.0)).horizontal());
+    let (mut tester, c) = view(|| {
+        ScrollView::new(SizedBox::new(1000.0, 100.0))
+            .horizontal()
+            .wheel_duration(Duration::ZERO)
+    });
     tester.scroll(&Finder::key("s"), Vec2::new(0.0, 50.0));
     assert_eq!(offset(&tester, c), 0.0);
     tester.scroll(&Finder::key("s"), Vec2::new(40.0, 0.0));
@@ -119,8 +126,11 @@ fn widgets_scroll_02_wheel() {
                     .child(SizedBox::new(300.0, 50.0))
                     .child(Keyed::new(
                         "inner",
-                        SizedBox::new(300.0, 100.0)
-                            .child(ScrollView::new(SizedBox::new(300.0, 400.0)).controller(inner)),
+                        SizedBox::new(300.0, 100.0).child(
+                            ScrollView::new(SizedBox::new(300.0, 400.0))
+                                .controller(inner)
+                                .wheel_duration(Duration::ZERO),
+                        ),
                     ))
                     .child(SizedBox::new(300.0, 1000.0)),
             )
@@ -285,10 +295,81 @@ fn widgets_scroll_06_keyboard() {
     tester.press_key(LogicalKey::Character("a".into()), Modifiers::default());
     assert_eq!(offset(&tester, c), 0.0);
     // Horizontal views use the horizontal arrows.
-    let (mut tester, c) = view(|| ScrollView::new(SizedBox::new(1000.0, 100.0)).horizontal());
+    let (mut tester, c) = view(|| {
+        ScrollView::new(SizedBox::new(1000.0, 100.0))
+            .horizontal()
+            .wheel_duration(Duration::ZERO)
+    });
     tester.tap(&Finder::key("s"));
     key(&mut tester, NamedKey::ArrowRight);
     assert_eq!(offset(&tester, c), 40.0);
     key(&mut tester, NamedKey::ArrowDown);
     assert_eq!(offset(&tester, c), 40.0);
+}
+
+/// A 1000 px tall content with the default (animated) wheel.
+fn tall_smooth() -> ScrollView {
+    ScrollView::new(Keyed::new("c", SizedBox::new(300.0, 1000.0)))
+}
+
+#[test]
+fn widgets_scroll_07_smooth_wheel() {
+    let ms = Duration::from_millis;
+    let (mut tester, c) = view(tall_smooth);
+    tester.scroll(&Finder::key("s"), Vec2::new(0.0, 40.0));
+    assert!(offset(&tester, c) < 40.0);
+    tester.advance(ms(75));
+    let half = offset(&tester, c);
+    assert!(half > 20.0 && half < 40.0, "ease-out part way: {half}");
+    tester.advance(ms(75));
+    assert_eq!(offset(&tester, c), 40.0);
+    // Steps accumulate.
+    for _ in 0..3 {
+        tester.scroll(&Finder::key("s"), Vec2::new(0.0, 40.0));
+    }
+    tester.advance(ms(150));
+    assert_eq!(offset(&tester, c), 160.0);
+    // Clamped at the end.
+    tester.scroll(&Finder::key("s"), Vec2::new(0.0, 5000.0));
+    tester.advance(ms(150));
+    assert_eq!(offset(&tester, c), 800.0);
+    // A jump during the animation takes over.
+    tester.scroll(&Finder::key("s"), Vec2::new(0.0, -400.0));
+    tester.advance(ms(50));
+    tester.enter(|| c.jump_to(300.0));
+    tester.pump();
+    assert_eq!(offset(&tester, c), 300.0);
+    tester.advance(ms(200));
+    assert_eq!(offset(&tester, c), 300.0);
+    // No overflow: the event continues (an outer view would scroll), nothing animates.
+    let (mut tester, c) = view(|| ScrollView::new(SizedBox::new(300.0, 100.0)));
+    tester.scroll(&Finder::key("s"), Vec2::new(0.0, 40.0));
+    tester.advance(ms(150));
+    assert_eq!(offset(&tester, c), 0.0);
+}
+
+#[test]
+fn widgets_scroll_08_animate_to() {
+    let ms = Duration::from_millis;
+    let (mut tester, c) = view(tall_smooth);
+    tester.enter(|| c.animate_to(400.0, ms(200), Curve::Linear));
+    tester.advance(ms(100));
+    assert_eq!(offset(&tester, c), 200.0);
+    tester.advance(ms(100));
+    assert_eq!(offset(&tester, c), 400.0);
+    // Beyond the extents: clamped, ends at the maximum.
+    tester.enter(|| c.animate_to(5000.0, ms(100), Curve::Linear));
+    tester.advance(ms(100));
+    assert_eq!(offset(&tester, c), 800.0);
+    // A zero duration jumps.
+    tester.enter(|| c.animate_to(100.0, Duration::ZERO, Curve::Linear));
+    tester.pump();
+    assert_eq!(offset(&tester, c), 100.0);
+    // A wheel step during it takes over.
+    tester.enter(|| c.animate_to(500.0, ms(200), Curve::Linear));
+    tester.advance(ms(50));
+    tester.scroll(&Finder::key("s"), Vec2::new(0.0, 40.0));
+    tester.advance(ms(150));
+    let after = offset(&tester, c);
+    assert!((after - 240.0).abs() < 1e-3, "{after}");
 }

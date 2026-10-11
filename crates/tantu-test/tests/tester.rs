@@ -338,7 +338,9 @@ fn test_wt_11_scroll() {
             *out.borrow_mut() = Some(controller);
             Keyed::new(
                 "s",
-                ScrollView::new(SizedBox::new(800.0, 5000.0)).controller(controller),
+                ScrollView::new(SizedBox::new(800.0, 5000.0))
+                    .controller(controller)
+                    .wheel_duration(std::time::Duration::ZERO),
             )
         })
     };

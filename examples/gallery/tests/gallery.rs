@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..06.
+//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..07.
 
 use gallery::{SECTIONS, gallery};
 use tantu::core::{Rect, Vec2};
@@ -74,6 +74,8 @@ fn gallery_03_text_field_and_list() {
     tester.pump();
     tester.find(&Finder::text("Row 0"));
     tester.scroll(&Finder::key("list"), Vec2::new(0.0, 3200.0));
+    // Wheel steps animate (WIDGETS-SCROLL-07): wait the step out.
+    tester.advance(std::time::Duration::from_millis(150));
     tester.pump();
     assert!(tester.find_all(&Finder::text("Row 0")).is_empty());
     tester.find(&Finder::text("Row 100"));
@@ -138,4 +140,29 @@ fn gallery_06_animation_section() {
     tester.tap(&Finder::key("grow"));
     tester.advance(Duration::from_millis(300));
     assert_eq!(rect(&tester, "box").width(), 100.0);
+}
+
+#[test]
+fn gallery_07_switcher() {
+    use std::time::Duration;
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    tester.tap(&Finder::key(nav("Animation")));
+    tester.find(&Finder::key("switcher"));
+    assert!(!tester.find_all(&Finder::text("One")).is_empty());
+    assert!(tester.find_all(&Finder::text("Two")).is_empty());
+    tester.tap(&Finder::key("next"));
+    tester.advance(Duration::from_millis(150));
+    assert!(!tester.find_all(&Finder::text("One")).is_empty());
+    assert!(!tester.find_all(&Finder::text("Two")).is_empty());
+    let half = tester
+        .frame()
+        .scene
+        .entries()
+        .iter()
+        .filter(|e| matches!(e.command, tantu::scene::Command::PushLayer(l) if (l.opacity - 0.5).abs() < 1e-3))
+        .count();
+    assert_eq!(half, 2);
+    tester.advance(Duration::from_millis(150));
+    assert!(tester.find_all(&Finder::text("One")).is_empty());
+    assert!(!tester.find_all(&Finder::text("Two")).is_empty());
 }

@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..09.
+//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..11.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -525,4 +525,128 @@ fn widgets_textfield_09_caret_following() {
     tester.enter(|| c.set_text(wrapped.clone()));
     tester.pump();
     assert_eq!(content_shift(&tester, &wrapped), 0.0);
+}
+
+#[test]
+fn widgets_textfield_10_caret_blinks() {
+    use std::time::Duration;
+    let ms = Duration::from_millis;
+    let (mut tester, _) = plain("hi");
+    tester.tap(&Finder::key("f"));
+    assert!(caret(&tester).is_some(), "visible on focus");
+    tester.advance(ms(499));
+    assert!(caret(&tester).is_some());
+    tester.advance(ms(1));
+    assert!(caret(&tester).is_none(), "hidden after half a period");
+    tester.advance(ms(500));
+    assert!(caret(&tester).is_some(), "visible again");
+    tester.advance(ms(600));
+    assert!(caret(&tester).is_none());
+    // An edit shows it at once and restarts the cycle.
+    tester.press_key(LogicalKey::Character("a".into()), Modifiers::default());
+    assert!(caret(&tester).is_some());
+    tester.advance(ms(400));
+    assert!(caret(&tester).is_some());
+    tester.advance(ms(100));
+    assert!(caret(&tester).is_none());
+    // A caret move too.
+    key(&mut tester, NamedKey::ArrowLeft, Modifiers::default());
+    assert!(caret(&tester).is_some());
+    // The selection highlight doesn't blink.
+    key(&mut tester, NamedKey::ArrowRight, shift());
+    tester.advance(ms(600));
+    assert!(caret(&tester).is_none());
+    assert!(!selection(&tester).is_empty());
+    // Losing focus stops it.
+    tester.focus(&Finder::text("Next"));
+    assert!(caret(&tester).is_none());
+    tester.advance(ms(500));
+    assert!(caret(&tester).is_none());
+}
+
+#[test]
+fn widgets_textfield_11_double_click_selects_a_word() {
+    use std::time::Duration;
+    let ms = Duration::from_millis;
+    let (mut tester, c) = plain("hello world");
+    let editor = tester.rect(tester.find(&Finder::text("hello world")));
+    let y = editor.center().y;
+    let click = |tester: &mut WidgetTester, x: f32| {
+        for kind in [
+            PointerKind::Down(PointerButton::Primary),
+            PointerKind::Up(PointerButton::Primary),
+        ] {
+            tester.pointer(PointerEvent {
+                kind,
+                position: Point::new(x, y),
+            });
+        }
+        tester.pump();
+    };
+    let in_world = editor.right - 4.0;
+    let in_hello = editor.left + 3.0;
+    click(&mut tester, in_world);
+    assert!(sel(&tester, c).is_collapsed());
+    tester.advance(ms(100));
+    click(&mut tester, in_world);
+    assert_eq!(
+        sel(&tester, c),
+        TextSelection::new(6, 11),
+        "double-click selects the word"
+    );
+    // A third press within the interval starts a single-click selection again.
+    tester.advance(ms(100));
+    click(&mut tester, in_world);
+    assert!(sel(&tester, c).is_collapsed());
+    // Too slow: two single clicks.
+    tester.advance(ms(600));
+    click(&mut tester, in_world);
+    tester.advance(ms(600));
+    click(&mut tester, in_world);
+    assert!(sel(&tester, c).is_collapsed());
+    // Dragging after a double-click extends by whole words.
+    tester.advance(ms(600));
+    click(&mut tester, in_world);
+    tester.advance(ms(100));
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(in_world, y),
+    });
+    tester.pump();
+    assert_eq!(sel(&tester, c), TextSelection::new(6, 11));
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Move,
+        position: Point::new(in_hello, y),
+    });
+    tester.pump();
+    let dragged = sel(&tester, c);
+    assert_eq!((dragged.start(), dragged.end()), (0, 11));
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Up(PointerButton::Primary),
+        position: Point::new(in_hello, y),
+    });
+    tester.pump();
+    // Too far apart: not a double-click.
+    tester.advance(ms(600));
+    click(&mut tester, in_hello);
+    tester.advance(ms(100));
+    click(&mut tester, in_hello + 10.0);
+    assert!(sel(&tester, c).is_collapsed());
+    // Whitespace between words selects the whitespace run.
+    let (mut tester, c) = plain("a   b");
+    let editor = tester.rect(tester.find(&Finder::text("a   b")));
+    let (x, y) = (editor.center().x, editor.center().y);
+    for _ in 0..2 {
+        for kind in [
+            PointerKind::Down(PointerButton::Primary),
+            PointerKind::Up(PointerButton::Primary),
+        ] {
+            tester.pointer(PointerEvent {
+                kind,
+                position: Point::new(x, y),
+            });
+        }
+        tester.advance(ms(50));
+    }
+    assert_eq!(sel(&tester, c), TextSelection::new(1, 4));
 }
