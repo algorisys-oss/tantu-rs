@@ -43,11 +43,14 @@ option, mark it for review, push at each milestone).
     state layers, golden `crates/tantu-widgets/tests/goldens/slider.png`;
     `WidgetTester::drag` (TEST-WT-08).
 
+  - **`Checkbox`, `Radio`, `Switch`** (2026-10-11, `docs/specs/widgets/toggles.md`, decision
+    51, decided by the agent while the user was away): one shared toggle core (handlers,
+    focus, state layers), a paint per widget, goldens `checkbox.png`, `radio.png`,
+    `switch.png`.
+
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `Checkbox`, `Radio`, `Switch`. The check mark needs Scene paths or an icon glyph; decide in
-   that spec.
-2. `Icon`/`IconButton`, `Image`, `RichText`, then `TextField` in three parts.
+1. `Icon`/`IconButton` (an icon font), `Image`, `RichText`, then `TextField` in three parts.
 
 After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
 animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
@@ -557,6 +560,14 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     Flutter's keyboard model (5 % or one-division steps, Home/End, repeats, `on_change` only);
     focus on press; a slider without `on_change` counts as disabled; a fixed 48 px height
     where Flutter takes the bounded maximum height; `WidgetTester::drag` (TEST-WT-08).
+51. **Checkbox, Radio, Switch** (2026-10-11, spec `docs/specs/widgets/toggles.md`, decided by
+    the agent while the user was away; review): the check mark is two rotated bars in Scene
+    transform scopes (no Scene path command yet, no icon font yet); app-driven
+    `indeterminate` instead of Flutter's user-cycled `tristate`, activation always reports
+    `!value`; desktop tap targets (40 × 40, switch 60 × 40); direct Space/Enter handlers as
+    `Button` (shortcuts fire on repeats and intents carry no repeat flag, so the shared
+    `ActivateIntent` stays deferred); `Radio::new(value, group)` as Flutter's `groupValue`;
+    no focus on press, as `Button`. Material 3 colors and metrics are in the spec's table.
 
 ## Commit log
 
@@ -823,7 +834,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `54428be` | spec: the Slider's outer element holds its handlers, focus and paint |
 | `377570f` | test: TEST-WT-08's recorder ignores the hover enter after the release |
 | `b04a955` | impl: Slider and WidgetTester::drag; slider golden |
-| _this commit_ | docs: HANDOFF.md for the Slider |
+| `50f567f` | docs: HANDOFF.md for the Slider |
+| `ddf600a` | spec: Checkbox, Radio and Switch (WIDGETS-TOGGLE-01..09) |
+| `c78fb2d` | test: Checkbox, Radio and Switch, stubs + 9 failing tests |
+| `2001951` | test: toggle tests read the toggle's own entries and compare sizes (the column centers it) |
+| `b63ed0e` | impl: Checkbox, Radio and Switch; three goldens |
+| _this commit_ | docs: HANDOFF.md for the toggles |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -832,7 +848,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `Checkbox`, `Radio`, `Switch` next (see "Resume here").
+3. Phase 3 widgets: `Icon`/`IconButton` next (see "Resume here").
 
 ## Open questions
 
