@@ -140,6 +140,19 @@ impl BuildCx<'_> {
         self.tree.text_styles.clone()
     }
 
+    /// Attaches `value` to the element being built, for the views built under it
+    /// (VIEW-INHERIT-01); a second value of the same type replaces the first.
+    pub fn provide<T: 'static>(&mut self, value: T) {
+        let _ = value;
+        todo!("VIEW-INHERIT-01")
+    }
+
+    /// The nearest `T` provided on the element being built or one of its ancestors
+    /// (VIEW-INHERIT-01).
+    pub fn inherit<T: Clone + 'static>(&self) -> Option<T> {
+        todo!("VIEW-INHERIT-01")
+    }
+
     /// Queues `font` for the text system to register before it next measures
     /// (`TextStyles::ensure_font`, VIEW-STYLES-02), so a widget can bring its own font.
     pub fn ensure_font(&mut self, font: &'static [u8]) {
@@ -319,6 +332,13 @@ impl ViewTree {
     /// The element's reactive scope.
     pub fn scope(&self, id: ElementId) -> Option<Scope> {
         self.element(id).map(|e| e.scope)
+    }
+
+    /// The `T` provided on `element` itself through `BuildCx::provide`, if any
+    /// (VIEW-INHERIT-03).
+    pub fn inherited_on<T: Clone + 'static>(&self, element: ElementId) -> Option<T> {
+        let _ = element;
+        todo!("VIEW-INHERIT-03")
     }
 
     /// The layout tree (read-only; it changes only through the view tree).
