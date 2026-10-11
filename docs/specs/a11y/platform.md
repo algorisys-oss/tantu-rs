@@ -1,7 +1,7 @@
 # Accessibility through the platform
 
-- **Status:** Draft (the user said "continue" on 2026-10-12, taking its four proposals; it
-  moves to Agreed with its own `spec:` commit when the semantics sub-item is done)
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its four
+  proposals)
 - **Crates:** `tantu-platform` (events and the update call, `FakePlatform` recording),
   `tantu-platform-winit` (the `accesskit_winit` adapter), `tantu` (the runner sending trees
   and routing actions)
@@ -84,7 +84,7 @@ assistive technology is attached, which is the common case.
 
 ## Open questions
 
-Proposals (say "continue" to take them, or change them):
+Resolved (2026-10-12; the user said "continue" on the draft, taking these proposals):
 
 1. **AccessKit's own types on the platform trait** (`TreeUpdate`, `ActionRequest`), as the
    IME events use winit's shape: `tantu-platform` depends on the `accesskit` data crate

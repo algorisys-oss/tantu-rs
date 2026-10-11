@@ -188,6 +188,19 @@ pub enum WindowEvent {
     Wheel { pointer: PointerId, delta: ScrollDelta, position: Point },
     Keyboard(KeyEvent),
     ModifiersChanged(Modifiers),
+    /// Assistive technology activity (PLATFORM-A11Y-01).
+    Accessibility(AccessibilityEvent),
+}
+
+/// What assistive technology does with a window (PLATFORM-A11Y-01).
+#[derive(Clone, Debug, PartialEq)]
+pub enum AccessibilityEvent {
+    /// It wants the window's tree: send one now and after every change.
+    Activated,
+    /// No consumer any more; updates can stop.
+    Deactivated,
+    /// A request on a node.
+    Action(accesskit::ActionRequest),
 }
 
 /// Why a platform operation failed.
@@ -231,6 +244,8 @@ pub trait PlatformContext {
     fn surface_target(&self, window: WindowId) -> Option<SurfaceTarget>;
     /// Ends the event loop after the current callback returns. `Platform::run` then returns.
     fn exit(&mut self);
+    /// Sends a tree update to the window's assistive technology (PLATFORM-A11Y-01).
+    fn update_accessibility(&mut self, window: WindowId, update: accesskit::TreeUpdate);
     /// The platform's monotonic clock (PLATFORM-TIME-01).
     fn now(&self) -> std::time::Instant;
     /// Asks for an `idle` call at `deadline` (or earlier) even if no event arrives; `None`
@@ -276,6 +291,12 @@ pub struct FakeLog {
     pub steps_delivered: usize,
     /// Every `wake_at` call, as offsets from the run's start (`None` for a cancel).
     pub wakes: Vec<Option<std::time::Duration>>,
+}
+
+pub struct FakeWindow {
+    // ... unchanged, plus:
+    /// The updates sent with `update_accessibility`, in order (PLATFORM-FAKE-13).
+    pub accessibility_updates: Vec<accesskit::TreeUpdate>,
 }
 
 /// A window of a `FakePlatform`, as last seen.
@@ -362,6 +383,10 @@ FakePlatform
   [timers and tickers](../reactive/timers.md).
 - **PLATFORM-FAKE-12:** The fake clock, `FakeStep::Advance` and `FakeLog::wakes`; see
   [timers and tickers](../reactive/timers.md).
+- **PLATFORM-A11Y-01:** `AccessibilityEvent`, `WindowEvent::Accessibility` and
+  `PlatformContext::update_accessibility`; see [a11y platform](../a11y/platform.md).
+- **PLATFORM-FAKE-13:** The fake records accessibility updates; see
+  [a11y platform](../a11y/platform.md).
 
 ## Performance and allocation
 

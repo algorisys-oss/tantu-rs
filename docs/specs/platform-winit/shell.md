@@ -114,6 +114,8 @@ Conversions
   the winit window; see [TextField IME](../widgets/text-field-ime.md).
 - **PLATFORM-WINIT-14:** `now` is `Instant::now()` and `wake_at` sets the control flow to
   `WaitUntil`/`Wait`; see [timers and tickers](../reactive/timers.md).
+- **PLATFORM-WINIT-15:** An `accesskit_winit` adapter per window; see
+  [a11y platform](../a11y/platform.md).
 
 ## Testing
 
