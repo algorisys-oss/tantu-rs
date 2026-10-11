@@ -71,10 +71,22 @@ option, mark it for review, push at each milestone).
     UAX #29 word movement through `unicode-segmentation`), `TextEditingController` (two
     signals behind a `Copy` handle, undo/redo, coalescing by edit kind).
 
+  - **`TextField` widget** (2026-10-11, `docs/specs/widgets/text-field.md`, decision 56,
+    decided by the agent while the user was away): `TextGeometry` (lines and cluster boxes,
+    pure queries: caret, hit-test, selection rects; LAYOUT-TEXT-13) produced by
+    `TextSystem::geometry` (TEXT-SYS-12) through `PaintCx::text_geometry` (VIEW-TEXT-08) and
+    kept by the widget between frames; keys through `on_key`, select-all/undo/redo chords
+    through `Shortcuts`/`Actions` intents; pointer drag selection; Material 3 outlined look;
+    `WidgetTester::enter_text` (TEST-WT-09); golden `text-field.png`. No clipboard,
+    double-click, scrolling or IME yet (see the spec's Scope).
+
 **Next (PLAN.md order, Phase 3 widget item):**
 
-1. `TextField`, the widget: caret, selection painting, keys, pointer (clipboard needs the
-   platform first, see the open question), then IME.
+1. `TextField`, part three: IME composition. Needs IME events in `tantu-platform` and the
+   winit shell (`Ime::Preedit`/`Commit`), the runner forwarding them, and the field editing
+   `composing`. Spec it first (it touches the platform trait).
+2. Then the Phase 3 items after widgets: scroll views, the virtualized `ListView`,
+   `tantu-theme`, animation, `tantu-a11y`, `examples/gallery`.
 
 After the widgets, Phase 3 goes on with scroll views, the virtualized `ListView`, `tantu-theme`,
 animation (which brings timers, and so the tooltip's show delay), `tantu-a11y` and
@@ -629,6 +641,14 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     undo coalescing by edit kind (single graphemes typed at the caret; whitespace joins and
     ends the group) instead of Flutter's 500 ms throttle; `edit`s that only move the
     selection record no step, like `select`; the model lives in `tantu-widgets`.
+56. **TextField widget** (2026-10-11, spec `docs/specs/widgets/text-field.md`, decided by the
+    agent while the user was away; review): the paragraph's geometry as plain data from the
+    frame's painter (`TextGeometry`), kept by the widget so handlers (which have no text
+    context) hit-test and move vertically between frames; keys through `on_key` (repeats and
+    modifiers), chords through the shortcut machinery (apps can rebind); the outer element
+    holds focus, handlers and outline (as the Slider); the field fills a bounded width, 280 px
+    in an unbounded one; typed text comes from `KeyEvent::text` or the `Character` key; no
+    clipboard (platform), double-click (timers), scrolling (scroll item) or IME (next part).
 
 ## Commit log
 
@@ -922,7 +942,13 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `4d2ee26` | test: text editing model, stubs + 8 failing tests |
 | `661ba04` | test: WIDGETS-EDIT-08 expects redo to restore the moved caret |
 | `0b04547` | impl: text editing model (EditingValue, TextEditingController with undo and coalescing) |
-| _this commit_ | docs: HANDOFF.md for the text editing model |
+| `fe9f690` | docs: HANDOFF.md for the text editing model |
+| `441bec9` | spec: TextField widget (WIDGETS-TEXTFIELD-01..06), TextGeometry (LAYOUT-TEXT-13, TEXT-SYS-12, VIEW-TEXT-08), WidgetTester::enter_text (TEST-WT-09) |
+| `4d3e95c` | test: TextField, TextGeometry, geometry queries and enter_text, stubs + 9 failing tests |
+| `6e0d221` | test: TextField tests compare paint in the editor's coordinates and give Tab a next element |
+| `3fe08e2` | spec: the TextField's outer element holds its focus, handlers and outline |
+| `f1664ce` | impl: TextField widget, TextGeometry and its queries, TextSystem::geometry, PaintCx::text_geometry, WidgetTester::enter_text; text-field golden |
+| _this commit_ | docs: HANDOFF.md for the TextField widget |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -931,7 +957,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: the `TextField` widget next (see "Resume here").
+3. Phase 3 widgets: `TextField` IME next (see "Resume here").
 
 ## Open questions
 
