@@ -75,9 +75,11 @@ impl WidgetTester {
 }
 ```
 
-Structure: a `LimitedBox` with `max_width` 192 around a render element with a
-`RenderConstrainedBox` of `BoxConstraints::expand(None, Some(48.0))`; that element holds the
-pointer and key handlers, the focus and a `SliderPaint`.
+Structure: a render element with a `RenderLimitedBox` (`max_width` 192) around a render
+element with a `RenderConstrainedBox` of `BoxConstraints::expand(None, Some(48.0))`. The
+outer element, which `Keyed` and finders see and which is the same size as the inner one,
+holds the pointer and key handlers, the focus and the `SliderPaint`; the inner one only
+provides the size.
 
 Geometry, in the element's coordinates, for a width `w` (Material 3 metrics, as Flutter's
 defaults): thumb radius 10, track height 4, state-layer radius 24, so the track runs from
