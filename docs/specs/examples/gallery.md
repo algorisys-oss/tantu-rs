@@ -50,6 +50,7 @@ Sections and their samples:
 | Lists | a `ListView` of 10 000 rows of 32 px ("Row N") in a 320 px tall box (`list`) |
 | Media | a row of `Icon`s, an `Image` of a generated 64 × 64 gradient shown at 128 × 128 (`image`) |
 | Animation | a `Switch` (`grow`) animating a box (`box`) with `animated()`, a dot (`dot`) moved by a repeating controller (GALLERY-06) |
+| Data grid | a `DataGrid` over a 1 000 000-row `FnSource` (`grid`) with "First row: N" (`first-row`) (GALLERY-10) |
 
 ## Behavior
 
@@ -75,6 +76,7 @@ Sections and their samples:
 - **GALLERY-08:** The Lists section's contacts list (headers, separators, selection); see
   [ListView: variable extents](../widgets/list-view-advanced.md).
 - **GALLERY-09:** Every sample has an accessibility node; see [semantics](../a11y/semantics.md).
+- **GALLERY-10:** The Data grid section; see [DataGrid](../widgets/data-grid.md).
 
 ## Open questions
 

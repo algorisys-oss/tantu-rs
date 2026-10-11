@@ -1,6 +1,7 @@
 # Grid body layout
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its three
+  proposals)
 - **Crate:** `tantu-layout`
 - **Plan item:** Phase 4, "`DataGrid`" → "data source, columns, header, row and column
   virtualization, scrolling on both axes"

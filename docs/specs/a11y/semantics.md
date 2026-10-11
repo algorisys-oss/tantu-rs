@@ -156,6 +156,7 @@ Widget semantics:
 | `Icon`, `Image` | Image | `semantics_label` (else none) | | |
 | `ScrollView` | ScrollView | | | ScrollIntoView on children |
 | `ListView` | List; a built item is wrapped in a ListItem (`selected` when it is the selection) | | | |
+| `DataGrid` | Grid; header cells ColumnHeader (the title as the name), body cells Cell (WIDGETS-GRID-07) | | | |
 | `Tooltip` (shown) | Tooltip | the message | | |
 | layout widgets, `Divider`, `Opacity`, `AnimatedSwitcher` | none (skipped) | | | |
 | the tree's root | Window | the app name | | |

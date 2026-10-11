@@ -1,6 +1,7 @@
 # DataGrid: data source, columns, header and virtualization
 
-- **Status:** Draft
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its nine
+  proposals)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`, `DataSource`, `CellValue`,
   `FnSource`), `tantu-view` and `tantu-a11y` (three roles), `examples/gallery`
 - **Plan item:** Phase 4, "`DataGrid`" → "data source, columns, header, row and column
