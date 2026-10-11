@@ -6,7 +6,7 @@ use std::io::Cursor;
 use tantu_view::core::{Point, Rect, Size, Vec2};
 use tantu_view::layout::{Alignment, RenderImage};
 use tantu_view::scene::{ImageData, ImageDraw, ImageSampling};
-use tantu_view::{BuildCx, ElementId, IntoProp, Paint, PaintCx, Prop, View};
+use tantu_view::{BuildCx, ElementId, IntoProp, Paint, PaintCx, Prop, Role, Semantics, View};
 
 /// Why an image couldn't be decoded.
 #[derive(Debug)]
@@ -139,7 +139,7 @@ impl Image {
 
 impl View for Image {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _label = self.label;
+        let label = self.label;
         let natural = Size::new(self.data.width() as f32, self.data.height() as f32);
         let render = RenderImage {
             natural,
@@ -147,6 +147,14 @@ impl View for Image {
             height: self.height,
         };
         let id = cx.render(render, []);
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::Image,
+                name: label,
+                ..Default::default()
+            },
+        );
         cx.set_paint(
             id,
             ImagePaint {

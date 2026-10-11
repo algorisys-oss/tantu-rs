@@ -1,7 +1,8 @@
 # Semantics and the AccessKit tree
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its seven
-  proposals)
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its seven
+  proposals; VIEW-SEM-03 amended twice while implementing: `ActionCx` handlers, and
+  `ScrollIntoView` accepted on any semantic element)
 - **Crates:** `tantu-view` (`Semantics` on elements, `bounds`, `perform_action`),
   `tantu-a11y` (the AccessKit tree and action mapping), `tantu-widgets` (every widget
   annotated), `tantu-test` (`a11y_tree`, `perform_action`), `examples/gallery`

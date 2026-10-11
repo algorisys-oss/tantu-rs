@@ -6,11 +6,13 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use tantu_view::core::Point;
-use tantu_view::layout::{ListExtents, ListIndex, RenderListContent, ScrollAxis};
+use tantu_view::layout::{
+    BoxConstraints, ListExtents, ListIndex, RenderConstrainedBox, RenderListContent, ScrollAxis,
+};
 use tantu_view::reactive::{Memo, Signal, Timer, memo, timer};
 use tantu_view::{
     AnyView, BuildCx, ElementId, For, Handled, IntoProp, LogicalKey, NamedKey, Phase,
-    PointerButton, PointerKind, Prop, View,
+    PointerButton, PointerKind, Prop, Role, Semantics, SemanticsActions, View,
 };
 
 use crate::util::dynamic;
@@ -326,12 +328,21 @@ impl View for ListView {
             build: self.build,
             separator: self.separator.map(|(_, build)| build),
             controller,
+            selection: self.selection,
         };
         let mut scroll = ScrollView::new(content).controller(controller);
         if self.horizontal {
             scroll = scroll.horizontal();
         }
         let id = scroll.build(cx);
+        // The list's own role replaces the scroll view's (WIDGETS-SEM-02).
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::List,
+                ..Default::default()
+            },
+        );
         let Some(selection) = self.selection else {
             return id;
         };
@@ -404,6 +415,7 @@ struct ListContent {
     build: Builder,
     separator: Option<Builder>,
     controller: ScrollController,
+    selection: Option<Signal<Option<usize>>>,
 }
 
 impl View for ListContent {
@@ -425,16 +437,22 @@ impl View for ListContent {
             let last = (last + 2).min(slots);
             (first..last.max(first)).collect()
         };
+        let selection = self.selection;
         let items = {
             let layout = layout.clone();
             For::new(
                 visible,
                 |slot: &usize| *slot,
-                move |slot| ListItem {
-                    slot,
-                    child: match layout.item_of(slot) {
-                        Some(item) => build(item),
-                        None => separator
+                move |slot| match layout.item_of(slot) {
+                    Some(item) => ListItem {
+                        slot,
+                        item: Some((item, selection)),
+                        child: build(item),
+                    },
+                    None => ListItem {
+                        slot,
+                        item: None,
+                        child: separator
                             .as_ref()
                             .map_or_else(|| AnyView::new(Nothing), |f| f(slot / 2)),
                     },
@@ -469,17 +487,44 @@ impl View for Nothing {
     }
 }
 
-/// One built slot, carrying its index as parent data.
+/// One built slot: a pass-through box carrying the slot as parent data and, for an item,
+/// `ListItem` semantics with its selection state (WIDGETS-SEM-02).
 struct ListItem {
     slot: usize,
+    /// The item index and the list's selection, for an item (a separator has none).
+    item: Option<(usize, Option<Signal<Option<usize>>>)>,
     child: AnyView,
 }
 
 impl View for ListItem {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let id = self.child.build(cx);
-        if !cx.set_parent_data(id, ListIndex(self.slot)) {
-            tracing::warn!("a ListView item built a dynamic region; it is placed at its position");
+        let id = cx.render(
+            RenderConstrainedBox::new(BoxConstraints::UNCONSTRAINED),
+            [self.child],
+        );
+        cx.set_parent_data(id, ListIndex(self.slot));
+        if let Some((item, selection)) = self.item {
+            cx.set_semantics(
+                id,
+                Semantics {
+                    role: Role::ListItem,
+                    selected: Some(false),
+                    actions: SemanticsActions {
+                        scroll_into_view: true,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            );
+            if let Some(selection) = selection {
+                cx.bind(
+                    id,
+                    Prop::Dynamic(Box::new(move || selection.get() == Some(item))),
+                    |e, selected| {
+                        e.update_semantics(|s| s.selected = Some(selected));
+                    },
+                );
+            }
         }
         id
     }

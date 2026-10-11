@@ -12,7 +12,7 @@ use tantu_view::scene::{BorderRadius, RoundedRect};
 use tantu_view::text::TextStyle;
 use tantu_view::{
     Anchor, BuildCx, ElementId, ElementKind, Handled, IntoProp, OverlayPointer, OverlayPortal,
-    Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, View,
+    Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics, View,
 };
 
 use crate::theme::ThemeHandle;
@@ -126,6 +126,7 @@ struct TooltipBox {
 impl View for TooltipBox {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let (message, theme) = (self.message, self.theme);
+        let message: Rc<dyn Fn() -> String> = message;
         let style = TextStyle {
             size: 12.0,
             ..theme.snapshot().text.body
@@ -138,13 +139,33 @@ impl View for TooltipBox {
                             .width_factor(1.0)
                             .height_factor(1.0)
                             .child(
-                                Text::new(move || message())
-                                    .style(style)
-                                    .color(move || theme.colors().inverse_on_surface),
+                                Text::new({
+                                    let message = Rc::clone(&message);
+                                    move || message()
+                                })
+                                .style(style)
+                                .color(move || theme.colors().inverse_on_surface),
                             ),
                     ),
                 );
         let id = content.build(cx);
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::Tooltip,
+                ..Default::default()
+            },
+        );
+        {
+            let message = Rc::clone(&message);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || message())),
+                |e, text: String| {
+                    e.update_semantics(|s| s.name = Some(text));
+                },
+            );
+        }
         cx.set_paint(
             id,
             TooltipPaint {

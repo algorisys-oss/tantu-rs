@@ -12,6 +12,8 @@ use crate::{BuildCx, ViewTree};
 
 /// A registered pointer handler.
 type Handler = Rc<dyn Fn(&PointerCx<'_>) -> Handled>;
+/// An accessibility action handler (VIEW-SEM-03).
+pub(crate) type ActionHandler = Rc<dyn Fn(&crate::ActionCx<'_>) -> bool>;
 
 /// The tree's pointer state: handlers, cursors, capture and hover.
 #[derive(Default)]
@@ -24,6 +26,8 @@ pub(crate) struct EventState {
     hovered: Vec<ElementId>,
     /// The last pointer position, `None` after the pointer left the window.
     position: Option<Point>,
+    /// Accessibility action handlers (VIEW-SEM-03).
+    pub(crate) actions: HashMap<ElementId, Vec<ActionHandler>>,
 }
 
 impl EventState {
@@ -31,6 +35,7 @@ impl EventState {
     pub(crate) fn forget(&mut self, id: ElementId) {
         self.handlers.remove(&id);
         self.cursors.remove(&id);
+        self.actions.remove(&id);
     }
 }
 

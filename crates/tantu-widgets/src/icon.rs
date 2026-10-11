@@ -5,7 +5,9 @@ use std::rc::Rc;
 use tantu_view::core::{Color, Point, Size};
 use tantu_view::layout::{BoxConstraints, RenderConstrainedBox, TextStyleKey};
 use tantu_view::text::{FontFamily, TextStyle};
-use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Paint, PaintCx, Prop, View};
+use tantu_view::{
+    AnyView, BuildCx, ElementId, IntoProp, Paint, PaintCx, Prop, Role, Semantics, View,
+};
 
 use tantu_theme::ColorScheme;
 
@@ -103,7 +105,7 @@ impl Icon {
 
 impl View for Icon {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _label = self.label;
+        let label = self.label;
         let icon = dynamic(self.icon);
         let color = self
             .color
@@ -121,6 +123,14 @@ impl View for Icon {
         });
         let size = Size::new(self.size, self.size);
         let id = cx.render(RenderConstrainedBox::new(BoxConstraints::tight(size)), []);
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::Image,
+                name: label,
+                ..Default::default()
+            },
+        );
         cx.set_paint(
             id,
             IconPaint {
@@ -204,7 +214,7 @@ impl IconButton {
 
 impl View for IconButton {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _label = self.label;
+        let label = self.label;
         let enabled = enabled_fn(self.enabled, self.on_press.is_some());
         let activate: Rc<dyn Fn()> = {
             let on_press = self.on_press;
@@ -235,6 +245,11 @@ impl View for IconButton {
             IconButtonPaint {
                 state: State::default(),
                 colors: theme.colors(),
+            },
+            Semantics {
+                role: Role::Button,
+                name: label,
+                ..Default::default()
             },
             [AnyView::new(icon)],
         )

@@ -8,13 +8,14 @@ use tantu_view::reactive::{effect, signal};
 use tantu_view::scene::{BorderRadius, RoundedRect, SceneBuilder};
 use tantu_view::{
     AnyView, BuildCx, CursorIcon, ElementId, FocusOptions, Handled, IntoProp, LogicalKey, NamedKey,
-    Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, View,
+    Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics, SemanticsActions,
+    Toggled, View,
 };
 
 use tantu_theme::ColorScheme;
 
 use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at};
-use crate::util::dynamic;
+use crate::util::{disabled_prop, dynamic};
 
 /// The checkbox's and radio's element at density 0 (Flutter's desktop `shrinkWrap` tap
 /// target); the density shrinks or grows both sides (WIDGETS-THEME-03).
@@ -224,6 +225,8 @@ pub(crate) fn build_toggle<P: TogglePaint>(
     enabled: Rc<dyn Fn() -> bool>,
     activate: Rc<dyn Fn()>,
     paint: P,
+    // The role and name; focus, click and `disabled` are filled in here.
+    semantics: Semantics,
     children: impl IntoIterator<Item = AnyView>,
 ) -> ElementId {
     let theme = ThemeHandle::of(cx);
@@ -232,6 +235,22 @@ pub(crate) fn build_toggle<P: TogglePaint>(
         children,
     );
     cx.set_paint(id, paint);
+    // Semantics: the role, the name, disabled with `enabled` (WIDGETS-SEM-01, -02).
+    cx.set_semantics(
+        id,
+        Semantics {
+            focusable: true,
+            actions: SemanticsActions {
+                click: true,
+                focus: true,
+                ..Default::default()
+            },
+            ..semantics
+        },
+    );
+    cx.bind(id, disabled_prop(&enabled), |e, disabled| {
+        e.update_semantics(|s| s.disabled = disabled);
+    });
     cx.bind(id, theme.colors_prop(), |e, colors| {
         e.update_paint::<P>(|p| *p.colors_mut() = colors);
     });
@@ -333,6 +352,14 @@ pub(crate) fn build_toggle<P: TogglePaint>(
     id
 }
 
+/// Semantics with just a role, for `build_toggle`.
+pub(crate) fn role(role: Role) -> Semantics {
+    Semantics {
+        role,
+        ..Default::default()
+    }
+}
+
 /// Whether a toggle is enabled: its prop, and it has an `on_change` (WIDGETS-TOGGLE-05).
 pub(crate) fn enabled_fn(prop: Prop<bool>, has_on_change: bool) -> Rc<dyn Fn() -> bool> {
     let prop = dynamic(prop);
@@ -357,13 +384,38 @@ impl View for Checkbox {
             value: false,
             indeterminate: false,
         };
-        let id = build_toggle(cx, TOGGLE_SIZE, enabled, activate, paint, []);
-        cx.bind(id, Prop::Dynamic(Box::new(move || value())), |e, on| {
-            e.update_paint::<CheckboxPaint>(|p| p.value = on);
-        });
-        cx.bind(id, self.indeterminate, |e, on| {
-            e.update_paint::<CheckboxPaint>(|p| p.indeterminate = on);
-        });
+        let id = build_toggle(
+            cx,
+            TOGGLE_SIZE,
+            enabled,
+            activate,
+            paint,
+            role(Role::CheckBox),
+            [],
+        );
+        let indeterminate = dynamic(self.indeterminate);
+        {
+            let (value, indeterminate) = (Rc::clone(&value), Rc::clone(&indeterminate));
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || (value(), indeterminate()))),
+                |e, (on, mixed)| {
+                    e.update_paint::<CheckboxPaint>(|p| {
+                        p.value = on;
+                        p.indeterminate = mixed;
+                    });
+                    e.update_semantics(|s| {
+                        s.toggled = Some(if mixed {
+                            Toggled::Mixed
+                        } else if on {
+                            Toggled::True
+                        } else {
+                            Toggled::False
+                        });
+                    });
+                },
+            );
+        }
         id
     }
 }
@@ -385,12 +437,23 @@ impl<T: Copy + PartialEq + 'static> View for Radio<T> {
             colors: ThemeHandle::of(cx).colors(),
             selected: false,
         };
-        let id = build_toggle(cx, TOGGLE_SIZE, enabled, activate, paint, []);
+        let id = build_toggle(
+            cx,
+            TOGGLE_SIZE,
+            enabled,
+            activate,
+            paint,
+            role(Role::RadioButton),
+            [],
+        );
         cx.bind(
             id,
             Prop::Dynamic(Box::new(move || group() == value)),
             |e, on| {
                 e.update_paint::<RadioPaint>(|p| p.selected = on);
+                e.update_semantics(|s| {
+                    s.toggled = Some(if on { Toggled::True } else { Toggled::False })
+                });
             },
         );
         id
@@ -414,9 +477,20 @@ impl View for Switch {
             colors: ThemeHandle::of(cx).colors(),
             value: false,
         };
-        let id = build_toggle(cx, SWITCH_SIZE, enabled, activate, paint, []);
+        let id = build_toggle(
+            cx,
+            SWITCH_SIZE,
+            enabled,
+            activate,
+            paint,
+            role(Role::Switch),
+            [],
+        );
         cx.bind(id, Prop::Dynamic(Box::new(move || value())), |e, on| {
             e.update_paint::<SwitchPaint>(|p| p.value = on);
+            e.update_semantics(|s| {
+                s.toggled = Some(if on { Toggled::True } else { Toggled::False })
+            });
         });
         id
     }

@@ -163,14 +163,16 @@ impl WidgetTester {
 
     /// The AccessKit tree of the last frame (TEST-WT-14).
     pub fn a11y_tree(&mut self) -> tantu_a11y::accesskit::TreeUpdate {
-        todo!()
+        tantu_a11y::AccessibilityTree::new("test").update(&self.tree)
     }
 
     /// Performs an accessibility action on the element `finder` matches, then pumps
     /// (TEST-WT-14).
     pub fn perform_action(&mut self, finder: &Finder, action: SemanticsAction) -> bool {
-        let _ = (finder, action);
-        todo!()
+        let element = self.find(finder);
+        let handled = self.tree.perform_action(element, action);
+        self.pump();
+        handled
     }
 
     /// The theme signal provided at the root, initially `Theme::light()` (TEST-WT-12).

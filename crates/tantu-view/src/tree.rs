@@ -190,7 +190,6 @@ pub(crate) struct Element {
     /// Values provided on this element (VIEW-INHERIT-01), by type.
     inherited: Vec<(TypeId, Rc<dyn Any>)>,
     /// What assistive technology is told (VIEW-SEM-01).
-    #[allow(dead_code)] // Read once the semantics API is implemented.
     pub(crate) semantics: Option<Box<crate::Semantics>>,
 }
 
@@ -516,11 +515,11 @@ impl ViewTree {
         self.element(id).map(|e| &e.kind)
     }
 
-    fn element(&self, id: ElementId) -> Option<&Element> {
+    pub(crate) fn element(&self, id: ElementId) -> Option<&Element> {
         self.elements.get(arena_id(id)?)
     }
 
-    fn element_mut(&mut self, id: ElementId) -> Option<&mut Element> {
+    pub(crate) fn element_mut(&mut self, id: ElementId) -> Option<&mut Element> {
         self.elements.get_mut(arena_id(id)?)
     }
 

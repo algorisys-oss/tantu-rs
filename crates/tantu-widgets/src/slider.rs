@@ -8,8 +8,9 @@ use tantu_view::layout::{BoxConstraints, RenderConstrainedBox, RenderLimitedBox}
 use tantu_view::reactive::{effect, signal};
 use tantu_view::scene::{BorderRadius, RoundedRect};
 use tantu_view::{
-    AnyView, BuildCx, ElementId, FocusOptions, Handled, IntoProp, LogicalKey, NamedKey, Paint,
-    PaintCx, Phase, PointerButton, PointerKind, Prop, View,
+    AnyView, BuildCx, ElementId, FocusOptions, Handled, IntoProp, LogicalKey, NamedKey,
+    NumericValue, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics,
+    SemanticsActions, View,
 };
 
 use tantu_theme::ColorScheme;
@@ -168,6 +169,28 @@ impl Model {
         self.value_at(t)
     }
 
+    /// The value, range and step for assistive technology (WIDGETS-SEM-02).
+    fn numeric(&self) -> NumericValue {
+        let (min, max) = ((self.min)(), (self.max)());
+        let span = self.span().unwrap_or(0.0);
+        let step = if self.divisions == 0 {
+            KEY_STEP * span
+        } else {
+            span / f64::from(self.divisions)
+        };
+        let value = (self.value)();
+        NumericValue {
+            value: if value.is_finite() {
+                value.clamp(min, min + span)
+            } else {
+                min
+            },
+            min,
+            max,
+            step,
+        }
+    }
+
     /// The value one keyboard step away (`sign` ±1; WIDGETS-SLIDER-06).
     fn stepped(&self, sign: f64) -> f64 {
         let min = (self.min)();
@@ -182,6 +205,17 @@ impl Model {
             let step = span / f64::from(self.divisions);
             self.value_at((value + sign * step - min) / span)
         }
+    }
+}
+
+/// A value as text with up to two decimals ("40", "62.5").
+fn format_value(value: f64) -> String {
+    let text = format!("{value:.2}");
+    let text = text.trim_end_matches('0').trim_end_matches('.');
+    if text.is_empty() || text == "-" {
+        "0".to_owned()
+    } else {
+        text.to_owned()
     }
 }
 
@@ -246,6 +280,44 @@ impl View for Slider {
         cx.bind(id, theme.colors_prop(), |e, colors| {
             e.update_paint::<SliderPaint>(|p| p.colors = colors);
         });
+        // Semantics: a slider with its range, step and value (WIDGETS-SEM-02).
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::Slider,
+                focusable: true,
+                actions: SemanticsActions {
+                    increment: true,
+                    decrement: true,
+                    focus: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        {
+            let model = Rc::clone(&model);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || model.numeric())),
+                |e, numeric| {
+                    e.update_semantics(|s| {
+                        s.numeric = Some(numeric);
+                        s.value = Some(format_value(numeric.value));
+                    });
+                },
+            );
+        }
+        {
+            let enabled = Rc::clone(&enabled);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || !enabled())),
+                |e, disabled| {
+                    e.update_semantics(|s| s.disabled = disabled);
+                },
+            );
+        }
         {
             let model = Rc::clone(&model);
             cx.bind(

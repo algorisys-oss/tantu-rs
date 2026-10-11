@@ -10,7 +10,8 @@ use tantu_view::reactive::{Signal, effect, signal};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::{
     AnimationController, AnyView, BuildCx, Curve, ElementId, FocusOptions, Handled, LogicalKey,
-    NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, View,
+    NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics,
+    SemanticsAction, View,
 };
 
 use crate::theme::{ThemeHandle, at};
@@ -304,6 +305,39 @@ impl View for ScrollView {
         let wheel = self.wheel;
         let id = cx.render(RenderViewport::new(axis), [self.child]);
         let shared: Shared = Rc::default();
+        // Semantics: a scroll view that scrolls a descendant into view on request
+        // (WIDGETS-SEM-02).
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::ScrollView,
+                ..Default::default()
+            },
+        );
+        cx.on_action(id, move |a| {
+            if *a.action != SemanticsAction::ScrollIntoView {
+                return false;
+            }
+            let (Some(own), Some(target)) = (a.tree.bounds(a.element), a.tree.bounds(a.target))
+            else {
+                return false;
+            };
+            let (own_start, own_end, start, end) = match axis {
+                ScrollAxis::Vertical => (own.top, own.bottom, target.top, target.bottom),
+                ScrollAxis::Horizontal => (own.left, own.right, target.left, target.right),
+            };
+            let delta = if start < own_start {
+                start - own_start
+            } else if end > own_end {
+                end - own_end
+            } else {
+                0.0
+            };
+            if delta != 0.0 {
+                controller.scroll_by(delta);
+            }
+            true
+        });
         cx.set_paint(
             id,
             ViewportPaint {

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tantu_view::core::Color;
 use tantu_view::layout::{RenderParagraph, StyleSpan, TextStyleKey};
 use tantu_view::text::{FontFamily, TextStyle, TextStyles};
-use tantu_view::{BuildCx, ElementId, IntoProp, ParagraphPaint, Prop, View};
+use tantu_view::{BuildCx, ElementId, IntoProp, ParagraphPaint, Prop, Role, Semantics, View};
 
 use crate::theme::ThemeHandle;
 
@@ -239,8 +239,16 @@ impl View for RichText {
                 color: Color::TRANSPARENT,
             },
         );
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::Label,
+                ..Default::default()
+            },
+        );
         cx.bind(id, self.span, move |e, span: TextSpan| {
             let (text, spans) = span.flatten(&styles, &base);
+            e.update_semantics(|s| s.name = Some(text.clone()));
             e.update_render::<RenderParagraph>(|p| {
                 p.text = Arc::from(text);
                 p.spans = Arc::from(spans);

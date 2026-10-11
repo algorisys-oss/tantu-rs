@@ -151,7 +151,7 @@ faster or more portable without changing how apps are written.
   - [x] `AnimationController`, `Tween`, curves, and `animated()` props (implicit transitions on any reactive prop) (spec `docs/specs/view/animation.md`; the gallery's Animation section)
   - [x] enter/exit transitions: `Opacity`, `AnimatedSwitcher` (the animated `Show` is a switcher on a `bool`); caret blink, double-click and smooth wheel scrolling as users (spec `docs/specs/widgets/transitions.md`; kinetic fling deferred until touch or trackpad gestures exist)
 - [ ] `tantu-a11y`: AccessKit tree for every standard widget
-  - [ ] semantics on elements, the AccessKit tree built from the view tree, actions routed back, every widget annotated, `WidgetTester::a11y_tree` (spec `docs/specs/a11y/semantics.md`, ADR 0013)
+  - [x] semantics on elements, the AccessKit tree built from the view tree, actions routed back, every widget annotated, `WidgetTester::a11y_tree` (spec `docs/specs/a11y/semantics.md`, ADR 0013)
   - [ ] the platform side: AccessKit events and tree updates through the platform trait, the winit adapter, the runner (spec `docs/specs/a11y/platform.md`)
 - [x] `examples/gallery` (spec `docs/specs/examples/gallery.md`)
 

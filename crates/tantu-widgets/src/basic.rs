@@ -10,12 +10,14 @@ use tantu_view::scene::{BorderRadius, RoundedRect};
 use tantu_view::text::TextStyle;
 use tantu_view::{
     AnyView, BuildCx, CursorIcon, ElementId, FocusOptions, Handled, IntoProp, LogicalKey, NamedKey,
-    Paint, PaintCx, ParagraphPaint, Phase, PointerButton, PointerKind, Prop, View,
+    Paint, PaintCx, ParagraphPaint, Phase, PointerButton, PointerKind, Prop, Role, Semantics,
+    SemanticsActions, View,
 };
 
 use tantu_theme::ColorScheme;
 
 use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at, blend};
+use crate::util::{disabled_prop, shared};
 use crate::{Align, Padding};
 
 /// The button's minimum size at density 0 (Material 3).
@@ -85,7 +87,16 @@ impl View for Text {
                 color: Color::TRANSPARENT,
             },
         );
+        // A label named by its text (WIDGETS-SEM-01).
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::Label,
+                ..Default::default()
+            },
+        );
         cx.bind(id, self.text, |e, text: String| {
+            e.update_semantics(|s| s.name = Some(text.clone()));
             e.update_render::<RenderParagraph>(|p| p.text = Arc::from(text));
         });
         cx.bind(id, color, |e, color| {
@@ -158,9 +169,13 @@ impl View for Button {
                 }
             }
         };
-        let label = Text::new(self.label)
-            .style(theme.snapshot().text.label)
-            .color(label_color);
+        let label_text = shared(self.label);
+        let label = Text::new({
+            let label_text = Rc::clone(&label_text);
+            move || label_text()
+        })
+        .style(theme.snapshot().text.label)
+        .color(label_color);
         let content = Padding::new(EdgeInsets::symmetric(24.0, 10.0)).child(
             Align::new(Alignment::CENTER)
                 .width_factor(1.0)
@@ -179,6 +194,30 @@ impl View for Button {
         );
         cx.bind(id, theme.colors_prop(), |e, colors| {
             e.update_paint::<ButtonPaint>(|p| p.colors = colors);
+        });
+        // A button named by its label, disabled with it (WIDGETS-SEM-01).
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::Button,
+                focusable: true,
+                actions: SemanticsActions {
+                    click: true,
+                    focus: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || label_text())),
+            |e, name: String| {
+                e.update_semantics(|s| s.name = Some(name));
+            },
+        );
+        cx.bind(id, disabled_prop(&enabled), |e, disabled| {
+            e.update_semantics(|s| s.disabled = disabled);
         });
         // The minimum height follows the density (WIDGETS-THEME-03).
         cx.bind(id, theme.density_prop(), |e, density| {

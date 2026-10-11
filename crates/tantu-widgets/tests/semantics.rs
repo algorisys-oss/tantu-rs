@@ -190,6 +190,8 @@ fn widgets_sem_02_controls_lists_tooltips() {
         })
     };
     let (checked, indeterminate, value, selection, field) = state.get().expect("built");
+    // The list's items appear at the second frame (WIDGETS-LIST-02).
+    tester.pump();
     let update = tester.a11y_tree();
     let checkbox = node(&tester, &update, "checkbox");
     assert_eq!(

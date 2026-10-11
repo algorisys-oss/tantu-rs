@@ -15,7 +15,8 @@ use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::text::TextStyle;
 use tantu_view::{
     AnyView, BuildCx, CursorIcon, ElementId, FocusOptions, Handled, ImeEvent, IntoProp, LogicalKey,
-    NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, SingleActivator, View,
+    NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics,
+    SemanticsAction, SemanticsActions, SingleActivator, View,
 };
 
 use tantu_theme::ColorScheme;
@@ -177,7 +178,7 @@ impl View for TextField {
             style,
             max_lines: self.max_lines,
             single_line,
-            placeholder: self.placeholder,
+            placeholder: self.placeholder.clone(),
             enabled: Rc::clone(&enabled),
             focused,
             geometry: Rc::clone(&geometry),
@@ -185,6 +186,7 @@ impl View for TextField {
             theme,
             caret_visible,
         };
+        let placeholder = self.placeholder;
         let content = Padding::new(PADDING).child(editor);
         FieldBox {
             content: AnyView::new(Sizer {
@@ -203,6 +205,7 @@ impl View for TextField {
             shift,
             dragging: Rc::new(dragging),
             anchor: Rc::new(anchor),
+            placeholder,
         }
         .build(cx)
     }
@@ -247,6 +250,8 @@ struct FieldBox {
     shift: SharedShift,
     dragging: Rc<Cell<bool>>,
     anchor: Rc<Cell<usize>>,
+    /// The accessible name (WIDGETS-SEM-02).
+    placeholder: Option<String>,
 }
 
 impl View for FieldBox {
@@ -257,6 +262,53 @@ impl View for FieldBox {
             [self.content],
         );
         let theme = self.theme;
+        // Semantics: a text input named by the placeholder with the text as its value, and
+        // `SetValue` replacing the text (WIDGETS-SEM-02).
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: if self.single_line {
+                    Role::TextInput
+                } else {
+                    Role::MultilineTextInput
+                },
+                name: self.placeholder.clone(),
+                focusable: true,
+                actions: SemanticsActions {
+                    set_value: true,
+                    focus: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || controller.text())),
+            |e, text: String| {
+                e.update_semantics(|s| s.value = Some(text));
+            },
+        );
+        {
+            let enabled = Rc::clone(&enabled);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || !enabled())),
+                |e, disabled| {
+                    e.update_semantics(|s| s.disabled = disabled);
+                },
+            );
+        }
+        {
+            let (enabled, on_change) = (Rc::clone(&enabled), self.on_change.clone());
+            cx.on_action(id, move |a| match a.action {
+                SemanticsAction::SetValue(text) if enabled() => {
+                    apply(controller, &on_change, |v| v.select_all().insert(text));
+                    true
+                }
+                _ => false,
+            });
+        }
         cx.set_paint(
             id,
             FieldPaint {

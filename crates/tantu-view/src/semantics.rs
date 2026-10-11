@@ -2,9 +2,15 @@
 //! VIEW-SEM-01..03): what an element is, its name, value and state, set by widgets and read
 //! by `tantu-a11y`, which builds AccessKit trees from them.
 
-use tantu_core::Rect;
+use std::rc::Rc;
 
-use crate::{BuildCx, ElementId, ElementMut, ViewTree};
+use tantu_core::{Point, Rect, Size, Vec2};
+
+use crate::events::ActionHandler;
+use crate::{
+    BuildCx, ElementId, ElementKind, ElementMut, KeyEvent, LogicalKey, Modifiers, NamedKey,
+    PointerButton, PointerEvent, PointerKind, ViewTree,
+};
 
 /// What an element is, for assistive technology (a backend-neutral subset of AccessKit's
 /// roles).
@@ -124,28 +130,41 @@ pub enum SemanticsAction {
     ScrollIntoView,
 }
 
+/// What an action handler sees: the tree (to read bounds), its own element, the element the
+/// request named, and the action (VIEW-SEM-03).
+pub struct ActionCx<'a> {
+    /// The tree, for bounds and structure.
+    pub tree: &'a ViewTree,
+    /// The element the handler was registered on.
+    pub element: ElementId,
+    /// The element the request named (the handler's element or a descendant).
+    pub target: ElementId,
+    /// The action.
+    pub action: &'a SemanticsAction,
+}
+
 impl BuildCx<'_> {
     /// Sets the element's semantics (a render element only; false for a region)
     /// (VIEW-SEM-01).
     pub fn set_semantics(&mut self, element: ElementId, semantics: Semantics) -> bool {
-        let _ = (element, semantics);
-        todo!()
+        self.tree.set_semantics(element, semantics)
     }
-}
 
-impl BuildCx<'_> {
-    /// Handles `SetValue` and `ScrollIntoView` requests for `element` and its descendants
-    /// (`target` is the element the request named); true when handled (VIEW-SEM-03).
+    /// Handles `SetValue` and `ScrollIntoView` requests for `element` and its descendants;
+    /// true when handled (VIEW-SEM-03).
     pub fn on_action(
         &mut self,
         element: ElementId,
-        handler: impl Fn(ElementId, &SemanticsAction) -> bool + 'static,
+        handler: impl Fn(&ActionCx<'_>) -> bool + 'static,
     ) {
-        let _ = (
-            element,
-            Box::new(handler) as Box<dyn Fn(ElementId, &SemanticsAction) -> bool>,
-        );
-        todo!()
+        if self.tree.contains(element) {
+            self.tree
+                .events
+                .actions
+                .entry(element)
+                .or_default()
+                .push(Rc::new(handler));
+        }
     }
 }
 
@@ -153,29 +172,147 @@ impl ElementMut<'_> {
     /// Changes the semantics in place (for reactive props); false without semantics
     /// (VIEW-SEM-01).
     pub fn update_semantics(&mut self, f: impl FnOnce(&mut Semantics)) -> bool {
-        let _ = f;
-        todo!()
+        match self
+            .tree
+            .element_mut(self.id)
+            .and_then(|e| e.semantics.as_deref_mut())
+        {
+            Some(semantics) => {
+                f(semantics);
+                true
+            }
+            None => false,
+        }
     }
 }
 
 impl ViewTree {
+    /// Stores `semantics` on a render element (VIEW-SEM-01).
+    pub(crate) fn set_semantics(&mut self, element: ElementId, semantics: Semantics) -> bool {
+        if self.kind(element) != Some(ElementKind::Render) {
+            return false;
+        }
+        match self.element_mut(element) {
+            Some(e) => {
+                e.semantics = Some(Box::new(semantics));
+                true
+            }
+            None => false,
+        }
+    }
+
     /// The element's semantics, if set (VIEW-SEM-01).
     pub fn semantics(&self, element: ElementId) -> Option<&Semantics> {
-        let _ = element;
-        todo!()
+        self.element(element)?.semantics.as_deref()
     }
 
     /// The element's bounds in window coordinates after the last layout (a region: the
     /// union of its children; `None` for an unknown element) (VIEW-SEM-02).
     pub fn bounds(&self, element: ElementId) -> Option<Rect> {
-        let _ = element;
-        todo!()
+        match self.kind(element)? {
+            ElementKind::Region => Some(
+                self.children(element)
+                    .iter()
+                    .filter_map(|child| self.bounds(*child))
+                    .reduce(Rect::union)
+                    .unwrap_or(Rect::ZERO),
+            ),
+            ElementKind::Render => {
+                let layout = self.layout_tree();
+                let size = self
+                    .layout_id(element)
+                    .and_then(|id| layout.size(id))
+                    .unwrap_or(Size::ZERO);
+                let mut origin = Vec2::ZERO;
+                let mut next = Some(element);
+                while let Some(id) = next {
+                    if let Some(offset) = self.layout_id(id).and_then(|l| layout.offset(l)) {
+                        origin += offset;
+                    }
+                    next = self.parent(id);
+                }
+                Some(Rect::from_origin_size(Point::new(origin.x, origin.y), size))
+            }
+        }
     }
 
     /// Performs `action` on `element` as a user would (VIEW-SEM-03); false if nothing
     /// happened.
     pub fn perform_action(&mut self, element: ElementId, action: SemanticsAction) -> bool {
-        let _ = (element, action);
-        todo!()
+        let Some(semantics) = self.semantics(element) else {
+            return false;
+        };
+        let (role, actions) = (semantics.role, semantics.actions);
+        let supported = match &action {
+            SemanticsAction::Focus => actions.focus,
+            SemanticsAction::Click => actions.click,
+            SemanticsAction::Increment => actions.increment,
+            SemanticsAction::Decrement => actions.decrement,
+            SemanticsAction::SetValue(_) => actions.set_value,
+            // Any node may be scrolled into view; the handlers decide.
+            SemanticsAction::ScrollIntoView => true,
+        };
+        if !supported {
+            return false;
+        }
+        match action {
+            SemanticsAction::Focus => self.focus(element),
+            SemanticsAction::Click => {
+                let Some(center) = self.bounds(element).map(|b| b.center()) else {
+                    return false;
+                };
+                let down = self.dispatch_pointer(PointerEvent {
+                    kind: PointerKind::Down(PointerButton::Primary),
+                    position: center,
+                });
+                let up = self.dispatch_pointer(PointerEvent {
+                    kind: PointerKind::Up(PointerButton::Primary),
+                    position: center,
+                });
+                down || up
+            }
+            SemanticsAction::Increment | SemanticsAction::Decrement => {
+                let forward = action == SemanticsAction::Increment;
+                let key = match (role, forward) {
+                    (Role::Slider, true) => NamedKey::ArrowRight,
+                    (Role::Slider, false) => NamedKey::ArrowLeft,
+                    (_, true) => NamedKey::ArrowDown,
+                    (_, false) => NamedKey::ArrowUp,
+                };
+                if actions.focus {
+                    self.focus(element);
+                }
+                self.dispatch_key(KeyEvent {
+                    key: LogicalKey::Named(key),
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::default(),
+                    text: None,
+                })
+            }
+            SemanticsAction::SetValue(_) | SemanticsAction::ScrollIntoView => {
+                // Handlers on the element, then its ancestors; the first `true` wins.
+                let mut next = Some(element);
+                while let Some(id) = next {
+                    let handlers: Vec<ActionHandler> =
+                        self.events.actions.get(&id).cloned().unwrap_or_default();
+                    let handled = self.enter(|| {
+                        handlers.iter().any(|handler| {
+                            handler(&ActionCx {
+                                tree: self,
+                                element: id,
+                                target: element,
+                                action: &action,
+                            })
+                        })
+                    });
+                    if handled {
+                        return true;
+                    }
+                    next = self.parent(id);
+                }
+                false
+            }
+        }
     }
 }
