@@ -8,8 +8,8 @@ use tantu_view::layout::{RenderViewport, ScrollAxis};
 use tantu_view::reactive::{Signal, signal};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::{
-    AnyView, BuildCx, ElementId, Handled, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop,
-    View,
+    AnyView, BuildCx, ElementId, FocusOptions, Handled, LogicalKey, NamedKey, Paint, PaintCx,
+    Phase, PointerButton, PointerKind, Prop, View,
 };
 
 /// The thumb's thickness.
@@ -20,6 +20,8 @@ const MARGIN: f32 = 2.0;
 const MIN_THUMB: f32 = 24.0;
 /// The thumb's color (on-surface at 40 %).
 const THUMB_COLOR: Color = Color::from_argb32(0x661C_1B1F);
+/// How far an arrow key scrolls.
+const KEY_STEP: f32 = 40.0;
 
 /// A scroll view's offset and extents, shared between the app and the view (Flutter's
 /// `ScrollController`). `Copy`; create it inside a runtime.
@@ -216,6 +218,47 @@ impl View for ScrollView {
                 e.update_render::<RenderViewport>(|v| v.offset = offset);
             },
         );
+        // Keys (WIDGETS-SCROLL-06): a press focuses the view, Tab doesn't stop at it.
+        cx.focusable(
+            id,
+            FocusOptions {
+                traversable: false,
+                focus_on_press: true,
+            },
+        );
+        {
+            let shared = Rc::clone(&shared);
+            cx.on_key(id, Phase::Bubble, move |k| {
+                if !k.event.pressed {
+                    return Handled::Continue;
+                }
+                let (size, _) = shared.get();
+                let viewport = match axis {
+                    ScrollAxis::Vertical => size.height,
+                    ScrollAxis::Horizontal => size.width,
+                };
+                let max = controller.extents.get_untracked().1.max(0.0);
+                let current = controller.offset.get_untracked();
+                let (forward, back) = match axis {
+                    ScrollAxis::Vertical => (NamedKey::ArrowDown, NamedKey::ArrowUp),
+                    ScrollAxis::Horizontal => (NamedKey::ArrowRight, NamedKey::ArrowLeft),
+                };
+                let delta = match &k.event.key {
+                    LogicalKey::Named(key) if *key == forward => KEY_STEP,
+                    LogicalKey::Named(key) if *key == back => -KEY_STEP,
+                    LogicalKey::Named(NamedKey::PageDown) => viewport,
+                    LogicalKey::Named(NamedKey::PageUp) => -viewport,
+                    LogicalKey::Named(NamedKey::End) => max - current,
+                    LogicalKey::Named(NamedKey::Home) => -current,
+                    _ => return Handled::Continue,
+                };
+                if controller.scroll_by(delta) {
+                    Handled::Stop
+                } else {
+                    Handled::Continue
+                }
+            });
+        }
         // Wheel and thumb (WIDGETS-SCROLL-02, -04).
         let drag: Rc<Cell<Option<(f32, f32)>>> = Rc::default();
         cx.on_pointer(id, Phase::Bubble, move |p| {
