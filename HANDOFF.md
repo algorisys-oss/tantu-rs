@@ -91,12 +91,20 @@ option, mark it for review, push at each milestone).
     with a text field, what works today); the snippet was compile-checked against the facade.
     The user's goal: build all their Rust desktop apps on Tantu, and let others do the same.
 
+  - **Scroll, part one** (2026-10-12, `docs/specs/layout/viewport.md` and
+    `docs/specs/widgets/scroll.md`, decision 58): `RenderViewport` (the offset as the
+    child's layout offset), `ScrollView` + `ScrollController` (wheel/trackpad deltas,
+    clamping, innermost-view-first nesting, a draggable scrollbar, clipping and culling),
+    `WidgetTester::scroll` (TEST-WT-11). **VIEW-PAINT-07** (added on the way): the paint
+    pass runs with the runtime current, so paints can read and write signals. Kinetic and
+    keyboard scrolling wait for timers and focus scopes (PLAN.md sub-item).
+
 **Next (PLAN.md order, Phase 3):**
 
-1. Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling (spec first; the
-   `TextField` wants horizontal caret-following from it).
-2. Virtualized `ListView`, `tantu-theme`, animation (which brings timers: tooltip delay,
-   caret blink, double-click), `tantu-a11y`, `examples/gallery`.
+1. Virtualized `ListView` (100k items at 60 fps) on the viewport: a builder of items with a
+   fixed item extent first, building only the visible range (spec first).
+2. `tantu-theme`, animation (which brings timers: tooltip delay, caret blink, double-click,
+   kinetic scrolling), `tantu-a11y`, `examples/gallery`.
 
 **Session summary (2026-10-11, the user away for ~4 hours):** Divider, Slider, Checkbox/Radio/
 Switch, Icon/IconButton, Image, RichText, the text editing model and the TextField widget
@@ -674,6 +682,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     a 1 px Scene rect; composition and commit one undo step; `Disabled` commits the pending
     preedit. The runner syncs the area after each frame, so a widget wanting the IME must
     request a frame when its focus changes (text fields do through their `focused` signal).
+58. **ScrollView** (2026-10-12, specs `docs/specs/layout/viewport.md` and
+    `docs/specs/widgets/scroll.md`, decided by the agent while the user was away; review):
+    the scroll offset is the child's *layout* offset (hit-testing and culling need nothing
+    new; a changed offset is a cheap re-layout); the viewport doesn't clamp, the widget does
+    from the extents it records at paint (which is why paint now enters the runtime,
+    VIEW-PAINT-07); deltas apply at once (no kinetic phase until timers); the innermost view
+    that can move takes the wheel (it stops the event only when it moved); only the axis's
+    delta component scrolls; a `Copy` controller of two signals; a fixed-look scrollbar shown
+    whenever there is overflow, draggable, 24 px minimum thumb.
 
 ## Commit log
 
@@ -983,7 +1000,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `23ee41d` | test: TextField IME composition, stubs + 11 failing tests |
 | `a0668cc` | impl: TextField IME composition: platform IME events and context calls, winit conversion, view dispatch and IME area, runner sync, compose/commit edits, composing underline, WidgetTester::ime |
 | `981277b` | docs: README, how to use Tantu in an app (git dependency, a hello app, what works today) |
-| _this commit_ | docs: HANDOFF.md for IME and the README |
+| `a06a919` | docs: HANDOFF.md for IME and the README |
+| `a06a919` | docs: HANDOFF.md for IME and the README |
+| `9b28f44` | spec: RenderViewport (LAYOUT-VIEWPORT-01..02) and ScrollView (WIDGETS-SCROLL-01..05, TEST-WT-11); PLAN.md scroll item split |
+| `48a56f4` | test: RenderViewport, ScrollView and WidgetTester::scroll, stubs + 8 failing tests |
+| `62fe08e` | spec: paint runs with the runtime current (VIEW-PAINT-07) |
+| `1c0d25a` | test: a Paint reads and writes signals (VIEW-PAINT-07), failing |
+| `6c3c1a4` | test: WIDGETS-SCROLL-05 content tall enough for the 400 px offset |
+| `fa0f963` | impl: RenderViewport, ScrollView with wheel scrolling and a draggable scrollbar, WidgetTester::scroll; paint runs with the runtime current |
+| _this commit_ | docs: HANDOFF.md for ScrollView |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -992,7 +1017,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: scroll views next (see "Resume here").
+3. Phase 3: the virtualized `ListView` next (see "Resume here").
 
 ## Open questions
 
