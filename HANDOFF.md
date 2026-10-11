@@ -114,21 +114,23 @@ option, mark it for review, push at each milestone).
   - **TextField caret following** (2026-10-12, WIDGETS-TEXTFIELD-09): a single-line field
     shifts its content inside a transform scope so the caret stays visible; the pointer and
     the IME area account for the shift. Found by typing long text in the gallery.
-    **Note for the tester:** `Finder::text(&string)` (a `&String`) didn't match where
-    `Finder::text(string.as_str())` did in one test; not investigated (TEST-WT-03 may want a
-    rule).
 
   - **Inherited values** (2026-10-12, `docs/specs/view/inherited.md`, decision 61):
     `BuildCx::provide`/`inherit`, the `Provide` region, `ViewTree::inherited_on`; values are
     looked up at build time, reactive ones are provided as signals. The groundwork for the
     theme.
 
+  - **ScrollView keyboard scrolling** (2026-10-12, WIDGETS-SCROLL-06): a press focuses a
+    scroll view (Tab doesn't stop at it); arrows, PageUp/Down, Home/End scroll it.
+  - **Theme: drafted** in `docs/specs/theme/theme.md` (status Draft). It proposes a change to
+    the AGENTS.md dependency table (`tantu-widgets` → `theme`, or tokens in widgets), so it
+    waits for the user. Everything else in it is ready to go straight through.
+
 **Next (PLAN.md order, Phase 3):**
 
-1. `tantu-theme`: a `Theme` of design tokens (color scheme, text styles, shape, density) with
-   `light()`/`dark()`, provided as a `Signal<Theme>` through `Provide`, and every widget
-   reading its colors from `cx.inherit::<Signal<Theme>>()` with the default theme as the
-   fallback (the current constants). Spec first; the widget migration is the bulk.
+1. `tantu-theme` (draft above; needs the user's "continue" and the table decision).
+2. Animation and timers (also a platform addition: a wake-up time for the event loop), then
+   `tantu-a11y`.
 2. Animation (tickers, tweens, curves), which brings timers: tooltip delay, caret blink,
    double-click, kinetic scrolling. Needs a timer in the platform trait (winit's
    `WaitUntil`).
@@ -1070,7 +1072,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `12d8165` | test: inherited values, stubs + 3 failing tests |
 | `e568355` | test: VIEW-INHERIT-02's leaf provides on its parent |
 | `f138bbd` | impl: inherited values (BuildCx::provide/inherit, Provide, ViewTree::inherited_on) |
-| _this commit_ | docs: HANDOFF.md for inherited values |
+| `5791724` | docs: HANDOFF.md for inherited values |
+| `563b0f7` | docs: draft theme spec for review (proposes a dependency-table change) |
+| `ddd4190` | spec: ScrollView keyboard scrolling (WIDGETS-SCROLL-06) |
+| `6f35fe5` | test: ScrollView keyboard scrolling (WIDGETS-SCROLL-06), failing |
+| `6eb1958` | impl: ScrollView keyboard scrolling (arrows, PageUp/Down, Home/End on a focused view) |
+| _this commit_ | docs: HANDOFF.md for keyboard scrolling and the theme draft |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1079,10 +1086,13 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: `tantu-theme` next, on inherited values (see "Resume here").
+3. Phase 3: `tantu-theme` next, drafted (see "Resume here").
 
 ## Open questions
 
+- **Theme dependency edge:** `tantu-widgets` must read the theme's tokens; AGENTS.md lets
+  neither crate depend on the other. Proposal in `docs/specs/theme/theme.md`: `tantu-widgets
+  | view, theme`.
 - **Clipboard for `TextField`:** the `Platform` trait has no clipboard yet (PLAN.md puts it
   in Phase 4). The widget part of `TextField` will ship without copy/paste unless a small
   clipboard addition to `tantu-platform` is agreed; proposal: add `Platform::clipboard_text`
