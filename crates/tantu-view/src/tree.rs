@@ -134,6 +134,12 @@ impl BuildCx<'_> {
         self.tree.text_styles.key(style)
     }
 
+    /// The tree's style table (a clone of the handle), so a binding can resolve style keys
+    /// later (VIEW-STYLES-03).
+    pub fn text_styles(&self) -> TextStyles {
+        todo!("VIEW-STYLES-03")
+    }
+
     /// Queues `font` for the text system to register before it next measures
     /// (`TextStyles::ensure_font`, VIEW-STYLES-02), so a widget can bring its own font.
     pub fn ensure_font(&mut self, font: &'static [u8]) {

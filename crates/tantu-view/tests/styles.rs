@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/text/styles.md`, rules VIEW-STYLES-01..02.
+//! Tests for `docs/specs/text/styles.md`, rules VIEW-STYLES-01..03.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -58,4 +58,27 @@ fn view_styles_02_ensure_font() {
     let _tree = ViewTree::with_text_styles(styles.clone(), || Fonted);
     assert_eq!(styles.take_pending_fonts(), vec![FAKE_FONT]);
     assert!(styles.take_pending_fonts().is_empty());
+}
+
+struct Tabled(Rc<Cell<Option<TextStyleKey>>>);
+
+impl View for Tabled {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let table = cx.text_styles();
+        self.0.set(Some(table.key(TextStyle::label())));
+        cx.render(RenderConstrainedBox::sized(Some(1.0), Some(1.0)), [])
+    }
+}
+
+#[test]
+fn view_styles_03_text_styles_handle() {
+    let styles = TextStyles::new();
+    let seen: Rc<Cell<Option<TextStyleKey>>> = Rc::default();
+    let _tree = {
+        let seen = seen.clone();
+        ViewTree::with_text_styles(styles.clone(), move || Tabled(seen))
+    };
+    let key = seen.get().expect("built");
+    assert_eq!(styles.get(key), Some(TextStyle::label()));
+    assert_eq!(styles.key(TextStyle::label()), key);
 }
