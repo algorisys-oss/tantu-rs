@@ -80,14 +80,23 @@ option, mark it for review, push at each milestone).
     `WidgetTester::enter_text` (TEST-WT-09); golden `text-field.png`. No clipboard,
     double-click, scrolling or IME yet (see the spec's Scope).
 
-**Next (PLAN.md order, Phase 3 widget item):**
+  - **`TextField` IME composition** (2026-10-12, `docs/specs/widgets/text-field-ime.md`,
+    decision 57; the user said "continue" on the draft): `ImeEvent` and `WindowEvent::Ime`,
+    `PlatformContext::set_ime_allowed`/`set_ime_cursor_area` (winit shell and
+    `FakePlatform`), `BuildCx::on_ime`/`ime_area` and `ViewTree::dispatch_ime`/`ime_area`,
+    the runner keeping the platform's IME in step with the focused element's area after each
+    frame, `EditingValue::compose`/`commit` (one undo step per composition), the composing
+    underline, `WidgetTester::ime`. **The widget item of Phase 3 is complete.**
+  - **README** now says how to depend on Tantu from another app (git dependency, a hello app
+    with a text field, what works today); the snippet was compile-checked against the facade.
+    The user's goal: build all their Rust desktop apps on Tantu, and let others do the same.
 
-1. `TextField`, part three: IME composition. **Drafted** in
-   `docs/specs/widgets/text-field-ime.md` (status Draft, five proposals). It adds IME events
-   and two calls to the platform trait, so it waits for the user's "continue" rather than
-   going straight through. Then `spec:`/`test:`/`impl:` as usual.
-2. Then the Phase 3 items after widgets: scroll views, the virtualized `ListView`,
-   `tantu-theme`, animation, `tantu-a11y`, `examples/gallery`.
+**Next (PLAN.md order, Phase 3):**
+
+1. Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling (spec first; the
+   `TextField` wants horizontal caret-following from it).
+2. Virtualized `ListView`, `tantu-theme`, animation (which brings timers: tooltip delay,
+   caret blink, double-click), `tantu-a11y`, `examples/gallery`.
 
 **Session summary (2026-10-11, the user away for ~4 hours):** Divider, Slider, Checkbox/Radio/
 Switch, Icon/IconButton, Image, RichText, the text editing model and the TextField widget
@@ -658,6 +667,13 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     holds focus, handlers and outline (as the Slider); the field fills a bounded width, 280 px
     in an unbounded one; typed text comes from `KeyEvent::text` or the `Character` key; no
     clipboard (platform), double-click (timers), scrolling (scroll item) or IME (next part).
+57. **TextField IME** (2026-10-12, spec `docs/specs/widgets/text-field-ime.md`, the draft's
+    proposals): winit's event shape as the platform's (byte offsets); the IME allowed only
+    while the focused element provides an area (a provider registered at build time,
+    `BuildCx::ime_area`, since the caret rect is paint-time data); the composing underline as
+    a 1 px Scene rect; composition and commit one undo step; `Disabled` commits the pending
+    preedit. The runner syncs the area after each frame, so a widget wanting the IME must
+    request a frame when its focus changes (text fields do through their `focused` signal).
 
 ## Commit log
 
@@ -959,7 +975,15 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `f1664ce` | impl: TextField widget, TextGeometry and its queries, TextSystem::geometry, PaintCx::text_geometry, WidgetTester::enter_text; text-field golden |
 | `219157b` | docs: HANDOFF.md for the TextField widget |
 | `a7f25e6` | docs: draft TextField IME spec for review |
-| _this commit_ | docs: HANDOFF.md, paused at the IME draft |
+| `c925aff` | docs: HANDOFF.md, paused at the IME draft |
+| `a7f25e6` | docs: draft TextField IME spec for review |
+| `c925aff` | docs: HANDOFF.md, paused at the IME draft |
+| `55cb337` | spec: TextField IME composition (PLATFORM-IME-01, PLATFORM-FAKE-11, PLATFORM-WINIT-13, VIEW-IME-01..02, FACADE-APP-12, WIDGETS-EDIT-09, WIDGETS-TEXTFIELD-07..08, TEST-WT-10) |
+| `421af9f` | spec: VIEW-IME-02 uses an IME area provider registered at build time |
+| `23ee41d` | test: TextField IME composition, stubs + 11 failing tests |
+| `a0668cc` | impl: TextField IME composition: platform IME events and context calls, winit conversion, view dispatch and IME area, runner sync, compose/commit edits, composing underline, WidgetTester::ime |
+| `981277b` | docs: README, how to use Tantu in an app (git dependency, a hello app, what works today) |
+| _this commit_ | docs: HANDOFF.md for IME and the README |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -968,7 +992,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3 widgets: `TextField` IME next, drafted (see "Resume here").
+3. Phase 3: scroll views next (see "Resume here").
 
 ## Open questions
 
