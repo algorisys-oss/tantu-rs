@@ -99,12 +99,19 @@ option, mark it for review, push at each milestone).
     pass runs with the runtime current, so paints can read and write signals. Kinetic and
     keyboard scrolling wait for timers and focus scopes (PLAN.md sub-item).
 
+  - **`ListView::builder`** (2026-10-12, `docs/specs/layout/list.md` and
+    `docs/specs/widgets/list-view.md`, decision 59): fixed-extent virtualization, a
+    `RenderListContent` as long as every item placing built items by `ListIndex` parent data,
+    a keyed `For` over the visible range (one item of buffer each side); 100 000 items keep
+    at most 8 elements. Variable extents, separators and keyboard navigation remain (PLAN.md
+    sub-item).
+
 **Next (PLAN.md order, Phase 3):**
 
-1. Virtualized `ListView` (100k items at 60 fps) on the viewport: a builder of items with a
-   fixed item extent first, building only the visible range (spec first).
+1. `examples/gallery`: every widget in one app (spec first, with WidgetTester tests and a
+   golden), which also satisfies the "gallery entry" rule of AGENTS.md for the widgets.
 2. `tantu-theme`, animation (which brings timers: tooltip delay, caret blink, double-click,
-   kinetic scrolling), `tantu-a11y`, `examples/gallery`.
+   kinetic scrolling), `tantu-a11y`.
 
 **Session summary (2026-10-11, the user away for ~4 hours):** Divider, Slider, Checkbox/Radio/
 Switch, Icon/IconButton, Image, RichText, the text editing model and the TextField widget
@@ -691,6 +698,13 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     that can move takes the wheel (it stops the event only when it moved); only the axis's
     delta component scrolls; a `Copy` controller of two signals; a fixed-look scrollbar shown
     whenever there is overflow, draggable, 24 px minimum thumb.
+59. **ListView** (2026-10-12, specs `docs/specs/layout/list.md` and
+    `docs/specs/widgets/list-view.md`, decided by the agent while the user was away; review):
+    fixed item extents only (the fast path); the content is a box as long as all items
+    (`count · extent`) holding only the built ones, placed by `ListIndex` parent data; the
+    visible range comes from the scroll controller's offset and viewport extent with one item
+    of buffer each side (not Flutter's 250 px cache extent); items keyed by index keep their
+    elements across scrolls; the first frame shows no items because the extents come from it.
 
 ## Commit log
 
@@ -1008,7 +1022,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `1c0d25a` | test: a Paint reads and writes signals (VIEW-PAINT-07), failing |
 | `6c3c1a4` | test: WIDGETS-SCROLL-05 content tall enough for the 400 px offset |
 | `fa0f963` | impl: RenderViewport, ScrollView with wheel scrolling and a draggable scrollbar, WidgetTester::scroll; paint runs with the runtime current |
-| _this commit_ | docs: HANDOFF.md for ScrollView |
+| `518e412` | docs: HANDOFF.md for ScrollView |
+| `03d30b0` | spec: RenderListContent (LAYOUT-LIST-01..02) and ListView::builder (WIDGETS-LIST-01..03); PLAN.md item split |
+| `54a96b2` | spec: WIDGETS-LIST-02 example count at offset 0 is 6 |
+| `0f41423` | test: RenderListContent and ListView, stubs + 5 failing tests |
+| `ff0f989` | impl: RenderListContent and ListView::builder (fixed-extent virtualization over the viewport) |
+| _this commit_ | docs: HANDOFF.md for ListView |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1017,7 +1036,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: the virtualized `ListView` next (see "Resume here").
+3. Phase 3: `examples/gallery` next (see "Resume here").
 
 ## Open questions
 
