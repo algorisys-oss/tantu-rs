@@ -139,7 +139,8 @@ faster or more portable without changing how apps are written.
     - [x] IME composition (spec `docs/specs/widgets/text-field-ime.md`)
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
   - [x] `RenderViewport` and `ScrollView`: wheel/trackpad deltas, clamping, scrollbar, clipping (specs `docs/specs/layout/viewport.md`, `docs/specs/widgets/scroll.md`)
-  - [ ] kinetic scrolling and smooth wheel animation (after the animation item), keyboard scrolling and `ensure_visible`
+  - [x] keyboard scrolling (arrows, PageUp/Down, Home/End) (WIDGETS-SCROLL-06)
+  - [ ] kinetic scrolling and smooth wheel animation (after the animation item), `ensure_visible`
 - [ ] Virtualized `ListView` (100k items at 60fps)
   - [x] fixed-extent `ListView::builder` on the viewport (specs `docs/specs/layout/list.md`, `docs/specs/widgets/list-view.md`)
   - [ ] variable item extents, separators, keyboard navigation

@@ -31,8 +31,7 @@ Out of scope (and where it goes):
 
 - Kinetic scrolling, smooth wheel animation, overscroll bounce, `animate_to`: the animation
   item (timers). Until then every delta applies at once.
-- Keyboard scrolling (PageUp/Down, arrows, Home/End) and `ensure_visible` (focus scrolling,
-  the text field's caret following): with focus scopes, next.
+- `ensure_visible` (scrolling a focused child into view): with focus scopes, next.
 - Scrollbar track clicks (paging), auto-hiding scrollbars, theming: `tantu-theme` and later.
 - Virtualization (`ListView` builds only visible items): the next item, on this viewport.
 
@@ -109,6 +108,11 @@ least 24 px; its position is `track_start + (track − thumb) · offset / max`.
 - **WIDGETS-SCROLL-05:** Taps reach scrolled content: a button at y = 500 in the content, after
   scrolling by 400, is tapped at y = 100 of the view, and a button scrolled out of the view
   isn't hit.
+- **WIDGETS-SCROLL-06:** Keyboard: a scroll view is focusable (a primary press focuses it; Tab
+  doesn't stop at it). While focused, a press (repeats included) of the arrow key along the
+  axis scrolls by 40 px (down/right forward, up/left back), PageDown/PageUp by the viewport
+  extent, End/Home to the maximum/0, each clamped and handled (stopping the event) when the
+  view could move; other keys and the cross-axis arrows pass through.
 - **TEST-WT-11:** `scroll` dispatches `PointerKind::Scroll(delta)` at the element's center and
   pumps.
 
