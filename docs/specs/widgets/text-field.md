@@ -219,6 +219,8 @@ coalescing works as the model specifies.
 - **WIDGETS-TEXTFIELD-07:** IME events edit the composing region and the field declares its IME
   area; see [TextField IME](text-field-ime.md).
 - **WIDGETS-TEXTFIELD-08:** The composing range is underlined; see [TextField IME](text-field-ime.md).
+- **WIDGETS-TEXTFIELD-10:** The caret blinks; **WIDGETS-TEXTFIELD-11:** double-click selects a
+  word. See [transitions](transitions.md).
 - **WIDGETS-TEXTFIELD-09:** Caret following. A single-line field whose text is wider than the
   editor shifts its content left so the caret stays visible: the editor paints its selection,
   text, underline and caret inside a transform scope translated by `−shift`, where `shift` is

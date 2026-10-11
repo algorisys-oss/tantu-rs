@@ -70,6 +70,8 @@ Sections and their samples:
   primary and the background is the dark surface. Golden `tests/goldens/gallery-dark.png`
   (the Buttons section, dark). See [theme](../theme/theme.md).
 - **GALLERY-06:** The Animation section; see [animation](../view/animation.md).
+- **GALLERY-07:** The Animation section's switcher sample; see
+  [transitions](../widgets/transitions.md).
 
 ## Open questions
 

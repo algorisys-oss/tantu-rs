@@ -1,6 +1,6 @@
 # Transitions: Opacity, AnimatedSwitcher, and the animation's first users
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Agreed (the user said "next" on the draft, 2026-10-11, taking its seven proposals)
 - **Crates:** `tantu-widgets` (`Opacity`, `AnimatedSwitcher`, the `TextField` caret blink and
   double-click, `ScrollView` smooth wheel scrolling and `ScrollController::animate_to`),
   `examples/gallery`
@@ -147,7 +147,7 @@ wheel animation one controller per scroll view.
 
 ## Open questions
 
-Proposals (say "continue" to take them, or change them):
+Resolved (2026-10-11; the user said "next" on the draft, taking these proposals):
 
 1. **`Opacity` at 1 pushes no layer and at 0 paints nothing**, so the common cases cost
    nothing (Flutter's `Opacity` does the same).

@@ -116,6 +116,9 @@ least 24 px; its position is `track_start + (track − thumb) · offset / max`.
 - **TEST-WT-11:** `scroll` dispatches `PointerKind::Scroll(delta)` at the element's center and
   pumps.
 
+- **WIDGETS-SCROLL-07:** Wheel steps animate to an accumulating target; **WIDGETS-SCROLL-08:**
+  `ScrollController::animate_to`. See [transitions](transitions.md).
+
 ## Open questions
 
 Decided by the agent while the user was away (review):
