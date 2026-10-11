@@ -277,8 +277,9 @@ impl PlatformContext for FakeContext {
     }
 
     fn update_accessibility(&mut self, window: WindowId, update: accesskit::TreeUpdate) {
-        let _ = (window, update);
-        todo!()
+        if let Some(index) = self.open_index(window) {
+            self.log.windows[index].accessibility_updates.push(update);
+        }
     }
 
     fn now(&self) -> std::time::Instant {

@@ -150,9 +150,9 @@ faster or more portable without changing how apps are written.
   - [x] timers and tickers: platform `now`/`wake_at` (winit `WaitUntil`), `Runtime::tick`, `timer`/`ticker`, `WidgetTester::advance`; the tooltip's show delay (spec `docs/specs/reactive/timers.md`)
   - [x] `AnimationController`, `Tween`, curves, and `animated()` props (implicit transitions on any reactive prop) (spec `docs/specs/view/animation.md`; the gallery's Animation section)
   - [x] enter/exit transitions: `Opacity`, `AnimatedSwitcher` (the animated `Show` is a switcher on a `bool`); caret blink, double-click and smooth wheel scrolling as users (spec `docs/specs/widgets/transitions.md`; kinetic fling deferred until touch or trackpad gestures exist)
-- [ ] `tantu-a11y`: AccessKit tree for every standard widget
+- [x] `tantu-a11y`: AccessKit tree for every standard widget
   - [x] semantics on elements, the AccessKit tree built from the view tree, actions routed back, every widget annotated, `WidgetTester::a11y_tree` (spec `docs/specs/a11y/semantics.md`, ADR 0013)
-  - [ ] the platform side: AccessKit events and tree updates through the platform trait, the winit adapter, the runner (spec `docs/specs/a11y/platform.md`)
+  - [x] the platform side: AccessKit events and tree updates through the platform trait, the winit adapter, the runner (spec `docs/specs/a11y/platform.md`)
 - [x] `examples/gallery` (spec `docs/specs/examples/gallery.md`)
 
 ### Phase 4 — Enterprise features (weeks 17–26)

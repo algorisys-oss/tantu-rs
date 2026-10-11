@@ -1,6 +1,6 @@
 # Accessibility through the platform
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its four
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its four
   proposals)
 - **Crates:** `tantu-platform` (events and the update call, `FakePlatform` recording),
   `tantu-platform-winit` (the `accesskit_winit` adapter), `tantu` (the runner sending trees

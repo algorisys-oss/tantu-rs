@@ -16,6 +16,8 @@ tantu-core = { workspace = true }
 tantu-platform = { workspace = true }
 # Default features: X11, Wayland (loaded at run time), client-side decorations, rwh 0.6.
 winit = "0.30.13"
+# The AccessKit platform adapter for winit windows (ADR 0013); 0.32 pairs with winit 0.30.
+accesskit_winit = "0.32.2"
 
 # Opens a real window; needs the main thread, so it runs without the test harness.
 [[test]]

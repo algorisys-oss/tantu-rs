@@ -3,12 +3,13 @@
 
 use std::fmt;
 
+use tantu_a11y::AccessibilityTree;
 use tantu_core::{Color, Point, Rect, Size, Vec2};
 use tantu_layout::BoxConstraints;
 use tantu_layout::RenderConstrainedBox;
 use tantu_platform::{
-    ButtonState, Platform, PlatformContext, PlatformError, PlatformHandler, PointerButton,
-    ScrollDelta, WindowAttributes, WindowEvent, WindowId,
+    AccessibilityEvent, ButtonState, Platform, PlatformContext, PlatformError, PlatformHandler,
+    PointerButton, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };
 use tantu_reactive::{Signal, Wake};
 use tantu_scene::{RenderError, Renderer, Resources, Scene};
@@ -215,7 +216,13 @@ impl App {
         if let Some(family) = default_family {
             text.set_default_family(FontFamily::Named(family.into()));
         }
+        let app_name = self
+            .windows
+            .first()
+            .map(|(window, _)| window.attributes.title.clone())
+            .unwrap_or_default();
         AppHandler {
+            app_name,
             text,
             resources: Resources::new(),
             pending: self.windows,
@@ -287,6 +294,8 @@ struct WindowState {
     scene: Scene,
     /// The IME area last told to the platform (FACADE-APP-12).
     ime_area: Option<Rect>,
+    /// The accessibility tree builder while assistive technology is active (FACADE-APP-15).
+    a11y: Option<AccessibilityTree>,
 }
 
 /// The platform's IME event as the view's (FACADE-APP-12).
@@ -317,6 +326,8 @@ pub struct AppHandler {
     modifiers: tantu_view::Modifiers,
     /// The wake-up deadline last passed to the platform (FACADE-APP-14).
     wake: Option<std::time::Instant>,
+    /// The accessibility tree's window name: the first window's title (FACADE-APP-15).
+    app_name: String,
 }
 
 impl AppHandler {
@@ -355,6 +366,7 @@ impl AppHandler {
             renderer,
             scene: Scene::new(),
             ime_area: None,
+            a11y: None,
         });
     }
 
@@ -397,7 +409,11 @@ impl AppHandler {
                 }
             }
             Err(RenderError::TargetLost) => cx.request_redraw(state.id),
-            Err(error) => self.fail(cx, Error::Render(error)),
+            Err(error) => return self.fail(cx, Error::Render(error)),
+        }
+        // Every frame of an active window sends its tree (FACADE-APP-15).
+        if let Some(a11y) = &mut state.a11y {
+            cx.update_accessibility(state.id, a11y.update(&state.tree));
         }
     }
 
@@ -581,6 +597,23 @@ impl PlatformHandler for AppHandler {
             }
             WindowEvent::Ime(ref ime) => {
                 self.windows[index].tree.dispatch_ime(ime_event(ime));
+            }
+            WindowEvent::Accessibility(ref event) => {
+                // FACADE-APP-15: a tree on activation, actions to the view, silence after.
+                let state = &mut self.windows[index];
+                match event {
+                    AccessibilityEvent::Activated => {
+                        let mut a11y = AccessibilityTree::new(self.app_name.clone());
+                        cx.update_accessibility(state.id, a11y.update(&state.tree));
+                        state.a11y = Some(a11y);
+                    }
+                    AccessibilityEvent::Deactivated => state.a11y = None,
+                    AccessibilityEvent::Action(request) => {
+                        if let Some((element, action)) = AccessibilityTree::map_action(request) {
+                            state.tree.perform_action(element, action);
+                        }
+                    }
+                }
             }
             ref other => {
                 if let Some(pointer) = pointer_event(other) {
