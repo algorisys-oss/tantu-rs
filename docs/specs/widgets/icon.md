@@ -1,7 +1,7 @@
 # Icon and IconButton
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-11; review the
-  Open questions)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-11; review
+  the Open questions)
 - **Crates:** `tantu-widgets` (plus `TextStyles::ensure_font` in `tantu-text` and
   `BuildCx::ensure_font` in `tantu-view`)
 - **Plan item:** Phase 3, "Widgets" → "`Icon` and `IconButton` (an icon font)"

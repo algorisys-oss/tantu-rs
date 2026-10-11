@@ -130,7 +130,7 @@ faster or more portable without changing how apps are written.
   - [x] `Divider` and `VerticalDivider` (brings Flutter's `LimitedBox`) (spec `docs/specs/widgets/divider.md`)
   - [x] `Slider` (spec `docs/specs/widgets/slider.md`)
   - [x] `Checkbox`, `Radio`, `Switch` (the check mark is two rotated bars in Scene transform scopes; spec `docs/specs/widgets/toggles.md`)
-  - [ ] `Icon` and `IconButton` (Material Icons Regular behind the `material-icons` feature; spec `docs/specs/widgets/icon.md`)
+  - [x] `Icon` and `IconButton` (Material Icons Regular behind the `material-icons` feature; spec `docs/specs/widgets/icon.md`)
   - [ ] `Image` (decoding, fit, sizing)
   - [ ] `RichText` (multi-style paragraphs in `tantu-text`)
   - [ ] `TextField`, in parts: editing model (text, selection, undo), the widget (caret, selection painting, keys), then IME

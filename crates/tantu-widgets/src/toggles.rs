@@ -7,8 +7,8 @@ use tantu_view::layout::{BoxConstraints, RenderConstrainedBox};
 use tantu_view::reactive::{effect, signal};
 use tantu_view::scene::{BorderRadius, RoundedRect, SceneBuilder};
 use tantu_view::{
-    BuildCx, CursorIcon, ElementId, FocusOptions, Handled, IntoProp, LogicalKey, NamedKey, Paint,
-    PaintCx, Phase, PointerButton, PointerKind, Prop, View,
+    AnyView, BuildCx, CursorIcon, ElementId, FocusOptions, Handled, IntoProp, LogicalKey, NamedKey,
+    Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, View,
 };
 
 use crate::util::dynamic;
@@ -39,17 +39,17 @@ const THUMB_ON: f32 = 12.0;
 const THUMB_PRESSED: f32 = 14.0;
 
 /// Material 3's primary.
-const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
+pub(crate) const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
 /// On-surface: the unselected state layer.
-const ON_SURFACE: Color = Color::from_argb32(0xFF1C_1B1F);
-/// Unselected outlines of the checkbox and radio.
-const ON_SURFACE_VARIANT: Color = Color::from_argb32(0xFF49_454F);
+pub(crate) const ON_SURFACE: Color = Color::from_argb32(0xFF1C_1B1F);
+/// Unselected outlines of the checkbox and radio; the icon button's icon.
+pub(crate) const ON_SURFACE_VARIANT: Color = Color::from_argb32(0xFF49_454F);
 /// The unselected switch's outline and thumb.
 const OUTLINE: Color = Color::from_argb32(0xFF79_747E);
 /// The unselected switch's track.
 const SURFACE_CONTAINER_HIGHEST: Color = Color::from_argb32(0xFFE6_E0E9);
 /// Disabled fills and outlines (on-surface at 38 %).
-const ON_SURFACE_38: Color = Color::from_argb32(0x611C_1B1F);
+pub(crate) const ON_SURFACE_38: Color = Color::from_argb32(0x611C_1B1F);
 /// The disabled switch's track (on-surface at 12 %).
 const ON_SURFACE_12: Color = Color::from_argb32(0x1F1C_1B1F);
 
@@ -162,7 +162,7 @@ impl Switch {
 
 /// What every toggle's paint knows about its interaction state.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-struct State {
+pub(crate) struct State {
     enabled: bool,
     hovered: bool,
     focused: bool,
@@ -187,7 +187,7 @@ impl State {
     }
 
     /// Paints the state layer centered on `center`, in primary when `selected`.
-    fn paint_layer(&self, scene: &mut SceneBuilder<'_>, center: Point, selected: bool) {
+    pub(crate) fn paint_layer(&self, scene: &mut SceneBuilder<'_>, center: Point, selected: bool) {
         let alpha = self.layer_alpha();
         if alpha > 0.0 {
             let base = if selected { PRIMARY } else { ON_SURFACE };
@@ -197,11 +197,11 @@ impl State {
 }
 
 /// A paint with a toggle [`State`].
-trait TogglePaint: Paint {
+pub(crate) trait TogglePaint: Paint {
     fn state_mut(&mut self) -> &mut State;
 }
 
-fn circle(center: Point, radius: f32) -> RoundedRect {
+pub(crate) fn circle(center: Point, radius: f32) -> RoundedRect {
     RoundedRect::new(
         Rect::from_ltrb(
             center.x - radius,
@@ -213,16 +213,21 @@ fn circle(center: Point, radius: f32) -> RoundedRect {
     )
 }
 
-/// Builds a toggle's element: tight at `size`, with `paint`, the focus and the pointer and
-/// key handlers that call `activate` (WIDGETS-TOGGLE-01, -05, -06, -07, -08).
-fn build_toggle<P: TogglePaint>(
+/// Builds a toggle's element: tight at `size`, with `paint`, `children`, the focus and the
+/// pointer and key handlers that call `activate` (WIDGETS-TOGGLE-01, -05, -06, -07, -08).
+/// The icon button is built on it too.
+pub(crate) fn build_toggle<P: TogglePaint>(
     cx: &mut BuildCx<'_>,
     size: Size,
     enabled: Rc<dyn Fn() -> bool>,
     activate: Rc<dyn Fn()>,
     paint: P,
+    children: impl IntoIterator<Item = AnyView>,
 ) -> ElementId {
-    let id = cx.render(RenderConstrainedBox::new(BoxConstraints::tight(size)), []);
+    let id = cx.render(
+        RenderConstrainedBox::new(BoxConstraints::tight(size)),
+        children,
+    );
     cx.set_paint(id, paint);
     let (hovered, pressed, focused) = (signal(false), signal(false), signal(false));
     // Becoming disabled clears hover and press (WIDGETS-TOGGLE-05).
@@ -315,7 +320,7 @@ fn build_toggle<P: TogglePaint>(
 }
 
 /// Whether a toggle is enabled: its prop, and it has an `on_change` (WIDGETS-TOGGLE-05).
-fn enabled_fn(prop: Prop<bool>, has_on_change: bool) -> Rc<dyn Fn() -> bool> {
+pub(crate) fn enabled_fn(prop: Prop<bool>, has_on_change: bool) -> Rc<dyn Fn() -> bool> {
     let prop = dynamic(prop);
     Rc::new(move || has_on_change && prop())
 }
@@ -337,7 +342,7 @@ impl View for Checkbox {
             value: false,
             indeterminate: false,
         };
-        let id = build_toggle(cx, TOGGLE_SIZE, enabled, activate, paint);
+        let id = build_toggle(cx, TOGGLE_SIZE, enabled, activate, paint, []);
         cx.bind(id, Prop::Dynamic(Box::new(move || value())), |e, on| {
             e.update_paint::<CheckboxPaint>(|p| p.value = on);
         });
@@ -364,7 +369,7 @@ impl<T: Copy + PartialEq + 'static> View for Radio<T> {
             state: State::default(),
             selected: false,
         };
-        let id = build_toggle(cx, TOGGLE_SIZE, enabled, activate, paint);
+        let id = build_toggle(cx, TOGGLE_SIZE, enabled, activate, paint, []);
         cx.bind(
             id,
             Prop::Dynamic(Box::new(move || group() == value)),
@@ -392,7 +397,7 @@ impl View for Switch {
             state: State::default(),
             value: false,
         };
-        let id = build_toggle(cx, SWITCH_SIZE, enabled, activate, paint);
+        let id = build_toggle(cx, SWITCH_SIZE, enabled, activate, paint, []);
         cx.bind(id, Prop::Dynamic(Box::new(move || value())), |e, on| {
             e.update_paint::<SwitchPaint>(|p| p.value = on);
         });

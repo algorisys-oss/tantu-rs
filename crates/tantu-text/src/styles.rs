@@ -2,6 +2,7 @@
 //! [`TextStyle`] presets. Spec: `docs/specs/text/styles.md`.
 
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::rc::Rc;
 
 use tantu_layout::TextStyleKey;
@@ -14,6 +15,14 @@ use crate::TextStyle;
 #[derive(Clone, Debug, Default)]
 pub struct TextStyles {
     styles: Rc<RefCell<Vec<TextStyle>>>,
+    fonts: Rc<RefCell<FontQueue>>,
+}
+
+/// Fonts queued by `ensure_font` (TEXT-STYLES-05), with the addresses ever queued.
+#[derive(Debug, Default)]
+struct FontQueue {
+    pending: Vec<&'static [u8]>,
+    seen: HashSet<usize>,
 }
 
 impl TextStyles {
@@ -55,13 +64,15 @@ impl TextStyles {
     /// Queues `font` for registration by the text system before its next measure or paint
     /// (TEXT-STYLES-05). The same data (by address) is queued once per table.
     pub fn ensure_font(&self, font: &'static [u8]) {
-        let _ = font;
-        todo!("TEXT-STYLES-05")
+        let mut queue = self.fonts.borrow_mut();
+        if queue.seen.insert(font.as_ptr() as usize) {
+            queue.pending.push(font);
+        }
     }
 
     /// Takes the queued fonts (what the text system calls before measuring).
     pub fn take_pending_fonts(&self) -> Vec<&'static [u8]> {
-        todo!("TEXT-STYLES-05")
+        std::mem::take(&mut self.fonts.borrow_mut().pending)
     }
 }
 

@@ -270,6 +270,10 @@ impl TextSystem {
 
     /// The shaped layout of `text` in `style`, from the cache or shaped now.
     fn layout(&mut self, text: &str, style: TextStyleKey) -> &mut Layout<()> {
+        // Fonts widgets queued through the shared table (TEXT-STYLES-05).
+        for font in self.styles.take_pending_fonts() {
+            self.register_font(font.to_vec());
+        }
         let key = (text.to_owned(), style);
         if !self.cache.current.contains_key(&key) {
             let layout = match self.cache.old.remove(&key) {
