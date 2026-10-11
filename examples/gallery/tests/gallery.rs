@@ -241,5 +241,7 @@ fn gallery_10_data_grid() {
         "/tests/goldens/gallery-grid.png"
     ));
     tester.scroll(&Finder::key("grid"), Vec2::new(0.0, 320.0));
+    // The wheel step animates (WIDGETS-SCROLL-07); let it finish.
+    tester.advance(std::time::Duration::from_millis(200));
     assert_eq!(text_of(&tester, "first-row"), "First row: 10");
 }
