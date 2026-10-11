@@ -18,13 +18,16 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
   anchored positioning; the whole widget item (`Text`, `Button`, `Tooltip`, `Divider`, `Slider`,
   `Checkbox`/`Radio`/`Switch`, `Icon`/`IconButton`, `Image`, `RichText`, `TextField` with undo
   and IME); `ScrollView` with wheel, scrollbar and keyboard scrolling; fixed-extent
-  `ListView::builder`; inherited values; `examples/gallery`; and, on 2026-10-11, **the theme**
-  (decision 62, below). Left in Phase 3: kinetic scrolling and `ensure_visible`, variable list
-  extents, animation and timers, `tantu-a11y`.
+  `ListView::builder`; inherited values; `examples/gallery`; on 2026-10-11 **the theme**
+  (decision 62) and **timers and tickers**, the first animation sub-item (decision 63): the
+  reactive runtime has a clock, the platform wakes the loop up at deadlines, the tester has
+  `advance`, and the tooltip waits 500 ms. Left in Phase 3: the animation controller and
+  implicit transitions, enter/exit transitions, kinetic scrolling and `ensure_visible`,
+  variable list extents, `tantu-a11y`.
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 62 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 63 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally. CI was not checked from this session.
 
@@ -35,14 +38,15 @@ stops; the user says "continue" to accept the proposals; the agent then does
 recommended option at forks, marks it for review and pushes at each milestone (decision 34).
 Additions made while agreeing a spec are marked "review" in its Open questions.
 
-**For the user to review:** decisions 49 to 62 (made by the agent, marked in the specs), and the
+**For the user to review:** decisions 49 to 63 (made by the agent, marked in the specs), and the
 open questions below.
 
 **Next (PLAN.md order, Phase 3):**
 
-1. **Animation and timers**: tickers, tweens, curves, implicit transitions. Needs a wake-up
-   time in the `Platform` trait (winit's `WaitUntil`). Unblocks the tooltip delay, caret blink,
-   double-click, kinetic scrolling and smooth wheel scrolling.
+1. **Animation, sub-items 2 and 3** (PLAN.md): `AnimationController`, `Tween`, curves and
+   `animated()` props (implicit transitions on any reactive prop); then enter/exit transitions
+   (`Opacity`, `AnimatedSwitcher`, animated `Show`) with caret blink, double-click and kinetic
+   scrolling as users. The timers are in (`timer`, `ticker`, `Runtime::tick`).
 2. Scroll leftovers (kinetic, `ensure_visible`) and `ListView` leftovers (variable extents,
    separators, keyboard navigation).
 3. `tantu-a11y`: the AccessKit tree for every widget.
@@ -588,6 +592,18 @@ open questions below.
     reaches a `BuildCx`. The tooltip captures the theme at the portal, because the overlay
     layer hangs off the root and inherits nothing from the app (open question). The gallery
     has a "Dark" switch and a dark golden.
+63. **Timers and tickers** (2026-10-11, spec `docs/specs/reactive/timers.md`; the user said
+    "continue" on the draft's seven proposals): the clock lives in `tantu-reactive`
+    (`timer`, `Timer`, `ticker`, `Ticker`, `Wake`, `Runtime::tick/now/next_wake`), timers and
+    tickers being arena nodes owned like signals, so handlers can create them and scopes
+    dispose them; plain `std::time::Instant`/`Duration`; one tick per frame at the start of
+    the redraw, `idle` only scheduling (a due tree gets a redraw, a future deadline goes to
+    `PlatformContext::wake_at`, a passed or changed one is cleared, since winit's `WaitUntil`
+    would fire again at once); the fake platform has a clock moved by `FakeStep::Advance` and
+    logs `wakes`; `WidgetTester::advance` is one frame; the tooltip waits Flutter's 500 ms on
+    hover (`wait_duration`), focus shows at once, and its timer runs in the portal's scope
+    (`BuildCx::tree().scope(id)`), the first workaround for the handler-ownership question.
+    PLATFORM-WINIT-14 was checked in a real window on Wayland.
 
 ## Commit log
 
@@ -932,7 +948,12 @@ open questions below.
 | `8d3c0f1` | test: theme, stubs + 11 failing tests |
 | `09863bf` | spec: WIDGETS-THEME-03 allows content taller than the minimum; goldens render over the theme's surface |
 | `121f8ff` | impl: theme: tokens and default themes, Builder, widgets reading the theme, runner and tester providing it, goldens over the surface, the gallery's dark-mode switch; PLAN.md ticked |
-| _this commit_ | docs: general-purpose framing (README, AGENTS.md, architecture), CLAUDE.md skill note, HANDOFF.md cleanup |
+| `1769a69` | docs: general-purpose framing (README, AGENTS.md, architecture), CLAUDE.md skill note, HANDOFF.md cleanup |
+| `4e58571` | docs: draft timers and tickers spec for review; PLAN.md animation item split in three |
+| `a44d2de` | spec: timers and tickers (REACTIVE-TIME-01..05, PLATFORM-TIME-01, PLATFORM-FAKE-12, PLATFORM-WINIT-14, VIEW-TIME-01, FACADE-APP-14, TEST-WT-13, WIDGETS-TOOLTIP-07) |
+| `ebbc95d` | test: timers and tickers, stubs + 11 failing tests |
+| `62af943` | impl: timers and tickers: the runtime's clock, platform now/wake_at, tree and tester forwarding, the runner's scheduling, the tooltip's show delay |
+| _this commit_ | docs: HANDOFF.md for timers and tickers |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
