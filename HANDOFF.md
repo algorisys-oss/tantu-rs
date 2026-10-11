@@ -111,10 +111,19 @@ option, mark it for review, push at each milestone).
     reporting their state as text, goldens `gallery-buttons.png` and `gallery-selection.png`;
     `cargo run -p gallery`. The README points at it.
 
+  - **TextField caret following** (2026-10-12, WIDGETS-TEXTFIELD-09): a single-line field
+    shifts its content inside a transform scope so the caret stays visible; the pointer and
+    the IME area account for the shift. Found by typing long text in the gallery.
+    **Note for the tester:** `Finder::text(&string)` (a `&String`) didn't match where
+    `Finder::text(string.as_str())` did in one test; not investigated (TEST-WT-03 may want a
+    rule).
+
 **Next (PLAN.md order, Phase 3):**
 
 1. `tantu-theme` (design tokens, light/dark, density, live switching): the widgets' Material
-   constants move behind tokens read from the tree.
+   constants move behind tokens read from the tree. Groundwork first: inherited values in
+   `tantu-view` (a provider element and `BuildCx::inherit::<T>()`), then the theme crate and
+   the widget migration.
 2. Animation (tickers, tweens, curves), which brings timers: tooltip delay, caret blink,
    double-click, kinetic scrolling. Needs a timer in the platform trait (winit's
    `WaitUntil`).
@@ -1041,7 +1050,12 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `5e946cd` | spec: the widget gallery example (GALLERY-01..04) |
 | `c29c985` | test: the gallery example, stub + 4 failing tests |
 | `9100315` | impl: the widget gallery example with two goldens; README points at it |
-| _this commit_ | docs: HANDOFF.md for the gallery |
+| `437cd8f` | docs: HANDOFF.md for the gallery |
+| `fa0cff3` | spec: single-line TextField caret following (WIDGETS-TEXTFIELD-09) |
+| `39c612a` | test: TextField caret following (WIDGETS-TEXTFIELD-09), failing |
+| `8af9726` | test: WIDGETS-TEXTFIELD-09 checks the wrapped text in the multi-line case |
+| `fcd37bf` | impl: single-line TextField caret following (content shift in a transform scope) |
+| _this commit_ | docs: HANDOFF.md for caret following |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
