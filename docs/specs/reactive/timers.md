@@ -1,6 +1,7 @@
 # Timers and tickers
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-11, taking its seven
+  proposals)
 - **Crates:** `tantu-reactive` (the clock: timers, tickers, `Runtime::tick`), `tantu-platform`
   and `tantu-platform-winit` (`now`, `wake_at`), `tantu-view` (forwarding on `ViewTree`),
   `tantu` (the runner ticking and scheduling wake-ups), `tantu-test` (`advance`),
@@ -167,7 +168,8 @@ impl<V: View> Tooltip<V> {
   disposing it cancels pending timers and stops tickers, dropping each callback exactly once
   (no leaks, as REACTIVE-SIG-22). Methods on a cancelled, fired or disposed handle are ignored
   and `is_pending`/`is_active` return false; nothing panics.
-- **REACTIVE-TIME-05:** `next_wake` is `Wake::Now` while any ticker is active, else
+- **REACTIVE-TIME-05:** `next_wake` is `Wake::Now` while any ticker is active or a timer is
+  pending before the first tick (its deadline needs a tick to resolve), else
   `Wake::At(deadline)` of the earliest pending timer, else `None`. Firing, cancelling or
   disposing updates it.
 
@@ -212,7 +214,7 @@ work is one comparison per window.
 
 ## Open questions
 
-Proposals (say "continue" to take them, or change them):
+Resolved (2026-10-11; the user said "continue" on the draft, taking these proposals):
 
 1. **The clock lives in `tantu-reactive`**, not `tantu-view`: timers share the owner tree with
    signals, so they can be created from handlers (which have no `BuildCx`) and are disposed

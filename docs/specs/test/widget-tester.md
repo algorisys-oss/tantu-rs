@@ -89,6 +89,10 @@ impl WidgetTester {
     pub fn scroll(&mut self, finder: &Finder, delta: Vec2);
     /// The theme signal provided at the root, initially `Theme::light()` (TEST-WT-12).
     pub fn theme(&self) -> Signal<Theme>;
+    /// Moves the tester's clock by `by`, ticks the tree and pumps one frame (TEST-WT-13).
+    pub fn advance(&mut self, by: Duration);
+    /// The tester's clock (starts at the tester's creation).
+    pub fn now(&self) -> Instant;
     /// Dispatches a raw pointer event (no pump).
     pub fn pointer(&mut self, event: PointerEvent) -> bool;
     /// The single element `finder` matches (panics otherwise, naming the finder).
@@ -155,6 +159,8 @@ impl Finder {
 - **TEST-WT-12:** The tester provides a `Signal<Theme>` holding `Theme::light()` around the app
   view and returns it from `theme()`; `matches_golden` renders over the theme's `surface`. See
   [theme](../theme/theme.md).
+- **TEST-WT-13:** The tester's clock: `pump` ticks at the current time and `advance` moves it;
+  see [timers and tickers](../reactive/timers.md).
 
 ## Open questions
 

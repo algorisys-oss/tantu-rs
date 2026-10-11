@@ -180,6 +180,8 @@ FACADE-APP-08's test runs only without the `winit` or `wgpu` feature, so CI runs
   theme's `surface` unless `Window::background` was set; without the feature nothing is
   provided and the background is `Window::background` (default white). See
   [theme](../theme/theme.md).
+- **FACADE-APP-14:** The runner ticks each tree before its frame and schedules wake-ups at
+  idle; see [timers and tickers](../reactive/timers.md).
 
 ## Performance and allocation
 

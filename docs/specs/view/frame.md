@@ -145,6 +145,8 @@ impl ViewTree {
 - **VIEW-FRAME-08:** Robustness: `frame` with unbounded constraints sizes the Scene to the root's
   size; a closure that reads no signal is applied once and never again; `apply` may itself
   write signals (values queued by it are applied in the next frame, not the current one).
+- **VIEW-TIME-01:** `ViewTree::tick`, `now` and `next_wake` forward to the runtime's clock; see
+  [timers and tickers](../reactive/timers.md).
 
 ## Performance and allocation
 

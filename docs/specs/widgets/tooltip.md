@@ -28,8 +28,8 @@ In scope:
 
 Out of scope (and where it goes):
 
-- The show delay (Flutter waits 500 ms) and fade animations: they need timers, which come
-  with the Phase 3 animation item. Until then the tooltip shows at once.
+- Fade animations: they need the animation controller, which comes with the Phase 3 animation
+  item (the 500 ms show delay arrived with WIDGETS-TOOLTIP-07).
 - Rich tooltips (title, actions), touch long-press: later.
 - Accessibility (the message as the child's description): `tantu-a11y`.
 
@@ -44,6 +44,9 @@ impl<V: View> Tooltip<V> {
     pub fn new(message: impl IntoProp<String>, child: V) -> Self;
     /// Show above the child instead of below (it still flips when there's no room).
     pub fn prefer_above(self) -> Self;
+    /// How long the pointer must rest on the child before the tooltip shows (default 500 ms;
+    /// zero shows at once) (WIDGETS-TOOLTIP-07).
+    pub fn wait_duration(self, duration: std::time::Duration) -> Self;
 }
 ```
 
@@ -67,12 +70,15 @@ impl<V: View> Tooltip<V> {
 - **WIDGETS-TOOLTIP-05:** The message is reactive; a change shows at the next frame.
 - **WIDGETS-TOOLTIP-06:** The child must be a render element to receive hover. A region child
   (`Dyn`, `Show`, `For`) logs a warning, and the tooltip never shows.
+- **WIDGETS-TOOLTIP-07:** Hover shows the tooltip after `wait_duration` (default 500 ms);
+  leaving or pressing before then cancels; focus shows at once. WIDGETS-TOOLTIP-01's hover
+  case is read with the delay elapsed. See [timers and tickers](../reactive/timers.md).
 
 ## Open questions
 
 Resolved (2026-10-11; the user said "continue" on the draft):
 
-1. **No show delay until timers exist.**
+1. **No show delay until timers exist** (they do now: WIDGETS-TOOLTIP-07).
 2. **The tooltip shows on focus as well as hover.**
 3. **Material 3 plain-tooltip look.**
 

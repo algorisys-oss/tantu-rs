@@ -231,6 +231,11 @@ pub trait PlatformContext {
     fn surface_target(&self, window: WindowId) -> Option<SurfaceTarget>;
     /// Ends the event loop after the current callback returns. `Platform::run` then returns.
     fn exit(&mut self);
+    /// The platform's monotonic clock (PLATFORM-TIME-01).
+    fn now(&self) -> std::time::Instant;
+    /// Asks for an `idle` call at `deadline` (or earlier) even if no event arrives; `None`
+    /// cancels. Each call replaces the previous deadline (PLATFORM-TIME-01).
+    fn wake_at(&mut self, deadline: Option<std::time::Instant>);
 }
 
 /// The app side of the event loop.
@@ -256,6 +261,8 @@ pub enum FakeStep {
     Event { window: usize, event: WindowEvent },
     /// Deliver nothing; just let pending redraws and `idle` run.
     Idle,
+    /// Moves the fake clock forward, then runs a redraw round and `idle` (PLATFORM-FAKE-12).
+    Advance(std::time::Duration),
 }
 
 /// What the handler asked a `FakePlatform` for.
@@ -267,6 +274,8 @@ pub struct FakeLog {
     pub exited: bool,
     /// How many script steps were delivered (skipped steps not counted).
     pub steps_delivered: usize,
+    /// Every `wake_at` call, as offsets from the run's start (`None` for a cancel).
+    pub wakes: Vec<Option<std::time::Duration>>,
 }
 
 /// A window of a `FakePlatform`, as last seen.
@@ -349,6 +358,10 @@ FakePlatform
   added.
 - **PLATFORM-FAKE-11:** `FakePlatform` scripts `Ime` events and records the IME calls; see
   [TextField IME](../widgets/text-field-ime.md).
+- **PLATFORM-TIME-01:** `PlatformContext::now` and `wake_at`; see
+  [timers and tickers](../reactive/timers.md).
+- **PLATFORM-FAKE-12:** The fake clock, `FakeStep::Advance` and `FakeLog::wakes`; see
+  [timers and tickers](../reactive/timers.md).
 
 ## Performance and allocation
 
