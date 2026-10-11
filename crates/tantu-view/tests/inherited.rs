@@ -171,7 +171,9 @@ trait TickerSignal {
 
 impl TickerSignal for ViewTree {
     fn ticker_signal(&self, id: ElementId) -> tantu_view::reactive::Signal<u32> {
-        self.inherited_on::<tantu_view::reactive::Signal<u32>>(id)
+        // A leaf provides on the element being built: its parent.
+        let parent = self.parent(id).expect("the ticker has a parent");
+        self.inherited_on::<tantu_view::reactive::Signal<u32>>(parent)
             .expect("the ticker provided its signal")
     }
 }
