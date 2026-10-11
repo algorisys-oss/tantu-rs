@@ -716,3 +716,19 @@ fn layout_tree_19_child_sizes() {
     tree.layout(p, loose(10.0, 10.0));
     assert_eq!(log.take()[0], format!("before {seven}"));
 }
+
+#[test]
+fn layout_tree_13_boundary_requeued_after_a_full_pass() {
+    // b1 is queued as a dirty boundary, then a full pass (new root constraints) lays it out as
+    // part of the root's re-layout. Marking under it again must lay it out again.
+    let mut f = laid_out();
+    f.tree.mark_needs_layout(f.b11);
+    f.tree.layout(f.root, loose(120.0, 120.0));
+    assert!(!f.tree.needs_layout(f.b1));
+    f.log.take();
+    f.tree.mark_needs_layout(f.b11);
+    assert!(f.tree.needs_layout(f.b1) && f.tree.needs_layout(f.b11));
+    f.tree.layout(f.root, loose(120.0, 120.0));
+    assert_eq!(f.log.take_sorted(), names(&["b1", "b11"]));
+    assert!(!f.tree.needs_layout(f.b1) && !f.tree.needs_layout(f.b11));
+}
