@@ -62,6 +62,10 @@ first frame recorded the extents, `v` is 0, so the first items appear at the sec
   a count of 0 shows nothing and has no scroll extent; a horizontal list scrolls along x with
   items placed by x.
 
+- **WIDGETS-LIST-04..06:** variable extents (`builder_with_extents`), separators
+  (`separated`), selection and keys; see [ListView: variable extents, separators and keyboard
+  navigation](list-view-advanced.md).
+
 ## Open questions
 
 Decided by the agent while the user was away (review):

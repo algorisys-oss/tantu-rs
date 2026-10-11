@@ -46,6 +46,9 @@ impl RenderListContent {
   the largest child's (0 without). Equal properties compare equal (`LayoutTree::set` with the
   same values doesn't re-lay out).
 
+- **LAYOUT-LIST-03:** `ListExtents` (a fixed extent or a table of prefix sums) on
+  `RenderListContent`; see [ListView: variable extents](../widgets/list-view-advanced.md).
+
 ## Open questions
 
 Decided by the agent (review): fixed extents only for now; variable extents (measuring items

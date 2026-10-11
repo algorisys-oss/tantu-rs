@@ -72,6 +72,8 @@ Sections and their samples:
 - **GALLERY-06:** The Animation section; see [animation](../view/animation.md).
 - **GALLERY-07:** The Animation section's switcher sample; see
   [transitions](../widgets/transitions.md).
+- **GALLERY-08:** The Lists section's contacts list (headers, separators, selection); see
+  [ListView: variable extents](../widgets/list-view-advanced.md).
 
 ## Open questions
 

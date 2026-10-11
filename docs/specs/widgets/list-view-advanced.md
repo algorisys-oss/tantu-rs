@@ -1,6 +1,7 @@
 # ListView: variable extents, separators and keyboard navigation
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-11, taking its five
+  proposals)
 - **Crates:** `tantu-layout` (`RenderListContent` with an extent table), `tantu-widgets`
   (`ListView::builder_with_extents`, `ListView::separated`, selection and keys),
   `examples/gallery`
@@ -141,7 +142,7 @@ built item. Keys and presses touch one signal.
 
 ## Open questions
 
-Proposals (say "continue" to take them, or change them):
+Resolved (2026-10-11; the user said "continue" on the draft, taking these proposals):
 
 1. **Extents come from the app** (`extent_of`), not from measuring the items: positions stay
    a prefix-sum lookup, 100 000 rows cost what a dozen do, and headers and multi-line rows
