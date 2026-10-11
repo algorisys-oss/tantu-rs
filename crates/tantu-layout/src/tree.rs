@@ -765,6 +765,14 @@ impl LayoutTree {
         let mut scratch = std::mem::take(&mut self.scratch);
         scratch.clear();
         let mut dirty = std::mem::take(&mut self.dirty);
+        // Every entry leaves the queue here; the ones kept below are queued again. An entry
+        // that an ancestor's pass already cleaned must not stay flagged, or a later mark that
+        // stops at it would never queue it (LAYOUT-TREE-13).
+        for &id in &dirty {
+            if let Some(node) = self.nodes.get_mut(id.0) {
+                node.queued = false;
+            }
+        }
         dirty.retain(|&id| {
             let Some(node) = self.nodes.get(id.0) else {
                 return false;
@@ -779,11 +787,6 @@ impl LayoutTree {
                 None => node.needs_layout,
             }
         });
-        for &(_, id) in &scratch {
-            if let Some(node) = self.nodes.get_mut(id.0) {
-                node.queued = false;
-            }
-        }
         for &id in &dirty {
             if let Some(node) = self.nodes.get_mut(id.0) {
                 node.queued = true;
