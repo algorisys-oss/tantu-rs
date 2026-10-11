@@ -40,8 +40,7 @@ Out of scope (and where it goes):
 - Clipboard: the platform has none yet (HANDOFF open question); `Cut`/`Copy`/`Paste` chords
   come with it.
 - IME composition: the next part. Obscured text, formatters, max length: forms.
-- Scrolling long single-line text to keep the caret visible, and multi-line scrolling:
-  the scroll item (the field clips for now).
+- Multi-line scrolling: the scroll item (single-line caret following is WIDGETS-TEXTFIELD-09).
 - Double-click word selection and triple-click (need timers), shift-click (pointer events
   carry no modifiers yet), drag-and-drop of text, a context menu: later.
 - Bidi caret logic and affinity at soft wraps: with RTL work in Phase 4 (the caret sits at
@@ -220,6 +219,13 @@ coalescing works as the model specifies.
 - **WIDGETS-TEXTFIELD-07:** IME events edit the composing region and the field declares its IME
   area; see [TextField IME](text-field-ime.md).
 - **WIDGETS-TEXTFIELD-08:** The composing range is underlined; see [TextField IME](text-field-ime.md).
+- **WIDGETS-TEXTFIELD-09:** Caret following. A single-line field whose text is wider than the
+  editor shifts its content left so the caret stays visible: the editor paints its selection,
+  text, underline and caret inside a transform scope translated by `−shift`, where `shift` is
+  kept so that the caret's painted x lies within the editor's width (moving the content only
+  when the caret would leave it), and never exceeds `text width − editor width` nor goes
+  below 0. Pointer hit-testing and the IME area account for the shift. A multi-line field
+  never shifts. (Added after the gallery showed long text hiding the caret.)
 
 ## Performance and allocation
 
