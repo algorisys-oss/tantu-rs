@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 
-use tantu_core::Size;
+use tantu_core::{Color, Size};
 
 use crate::{BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox};
 
@@ -41,6 +41,45 @@ pub trait TextMeasure {
 
     /// The width of the widest unbreakable piece of `text` (its minimum intrinsic width).
     fn min_intrinsic_width(&mut self, text: &str, style: TextStyleKey) -> f32;
+
+    /// `measure` with `spans` styling parts of `text` (LAYOUT-TEXT-11). Ranges outside the
+    /// text, empty, or not on character boundaries are ignored; later spans win where they
+    /// overlap. The default ignores the spans.
+    fn measure_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> TextMetrics {
+        let _ = spans;
+        self.measure(text, style, max_width, max_lines)
+    }
+
+    /// `min_intrinsic_width` with spans. The default ignores them.
+    fn min_intrinsic_width_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+    ) -> f32 {
+        let _ = spans;
+        self.min_intrinsic_width(text, style)
+    }
+}
+
+/// A style for a byte range of a paragraph's text (a flattened text span; LAYOUT-TEXT-11).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StyleSpan {
+    /// The range's start, a byte offset into the text.
+    pub start: usize,
+    /// Its end (exclusive).
+    pub end: usize,
+    /// The range's style.
+    pub style: TextStyleKey,
+    /// The range's color; `None` paints it in the paragraph's color.
+    pub color: Option<Color>,
 }
 
 /// A measurer with no text system: every text measures as empty (zero metrics).
@@ -257,6 +296,8 @@ pub struct RenderParagraph {
     pub max_lines: Option<u32>,
     /// How the width is chosen.
     pub text_width_basis: TextWidthBasis,
+    /// Style spans over `text` (empty for plain text; LAYOUT-TEXT-11).
+    pub spans: Arc<[StyleSpan]>,
 }
 
 impl RenderParagraph {
@@ -268,6 +309,7 @@ impl RenderParagraph {
             soft_wrap: true,
             max_lines: None,
             text_width_basis: TextWidthBasis::Parent,
+            spans: Arc::from([]),
         }
     }
 

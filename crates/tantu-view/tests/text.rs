@@ -1,12 +1,12 @@
-//! Tests for `docs/specs/view/text.md`, rules VIEW-TEXT-01..06.
+//! Tests for `docs/specs/view/text.md`, rules VIEW-TEXT-01..07.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use tantu_core::{Color, Point, Size};
 use tantu_layout::{
-    BoxConstraints, NoTextMeasure, RenderConstrainedBox, RenderFlex, RenderParagraph, TextMeasure,
-    TextMetrics, TextStyleKey,
+    BoxConstraints, NoTextMeasure, RenderConstrainedBox, RenderFlex, RenderParagraph, StyleSpan,
+    TextMeasure, TextMetrics, TextStyleKey,
 };
 use tantu_scene::{Command, ImageData, ImageId, Resources, Scene, SceneBuilder};
 use tantu_text::{FontFamily, TextStyle, TextSystem};
@@ -332,4 +332,90 @@ fn view_text_06_image_id() {
     );
     builder.finish().expect("balanced");
     assert_eq!(seen.get(), Some(Some(id)));
+}
+
+/// A paint calling `paint_rich`.
+struct RichProbe(Vec<StyleSpan>);
+
+impl Paint for RichProbe {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        cx.paint_rich(
+            "rich",
+            TextStyleKey(7),
+            &self.0,
+            50.0,
+            None,
+            Color::BLACK,
+            Point::new(1.0, 2.0),
+        );
+    }
+}
+
+struct Probing(Vec<StyleSpan>);
+
+impl View for Probing {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::sized(Some(10.0), Some(10.0)), []);
+        cx.set_paint(id, RichProbe(self.0));
+        id
+    }
+}
+
+#[test]
+fn view_text_07_paint_rich() {
+    let red = Color::from_rgb8(200, 0, 0);
+    let spans = vec![StyleSpan {
+        start: 0,
+        end: 2,
+        style: TextStyleKey(0),
+        color: Some(red),
+    }];
+    // The default `paint_rich` paints plain; `PaintCx::paint_rich` reaches the painter.
+    let log: Log = Rc::default();
+    let mut tree = {
+        let spans = spans.clone();
+        ViewTree::new(move || Probing(spans))
+    };
+    tree.layout(
+        BoxConstraints::loose(Size::new(100.0, 100.0)),
+        &mut NoTextMeasure,
+    );
+    let mut scene = Scene::new();
+    let mut b = scene.begin(Size::new(100.0, 100.0));
+    tree.paint(&mut b, &mut Recorder(log.clone()));
+    b.finish().expect("balanced");
+    assert_eq!(
+        log.borrow().clone(),
+        ["paint rich style 7 width 50 lines None color true at 1,2"]
+    );
+    // `SystemText` paints the spans' colors, and so does a paragraph with spans.
+    let mut system = TextSystem::without_system_fonts();
+    system.register_font(FONT.to_vec());
+    system.set_default_family(FontFamily::Named("Liberation Sans".into()));
+    let style = system.style(TextStyle::body());
+    let mut resources = Resources::new();
+    let mut tree = ViewTree::with_text_styles(system.styles(), move || {
+        Para(RenderParagraph {
+            spans: spans.into(),
+            ..RenderParagraph::new("Hello", style)
+        })
+    });
+    let mut scene = Scene::new();
+    tree.frame(
+        BoxConstraints::loose(Size::new(300.0, 100.0)),
+        &mut SystemText {
+            system: &mut system,
+            resources: &mut resources,
+        },
+        &mut scene,
+    );
+    let runs: Vec<(usize, Color)> = scene
+        .entries()
+        .iter()
+        .filter_map(|e| match &e.command {
+            Command::GlyphRun(run) => Some((scene.glyphs(run).len(), run.color)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(runs, [(2, red), (3, Color::BLACK)]);
 }

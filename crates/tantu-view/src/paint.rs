@@ -4,7 +4,7 @@
 use std::any::Any;
 
 use tantu_core::{Color, Point, Size};
-use tantu_layout::{BoxConstraints, RenderBox, TextStyleKey};
+use tantu_layout::{BoxConstraints, RenderBox, StyleSpan, TextStyleKey};
 use tantu_scene::{ElementId, ImageData, ImageId, SceneBuilder};
 
 use crate::{TextPainter, ViewTree};
@@ -103,6 +103,22 @@ impl<'b> PaintCx<'_, 'b> {
     ) {
         self.text
             .paint_text(self.scene, text, style, max_width, max_lines, color, origin);
+    }
+
+    /// `paint_text` with `spans` (VIEW-TEXT-07).
+    #[allow(clippy::too_many_arguments)]
+    pub fn paint_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+        color: Color,
+        origin: Point,
+    ) {
+        let _ = (text, style, spans, max_width, max_lines, color, origin);
+        todo!("VIEW-TEXT-07")
     }
 
     /// Interns `image` in the frame's resources through the pass's painter and returns its

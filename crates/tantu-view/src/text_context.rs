@@ -2,7 +2,9 @@
 //! Spec: `docs/specs/view/text.md`.
 
 use tantu_core::{Color, Point};
-use tantu_layout::{NoTextMeasure, RenderParagraph, TextMeasure, TextMetrics, TextStyleKey};
+use tantu_layout::{
+    NoTextMeasure, RenderParagraph, StyleSpan, TextMeasure, TextMetrics, TextStyleKey,
+};
 use tantu_scene::{ImageData, ImageId, Resources, SceneBuilder};
 use tantu_text::TextSystem;
 
@@ -29,6 +31,24 @@ pub trait TextPainter {
     fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
         let _ = image;
         None
+    }
+
+    /// `paint_text` with `spans` styling and coloring parts of `text` (VIEW-TEXT-07). The
+    /// default ignores the spans.
+    #[allow(clippy::too_many_arguments)]
+    fn paint_rich(
+        &mut self,
+        scene: &mut SceneBuilder<'_>,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+        color: Color,
+        origin: Point,
+    ) {
+        let _ = spans;
+        self.paint_text(scene, text, style, max_width, max_lines, color, origin);
     }
 }
 
@@ -80,6 +100,23 @@ impl TextMeasure for SystemText<'_> {
 impl TextPainter for SystemText<'_> {
     fn image_id(&mut self, image: &ImageData) -> Option<ImageId> {
         Some(self.resources.intern_image(image))
+    }
+
+    fn paint_rich(
+        &mut self,
+        scene: &mut SceneBuilder<'_>,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+        color: Color,
+        origin: Point,
+    ) {
+        let _ = (
+            scene, text, style, spans, max_width, max_lines, color, origin,
+        );
+        todo!("VIEW-TEXT-07")
     }
 
     fn paint_text(

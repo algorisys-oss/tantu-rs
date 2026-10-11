@@ -1,9 +1,9 @@
-//! Tests for `docs/specs/layout/text.md`, rules LAYOUT-TEXT-01..10.
+//! Tests for `docs/specs/layout/text.md`, rules LAYOUT-TEXT-01..12.
 
 use tantu_core::Size;
 use tantu_layout::{
     BoxConstraints, IntrinsicChildren, LayoutChildren, LayoutTree, MeasureCache, NoTextMeasure,
-    RenderBox, RenderParagraph, TextMeasure, TextMetrics, TextStyleKey, TextWidthBasis,
+    RenderBox, RenderParagraph, StyleSpan, TextMeasure, TextMetrics, TextStyleKey, TextWidthBasis,
 };
 
 const INF: f32 = f32::INFINITY;
@@ -422,4 +422,145 @@ fn layout_text_10_no_text_system_and_robustness() {
             }
         }
     }
+}
+
+/// A `Fake` that handles spans: each span adds 100 to every width (and counts rich calls).
+#[derive(Default)]
+struct RichFake {
+    plain: Fake,
+    rich: u32,
+}
+
+impl TextMeasure for RichFake {
+    fn measure(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> TextMetrics {
+        self.plain.measure(text, style, max_width, max_lines)
+    }
+
+    fn min_intrinsic_width(&mut self, text: &str, style: TextStyleKey) -> f32 {
+        self.plain.min_intrinsic_width(text, style)
+    }
+
+    fn measure_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> TextMetrics {
+        self.rich += 1;
+        let mut m = self.plain.measure(text, style, max_width, max_lines);
+        m.size.width += 100.0 * spans.len() as f32;
+        m
+    }
+
+    fn min_intrinsic_width_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+    ) -> f32 {
+        self.rich += 1;
+        self.plain.min_intrinsic_width(text, style) + 100.0 * spans.len() as f32
+    }
+}
+
+fn span(start: usize, end: usize) -> StyleSpan {
+    StyleSpan {
+        start,
+        end,
+        style: S2,
+        color: None,
+    }
+}
+
+#[test]
+fn layout_text_11_rich_defaults_and_paragraph_spans() {
+    // Defaults ignore the spans.
+    let spans = [span(0, 2)];
+    assert_eq!(
+        NoTextMeasure.measure_rich("hello", S1, &spans, INF, None),
+        TextMetrics::default()
+    );
+    assert_eq!(
+        NoTextMeasure.min_intrinsic_width_rich("hello", S1, &spans),
+        0.0
+    );
+    let mut fake = Fake::default();
+    let plain = fake.measure("hello world", S1, 60.0, None);
+    assert_eq!(
+        fake.measure_rich("hello world", S1, &spans, 60.0, None),
+        plain
+    );
+    assert_eq!(
+        fake.min_intrinsic_width_rich("hello world", S1, &spans),
+        fake.min_intrinsic_width("hello world", S1)
+    );
+    // A new paragraph has no spans; one with spans measures through the rich methods.
+    let paragraph = RenderParagraph::new("hello", S1);
+    assert!(paragraph.spans.is_empty());
+    let mut rich = RichFake::default();
+    let mut tree = LayoutTree::new();
+    let plain = tree.insert(RenderParagraph::new("hello", S1));
+    let with_spans = tree.insert(RenderParagraph {
+        spans: [span(0, 2), span(2, 5)].into(),
+        ..RenderParagraph::new("hello", S1)
+    });
+    let c = BoxConstraints::loose(s(1000.0, 1000.0));
+    assert_eq!(tree.with_text(&mut rich).layout(plain, c), s(50.0, 20.0));
+    assert_eq!(
+        tree.with_text(&mut rich).layout(with_spans, c),
+        s(250.0, 20.0)
+    );
+    assert_eq!(
+        tree.with_text(&mut rich)
+            .min_intrinsic_width(with_spans, INF),
+        250.0
+    );
+    assert_eq!(
+        tree.with_text(&mut rich)
+            .max_intrinsic_width(with_spans, INF),
+        250.0
+    );
+    assert!(rich.rich >= 3);
+}
+
+#[test]
+fn layout_text_12_cache_keys_spans() {
+    let mut cache = MeasureCache::new(RichFake::default(), 64);
+    let a = [span(0, 2)];
+    let b = [span(0, 2), span(2, 4)];
+    let plain = cache.measure("hello world", S1, 60.0, None);
+    let with_a = cache.measure_rich("hello world", S1, &a, 60.0, None);
+    let with_b = cache.measure_rich("hello world", S1, &b, 60.0, None);
+    assert_eq!(with_a.size.width, plain.size.width + 100.0);
+    assert_eq!(with_b.size.width, plain.size.width + 200.0);
+    assert_eq!((cache.misses(), cache.hits()), (3, 0));
+    assert_eq!(cache.measure("hello world", S1, 60.0, None), plain);
+    assert_eq!(
+        cache.measure_rich("hello world", S1, &a, 60.0, None),
+        with_a
+    );
+    assert_eq!(
+        cache.measure_rich("hello world", S1, &b, 60.0, None),
+        with_b
+    );
+    assert_eq!((cache.misses(), cache.hits()), (3, 3));
+    // Intrinsic widths too.
+    let w = cache.min_intrinsic_width_rich("hello world", S1, &a);
+    assert_eq!(w, cache.min_intrinsic_width("hello world", S1) + 100.0);
+    assert_eq!(cache.min_intrinsic_width_rich("hello world", S1, &a), w);
+    assert_eq!((cache.misses(), cache.hits()), (5, 4));
+    // The one-line shortcut holds per spans.
+    let single = cache.measure_rich("hi", S1, &a, INF, None);
+    assert_eq!(cache.measure_rich("hi", S1, &a, 500.0, None), single);
+    assert_eq!((cache.misses(), cache.hits()), (6, 5));
+    cache.measure("hi", S1, 500.0, None);
+    assert_eq!((cache.misses(), cache.hits()), (7, 5));
 }

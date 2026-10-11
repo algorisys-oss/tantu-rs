@@ -10,7 +10,7 @@ use parley::{
     LineHeight, PositionedLayoutItem, StyleProperty,
 };
 use tantu_core::{Color, Point};
-use tantu_layout::{TextMeasure, TextMetrics, TextStyleKey};
+use tantu_layout::{StyleSpan, TextMeasure, TextMetrics, TextStyleKey};
 use tantu_scene::{FontData, FontId, Glyph, Resources, SceneBuilder};
 
 /// A font family: a name, or a generic family resolved by the font system.
@@ -339,7 +339,51 @@ fn lines_to_keep(max_lines: Option<u32>) -> usize {
     max_lines.map_or(usize::MAX, |n| usize::try_from(n).unwrap_or(usize::MAX))
 }
 
+impl TextSystem {
+    /// `paint` with `spans` styling and coloring parts of `text` (TEXT-SYS-11).
+    #[allow(clippy::too_many_arguments)]
+    pub fn paint_rich(
+        &mut self,
+        scene: &mut SceneBuilder<'_>,
+        resources: &mut Resources,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+        color: Color,
+        origin: Point,
+    ) {
+        let _ = (
+            scene, resources, text, style, spans, max_width, max_lines, color, origin,
+        );
+        todo!("TEXT-SYS-11")
+    }
+}
+
 impl TextMeasure for TextSystem {
+    fn measure_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+        max_width: f32,
+        max_lines: Option<u32>,
+    ) -> TextMetrics {
+        let _ = (text, style, spans, max_width, max_lines);
+        todo!("TEXT-SYS-10")
+    }
+
+    fn min_intrinsic_width_rich(
+        &mut self,
+        text: &str,
+        style: TextStyleKey,
+        spans: &[StyleSpan],
+    ) -> f32 {
+        let _ = (text, style, spans);
+        todo!("TEXT-SYS-10")
+    }
+
     fn measure(
         &mut self,
         text: &str,

@@ -1,9 +1,9 @@
-//! Tests for `docs/specs/text/system.md`, rules TEXT-SYS-01..09. They use Liberation Sans
+//! Tests for `docs/specs/text/system.md`, rules TEXT-SYS-01..11. They use Liberation Sans
 //! (SIL OFL 1.1, `tests/fonts/`) in a system without system fonts, so results don't depend on
 //! the machine.
 
 use tantu_core::{Color, Point, Size};
-use tantu_layout::{TextMeasure, TextMetrics, TextStyleKey};
+use tantu_layout::{StyleSpan, TextMeasure, TextMetrics, TextStyleKey};
 use tantu_scene::{Command, Resources, Scene};
 use tantu_text::{FontFamily, TextStyle, TextSystem};
 
@@ -267,4 +267,113 @@ fn text_sys_09_paint() {
         })
         .sum();
     assert_eq!(total, 2);
+}
+
+#[test]
+fn text_sys_10_rich_measure() {
+    let mut text = system();
+    let base = body(&mut text);
+    let big = text.style(TextStyle {
+        family: FontFamily::Named("Liberation Sans".into()),
+        size: 32.0,
+        ..TextStyle::default()
+    });
+    let span = |start, end, style| StyleSpan {
+        start,
+        end,
+        style,
+        color: None,
+    };
+    let plain = text.measure("Hello world", base, INF, None);
+    assert_eq!(
+        text.measure_rich("Hello world", base, &[], INF, None),
+        plain
+    );
+    let rich = text.measure_rich("Hello world", base, &[span(0, 5, big)], INF, None);
+    assert!(rich.size.width > plain.size.width);
+    assert!(rich.size.height > plain.size.height);
+    assert_eq!(rich.line_count, 1);
+    // The spanned part alone is as wide as it measures in the big style.
+    let hello_big = text.measure("Hello", big, INF, None).size.width;
+    let world = text.measure(" world", base, INF, None).size.width;
+    assert!((rich.size.width - (hello_big + world)).abs() < 1.0);
+    // A bigger span wraps earlier.
+    let width = plain.size.width + 1.0;
+    assert_eq!(text.measure("Hello world", base, width, None).line_count, 1);
+    assert_eq!(
+        text.measure_rich("Hello world", base, &[span(0, 5, big)], width, None)
+            .line_count,
+        2
+    );
+    // Bad spans change nothing.
+    for bad in [span(2, 2, big), span(100, 200, big), span(3, 1, big)] {
+        assert_eq!(
+            text.measure_rich("Hello world", base, &[bad], INF, None),
+            plain,
+            "{bad:?}"
+        );
+    }
+    let accented = text.measure("héllo", base, INF, None);
+    assert_eq!(
+        text.measure_rich("héllo", base, &[span(1, 2, big)], INF, None),
+        accented
+    );
+    // Intrinsic width with spans.
+    assert!(
+        text.min_intrinsic_width_rich("Hello world", base, &[span(0, 5, big)])
+            > text.min_intrinsic_width("Hello world", base)
+    );
+}
+
+#[test]
+fn text_sys_11_rich_paint() {
+    let mut text = system();
+    let base = body(&mut text);
+    let red = Color::from_rgb8(200, 0, 0);
+    let black = Color::from_rgb8(0, 0, 0);
+    let spans = [StyleSpan {
+        start: 0,
+        end: 5,
+        style: base,
+        color: Some(red),
+    }];
+    let mut resources = Resources::new();
+    let mut scene = Scene::new();
+    let mut b = scene.begin(Size::new(300.0, 100.0));
+    text.paint(
+        &mut b,
+        &mut resources,
+        "Hello world",
+        base,
+        INF,
+        None,
+        black,
+        Point::ZERO,
+    );
+    text.paint_rich(
+        &mut b,
+        &mut resources,
+        "Hello world",
+        base,
+        &spans,
+        INF,
+        None,
+        black,
+        Point::new(0.0, 40.0),
+    );
+    b.finish().expect("balanced");
+    let runs: Vec<(usize, Color, f32)> = scene
+        .entries()
+        .iter()
+        .filter_map(|e| match &e.command {
+            Command::GlyphRun(run) => Some((scene.glyphs(run).len(), run.color, run.origin.y)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(runs.len(), 3);
+    assert_eq!((runs[0].0, runs[0].1), (11, black));
+    assert_eq!((runs[1].0, runs[1].1), (5, red));
+    assert_eq!((runs[2].0, runs[2].1), (6, black));
+    assert_eq!(runs[1].2, runs[2].2);
+    assert!(runs[1].2 > runs[0].2);
 }
