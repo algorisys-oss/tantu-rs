@@ -122,7 +122,9 @@ No new registration API: a container that can reveal descendants handles the
   is at the view's end; otherwise the offset doesn't change. The move is immediate (a running
   animation stops) and clamped to the extents; the cross axis is ignored. The handler returns
   true in every case, so enclosing containers reveal the scroll view itself (VIEW-REVEAL-01).
-  Nested scroll views thus both show the target after the next frame.
+  The view's extents for the move come from the last layout (its own and its content's
+  bounds), not from the last paint, so a view its parent culled off screen (never painted)
+  still scrolls. Nested scroll views thus both show the target after the next frame.
 
 ### Focus scopes (`tantu-view`)
 
