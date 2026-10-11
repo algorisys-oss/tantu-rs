@@ -1,12 +1,13 @@
 //! [`Tooltip`]: a short message shown near a widget while hovered or focused. Spec:
 //! `docs/specs/widgets/tooltip.md`.
 
+use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
 use tantu_view::core::{Color, EdgeInsets, Rect};
 use tantu_view::layout::{Alignment, BoxConstraints};
-use tantu_view::reactive::signal;
+use tantu_view::reactive::{Timer, signal, timer};
 use tantu_view::scene::{BorderRadius, RoundedRect};
 use tantu_view::text::TextStyle;
 use tantu_view::{
@@ -56,7 +57,7 @@ impl<V: View> Tooltip<V> {
 impl<V: View> View for Tooltip<V> {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let (hovered, focused) = (signal(false), signal(false));
-        let _wait = self.wait;
+        let wait = self.wait;
         let message: Rc<dyn Fn() -> String> = match self.message {
             Prop::Value(text) => Rc::new(move || text.clone()),
             Prop::Dynamic(f) => Rc::from(f),
@@ -84,11 +85,28 @@ impl<V: View> View for Tooltip<V> {
             );
             return id;
         }
+        // The show delay (WIDGETS-TOOLTIP-07): a timer owned by the portal's scope, so it
+        // dies with the tooltip; leaving or pressing cancels it.
+        let scope = cx.tree().scope(id);
+        let pending: Rc<Cell<Option<Timer>>> = Rc::default();
         cx.on_pointer(id, Phase::Bubble, move |p| {
             match p.event.kind {
-                PointerKind::Enter => hovered.set(true),
+                PointerKind::Enter => {
+                    if wait.is_zero() {
+                        hovered.set(true);
+                    } else if let Some(scope) = scope.filter(|s| !s.is_disposed()) {
+                        if let Some(timer) = pending.take() {
+                            timer.cancel();
+                        }
+                        let timer = scope.run(|| timer(wait, move || hovered.set(true)));
+                        pending.set(Some(timer));
+                    }
+                }
                 PointerKind::Leave | PointerKind::Down(PointerButton::Primary) => {
-                    hovered.set(false)
+                    if let Some(timer) = pending.take() {
+                        timer.cancel();
+                    }
+                    hovered.set(false);
                 }
                 _ => {}
             }

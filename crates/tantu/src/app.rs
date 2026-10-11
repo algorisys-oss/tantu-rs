@@ -10,7 +10,7 @@ use tantu_platform::{
     ButtonState, Platform, PlatformContext, PlatformError, PlatformHandler, PointerButton,
     ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };
-use tantu_reactive::Signal;
+use tantu_reactive::{Signal, Wake};
 use tantu_scene::{RenderError, Renderer, Resources, Scene};
 use tantu_text::{FontFamily, TextStyles, TextSystem};
 use tantu_theme::{Theme, ThemeProvider};
@@ -223,6 +223,7 @@ impl App {
             factory: Box::new(renderer),
             error: None,
             modifiers: tantu_view::Modifiers::default(),
+            wake: None,
         }
     }
 }
@@ -314,6 +315,8 @@ pub struct AppHandler {
     error: Option<Error>,
     /// The modifiers held, from `ModifiersChanged` (FACADE-APP-11).
     modifiers: tantu_view::Modifiers,
+    /// The wake-up deadline last passed to the platform (FACADE-APP-14).
+    wake: Option<std::time::Instant>,
 }
 
 impl AppHandler {
@@ -362,6 +365,8 @@ impl AppHandler {
             return;
         };
         let constraints = BoxConstraints::tight(size.to_logical(scale));
+        // Timers and tickers run first, so what they change is in this frame (FACADE-APP-14).
+        state.tree.tick(cx.now());
         let mut text = SystemText {
             system: &mut self.text,
             resources: &mut self.resources,
@@ -587,6 +592,24 @@ impl PlatformHandler for AppHandler {
     }
 
     fn idle(&mut self, cx: &mut dyn PlatformContext) {
+        // Wake-ups (FACADE-APP-14): a due tree gets a redraw (which ticks it); the earliest
+        // future deadline goes to the platform, and a changed or passed deadline clears it.
+        let now = cx.now();
+        let mut earliest: Option<std::time::Instant> = None;
+        for state in &self.windows {
+            match state.tree.next_wake() {
+                Some(Wake::Now) => cx.request_redraw(state.id),
+                Some(Wake::At(deadline)) if deadline <= now => cx.request_redraw(state.id),
+                Some(Wake::At(deadline)) => {
+                    earliest = Some(earliest.map_or(deadline, |e| e.min(deadline)));
+                }
+                None => {}
+            }
+        }
+        if earliest != self.wake {
+            cx.wake_at(earliest);
+            self.wake = earliest;
+        }
         self.request_frames(cx);
     }
 }

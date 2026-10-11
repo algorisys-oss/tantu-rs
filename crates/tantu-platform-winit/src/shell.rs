@@ -199,11 +199,15 @@ impl PlatformContext for Context<'_> {
     }
 
     fn now(&self) -> std::time::Instant {
-        todo!()
+        std::time::Instant::now()
     }
 
     fn wake_at(&mut self, deadline: Option<std::time::Instant>) {
-        let _ = deadline;
-        todo!()
+        // PLATFORM-WINIT-14: `about_to_wait` (the handler's `idle`) runs when the deadline
+        // passes. A passed deadline would fire again at once, so the runner clears it.
+        self.event_loop.set_control_flow(match deadline {
+            Some(deadline) => winit::event_loop::ControlFlow::WaitUntil(deadline),
+            None => winit::event_loop::ControlFlow::Wait,
+        });
     }
 }

@@ -56,6 +56,10 @@ impl Runtime {
                     queue: VecDeque::new(),
                     mark_stack: Vec::new(),
                     stamp: 0,
+                    now: None,
+                    timers: Vec::new(),
+                    tickers: Vec::new(),
+                    seq: 0,
                 }),
             }),
         }
@@ -80,19 +84,18 @@ impl Runtime {
     /// (earliest first), then every active ticker once. Returns how many callbacks ran
     /// (REACTIVE-TIME-01).
     pub fn tick(&self, now: std::time::Instant) -> usize {
-        let _ = now;
-        todo!()
+        self.enter(|| self.inner.tick(now))
     }
 
     /// The clock: the time of the last `tick`, or `None` before the first.
     pub fn now(&self) -> Option<std::time::Instant> {
-        todo!()
+        self.inner.now()
     }
 
     /// `Wake::Now` while a ticker is active, else the earliest pending timer, else `None`
     /// (REACTIVE-TIME-05).
     pub fn next_wake(&self) -> Option<crate::Wake> {
-        todo!()
+        self.inner.next_wake()
     }
 
     /// Number of live nodes (signals, memos, effects and scopes). For leak tests.
@@ -161,6 +164,8 @@ pub(crate) enum Kind {
     Memo,
     Effect,
     Scope,
+    Timer,
+    Ticker,
 }
 
 /// A computation: returns true if the value changed (always true for effects).
@@ -238,6 +243,14 @@ struct Graph {
     mark_stack: Vec<(Id, State, Id)>,
     /// Last stamp handed out by `next_stamp`.
     stamp: u64,
+    /// The clock: the last tick's time (REACTIVE-TIME-01).
+    now: Option<std::time::Instant>,
+    /// Live timer nodes, in creation order.
+    timers: Vec<Id>,
+    /// Live ticker nodes, in creation order.
+    tickers: Vec<Id>,
+    /// Creation counter for timers (orders equal deadlines).
+    seq: u64,
 }
 
 impl Graph {
@@ -394,6 +407,11 @@ impl Graph {
     /// Removes `id` from the arena and from its sources' and subscribers' lists.
     fn unlink(&mut self, id: Id) -> Option<Node> {
         let node = self.nodes.remove(id)?;
+        match node.kind {
+            Kind::Timer => self.timers.retain(|&x| x != id),
+            Kind::Ticker => self.tickers.retain(|&x| x != id),
+            _ => {}
+        }
         for &source in &node.sources {
             if let Some(s) = self.nodes.get_mut(source) {
                 s.subscribers.retain(|&x| x != id);
@@ -672,6 +690,91 @@ impl Inner {
             mem::replace(&mut graph.owner, id)
         };
         let _restore = Restore(self, owner);
+        f()
+    }
+
+    /// The clock, and a fresh creation sequence number, for a new timer.
+    pub(crate) fn clock_for_new(&self) -> (Option<std::time::Instant>, u64) {
+        let mut graph = self.graph.borrow_mut();
+        graph.seq += 1;
+        (graph.now, graph.seq)
+    }
+
+    /// Adds a new timer or ticker node to the clock's lists.
+    pub(crate) fn register_clock_node(&self, id: Id, kind: Kind) {
+        let mut graph = self.graph.borrow_mut();
+        match kind {
+            Kind::Timer => graph.timers.push(id),
+            Kind::Ticker => graph.tickers.push(id),
+            _ => {}
+        }
+    }
+
+    /// The live timer and ticker ids, in creation order.
+    pub(crate) fn clock_nodes(&self) -> (Vec<Id>, Vec<Id>) {
+        let graph = self.graph.borrow();
+        (graph.timers.clone(), graph.tickers.clone())
+    }
+
+    /// The clock (REACTIVE-TIME-01).
+    pub(crate) fn now(&self) -> Option<std::time::Instant> {
+        self.graph.borrow().now
+    }
+
+    /// The owner of a live node.
+    pub(crate) fn owner_of(&self, id: Id) -> Option<Id> {
+        self.graph.borrow().nodes.get(id).and_then(|n| n.owner)
+    }
+
+    /// Sets the clock to `now`, resolves the deadlines of timers created before the first
+    /// tick, and returns the due timers (earliest deadline first, then creation order) and a
+    /// snapshot of the tickers.
+    pub(crate) fn begin_tick(&self, now: std::time::Instant) -> (Vec<Id>, Vec<Id>) {
+        let timers = {
+            let mut graph = self.graph.borrow_mut();
+            graph.now = Some(now);
+            graph.timers.clone()
+        };
+        let mut due: Vec<(std::time::Instant, u64, Id)> = Vec::new();
+        for id in timers {
+            let Some(state) = self.timer_state(id) else {
+                continue;
+            };
+            let deadline = match state.deadline.get() {
+                Some(deadline) => deadline,
+                None => {
+                    let deadline = now + state.delay;
+                    state.deadline.set(Some(deadline));
+                    deadline
+                }
+            };
+            if deadline <= now {
+                due.push((deadline, state.seq, id));
+            }
+        }
+        due.sort_by_key(|&(deadline, seq, _)| (deadline, seq));
+        let tickers = self.graph.borrow().tickers.clone();
+        (due.into_iter().map(|(_, _, id)| id).collect(), tickers)
+    }
+
+    /// Runs `f` with `owner` (or the root, if it is gone) as the current owner, restoring the
+    /// previous owner afterwards.
+    pub(crate) fn with_owner<R>(&self, owner: Option<Id>, f: impl FnOnce() -> R) -> R {
+        /// Restores the owner, also during unwinding.
+        struct Restore<'a>(&'a Inner, Id);
+        impl Drop for Restore<'_> {
+            fn drop(&mut self) {
+                self.0.graph.borrow_mut().owner = self.1;
+            }
+        }
+        let previous = {
+            let mut graph = self.graph.borrow_mut();
+            let target = owner
+                .filter(|o| graph.nodes.contains(*o))
+                .unwrap_or(graph.root);
+            mem::replace(&mut graph.owner, target)
+        };
+        let _restore = Restore(self, previous);
         f()
     }
 

@@ -60,7 +60,8 @@ pub struct FakeWindow {
 ///
 /// After `started` and after each delivered step, every window with a pending redraw gets one
 /// `RedrawRequested` (requests made meanwhile wait for the next round), then `idle` is called
-/// (not after `started`). One more redraw round runs after the last step.
+/// (not after `started`). One more redraw round runs after the last step. The clock starts
+/// at `run_logged` and moves only with [`FakeStep::Advance`] (PLATFORM-FAKE-12).
 #[derive(Clone, Debug)]
 pub struct FakePlatform {
     scale_factor: f32,
@@ -97,10 +98,13 @@ impl FakePlatform {
 
     /// Runs like [`Platform::run`] and returns the log.
     pub fn run_logged(self, handler: &mut dyn PlatformHandler) -> FakeLog {
+        let start = std::time::Instant::now();
         let mut cx = FakeContext {
             log: FakeLog::default(),
             scale_factor: self.scale_factor,
             pending: Vec::new(),
+            start,
+            now: start,
         };
         handler.started(&mut cx);
         if !cx.log.exited {
@@ -126,8 +130,8 @@ impl FakePlatform {
                 }
                 FakeStep::Idle => cx.log.steps_delivered += 1,
                 FakeStep::Advance(by) => {
-                    let _ = by;
-                    todo!()
+                    cx.now += by;
+                    cx.log.steps_delivered += 1;
                 }
             }
             if cx.log.exited {
@@ -165,6 +169,10 @@ struct FakeContext {
     scale_factor: f32,
     /// Indices of windows with a redraw pending, in order of first request.
     pending: Vec<usize>,
+    /// When the run started: the clock's origin (PLATFORM-FAKE-12).
+    start: std::time::Instant,
+    /// The fake clock, moved only by `Advance`.
+    now: std::time::Instant,
 }
 
 impl FakeContext {
@@ -266,11 +274,12 @@ impl PlatformContext for FakeContext {
     }
 
     fn now(&self) -> std::time::Instant {
-        todo!()
+        self.now
     }
 
     fn wake_at(&mut self, deadline: Option<std::time::Instant>) {
-        let _ = deadline;
-        todo!()
+        self.log
+            .wakes
+            .push(deadline.map(|d| d.saturating_duration_since(self.start)));
     }
 }

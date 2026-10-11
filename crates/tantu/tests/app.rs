@@ -721,7 +721,9 @@ fn facade_app_14_ticks_and_wake_ups() {
         .step(FakeStep::Advance(Duration::from_millis(10)))
         .step(FakeStep::Advance(Duration::from_millis(15)));
     let (log, _) = run(app, platform, &recorders);
-    assert_eq!(log.wakes, [Some(Duration::from_millis(20))]);
+    // One wake-up for the deadline, cleared once it passed (a passed `WaitUntil` would fire
+    // again at once).
+    assert_eq!(log.wakes, [Some(Duration::from_millis(20)), None]);
     assert_eq!(
         log.windows[0].redraws, 2,
         "the initial frame and the one after the deadline"

@@ -609,6 +609,7 @@ fn platform_fake_11_records_ime_calls() {
 #[test]
 fn platform_time_01_now_and_wake_at() {
     let clock: Rc<RefCell<Vec<Instant>>> = Rc::default();
+    let idles = Rc::new(Cell::new(0));
     let c = clock.clone();
     let mut handler = Recorder::with(move |cx, seen| {
         c.borrow_mut().push(cx.now());
@@ -618,7 +619,7 @@ fn platform_time_01_now_and_wake_at() {
                 let now = cx.now();
                 cx.wake_at(Some(now + Duration::from_millis(30)));
             }
-            Seen::Idle if c.borrow().len() == 3 => {
+            Seen::Idle if idles.replace(idles.get() + 1) == 1 => {
                 // The second idle (after the first advance): replace, then cancel.
                 let now = cx.now();
                 cx.wake_at(Some(now + Duration::from_millis(100)));

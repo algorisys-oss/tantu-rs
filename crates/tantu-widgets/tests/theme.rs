@@ -154,6 +154,7 @@ fn widgets_theme_01_colors_from_the_theme() {
         vec![dark.on_surface_variant]
     );
     tester.hover(&Finder::key("tip-target"));
+    tester.advance(std::time::Duration::from_millis(500));
     assert!(all_fills(&tester).contains(&dark.inverse_surface));
     let tip_text = tester.frame().scene.entries().iter().any(
         |e| matches!(&e.command, Command::GlyphRun(run) if run.color == dark.inverse_on_surface),

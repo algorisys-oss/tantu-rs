@@ -1,7 +1,7 @@
 # Timers and tickers
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-11, taking its seven
-  proposals)
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-11, taking its seven
+  proposals; PLATFORM-WINIT-14 checked in a real window on Wayland)
 - **Crates:** `tantu-reactive` (the clock: timers, tickers, `Runtime::tick`), `tantu-platform`
   and `tantu-platform-winit` (`now`, `wake_at`), `tantu-view` (forwarding on `ViewTree`),
   `tantu` (the runner ticking and scheduling wake-ups), `tantu-test` (`advance`),

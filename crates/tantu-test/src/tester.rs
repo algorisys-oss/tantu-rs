@@ -86,6 +86,8 @@ pub struct WidgetTester {
     scene: Scene,
     size: Size,
     theme: Signal<Theme>,
+    /// The fake clock (TEST-WT-13).
+    clock: std::time::Instant,
 }
 
 impl WidgetTester {
@@ -124,6 +126,7 @@ impl WidgetTester {
             scene: Scene::new(),
             size,
             theme,
+            clock: std::time::Instant::now(),
         };
         tester.pump();
         tester
@@ -132,6 +135,8 @@ impl WidgetTester {
     /// Runs one frame (apply updates, layout, paint, record); returns whether anything had
     /// changed.
     pub fn pump(&mut self) -> bool {
+        // Each pump is a frame at the current clock (TEST-WT-13).
+        self.tree.tick(self.clock);
         let changed = self.tree.needs_frame();
         let mut text = SystemText {
             system: &mut self.text,
@@ -147,13 +152,13 @@ impl WidgetTester {
 
     /// Moves the tester's clock by `by`, ticks the tree and pumps one frame (TEST-WT-13).
     pub fn advance(&mut self, by: std::time::Duration) {
-        let _ = by;
-        todo!()
+        self.clock += by;
+        self.pump();
     }
 
     /// The tester's clock, starting at the tester's creation (TEST-WT-13).
     pub fn now(&self) -> std::time::Instant {
-        todo!()
+        self.clock
     }
 
     /// The theme signal provided at the root, initially `Theme::light()` (TEST-WT-12).
