@@ -189,6 +189,9 @@ pub(crate) struct Element {
     pub(crate) kind: Kind,
     /// Values provided on this element (VIEW-INHERIT-01), by type.
     inherited: Vec<(TypeId, Rc<dyn Any>)>,
+    /// What assistive technology is told (VIEW-SEM-01).
+    #[allow(dead_code)] // Read once the semantics API is implemented.
+    pub(crate) semantics: Option<Box<crate::Semantics>>,
 }
 
 /// The element kind, with a render element's layout node and paint behavior.
@@ -277,6 +280,7 @@ impl ViewTree {
                 scope,
                 kind: Kind::Render(layout, Box::new(NoPaint)),
                 inherited: Vec::new(),
+                semantics: None,
             }));
             tree.root = Some(root);
             scope.run(|| {
@@ -533,6 +537,7 @@ impl ViewTree {
             scope,
             kind,
             inherited: Vec::new(),
+            semantics: None,
         }));
         if let Some(p) = arena_id(parent).and_then(|a| self.elements.get_mut(a)) {
             p.children.push(id);

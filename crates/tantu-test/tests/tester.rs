@@ -2,7 +2,7 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use tantu_test::{Finder, WidgetTester};
 use tantu_theme::Theme;
@@ -403,4 +403,37 @@ fn test_wt_13_clock_and_advance() {
     tester.advance(std::time::Duration::from_millis(1));
     assert_eq!(text(&tester, "fired"), "yes");
     assert_eq!(tester.now(), start + std::time::Duration::from_millis(500));
+}
+
+#[test]
+fn test_wt_14_a11y_tree_and_actions() {
+    let presses = Rc::new(Cell::new(0u32));
+    let mut tester = {
+        let presses = presses.clone();
+        WidgetTester::new(move || {
+            let presses = presses.clone();
+            Column::new().child(Keyed::new(
+                "b",
+                Button::new("Go").on_press(move || presses.set(presses.get() + 1)),
+            ))
+        })
+    };
+    let update = tester.a11y_tree();
+    let root = update.tree.as_ref().expect("a tree").root;
+    let window = &update
+        .nodes
+        .iter()
+        .find(|(id, _)| *id == root)
+        .expect("root")
+        .1;
+    assert_eq!(window.label(), Some("test"));
+    assert_eq!(window.children().len(), 1);
+    let button_id = tester.find(&Finder::key("b"));
+    assert_eq!(
+        window.children()[0],
+        tantu_test::accesskit::NodeId(button_id.to_raw())
+    );
+    assert!(tester.perform_action(&Finder::key("b"), tantu_view::SemanticsAction::Click));
+    assert_eq!(presses.get(), 1);
+    assert!(!tester.perform_action(&Finder::key("b"), tantu_view::SemanticsAction::Increment));
 }

@@ -68,6 +68,7 @@ pub struct Icon {
     icon: Prop<IconData>,
     size: f32,
     color: Option<Prop<Color>>,
+    label: Option<String>,
 }
 
 impl Icon {
@@ -77,7 +78,14 @@ impl Icon {
             icon: icon.into_prop(),
             size: 24.0,
             color: None,
+            label: None,
         }
+    }
+
+    /// The accessible name (WIDGETS-SEM-01).
+    pub fn semantics_label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
     }
 
     /// The icon's size, a square (default 24).
@@ -95,6 +103,7 @@ impl Icon {
 
 impl View for Icon {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let _label = self.label;
         let icon = dynamic(self.icon);
         let color = self
             .color
@@ -159,6 +168,7 @@ pub struct IconButton {
     icon: Prop<IconData>,
     on_press: Option<Rc<dyn Fn()>>,
     enabled: Prop<bool>,
+    label: Option<String>,
 }
 
 impl IconButton {
@@ -169,7 +179,14 @@ impl IconButton {
             icon: icon.into_prop(),
             on_press: None,
             enabled: Prop::Value(true),
+            label: None,
         }
+    }
+
+    /// The accessible name (WIDGETS-SEM-01).
+    pub fn semantics_label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
     }
 
     /// Called when the button is activated (a primary release inside it, or Space/Enter).
@@ -187,6 +204,7 @@ impl IconButton {
 
 impl View for IconButton {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let _label = self.label;
         let enabled = enabled_fn(self.enabled, self.on_press.is_some());
         let activate: Rc<dyn Fn()> = {
             let on_press = self.on_press;

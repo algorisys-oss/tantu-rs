@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..08.
+//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..09.
 
 use gallery::{SECTIONS, gallery};
 use tantu::core::{Rect, Vec2};
@@ -187,4 +187,43 @@ fn gallery_08_contacts_list() {
         tester.find_all(&Finder::text("Contact 1")).is_empty(),
         "scrolled away"
     );
+}
+
+#[test]
+fn gallery_09_every_sample_has_a_node() {
+    use tantu::view::SemanticsAction;
+    use tantu_test::accesskit::Role;
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    let role_of = |tester: &mut WidgetTester, key: &str| {
+        let id = tester.find(&Finder::key(key));
+        let update = tester.a11y_tree();
+        update
+            .nodes
+            .iter()
+            .find(|(n, _)| *n == tantu_test::accesskit::NodeId(id.to_raw()))
+            .map(|(_, n)| (n.role(), n.label().map(str::to_owned)))
+            .unwrap_or_else(|| panic!("no node for {key}"))
+    };
+    assert_eq!(
+        role_of(&mut tester, "press"),
+        (Role::Button, Some("Press me".to_owned()))
+    );
+    assert_eq!(role_of(&mut tester, "icon-button").0, Role::Button);
+    tester.tap(&Finder::key(nav("Selection")));
+    assert_eq!(role_of(&mut tester, "checkbox").0, Role::CheckBox);
+    assert_eq!(role_of(&mut tester, "switch").0, Role::Switch);
+    assert_eq!(role_of(&mut tester, "radio-a").0, Role::RadioButton);
+    assert_eq!(role_of(&mut tester, "slider").0, Role::Slider);
+    tester.tap(&Finder::key(nav("Text field")));
+    assert_eq!(role_of(&mut tester, "field").0, Role::TextInput);
+    assert_eq!(role_of(&mut tester, "notes").0, Role::MultilineTextInput);
+    tester.tap(&Finder::key(nav("Lists")));
+    assert_eq!(role_of(&mut tester, "list").0, Role::List);
+    let update = tester.a11y_tree();
+    assert!(update.nodes.iter().any(|(_, n)| n.role() == Role::ListItem));
+    tester.tap(&Finder::key(nav("Media")));
+    assert_eq!(role_of(&mut tester, "image").0, Role::Image);
+    tester.tap(&Finder::key(nav("Buttons")));
+    assert!(tester.perform_action(&Finder::key("press"), SemanticsAction::Click));
+    assert_eq!(text_of(&tester, "press-count"), "Pressed 1 times");
 }

@@ -51,6 +51,7 @@ mod layout_builder;
 mod overlay;
 mod paint;
 mod prop;
+mod semantics;
 mod shortcuts;
 mod text_context;
 mod tree;
@@ -69,6 +70,7 @@ pub use layout_builder::LayoutBuilder;
 pub use overlay::{Anchor, OverlayPointer, OverlayPortal};
 pub use paint::{NoPaint, Paint, PaintCx};
 pub use prop::{IntoProp, Prop};
+pub use semantics::{NumericValue, Role, Semantics, SemanticsAction, SemanticsActions, Toggled};
 pub use shortcuts::{Actions, Shortcuts, SingleActivator};
 pub use tantu_scene::ElementId;
 

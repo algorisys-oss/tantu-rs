@@ -15,7 +15,7 @@ use tantu_view::scene::{ImageData, Renderer, Resources, Scene};
 use tantu_view::text::{FontFamily, TextSystem};
 use tantu_view::{
     ElementId, ElementKind, ImeEvent, Key, KeyEvent, LogicalKey, Modifiers, PointerButton,
-    PointerEvent, PointerKind, SystemText, View, ViewTree,
+    PointerEvent, PointerKind, SemanticsAction, SystemText, View, ViewTree,
 };
 
 /// Liberation Sans Regular (SIL Open Font License 1.1, see `fonts/LICENSE-OFL.txt`).
@@ -159,6 +159,18 @@ impl WidgetTester {
     /// The tester's clock, starting at the tester's creation (TEST-WT-13).
     pub fn now(&self) -> std::time::Instant {
         self.clock
+    }
+
+    /// The AccessKit tree of the last frame (TEST-WT-14).
+    pub fn a11y_tree(&mut self) -> tantu_a11y::accesskit::TreeUpdate {
+        todo!()
+    }
+
+    /// Performs an accessibility action on the element `finder` matches, then pumps
+    /// (TEST-WT-14).
+    pub fn perform_action(&mut self, finder: &Finder, action: SemanticsAction) -> bool {
+        let _ = (finder, action);
+        todo!()
     }
 
     /// The theme signal provided at the root, initially `Theme::light()` (TEST-WT-12).

@@ -78,6 +78,7 @@ pub struct Image {
     fit: BoxFit,
     alignment: Alignment,
     opacity: Prop<f32>,
+    label: Option<String>,
 }
 
 impl Image {
@@ -90,6 +91,7 @@ impl Image {
             fit: BoxFit::default(),
             alignment: Alignment::CENTER,
             opacity: Prop::Value(1.0),
+            label: None,
         }
     }
 
@@ -108,6 +110,12 @@ impl Image {
     /// An explicit width and height.
     pub fn size(self, width: f32, height: f32) -> Self {
         self.width(width).height(height)
+    }
+
+    /// The accessible name (WIDGETS-SEM-01).
+    pub fn semantics_label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
     }
 
     /// How the image is inscribed in its box.
@@ -131,6 +139,7 @@ impl Image {
 
 impl View for Image {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let _label = self.label;
         let natural = Size::new(self.data.width() as f32, self.data.height() as f32);
         let render = RenderImage {
             natural,

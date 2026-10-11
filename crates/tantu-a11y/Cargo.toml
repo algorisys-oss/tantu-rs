@@ -13,3 +13,5 @@ workspace = true
 
 [dependencies]
 tantu-view = { workspace = true }
+# The AccessKit data types (ADR 0013): roles, nodes, tree updates, action requests.
+accesskit = "0.24.1"

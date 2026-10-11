@@ -25,3 +25,6 @@
 mod tester;
 
 pub use tester::{Finder, WidgetTester};
+
+/// The AccessKit data crate, for inspecting [`WidgetTester::a11y_tree`].
+pub use tantu_a11y::accesskit;
