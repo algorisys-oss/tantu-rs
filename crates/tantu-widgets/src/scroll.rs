@@ -1,7 +1,25 @@
 //! [`ScrollView`] and [`ScrollController`]. Spec: `docs/specs/widgets/scroll.md`.
 
+use std::cell::Cell;
+use std::rc::Rc;
+
+use tantu_view::core::{Color, Point, Rect, Size};
+use tantu_view::layout::{RenderViewport, ScrollAxis};
 use tantu_view::reactive::{Signal, signal};
-use tantu_view::{AnyView, BuildCx, ElementId, View};
+use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
+use tantu_view::{
+    AnyView, BuildCx, ElementId, Handled, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop,
+    View,
+};
+
+/// The thumb's thickness.
+const THUMB_WIDTH: f32 = 8.0;
+/// The thumb's distance from the trailing edge, and the track's margins.
+const MARGIN: f32 = 2.0;
+/// The thumb's shortest length.
+const MIN_THUMB: f32 = 24.0;
+/// The thumb's color (on-surface at 40 %).
+const THUMB_COLOR: Color = Color::from_argb32(0x661C_1B1F);
 
 /// A scroll view's offset and extents, shared between the app and the view (Flutter's
 /// `ScrollController`). `Copy`; create it inside a runtime.
@@ -41,6 +59,31 @@ impl ScrollController {
     pub fn viewport_extent(&self) -> f32 {
         self.extents.get().0
     }
+
+    /// Records the extents after a layout, and clamps the offset to them (once per change).
+    fn set_extents(&self, viewport: f32, max: f32) {
+        if self.extents.get_untracked() != (viewport, max) {
+            self.extents.set((viewport, max));
+        }
+        let offset = self.offset.get_untracked();
+        let clamped = offset.clamp(0.0, max.max(0.0));
+        if clamped != offset {
+            self.offset.set(clamped);
+        }
+    }
+
+    /// Moves by `delta` within the extents; true when the offset changed.
+    fn scroll_by(&self, delta: f32) -> bool {
+        let max = self.extents.get_untracked().1.max(0.0);
+        let before = self.offset.get_untracked();
+        let after = (before + delta).clamp(0.0, max);
+        if after != before {
+            self.offset.set(after);
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl Default for ScrollController {
@@ -79,9 +122,178 @@ impl ScrollView {
     }
 }
 
+/// The scrollbar's geometry along the axis (WIDGETS-SCROLL-04).
+#[derive(Clone, Copy)]
+struct Scrollbar {
+    axis: ScrollAxis,
+    viewport: f32,
+    content: f32,
+    cross: f32,
+}
+
+impl Scrollbar {
+    fn from(axis: ScrollAxis, size: Size, content: Size) -> Self {
+        let (viewport, extent, cross) = match axis {
+            ScrollAxis::Vertical => (size.height, content.height, size.width),
+            ScrollAxis::Horizontal => (size.width, content.width, size.height),
+        };
+        Scrollbar {
+            axis,
+            viewport,
+            content: extent,
+            cross,
+        }
+    }
+
+    fn max(&self) -> f32 {
+        (self.content - self.viewport).max(0.0)
+    }
+
+    fn track(&self) -> f32 {
+        (self.viewport - 2.0 * MARGIN).max(0.0)
+    }
+
+    fn thumb_length(&self) -> f32 {
+        if self.content <= 0.0 {
+            return 0.0;
+        }
+        (self.track() * self.viewport / self.content)
+            .max(MIN_THUMB)
+            .min(self.track())
+    }
+
+    /// Content pixels per track pixel.
+    fn ratio(&self) -> f32 {
+        let room = self.track() - self.thumb_length();
+        if room > 0.0 { self.max() / room } else { 0.0 }
+    }
+
+    fn thumb_rect(&self, offset: f32) -> Option<Rect> {
+        let max = self.max();
+        if max <= 0.0 {
+            return None;
+        }
+        let along = MARGIN + (self.track() - self.thumb_length()) * (offset / max).clamp(0.0, 1.0);
+        let near = self.cross - MARGIN - THUMB_WIDTH;
+        Some(match self.axis {
+            ScrollAxis::Vertical => Rect::from_ltwh(near, along, THUMB_WIDTH, self.thumb_length()),
+            ScrollAxis::Horizontal => {
+                Rect::from_ltwh(along, near, self.thumb_length(), THUMB_WIDTH)
+            }
+        })
+    }
+}
+
+/// What the handlers share with the paint: the last layout's size and content.
+type Shared = Rc<Cell<(Size, Size)>>;
+
 impl View for ScrollView {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (cx, self.child, self.horizontal, self.controller);
-        todo!("WIDGETS-SCROLL-01")
+        let controller = self.controller.unwrap_or_default();
+        let axis = if self.horizontal {
+            ScrollAxis::Horizontal
+        } else {
+            ScrollAxis::Vertical
+        };
+        let id = cx.render(RenderViewport::new(axis), [self.child]);
+        let shared: Shared = Rc::default();
+        cx.set_paint(
+            id,
+            ViewportPaint {
+                axis,
+                controller,
+                shared: Rc::clone(&shared),
+            },
+        );
+        // The viewport's offset follows the controller, clamped to the last extents.
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || {
+                let max = controller.max_scroll_extent().max(0.0);
+                controller.offset().clamp(0.0, max)
+            })),
+            move |e, offset| {
+                e.update_render::<RenderViewport>(|v| v.offset = offset);
+            },
+        );
+        // Wheel and thumb (WIDGETS-SCROLL-02, -04).
+        let drag: Rc<Cell<Option<(f32, f32)>>> = Rc::default();
+        cx.on_pointer(id, Phase::Bubble, move |p| {
+            let (size, content) = shared.get();
+            let bar = Scrollbar::from(axis, size, content);
+            let along = |point: Point| match axis {
+                ScrollAxis::Vertical => point.y,
+                ScrollAxis::Horizontal => point.x,
+            };
+            match p.event.kind {
+                PointerKind::Scroll(delta) => {
+                    if controller.scroll_by(along(Point::new(delta.x, delta.y))) {
+                        Handled::Stop
+                    } else {
+                        Handled::Continue
+                    }
+                }
+                PointerKind::Down(PointerButton::Primary) => {
+                    let offset = controller.offset.get_untracked();
+                    match bar.thumb_rect(offset) {
+                        Some(thumb) if thumb.contains(p.local) => {
+                            drag.set(Some((along(p.local), offset)));
+                            Handled::Stop
+                        }
+                        _ => Handled::Continue,
+                    }
+                }
+                PointerKind::Move => match drag.get() {
+                    Some((start, offset)) => {
+                        let moved = (along(p.local) - start) * bar.ratio();
+                        let target = (offset + moved).clamp(0.0, bar.max());
+                        if target != controller.offset.get_untracked() {
+                            controller.offset.set(target);
+                        }
+                        Handled::Stop
+                    }
+                    None => Handled::Continue,
+                },
+                PointerKind::Up(PointerButton::Primary) if drag.get().is_some() => {
+                    drag.set(None);
+                    Handled::Stop
+                }
+                _ => Handled::Continue,
+            }
+        });
+        id
+    }
+}
+
+/// Clips the content, paints it, then the scrollbar (WIDGETS-SCROLL-03, -04).
+struct ViewportPaint {
+    axis: ScrollAxis,
+    controller: ScrollController,
+    shared: Shared,
+}
+
+impl Paint for ViewportPaint {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        let size = cx.size();
+        let content = cx
+            .render::<RenderViewport>()
+            .map_or(Size::ZERO, |v| v.content());
+        self.shared.set((size, content));
+        let bar = Scrollbar::from(self.axis, size, content);
+        self.controller.set_extents(bar.viewport, bar.max());
+        let bounds = Rect::from_ltwh(0.0, 0.0, size.width, size.height);
+        cx.scene().push_clip(Clip::Rect(bounds));
+        cx.paint_children();
+        cx.scene().pop();
+        if let Some(thumb) = bar.thumb_rect(self.controller.offset.get_untracked()) {
+            cx.scene().fill(
+                RoundedRect::new(thumb, BorderRadius::circular(THUMB_WIDTH / 2.0)),
+                THUMB_COLOR,
+            );
+        }
+    }
+
+    fn clips_children(&self) -> bool {
+        true
     }
 }

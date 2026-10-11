@@ -1,6 +1,6 @@
 //! [`RenderViewport`]: a window onto a scrolled child. Spec: `docs/specs/layout/viewport.md`.
 
-use tantu_core::Size;
+use tantu_core::{Size, Vec2};
 
 use crate::{BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox};
 
@@ -50,33 +50,67 @@ impl PartialEq for RenderViewport {
     }
 }
 
+impl RenderViewport {
+    /// The offset with a non-finite value counting as 0.
+    fn finite_offset(&self) -> f32 {
+        if self.offset.is_finite() {
+            self.offset
+        } else {
+            0.0
+        }
+    }
+}
+
 impl RenderBox for RenderViewport {
     fn perform_layout(
         &mut self,
         constraints: BoxConstraints,
         children: &mut LayoutChildren<'_>,
     ) -> Size {
-        let _ = (constraints, children);
-        todo!("LAYOUT-VIEWPORT-01")
+        if children.is_empty() {
+            self.content = Size::ZERO;
+            return constraints.smallest();
+        }
+        let inner = match self.axis {
+            ScrollAxis::Vertical => BoxConstraints::new(
+                constraints.min_width,
+                constraints.max_width,
+                0.0,
+                f32::INFINITY,
+            ),
+            ScrollAxis::Horizontal => BoxConstraints::new(
+                0.0,
+                f32::INFINITY,
+                constraints.min_height,
+                constraints.max_height,
+            ),
+        };
+        let content = children.layout(0, inner);
+        self.content = content;
+        let offset = self.finite_offset();
+        children.set_offset(
+            0,
+            match self.axis {
+                ScrollAxis::Vertical => Vec2::new(0.0, -offset),
+                ScrollAxis::Horizontal => Vec2::new(-offset, 0.0),
+            },
+        );
+        constraints.constrain(content)
     }
 
     fn min_intrinsic_width(&self, height: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = (height, children);
-        todo!("LAYOUT-VIEWPORT-02")
+        children.min_intrinsic_width(0, height)
     }
 
     fn max_intrinsic_width(&self, height: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = (height, children);
-        todo!("LAYOUT-VIEWPORT-02")
+        children.max_intrinsic_width(0, height)
     }
 
     fn min_intrinsic_height(&self, width: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = (width, children);
-        todo!("LAYOUT-VIEWPORT-02")
+        children.min_intrinsic_height(0, width)
     }
 
     fn max_intrinsic_height(&self, width: f32, children: &mut IntrinsicChildren<'_>) -> f32 {
-        let _ = (width, children);
-        todo!("LAYOUT-VIEWPORT-02")
+        children.max_intrinsic_height(0, width)
     }
 }

@@ -410,7 +410,8 @@ impl ViewTree {
     /// Paints the whole tree into `scene` (an open builder for the window's Scene), using the
     /// geometry of the last layout pass.
     pub fn paint(&self, scene: &mut SceneBuilder<'_>, text: &mut dyn TextPainter) {
-        self.paint_element(self.root(), scene, text);
+        // With the runtime current, so paints can read and write signals (VIEW-PAINT-07).
+        self.enter(|| self.paint_element(self.root(), scene, text));
     }
 
     /// Paints one element (VIEW-PAINT-02..05); regions paint their children in their place.

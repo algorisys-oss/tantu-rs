@@ -1,7 +1,7 @@
 # ScrollView
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-12; review the
-  Open questions)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-12; review
+  the Open questions)
 - **Crates:** `tantu-widgets` (`ScrollView`, `ScrollController`), `tantu-test`
   (`WidgetTester::scroll`); layout in [RenderViewport](../layout/viewport.md)
 - **Plan item:** Phase 3, "Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling"

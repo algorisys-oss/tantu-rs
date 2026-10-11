@@ -196,8 +196,12 @@ impl WidgetTester {
     /// A wheel scroll of `delta` at the center of the single element `finder` matches, then
     /// a pump (TEST-WT-11).
     pub fn scroll(&mut self, finder: &Finder, delta: Vec2) {
-        let _ = (self.find(finder), delta);
-        todo!("TEST-WT-11")
+        let center = self.rect(self.find(finder)).center();
+        self.pointer(PointerEvent {
+            kind: PointerKind::Scroll(delta),
+            position: center,
+        });
+        self.pump();
     }
 
     /// Dispatches an IME event to the focused element, then pumps (TEST-WT-10).
