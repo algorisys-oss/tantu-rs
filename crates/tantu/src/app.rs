@@ -10,10 +10,12 @@ use tantu_platform::{
     ButtonState, Platform, PlatformContext, PlatformError, PlatformHandler, PointerButton,
     ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };
+use tantu_reactive::Signal;
 use tantu_scene::{RenderError, Renderer, Resources, Scene};
 use tantu_text::{FontFamily, TextStyles, TextSystem};
+use tantu_theme::{Theme, ThemeProvider};
 use tantu_view::{
-    AnyView, BuildCx, ElementId, Paint, PaintCx, PointerEvent, PointerKind, SystemText, View,
+    AnyView, BuildCx, ElementId, Paint, PaintCx, PointerEvent, PointerKind, Prop, SystemText, View,
     ViewTree,
 };
 
@@ -59,7 +61,8 @@ type RendererFactory =
 #[derive(Clone, Debug)]
 pub struct Window {
     attributes: WindowAttributes,
-    background: Color,
+    /// The background color; `None` follows the theme's `surface` (FACADE-APP-13).
+    background: Option<Color>,
 }
 
 impl Window {
@@ -67,7 +70,7 @@ impl Window {
     pub fn new(title: impl Into<String>) -> Self {
         Window {
             attributes: WindowAttributes::new(title),
-            background: Color::WHITE,
+            background: None,
         }
     }
 
@@ -90,7 +93,7 @@ impl Window {
     /// The color painted behind the window's content (default `Color::WHITE`).
     pub fn background(self, color: Color) -> Self {
         Window {
-            background: color,
+            background: Some(color),
             ..self
         }
     }
@@ -225,19 +228,41 @@ impl App {
 }
 
 /// The window's background under its content (FACADE-APP-10): a box that passes the window's
-/// constraints to the content and fills its bounds with `color`.
+/// constraints to the content and fills its bounds with `color`, or with the theme's
+/// `surface` when no color was set. With the `default-theme` feature it also provides the
+/// window's `Signal<Theme>`, holding the light theme (FACADE-APP-13).
 struct Background {
-    color: Color,
+    color: Option<Color>,
     content: AnyView,
 }
 
 impl View for Background {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        #[cfg(feature = "default-theme")]
+        let theme: Option<Signal<Theme>> = Some(tantu_reactive::signal(Theme::light()));
+        #[cfg(not(feature = "default-theme"))]
+        let theme: Option<Signal<Theme>> = None;
+        let content = match theme {
+            Some(theme) => AnyView::new(ThemeProvider::new(theme, self.content)),
+            None => self.content,
+        };
         let id = cx.render(
             RenderConstrainedBox::new(BoxConstraints::default()),
-            [self.content],
+            [content],
         );
-        cx.set_paint(id, BackgroundPaint(self.color));
+        cx.set_paint(
+            id,
+            BackgroundPaint(self.color.unwrap_or(Theme::light().colors.surface)),
+        );
+        if let (None, Some(theme)) = (self.color, theme) {
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || theme.with(|t| t.colors.surface))),
+                |e, color| {
+                    e.update_paint::<BackgroundPaint>(|p| p.0 = color);
+                },
+            );
+        }
         id
     }
 }

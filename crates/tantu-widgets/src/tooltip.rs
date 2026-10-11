@@ -13,12 +13,9 @@ use tantu_view::{
     Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, View,
 };
 
+use crate::theme::ThemeHandle;
 use crate::{Align, ConstrainedBox, Padding, Text};
 
-/// The tooltip's background (Material 3 inverse surface).
-const INVERSE_SURFACE: Color = Color::from_argb32(0xFF31_3033);
-/// The message color (Material 3 inverse on-surface).
-const INVERSE_ON_SURFACE: Color = Color::from_argb32(0xFFF4_EFF4);
 /// Space between the child and the tooltip.
 const GAP: f32 = 4.0;
 
@@ -58,11 +55,17 @@ impl<V: View> View for Tooltip<V> {
         } else {
             Anchor::new(Alignment::BOTTOM_CENTER, Alignment::TOP_CENTER).offset(0.0, GAP)
         };
+        // The overlay layer hangs off the root, so the theme is captured here, where the
+        // portal is, and passed to the box (WIDGETS-THEME-01).
+        let theme = ThemeHandle::of(cx);
         let portal = OverlayPortal::new(self.child)
             .visible(move || hovered.get() || focused.get())
             .anchor(anchor)
             .pointer(OverlayPointer::Passthrough)
-            .overlay(move || TooltipBox(Rc::clone(&message)));
+            .overlay(move || TooltipBox {
+                message: Rc::clone(&message),
+                theme,
+            });
         let id = portal.build(cx);
         if cx.tree().kind(id) == Some(ElementKind::Region) {
             tracing::warn!(
@@ -86,14 +89,17 @@ impl<V: View> View for Tooltip<V> {
 }
 
 /// The tooltip's box: at least 24 px tall, 8 × 4 px padding, the message centered in 12 px.
-struct TooltipBox(Rc<dyn Fn() -> String>);
+struct TooltipBox {
+    message: Rc<dyn Fn() -> String>,
+    theme: ThemeHandle,
+}
 
 impl View for TooltipBox {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let message = self.0;
+        let (message, theme) = (self.message, self.theme);
         let style = TextStyle {
             size: 12.0,
-            ..TextStyle::body()
+            ..theme.snapshot().text.body
         };
         let content =
             ConstrainedBox::new(BoxConstraints::new(0.0, f32::INFINITY, 24.0, f32::INFINITY))
@@ -105,26 +111,47 @@ impl View for TooltipBox {
                             .child(
                                 Text::new(move || message())
                                     .style(style)
-                                    .color(INVERSE_ON_SURFACE),
+                                    .color(move || theme.colors().inverse_on_surface),
                             ),
                     ),
                 );
         let id = content.build(cx);
-        cx.set_paint(id, TooltipPaint);
+        cx.set_paint(
+            id,
+            TooltipPaint {
+                color: Color::TRANSPARENT,
+                radius: 0.0,
+            },
+        );
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || {
+                (theme.colors().inverse_surface, theme.shape().extra_small)
+            })),
+            |e, (color, radius)| {
+                e.update_paint::<TooltipPaint>(|p| {
+                    p.color = color;
+                    p.radius = radius;
+                });
+            },
+        );
         id
     }
 }
 
-/// Fills the box with a 4 px rounded rect.
-struct TooltipPaint;
+/// Fills the box with a rounded rect in the theme's inverse surface.
+struct TooltipPaint {
+    color: Color,
+    radius: f32,
+}
 
 impl Paint for TooltipPaint {
     fn paint(&self, cx: &mut PaintCx<'_, '_>) {
         let size = cx.size();
         let rect = Rect::from_ltwh(0.0, 0.0, size.width, size.height);
         cx.scene().fill(
-            RoundedRect::new(rect, BorderRadius::circular(4.0)),
-            INVERSE_SURFACE,
+            RoundedRect::new(rect, BorderRadius::circular(self.radius)),
+            self.color,
         );
     }
 }

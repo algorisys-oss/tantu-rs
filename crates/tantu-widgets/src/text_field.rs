@@ -4,7 +4,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use tantu_view::core::{Affine, Color, EdgeInsets, Point, Rect, Vec2};
+use tantu_view::core::{Affine, EdgeInsets, Point, Rect, Vec2};
 use tantu_view::layout::{
     BoxConstraints, RenderConstrainedBox, RenderLimitedBox, RenderParagraph, TextGeometry,
     TextStyleKey,
@@ -17,7 +17,10 @@ use tantu_view::{
     NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, SingleActivator, View,
 };
 
+use tantu_theme::ColorScheme;
+
 use crate::text_editing::{Direction, EditingValue, Movement, TextRange, TextSelection};
+use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at};
 use crate::util::dynamic;
 use crate::{Padding, TextEditingController};
 
@@ -35,21 +38,12 @@ pub struct RedoIntent;
 
 /// The field's width in an unbounded width.
 const MAX_WIDTH: f32 = 280.0;
-/// The field's minimum height.
+/// The field's minimum height at density 0.
 const MIN_HEIGHT: f32 = 40.0;
 /// The content padding (horizontal, vertical).
 const PADDING: EdgeInsets = EdgeInsets::symmetric(16.0, 8.0);
-/// The outline's corner radius.
-const RADIUS: f32 = 4.0;
 /// The caret's width.
 const CARET_WIDTH: f32 = 2.0;
-
-const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
-const OUTLINE: Color = Color::from_argb32(0xFF79_747E);
-const ON_SURFACE: Color = Color::from_argb32(0xFF1C_1B1F);
-const ON_SURFACE_VARIANT: Color = Color::from_argb32(0xFF49_454F);
-const ON_SURFACE_38: Color = Color::from_argb32(0x611C_1B1F);
-const ON_SURFACE_12: Color = Color::from_argb32(0x1F1C_1B1F);
 
 /// A text input (Flutter's `TextField`, Material 3 outlined look), editing a
 /// [`TextEditingController`].
@@ -60,7 +54,7 @@ pub struct TextField {
     enabled: Prop<bool>,
     on_change: Option<Rc<dyn Fn(String)>>,
     on_submit: Option<Rc<dyn Fn(String)>>,
-    style: TextStyle,
+    style: Option<TextStyle>,
 }
 
 impl TextField {
@@ -73,10 +67,7 @@ impl TextField {
             enabled: Prop::Value(true),
             on_change: None,
             on_submit: None,
-            style: TextStyle {
-                size: 16.0,
-                ..TextStyle::body()
-            },
+            style: None,
         }
     }
 
@@ -110,9 +101,9 @@ impl TextField {
         self
     }
 
-    /// The text style (default `TextStyle::body()` at 16 px).
+    /// The text style (default: the theme's `text.body` at 16 px).
     pub fn style(mut self, style: TextStyle) -> Self {
-        self.style = style;
+        self.style = Some(style);
         self
     }
 }
@@ -162,7 +153,12 @@ impl View for TextField {
         let anchor = Cell::new(0usize);
         let geometry: SharedGeometry = Rc::default();
         let shift: SharedShift = Rc::default();
-        let style = cx.text_style(self.style);
+        let theme = ThemeHandle::of(cx);
+        let style = self.style.unwrap_or_else(|| TextStyle {
+            size: 16.0,
+            ..theme.snapshot().text.body
+        });
+        let style = cx.text_style(style);
         let on_change = self.on_change;
         let on_submit = self.on_submit;
 
@@ -176,15 +172,15 @@ impl View for TextField {
             focused,
             geometry: Rc::clone(&geometry),
             shift: Rc::clone(&shift),
+            theme,
         };
         let content = Padding::new(PADDING).child(editor);
-        let constraints =
-            BoxConstraints::new(f32::INFINITY, f32::INFINITY, MIN_HEIGHT, f32::INFINITY);
         FieldBox {
             content: AnyView::new(Sizer {
-                constraints,
+                theme,
                 content: AnyView::new(content),
             }),
+            theme,
             enabled: Rc::clone(&enabled),
             focused,
             controller,
@@ -200,21 +196,34 @@ impl View for TextField {
     }
 }
 
-/// The element that fills the width and is at least `MIN_HEIGHT` tall.
+/// The element that fills the width and is at least `MIN_HEIGHT` tall, adjusted by the
+/// theme's density (WIDGETS-THEME-03).
 struct Sizer {
-    constraints: BoxConstraints,
+    theme: ThemeHandle,
     content: AnyView,
 }
 
 impl View for Sizer {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        cx.render(RenderConstrainedBox::new(self.constraints), [self.content])
+        let minimum =
+            |height: f32| BoxConstraints::new(f32::INFINITY, f32::INFINITY, height, f32::INFINITY);
+        let id = cx.render(
+            RenderConstrainedBox::new(minimum(MIN_HEIGHT)),
+            [self.content],
+        );
+        cx.bind(id, self.theme.density_prop(), move |e, density| {
+            e.update_render::<RenderConstrainedBox>(|r| {
+                r.additional = minimum(density.apply(MIN_HEIGHT));
+            });
+        });
+        id
     }
 }
 
 /// The field's box: the outline, focus, handlers and chords (WIDGETS-TEXTFIELD-02..06).
 struct FieldBox {
     content: AnyView,
+    theme: ThemeHandle,
     enabled: Rc<dyn Fn() -> bool>,
     focused: Signal<bool>,
     controller: TextEditingController,
@@ -234,11 +243,26 @@ impl View for FieldBox {
             RenderLimitedBox::new(MAX_WIDTH, f32::INFINITY),
             [self.content],
         );
+        let theme = self.theme;
         cx.set_paint(
             id,
             FieldPaint {
                 enabled: true,
                 focused: false,
+                colors: theme.colors(),
+                radius: theme.shape().extra_small,
+            },
+        );
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || {
+                (theme.colors(), theme.shape().extra_small)
+            })),
+            |e, (colors, radius)| {
+                e.update_paint::<FieldPaint>(|p| {
+                    p.colors = colors;
+                    p.radius = radius;
+                });
             },
         );
         {
@@ -492,17 +516,20 @@ fn move_vertically(
 struct FieldPaint {
     enabled: bool,
     focused: bool,
+    colors: ColorScheme,
+    radius: f32,
 }
 
 impl Paint for FieldPaint {
     fn paint(&self, cx: &mut PaintCx<'_, '_>) {
         let size = cx.size();
         let rect = Rect::from_ltwh(0.0, 0.0, size.width, size.height);
-        let shape = RoundedRect::new(rect, BorderRadius::circular(RADIUS));
+        let shape = RoundedRect::new(rect, BorderRadius::circular(self.radius));
+        let colors = &self.colors;
         let (width, color) = match (self.enabled, self.focused) {
-            (false, _) => (1.0, ON_SURFACE_12),
-            (true, true) => (2.0, PRIMARY),
-            (true, false) => (1.0, OUTLINE),
+            (false, _) => (1.0, at(colors.on_surface, ALPHA_12)),
+            (true, true) => (2.0, colors.primary),
+            (true, false) => (1.0, colors.outline),
         };
         cx.scene().stroke(shape, width, color);
         cx.scene().push_clip(Clip::Rect(rect));
@@ -522,6 +549,7 @@ struct Editor {
     focused: Signal<bool>,
     geometry: SharedGeometry,
     shift: SharedShift,
+    theme: ThemeHandle,
 }
 
 impl View for Editor {
@@ -540,8 +568,12 @@ impl View for Editor {
                 focused: false,
                 selection: TextSelection::default(),
                 composing: None,
+                colors: self.theme.colors(),
             },
         );
+        cx.bind(id, self.theme.colors_prop(), |e, colors| {
+            e.update_paint::<EditorPaint>(|p| p.colors = colors);
+        });
         let (controller, placeholder) = (self.controller, self.placeholder);
         cx.bind(
             id,
@@ -597,6 +629,7 @@ struct EditorPaint {
     focused: bool,
     selection: TextSelection,
     composing: Option<TextRange>,
+    colors: ColorScheme,
 }
 
 impl Paint for EditorPaint {
@@ -651,17 +684,18 @@ impl Paint for EditorPaint {
         self.shift.set(shift);
         cx.scene()
             .push_transform(Affine::translate(Vec2::new(-shift, 0.0)));
+        let colors = &self.colors;
         if active && !self.empty {
             for rect in geometry.selection_rects(self.selection.start(), self.selection.end()) {
-                cx.scene().fill_rect(rect, PRIMARY.with_alpha(0.4));
+                cx.scene().fill_rect(rect, colors.primary.with_alpha(0.4));
             }
         }
         let color = if !self.enabled {
-            ON_SURFACE_38
+            at(colors.on_surface, ALPHA_38)
         } else if self.empty {
-            ON_SURFACE_VARIANT
+            colors.on_surface_variant
         } else {
-            ON_SURFACE
+            colors.on_surface
         };
         cx.paint_text(&text, style, width, max_lines, color, Point::ZERO);
         // The composing range is underlined (WIDGETS-TEXTFIELD-08).
@@ -669,7 +703,7 @@ impl Paint for EditorPaint {
             for rect in geometry.selection_rects(range.start, range.end) {
                 cx.scene().fill_rect(
                     Rect::from_ltrb(rect.left, rect.bottom - 1.0, rect.right, rect.bottom),
-                    PRIMARY,
+                    colors.primary,
                 );
             }
         }
@@ -682,7 +716,7 @@ impl Paint for EditorPaint {
                     caret.left + CARET_WIDTH,
                     caret.bottom,
                 ),
-                PRIMARY,
+                colors.primary,
             );
         }
         cx.scene().pop();

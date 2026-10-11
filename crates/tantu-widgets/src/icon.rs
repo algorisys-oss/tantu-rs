@@ -7,13 +7,15 @@ use tantu_view::layout::{BoxConstraints, RenderConstrainedBox, TextStyleKey};
 use tantu_view::text::{FontFamily, TextStyle};
 use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Paint, PaintCx, Prop, View};
 
+use tantu_theme::ColorScheme;
+
 use crate::Center;
-use crate::toggles::{
-    ON_SURFACE_38, ON_SURFACE_VARIANT, State, TogglePaint, build_toggle, enabled_fn,
-};
+use crate::theme::{ALPHA_38, ThemeHandle, at};
+use crate::toggles::{State, TogglePaint, build_toggle, enabled_fn};
 use crate::util::dynamic;
 
-/// The icon button's element (Material 3's standard icon button, desktop tap target).
+/// The icon button's element at density 0 (Material 3's standard icon button, desktop tap
+/// target).
 const ICON_BUTTON_SIZE: Size = Size::new(40.0, 40.0);
 
 /// Material Icons Regular, as a TTF (Apache 2.0, see `fonts/material-icons/LICENSE`).
@@ -65,16 +67,16 @@ impl IntoProp<IconData> for IconData {
 pub struct Icon {
     icon: Prop<IconData>,
     size: f32,
-    color: Prop<Color>,
+    color: Option<Prop<Color>>,
 }
 
 impl Icon {
-    /// `icon` at 24 px in on-surface (`0xFF1C1B1F`).
+    /// `icon` at 24 px in the theme's `on_surface`.
     pub fn new(icon: impl IntoProp<IconData>) -> Self {
         Icon {
             icon: icon.into_prop(),
             size: 24.0,
-            color: Prop::Value(Color::from_argb32(0xFF1C_1B1F)),
+            color: None,
         }
     }
 
@@ -84,9 +86,9 @@ impl Icon {
         self
     }
 
-    /// The icon's color.
+    /// The icon's color (default: the theme's `on_surface`).
     pub fn color(mut self, color: impl IntoProp<Color>) -> Self {
-        self.color = color.into_prop();
+        self.color = Some(color.into_prop());
         self
     }
 }
@@ -94,6 +96,9 @@ impl Icon {
 impl View for Icon {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let icon = dynamic(self.icon);
+        let color = self
+            .color
+            .unwrap_or_else(|| ThemeHandle::of(cx).color_prop(|c| c.on_surface));
         // The family and its font come from the first value (WIDGETS-ICON-03).
         let first = icon();
         if let Some(font) = first.font {
@@ -122,7 +127,7 @@ impl View for Icon {
                 e.update_paint::<IconPaint>(|p| p.text = code_point.to_string());
             },
         );
-        cx.bind(id, self.color, |e, color| {
+        cx.bind(id, color, |e, color| {
             e.update_paint::<IconPaint>(|p| p.color = color);
         });
         id
@@ -191,13 +196,15 @@ impl View for IconButton {
                 }
             })
         };
+        let theme = ThemeHandle::of(cx);
         let color = {
             let enabled = Rc::clone(&enabled);
             move || {
+                let colors = theme.colors();
                 if enabled() {
-                    ON_SURFACE_VARIANT
+                    colors.on_surface_variant
                 } else {
-                    ON_SURFACE_38
+                    at(colors.on_surface, ALPHA_38)
                 }
             }
         };
@@ -209,6 +216,7 @@ impl View for IconButton {
             activate,
             IconButtonPaint {
                 state: State::default(),
+                colors: theme.colors(),
             },
             [AnyView::new(icon)],
         )
@@ -218,11 +226,16 @@ impl View for IconButton {
 /// Paints the icon button's state layer (WIDGETS-ICON-04); the icon is a child.
 struct IconButtonPaint {
     state: State,
+    colors: ColorScheme,
 }
 
 impl TogglePaint for IconButtonPaint {
     fn state_mut(&mut self) -> &mut State {
         &mut self.state
+    }
+
+    fn colors_mut(&mut self) -> &mut ColorScheme {
+        &mut self.colors
     }
 }
 
@@ -230,6 +243,7 @@ impl Paint for IconButtonPaint {
     fn paint(&self, cx: &mut PaintCx<'_, '_>) {
         let size = cx.size();
         let center = Point::new(size.width / 2.0, size.height / 2.0);
-        self.state.paint_layer(cx.scene(), center, false);
+        self.state
+            .paint_layer(cx.scene(), &self.colors, center, false);
     }
 }

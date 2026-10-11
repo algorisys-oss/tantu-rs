@@ -1,15 +1,17 @@
 //! [`WidgetTester`] and [`Finder`].
 
+use std::cell::Cell;
 use std::path::Path;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use tantu_render_headless::{HeadlessRenderer, RecordedFrame};
 use tantu_render_soft::{SoftRenderer, decode_png, diff_images, encode_png};
-use tantu_theme::Theme;
-use tantu_view::core::{Point, Rect, Size, Vec2};
+use tantu_theme::{Theme, ThemeProvider};
+use tantu_view::core::{Color, Point, Rect, Size, Vec2};
 use tantu_view::layout::{BoxConstraints, RenderBox, RenderParagraph};
-use tantu_view::reactive::Signal;
-use tantu_view::scene::{Renderer, Resources, Scene};
+use tantu_view::reactive::{Signal, signal};
+use tantu_view::scene::{ImageData, Renderer, Resources, Scene};
 use tantu_view::text::{FontFamily, TextSystem};
 use tantu_view::{
     ElementId, ElementKind, ImeEvent, Key, KeyEvent, LogicalKey, Modifiers, PointerButton,
@@ -83,6 +85,7 @@ pub struct WidgetTester {
     recorder: HeadlessRenderer,
     scene: Scene,
     size: Size,
+    theme: Signal<Theme>,
 }
 
 impl WidgetTester {
@@ -97,7 +100,19 @@ impl WidgetTester {
         let mut text = TextSystem::without_system_fonts();
         text.register_font(TEST_FONT.to_vec());
         text.set_default_family(FontFamily::Named("Liberation Sans".into()));
-        let tree = ViewTree::with_text_styles(text.styles(), app);
+        // The light theme is provided around the app (TEST-WT-12).
+        let theme = Rc::new(Cell::new(None));
+        let tree = {
+            let theme = Rc::clone(&theme);
+            ViewTree::with_text_styles(text.styles(), move || {
+                let signal = signal(Theme::light());
+                theme.set(Some(signal));
+                ThemeProvider::new(signal, app())
+            })
+        };
+        let theme = theme
+            .get()
+            .expect("the tester's app closure runs once, when the tree is built");
         let size = Size::new(width, height);
         let mut recorder = HeadlessRenderer::new(1, 1);
         recorder.resize(pixels(width), pixels(height), 1.0);
@@ -108,6 +123,7 @@ impl WidgetTester {
             recorder,
             scene: Scene::new(),
             size,
+            theme,
         };
         tester.pump();
         tester
@@ -131,7 +147,7 @@ impl WidgetTester {
 
     /// The theme signal provided at the root, initially `Theme::light()` (TEST-WT-12).
     pub fn theme(&self) -> Signal<Theme> {
-        todo!()
+        self.theme
     }
 
     /// The last recorded frame.
@@ -301,8 +317,9 @@ impl WidgetTester {
         self.tree.enter(f)
     }
 
-    /// Renders the last frame with the software renderer and compares it with the PNG at
-    /// `path` (tolerance 2); with `TANTU_UPDATE_GOLDENS=1` it writes the PNG instead.
+    /// Renders the last frame with the software renderer over the theme's `surface` and
+    /// compares it with the PNG at `path` (tolerance 2); with `TANTU_UPDATE_GOLDENS=1` it
+    /// writes the PNG instead.
     pub fn matches_golden(&mut self, path: impl AsRef<Path>) {
         let path = path.as_ref();
         let mut soft = SoftRenderer::new(pixels(self.size.width), pixels(self.size.height));
@@ -312,6 +329,9 @@ impl WidgetTester {
         let image = soft
             .snapshot()
             .expect("the software renderer has a target after rendering");
+        // Over the theme's surface, as a window shows it (TEST-WT-12).
+        let surface = self.tree.enter(|| self.theme.with(|t| t.colors.surface));
+        let image = over(&image, surface);
         if std::env::var_os("TANTU_UPDATE_GOLDENS").is_some_and(|v| v == "1") {
             if let Some(dir) = path.parent() {
                 std::fs::create_dir_all(dir)
@@ -356,4 +376,22 @@ fn pixels(length: f32) -> u32 {
     } else {
         1
     }
+}
+
+/// `image` composited over `background` (source-over in 8-bit sRGB with straight alpha), so
+/// the result is opaque.
+fn over(image: &ImageData, background: Color) -> ImageData {
+    let [br, bg, bb, _] = background.to_rgba8();
+    let pixels: Vec<u8> = image
+        .pixels()
+        .chunks_exact(4)
+        .flat_map(|px| {
+            let a = u32::from(px[3]);
+            let mix =
+                |s: u8, b: u8| ((u32::from(s) * a + u32::from(b) * (255 - a) + 127) / 255) as u8;
+            [mix(px[0], br), mix(px[1], bg), mix(px[2], bb), 255]
+        })
+        .collect();
+    ImageData::rgba8(image.width(), image.height(), pixels)
+        .expect("the composited image has the source's dimensions and pixel count")
 }

@@ -40,13 +40,39 @@ fn header(section: Signal<&'static str>) -> impl View {
     Padding::new(EdgeInsets::symmetric(16.0, 12.0)).child(
         Row::new()
             .cross_axis_alignment(CrossAxisAlignment::Center)
+            .spacing(16.0)
             .child(Text::new("Tantu gallery").style(TextStyle::title()))
             .child(Spacer::new())
             .child(Keyed::new(
                 "current",
                 Text::new(move || section.get().to_string()).style(TextStyle::label()),
-            )),
+            ))
+            .child(dark_mode_switch()),
     )
+}
+
+/// "Dark" and a switch that sets the window's theme to dark or light (GALLERY-05). The theme
+/// signal comes from the runner (or the tester), so the whole window follows.
+fn dark_mode_switch() -> impl View {
+    Builder::new(|cx| {
+        let theme = Theme::signal(cx).unwrap_or_else(|| signal(Theme::light()));
+        let dark = signal(false);
+        effect(move || {
+            theme.set(if dark.get() {
+                Theme::dark()
+            } else {
+                Theme::light()
+            });
+        });
+        Row::new()
+            .cross_axis_alignment(CrossAxisAlignment::Center)
+            .spacing(4.0)
+            .child(Text::new("Dark").style(TextStyle::label()))
+            .child(Keyed::new(
+                "dark",
+                Switch::new(dark).on_change(move |v| dark.set(v)),
+            ))
+    })
 }
 
 fn sidebar(section: Signal<&'static str>) -> impl View {

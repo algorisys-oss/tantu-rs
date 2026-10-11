@@ -11,11 +11,15 @@ use tantu_view::{
     Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, View,
 };
 
+use tantu_theme::ColorScheme;
+
+use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at};
 use crate::util::dynamic;
 
-/// The checkbox's and radio's element (Flutter's desktop `shrinkWrap` tap target).
+/// The checkbox's and radio's element at density 0 (Flutter's desktop `shrinkWrap` tap
+/// target); the density shrinks or grows both sides (WIDGETS-THEME-03).
 const TOGGLE_SIZE: Size = Size::new(40.0, 40.0);
-/// The switch's element.
+/// The switch's element at density 0.
 const SWITCH_SIZE: Size = Size::new(60.0, 40.0);
 /// The state layer's radius.
 const LAYER_RADIUS: f32 = 20.0;
@@ -37,21 +41,6 @@ const THUMB_INSET: f32 = 16.0;
 const THUMB_OFF: f32 = 8.0;
 const THUMB_ON: f32 = 12.0;
 const THUMB_PRESSED: f32 = 14.0;
-
-/// Material 3's primary.
-pub(crate) const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
-/// On-surface: the unselected state layer.
-pub(crate) const ON_SURFACE: Color = Color::from_argb32(0xFF1C_1B1F);
-/// Unselected outlines of the checkbox and radio; the icon button's icon.
-pub(crate) const ON_SURFACE_VARIANT: Color = Color::from_argb32(0xFF49_454F);
-/// The unselected switch's outline and thumb.
-const OUTLINE: Color = Color::from_argb32(0xFF79_747E);
-/// The unselected switch's track.
-const SURFACE_CONTAINER_HIGHEST: Color = Color::from_argb32(0xFFE6_E0E9);
-/// Disabled fills and outlines (on-surface at 38 %).
-pub(crate) const ON_SURFACE_38: Color = Color::from_argb32(0x611C_1B1F);
-/// The disabled switch's track (on-surface at 12 %).
-const ON_SURFACE_12: Color = Color::from_argb32(0x1F1C_1B1F);
 
 /// A box that is checked or not (Flutter's `Checkbox`, Material 3 look).
 ///
@@ -186,19 +175,31 @@ impl State {
         .fold(0.0, f32::max)
     }
 
-    /// Paints the state layer centered on `center`, in primary when `selected`.
-    pub(crate) fn paint_layer(&self, scene: &mut SceneBuilder<'_>, center: Point, selected: bool) {
+    /// Paints the state layer centered on `center`, in primary when `selected`, else in
+    /// on-surface.
+    pub(crate) fn paint_layer(
+        &self,
+        scene: &mut SceneBuilder<'_>,
+        colors: &ColorScheme,
+        center: Point,
+        selected: bool,
+    ) {
         let alpha = self.layer_alpha();
         if alpha > 0.0 {
-            let base = if selected { PRIMARY } else { ON_SURFACE };
+            let base = if selected {
+                colors.primary
+            } else {
+                colors.on_surface
+            };
             scene.fill(circle(center, LAYER_RADIUS), base.with_alpha(alpha));
         }
     }
 }
 
-/// A paint with a toggle [`State`].
+/// A paint with a toggle [`State`] and the theme's colors.
 pub(crate) trait TogglePaint: Paint {
     fn state_mut(&mut self) -> &mut State;
+    fn colors_mut(&mut self) -> &mut ColorScheme;
 }
 
 pub(crate) fn circle(center: Point, radius: f32) -> RoundedRect {
@@ -213,9 +214,10 @@ pub(crate) fn circle(center: Point, radius: f32) -> RoundedRect {
     )
 }
 
-/// Builds a toggle's element: tight at `size`, with `paint`, `children`, the focus and the
-/// pointer and key handlers that call `activate` (WIDGETS-TOGGLE-01, -05, -06, -07, -08).
-/// The icon button is built on it too.
+/// Builds a toggle's element: tight at `size` adjusted by the theme's density, with `paint`
+/// (its colors kept in step with the theme), `children`, the focus and the pointer and key
+/// handlers that call `activate` (WIDGETS-TOGGLE-01, -05, -06, -07, -08; WIDGETS-THEME-01,
+/// -03). The icon button is built on it too.
 pub(crate) fn build_toggle<P: TogglePaint>(
     cx: &mut BuildCx<'_>,
     size: Size,
@@ -224,11 +226,23 @@ pub(crate) fn build_toggle<P: TogglePaint>(
     paint: P,
     children: impl IntoIterator<Item = AnyView>,
 ) -> ElementId {
+    let theme = ThemeHandle::of(cx);
     let id = cx.render(
         RenderConstrainedBox::new(BoxConstraints::tight(size)),
         children,
     );
     cx.set_paint(id, paint);
+    cx.bind(id, theme.colors_prop(), |e, colors| {
+        e.update_paint::<P>(|p| *p.colors_mut() = colors);
+    });
+    cx.bind(id, theme.density_prop(), move |e, density| {
+        e.update_render::<RenderConstrainedBox>(|r| {
+            r.additional = BoxConstraints::tight(Size::new(
+                density.apply(size.width),
+                density.apply(size.height),
+            ));
+        });
+    });
     let (hovered, pressed, focused) = (signal(false), signal(false), signal(false));
     // Becoming disabled clears hover and press (WIDGETS-TOGGLE-05).
     {
@@ -339,6 +353,7 @@ impl View for Checkbox {
         };
         let paint = CheckboxPaint {
             state: State::default(),
+            colors: ThemeHandle::of(cx).colors(),
             value: false,
             indeterminate: false,
         };
@@ -367,6 +382,7 @@ impl<T: Copy + PartialEq + 'static> View for Radio<T> {
         };
         let paint = RadioPaint {
             state: State::default(),
+            colors: ThemeHandle::of(cx).colors(),
             selected: false,
         };
         let id = build_toggle(cx, TOGGLE_SIZE, enabled, activate, paint, []);
@@ -395,6 +411,7 @@ impl View for Switch {
         };
         let paint = SwitchPaint {
             state: State::default(),
+            colors: ThemeHandle::of(cx).colors(),
             value: false,
         };
         let id = build_toggle(cx, SWITCH_SIZE, enabled, activate, paint, []);
@@ -408,6 +425,7 @@ impl View for Switch {
 /// Paints the checkbox (WIDGETS-TOGGLE-02).
 struct CheckboxPaint {
     state: State,
+    colors: ColorScheme,
     value: bool,
     indeterminate: bool,
 }
@@ -415,6 +433,10 @@ struct CheckboxPaint {
 impl TogglePaint for CheckboxPaint {
     fn state_mut(&mut self) -> &mut State {
         &mut self.state
+    }
+
+    fn colors_mut(&mut self) -> &mut ColorScheme {
+        &mut self.colors
     }
 }
 
@@ -431,12 +453,13 @@ impl Paint for CheckboxPaint {
         );
         let shape = RoundedRect::new(rect, BorderRadius::circular(BOX_RADIUS));
         let selected = self.value || self.indeterminate;
+        let colors = &self.colors;
         let scene = cx.scene();
-        self.state.paint_layer(scene, center, selected);
+        self.state.paint_layer(scene, colors, center, selected);
         let fill = if self.state.enabled {
-            PRIMARY
+            colors.primary
         } else {
-            ON_SURFACE_38
+            at(colors.on_surface, ALPHA_38)
         };
         if self.indeterminate {
             scene.fill(shape, fill);
@@ -446,21 +469,21 @@ impl Paint for CheckboxPaint {
                 rect.left + 0.8 * BOX_SIZE,
                 center.y + STROKE / 2.0,
             );
-            scene.fill_rect(dash, Color::WHITE);
+            scene.fill_rect(dash, colors.on_primary);
         } else if self.value {
             scene.fill(shape, fill);
             // Flutter's check: start, mid and end as fractions of the box.
-            let at =
+            let point =
                 |fx: f32, fy: f32| Point::new(rect.left + fx * BOX_SIZE, rect.top + fy * BOX_SIZE);
-            let (start, mid, end) = (at(0.15, 0.45), at(0.40, 0.70), at(0.85, 0.25));
+            let (start, mid, end) = (point(0.15, 0.45), point(0.40, 0.70), point(0.85, 0.25));
             for (from, to) in [(start, mid), (mid, end)] {
-                check_bar(scene, from, to);
+                check_bar(scene, from, to, colors.on_primary);
             }
         } else {
             let outline = if self.state.enabled {
-                ON_SURFACE_VARIANT
+                colors.on_surface_variant
             } else {
-                ON_SURFACE_38
+                at(colors.on_surface, ALPHA_38)
             };
             scene.stroke(shape, STROKE, outline);
         }
@@ -469,7 +492,7 @@ impl Paint for CheckboxPaint {
 
 /// One bar of the check mark: a rect of width `STROKE` from `from` to `to`, extended by half
 /// the stroke at both ends, in a transform scope that rotates it into place.
-fn check_bar(scene: &mut SceneBuilder<'_>, from: Point, to: Point) {
+fn check_bar(scene: &mut SceneBuilder<'_>, from: Point, to: Point, color: Color) {
     let (dx, dy) = (to.x - from.x, to.y - from.y);
     let length = dx.hypot(dy);
     let angle = dy.atan2(dx);
@@ -478,7 +501,7 @@ fn check_bar(scene: &mut SceneBuilder<'_>, from: Point, to: Point) {
     let half = length / 2.0 + STROKE / 2.0;
     scene.fill_rect(
         Rect::from_ltrb(-half, -STROKE / 2.0, half, STROKE / 2.0),
-        Color::WHITE,
+        color,
     );
     scene.pop();
 }
@@ -486,6 +509,7 @@ fn check_bar(scene: &mut SceneBuilder<'_>, from: Point, to: Point) {
 /// Paints the radio (WIDGETS-TOGGLE-03).
 struct RadioPaint {
     state: State,
+    colors: ColorScheme,
     selected: bool,
 }
 
@@ -493,18 +517,23 @@ impl TogglePaint for RadioPaint {
     fn state_mut(&mut self) -> &mut State {
         &mut self.state
     }
+
+    fn colors_mut(&mut self) -> &mut ColorScheme {
+        &mut self.colors
+    }
 }
 
 impl Paint for RadioPaint {
     fn paint(&self, cx: &mut PaintCx<'_, '_>) {
         let size = cx.size();
         let center = Point::new(size.width / 2.0, size.height / 2.0);
+        let colors = &self.colors;
         let scene = cx.scene();
-        self.state.paint_layer(scene, center, self.selected);
+        self.state.paint_layer(scene, colors, center, self.selected);
         let color = match (self.state.enabled, self.selected) {
-            (false, _) => ON_SURFACE_38,
-            (true, true) => PRIMARY,
-            (true, false) => ON_SURFACE_VARIANT,
+            (false, _) => at(colors.on_surface, ALPHA_38),
+            (true, true) => colors.primary,
+            (true, false) => colors.on_surface_variant,
         };
         scene.stroke(circle(center, RING_RADIUS), STROKE, color);
         if self.selected {
@@ -516,12 +545,17 @@ impl Paint for RadioPaint {
 /// Paints the switch (WIDGETS-TOGGLE-04).
 struct SwitchPaint {
     state: State,
+    colors: ColorScheme,
     value: bool,
 }
 
 impl TogglePaint for SwitchPaint {
     fn state_mut(&mut self) -> &mut State {
         &mut self.state
+    }
+
+    fn colors_mut(&mut self) -> &mut ColorScheme {
+        &mut self.colors
     }
 }
 
@@ -551,12 +585,22 @@ impl Paint for SwitchPaint {
         } else {
             THUMB_OFF
         };
+        let colors = &self.colors;
         let scene = cx.scene();
-        self.state.paint_layer(scene, thumb_center, self.value);
+        self.state
+            .paint_layer(scene, colors, thumb_center, self.value);
         let (track_fill, outline, thumb) = match (self.state.enabled, self.value) {
-            (true, true) => (PRIMARY, PRIMARY, Color::WHITE),
-            (true, false) => (SURFACE_CONTAINER_HIGHEST, OUTLINE, OUTLINE),
-            (false, _) => (ON_SURFACE_12, ON_SURFACE_12, ON_SURFACE_38),
+            (true, true) => (colors.primary, colors.primary, colors.on_primary),
+            (true, false) => (
+                colors.surface_container_highest,
+                colors.outline,
+                colors.outline,
+            ),
+            (false, _) => (
+                at(colors.on_surface, ALPHA_12),
+                at(colors.on_surface, ALPHA_12),
+                at(colors.on_surface, ALPHA_38),
+            ),
         };
         scene.fill(track_shape, track_fill);
         if !self.value {

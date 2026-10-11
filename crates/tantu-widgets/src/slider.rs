@@ -3,7 +3,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use tantu_view::core::{Color, Rect};
+use tantu_view::core::Rect;
 use tantu_view::layout::{BoxConstraints, RenderConstrainedBox, RenderLimitedBox};
 use tantu_view::reactive::{effect, signal};
 use tantu_view::scene::{BorderRadius, RoundedRect};
@@ -12,6 +12,9 @@ use tantu_view::{
     PaintCx, Phase, PointerButton, PointerKind, Prop, View,
 };
 
+use tantu_theme::ColorScheme;
+
+use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at};
 use crate::util::dynamic;
 
 /// The slider's height (Material 3's touch target).
@@ -28,19 +31,6 @@ const LAYER_RADIUS: f32 = 24.0;
 const TICK_RADIUS: f32 = 1.0;
 /// A continuous slider's keyboard step, as a fraction of the range.
 const KEY_STEP: f64 = 0.05;
-
-/// Material 3's primary: the active track, the thumb and the state layer.
-const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
-/// The inactive track (surface-container-highest).
-const INACTIVE_TRACK: Color = Color::from_argb32(0xFFE6_E0E9);
-/// Disabled active track and thumb (on-surface at 38 %).
-const DISABLED_ACTIVE: Color = Color::from_argb32(0x611C_1B1F);
-/// Disabled inactive track (on-surface at 12 %).
-const DISABLED_INACTIVE: Color = Color::from_argb32(0x1F1C_1B1F);
-/// A tick on the active track (white at 38 %).
-const ACTIVE_TICK: Color = Color::from_argb32(0x61FF_FFFF);
-/// A tick on the inactive track (on-surface-variant at 38 %).
-const INACTIVE_TICK: Color = Color::from_argb32(0x6149_454F);
 
 /// Picks a number in a range by dragging a thumb (Flutter's `Slider`, Material 3 look).
 ///
@@ -236,6 +226,7 @@ impl View for Slider {
                 }
             });
         }
+        let theme = ThemeHandle::of(cx);
         let id = cx.render(
             RenderLimitedBox::new(MIN_WIDTH, f32::INFINITY),
             [AnyView::new(Track)],
@@ -249,8 +240,12 @@ impl View for Slider {
                 hovered: false,
                 focused: false,
                 dragging: false,
+                colors: theme.colors(),
             },
         );
+        cx.bind(id, theme.colors_prop(), |e, colors| {
+            e.update_paint::<SliderPaint>(|p| p.colors = colors);
+        });
         {
             let model = Rc::clone(&model);
             cx.bind(
@@ -380,6 +375,7 @@ struct SliderPaint {
     hovered: bool,
     focused: bool,
     dragging: bool,
+    colors: ColorScheme,
 }
 
 fn circle(cx: f32, cy: f32, radius: f32) -> RoundedRect {
@@ -394,10 +390,14 @@ impl Paint for SliderPaint {
         let size = cx.size();
         let length = (size.width - 2.0 * THUMB_RADIUS).max(0.0);
         let (x, y) = (THUMB_RADIUS + self.fraction * length, size.height / 2.0);
+        let colors = &self.colors;
         let (active, inactive) = if self.enabled {
-            (PRIMARY, INACTIVE_TRACK)
+            (colors.primary, colors.surface_container_highest)
         } else {
-            (DISABLED_ACTIVE, DISABLED_INACTIVE)
+            (
+                at(colors.on_surface, ALPHA_38),
+                at(colors.on_surface, ALPHA_12),
+            )
         };
         let track = |from: f32, to: f32| {
             RoundedRect::new(
@@ -412,9 +412,9 @@ impl Paint for SliderPaint {
             for i in 0..=self.divisions {
                 let tick = THUMB_RADIUS + (i as f32 / self.divisions as f32) * length;
                 let color = if tick <= x {
-                    ACTIVE_TICK
+                    at(colors.on_primary, ALPHA_38)
                 } else {
-                    INACTIVE_TICK
+                    at(colors.on_surface_variant, ALPHA_38)
                 };
                 scene.fill(circle(tick, y, TICK_RADIUS), color);
             }
@@ -430,7 +430,7 @@ impl Paint for SliderPaint {
             .map(|(_, alpha)| alpha)
             .fold(0.0, f32::max);
             if layer > 0.0 {
-                scene.fill(circle(x, y, LAYER_RADIUS), PRIMARY.with_alpha(layer));
+                scene.fill(circle(x, y, LAYER_RADIUS), colors.primary.with_alpha(layer));
             }
         }
         scene.fill(circle(x, y, THUMB_RADIUS), active);

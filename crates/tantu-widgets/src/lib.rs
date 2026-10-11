@@ -38,6 +38,7 @@ mod scroll;
 mod slider;
 mod text_editing;
 mod text_field;
+mod theme;
 mod toggles;
 mod tooltip;
 mod util;

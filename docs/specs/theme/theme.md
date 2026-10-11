@@ -1,6 +1,6 @@
 # Theme
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-11, taking its five
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-11, taking its five
   proposals; additions made while agreeing are marked *review* in Open questions)
 - **Crates:** `tantu-theme` (tokens and the default themes), `tantu-widgets` (reading them),
   `tantu` (providing the default), `tantu-test` (the same for tests), `examples/gallery` (the

@@ -144,7 +144,7 @@ faster or more portable without changing how apps are written.
 - [ ] Virtualized `ListView` (100k items at 60fps)
   - [x] fixed-extent `ListView::builder` on the viewport (specs `docs/specs/layout/list.md`, `docs/specs/widgets/list-view.md`)
   - [ ] variable item extents, separators, keyboard navigation
-- [ ] `tantu-theme`: design tokens, light/dark, density, live theme switching
+- [x] `tantu-theme`: design tokens, light/dark, density, live theme switching (spec `docs/specs/theme/theme.md`, ADR 0012; `Builder` in `tantu-view`; the gallery's dark-mode switch)
 - [ ] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
 - [ ] `tantu-a11y`: AccessKit tree for every standard widget
 - [x] `examples/gallery` (spec `docs/specs/examples/gallery.md`)

@@ -7,8 +7,7 @@ use tantu_view::layout::{RenderParagraph, StyleSpan, TextStyleKey};
 use tantu_view::text::{FontFamily, TextStyle, TextStyles};
 use tantu_view::{BuildCx, ElementId, IntoProp, ParagraphPaint, Prop, View};
 
-/// `RichText`'s default color (Material 3's on-surface).
-const ON_SURFACE: Color = Color::from_argb32(0xFF1C_1B1F);
+use crate::theme::ThemeHandle;
 
 /// A run of text with a style, or overrides of its parent's, and children (Flutter's
 /// `TextSpan`).
@@ -178,33 +177,33 @@ impl IntoProp<TextSpan> for TextSpan {
 /// A paragraph of styled spans (Flutter's `RichText`).
 pub struct RichText {
     span: Prop<TextSpan>,
-    style: TextStyle,
-    color: Prop<Color>,
+    style: Option<TextStyle>,
+    color: Option<Prop<Color>>,
     max_lines: Option<u32>,
     soft_wrap: bool,
 }
 
 impl RichText {
-    /// `span` on `TextStyle::body()` in on-surface, wrapping at the available width.
+    /// `span` on the theme's body style in on-surface, wrapping at the available width.
     pub fn new(span: impl IntoProp<TextSpan>) -> Self {
         RichText {
             span: span.into_prop(),
-            style: TextStyle::body(),
-            color: Prop::Value(ON_SURFACE),
+            style: None,
+            color: None,
             max_lines: None,
             soft_wrap: true,
         }
     }
 
-    /// The base style, which the root span inherits.
+    /// The base style, which the root span inherits (default: the theme's `text.body`).
     pub fn style(mut self, style: TextStyle) -> Self {
-        self.style = style;
+        self.style = Some(style);
         self
     }
 
-    /// The base color.
+    /// The base color (default: the theme's `on_surface`).
     pub fn color(mut self, color: impl IntoProp<Color>) -> Self {
-        self.color = color.into_prop();
+        self.color = Some(color.into_prop());
         self
     }
 
@@ -223,14 +222,23 @@ impl RichText {
 
 impl View for RichText {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let theme = ThemeHandle::of(cx);
         let styles = cx.text_styles();
-        let base = self.style;
+        let base = self.style.unwrap_or_else(|| theme.snapshot().text.body);
+        let color = self
+            .color
+            .unwrap_or_else(|| theme.color_prop(|c| c.on_surface));
         let base_key = styles.key(base.clone());
         let mut paragraph = RenderParagraph::new("", base_key);
         paragraph.max_lines = self.max_lines;
         paragraph.soft_wrap = self.soft_wrap;
         let id = cx.render(paragraph, []);
-        cx.set_paint(id, ParagraphPaint { color: ON_SURFACE });
+        cx.set_paint(
+            id,
+            ParagraphPaint {
+                color: Color::TRANSPARENT,
+            },
+        );
         cx.bind(id, self.span, move |e, span: TextSpan| {
             let (text, spans) = span.flatten(&styles, &base);
             e.update_render::<RenderParagraph>(|p| {
@@ -238,7 +246,7 @@ impl View for RichText {
                 p.spans = Arc::from(spans);
             });
         });
-        cx.bind(id, self.color, |e, color| {
+        cx.bind(id, color, |e, color| {
             e.update_paint::<ParagraphPaint>(|p| p.color = color);
         });
         id

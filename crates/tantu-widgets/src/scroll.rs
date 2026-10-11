@@ -12,14 +12,16 @@ use tantu_view::{
     Phase, PointerButton, PointerKind, Prop, View,
 };
 
+use crate::theme::{ThemeHandle, at};
+
 /// The thumb's thickness.
 const THUMB_WIDTH: f32 = 8.0;
 /// The thumb's distance from the trailing edge, and the track's margins.
 const MARGIN: f32 = 2.0;
 /// The thumb's shortest length.
 const MIN_THUMB: f32 = 24.0;
-/// The thumb's color (on-surface at 40 %).
-const THUMB_COLOR: Color = Color::from_argb32(0x661C_1B1F);
+/// The thumb's alpha (on-surface at 40 %).
+const THUMB_ALPHA: u8 = 0x66;
 /// How far an arrow key scrolls.
 const KEY_STEP: f32 = 40.0;
 
@@ -197,6 +199,7 @@ impl View for ScrollView {
         } else {
             ScrollAxis::Vertical
         };
+        let theme = ThemeHandle::of(cx);
         let id = cx.render(RenderViewport::new(axis), [self.child]);
         let shared: Shared = Rc::default();
         cx.set_paint(
@@ -205,6 +208,14 @@ impl View for ScrollView {
                 axis,
                 controller,
                 shared: Rc::clone(&shared),
+                thumb: Color::TRANSPARENT,
+            },
+        );
+        cx.bind(
+            id,
+            theme.color_prop(|c| at(c.on_surface, THUMB_ALPHA)),
+            |e, color| {
+                e.update_paint::<ViewportPaint>(|p| p.thumb = color);
             },
         );
         // The viewport's offset follows the controller, clamped to the last extents.
@@ -313,6 +324,8 @@ struct ViewportPaint {
     axis: ScrollAxis,
     controller: ScrollController,
     shared: Shared,
+    /// The thumb's color (the theme's `on_surface` at 40 %).
+    thumb: Color,
 }
 
 impl Paint for ViewportPaint {
@@ -331,7 +344,7 @@ impl Paint for ViewportPaint {
         if let Some(thumb) = bar.thumb_rect(self.controller.offset.get_untracked()) {
             cx.scene().fill(
                 RoundedRect::new(thumb, BorderRadius::circular(THUMB_WIDTH / 2.0)),
-                THUMB_COLOR,
+                self.thumb,
             );
         }
     }

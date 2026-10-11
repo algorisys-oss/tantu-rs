@@ -13,47 +13,45 @@ use tantu_view::{
     Paint, PaintCx, ParagraphPaint, Phase, PointerButton, PointerKind, Prop, View,
 };
 
+use tantu_theme::ColorScheme;
+
+use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at, blend};
 use crate::{Align, Padding};
 
-/// `Text`'s default color (Material 3's on-surface).
-const ON_SURFACE: Color = Color::from_argb32(0xFF1C_1B1F);
-/// The filled button's fill (Material 3's primary).
-const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
-/// A disabled button's fill: on-surface at 12 %.
-const DISABLED_FILL: Color = Color::from_argb32(0x1F1C_1B1F);
-/// A disabled button's label: on-surface at 38 %.
-const DISABLED_LABEL: Color = Color::from_argb32(0x611C_1B1F);
+/// The button's minimum size at density 0 (Material 3).
+const BUTTON_MIN: (f32, f32) = (64.0, 40.0);
 
 /// Shows a string (a value, a closure or a signal) in a style and color (Flutter's `Text`).
 pub struct Text {
     text: Prop<String>,
-    style: TextStyle,
-    color: Prop<Color>,
+    style: Option<TextStyle>,
+    color: Option<Prop<Color>>,
     max_lines: Option<u32>,
     soft_wrap: bool,
 }
 
 impl Text {
-    /// `text` in `TextStyle::body()` and near-black, wrapping at the available width.
+    /// `text` in the theme's body style and on-surface color, wrapping at the available
+    /// width.
     pub fn new(text: impl IntoProp<String>) -> Self {
         Text {
             text: text.into_prop(),
-            style: TextStyle::body(),
-            color: Prop::Value(ON_SURFACE),
+            style: None,
+            color: None,
             max_lines: None,
             soft_wrap: true,
         }
     }
 
-    /// The text style.
+    /// The text style (default: the theme's `text.body`).
     pub fn style(mut self, style: TextStyle) -> Self {
-        self.style = style;
+        self.style = Some(style);
         self
     }
 
-    /// The text color.
+    /// The text color (default: the theme's `on_surface`).
     pub fn color(mut self, color: impl IntoProp<Color>) -> Self {
-        self.color = color.into_prop();
+        self.color = Some(color.into_prop());
         self
     }
 
@@ -72,22 +70,32 @@ impl Text {
 
 impl View for Text {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let mut paragraph = RenderParagraph::new("", cx.text_style(self.style));
+        let theme = ThemeHandle::of(cx);
+        let style = self.style.unwrap_or_else(|| theme.snapshot().text.body);
+        let color = self
+            .color
+            .unwrap_or_else(|| theme.color_prop(|c| c.on_surface));
+        let mut paragraph = RenderParagraph::new("", cx.text_style(style));
         paragraph.max_lines = self.max_lines;
         paragraph.soft_wrap = self.soft_wrap;
         let id = cx.render(paragraph, []);
-        cx.set_paint(id, ParagraphPaint { color: ON_SURFACE });
+        cx.set_paint(
+            id,
+            ParagraphPaint {
+                color: Color::TRANSPARENT,
+            },
+        );
         cx.bind(id, self.text, |e, text: String| {
             e.update_render::<RenderParagraph>(|p| p.text = Arc::from(text));
         });
-        cx.bind(id, self.color, |e, color| {
+        cx.bind(id, color, |e, color| {
             e.update_paint::<ParagraphPaint>(|p| p.color = color);
         });
         id
     }
 }
 
-/// A pressable label (Material 3's filled button, with a fixed look until `tantu-theme`).
+/// A pressable label (Material 3's filled button, in the theme's colors).
 pub struct Button {
     label: Prop<String>,
     on_press: Option<Rc<dyn Fn()>>,
@@ -138,18 +146,20 @@ impl View for Button {
                 }
             });
         }
+        let theme = ThemeHandle::of(cx);
         let label_color = {
             let enabled = Rc::clone(&enabled);
             move || {
+                let colors = theme.colors();
                 if enabled() {
-                    Color::WHITE
+                    colors.on_primary
                 } else {
-                    DISABLED_LABEL
+                    at(colors.on_surface, ALPHA_38)
                 }
             }
         };
         let label = Text::new(self.label)
-            .style(TextStyle::label())
+            .style(theme.snapshot().text.label)
             .color(label_color);
         let content = Padding::new(EdgeInsets::symmetric(24.0, 10.0)).child(
             Align::new(Alignment::CENTER)
@@ -157,15 +167,30 @@ impl View for Button {
                 .height_factor(1.0)
                 .child(label),
         );
-        let minimum = BoxConstraints::new(64.0, f32::INFINITY, 40.0, f32::INFINITY);
+        let minimum = BoxConstraints::new(BUTTON_MIN.0, f32::INFINITY, BUTTON_MIN.1, f32::INFINITY);
         let id = cx.render(RenderConstrainedBox::new(minimum), [AnyView::new(content)]);
         cx.set_paint(
             id,
             ButtonPaint {
                 state: ButtonState::Idle,
                 focused: false,
+                colors: theme.colors(),
             },
         );
+        cx.bind(id, theme.colors_prop(), |e, colors| {
+            e.update_paint::<ButtonPaint>(|p| p.colors = colors);
+        });
+        // The minimum height follows the density (WIDGETS-THEME-03).
+        cx.bind(id, theme.density_prop(), |e, density| {
+            e.update_render::<RenderConstrainedBox>(|r| {
+                r.additional = BoxConstraints::new(
+                    BUTTON_MIN.0,
+                    f32::INFINITY,
+                    density.apply(BUTTON_MIN.1),
+                    f32::INFINITY,
+                );
+            });
+        });
         // Focusable while enabled (WIDGETS-BUTTON-05); a click doesn't focus it.
         {
             let enabled = Rc::clone(&enabled);
@@ -262,17 +287,7 @@ enum ButtonState {
 struct ButtonPaint {
     state: ButtonState,
     focused: bool,
-}
-
-/// `color` with `alpha` white over it (source-over in sRGB).
-fn over_white(color: Color, alpha: f32) -> Color {
-    let mix = |c: f32| c * (1.0 - alpha) + alpha;
-    Color {
-        r: mix(color.r),
-        g: mix(color.g),
-        b: mix(color.b),
-        a: color.a,
-    }
+    colors: ColorScheme,
 }
 
 impl Paint for ButtonPaint {
@@ -285,19 +300,28 @@ impl Paint for ButtonPaint {
             ButtonState::Hovered => Some(0.08),
             ButtonState::Pressed => Some(0.12),
         };
+        let colors = self.colors;
         let color = match layer {
             // The strongest state layer wins; focus is 10 % (WIDGETS-BUTTON-07).
-            Some(layer) => over_white(PRIMARY, layer.max(if self.focused { 0.10 } else { 0.0 })),
-            None => DISABLED_FILL,
+            Some(layer) => blend(
+                colors.primary,
+                colors.on_primary,
+                layer.max(if self.focused { 0.10 } else { 0.0 }),
+            ),
+            None => at(colors.on_surface, ALPHA_12),
         };
-        cx.scene()
-            .fill(RoundedRect::new(rect, BorderRadius::circular(20.0)), color);
+        // A pill: the radius is half the height.
+        let radius = size.height / 2.0;
+        cx.scene().fill(
+            RoundedRect::new(rect, BorderRadius::circular(radius)),
+            color,
+        );
         if self.focused && layer.is_some() {
             // A 3 px outline 2 to 5 px outside the bounds (a stroke lies inside its shape).
             cx.scene().stroke(
-                RoundedRect::new(rect.inflate(5.0), BorderRadius::circular(25.0)),
+                RoundedRect::new(rect.inflate(5.0), BorderRadius::circular(radius + 5.0)),
                 3.0,
-                PRIMARY,
+                colors.primary,
             );
         }
     }

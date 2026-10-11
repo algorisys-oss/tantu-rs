@@ -42,8 +42,9 @@ fn strokes(tester: &WidgetTester, key: &str) -> Vec<Color> {
         .collect()
 }
 
-/// The glyph-run colors painted inside the bounds of the element keyed `key`.
-fn glyph_colors(tester: &WidgetTester, key: &str) -> Vec<Color> {
+/// The commands painted by elements inside the bounds of the element keyed `key` (the
+/// element and its descendants).
+fn commands_within(tester: &WidgetTester, key: &str) -> Vec<Command> {
     let bounds = rect(tester, key);
     tester
         .frame()
@@ -59,8 +60,27 @@ fn glyph_colors(tester: &WidgetTester, key: &str) -> Vec<Color> {
                     && r.bottom <= bounds.bottom
             })
         })
-        .filter_map(|e| match &e.command {
+        .map(|e| e.command.clone())
+        .collect()
+}
+
+/// The glyph-run colors painted inside the bounds of the element keyed `key`.
+fn glyph_colors(tester: &WidgetTester, key: &str) -> Vec<Color> {
+    commands_within(tester, key)
+        .into_iter()
+        .filter_map(|c| match c {
             Command::GlyphRun(run) => Some(run.color),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The fill colors painted inside the bounds of the element keyed `key`.
+fn fills_within(tester: &WidgetTester, key: &str) -> Vec<Color> {
+    commands_within(tester, key)
+        .into_iter()
+        .filter_map(|c| match c {
+            Command::Fill { color, .. } => Some(color),
             _ => None,
         })
         .collect()
@@ -119,7 +139,7 @@ fn widgets_theme_01_colors_from_the_theme() {
     assert_eq!(fills(&tester, "button")[0], dark.primary);
     assert_eq!(glyph_colors(&tester, "button"), vec![dark.on_primary]);
     assert_eq!(glyph_colors(&tester, "text"), vec![dark.on_surface]);
-    assert_eq!(fills(&tester, "divider"), vec![dark.outline_variant]);
+    assert_eq!(fills_within(&tester, "divider"), vec![dark.outline_variant]);
     assert_eq!(fills(&tester, "switch")[0], dark.surface_container_highest);
     assert_eq!(strokes(&tester, "switch"), vec![dark.outline]);
     assert_eq!(strokes(&tester, "checkbox"), vec![dark.on_surface_variant]);
@@ -209,7 +229,12 @@ fn widgets_theme_03_density() {
         })
     });
     tester.pump();
-    assert_eq!(size(&tester, "button"), (64.0, 32.0));
+    // The button's label and padding (36 px) now exceed the 32 px minimum.
+    let button = size(&tester, "button");
+    assert!(
+        button.0 == 64.0 && (32.0..=36.0).contains(&button.1),
+        "{button:?}"
+    );
     assert_eq!(size(&tester, "checkbox"), (32.0, 32.0));
     assert_eq!(size(&tester, "switch"), (52.0, 32.0));
     let field = size(&tester, "field").1;

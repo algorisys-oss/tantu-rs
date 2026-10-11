@@ -17,7 +17,6 @@ impl<V: View, F: FnOnce(&mut BuildCx<'_>) -> V + 'static> Builder<F> {
 
 impl<V: View, F: FnOnce(&mut BuildCx<'_>) -> V + 'static> View for Builder<F> {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.f, cx);
-        todo!()
+        (self.f)(cx).build(cx)
     }
 }

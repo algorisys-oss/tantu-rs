@@ -4,15 +4,15 @@ use tantu_view::core::{Color, Rect};
 use tantu_view::layout::{BoxConstraints, RenderConstrainedBox, RenderLimitedBox};
 use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Paint, PaintCx, Prop, View};
 
-/// The default divider color (Material 3's outline-variant).
-const OUTLINE_VARIANT: Color = Color::from_argb32(0xFFCA_C4D0);
+use crate::theme::ThemeHandle;
 
 /// What both dividers share: the line's thickness, indents and color.
 struct Line {
     thickness: Prop<f32>,
     indent: Prop<f32>,
     end_indent: Prop<f32>,
-    color: Prop<Color>,
+    /// The color; `None` is the theme's `outline_variant`.
+    color: Option<Prop<Color>>,
 }
 
 impl Line {
@@ -21,7 +21,7 @@ impl Line {
             thickness: Prop::Value(1.0),
             indent: Prop::Value(0.0),
             end_indent: Prop::Value(0.0),
-            color: Prop::Value(OUTLINE_VARIANT),
+            color: None,
         }
     }
 
@@ -59,6 +59,11 @@ struct LineElement {
 impl View for LineElement {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let axis = self.axis;
+        let theme = ThemeHandle::of(cx);
+        let color = self
+            .line
+            .color
+            .unwrap_or_else(|| theme.color_prop(|c| c.outline_variant));
         let id = cx.render(RenderConstrainedBox::new(BoxConstraints::UNCONSTRAINED), []);
         cx.set_paint(
             id,
@@ -67,7 +72,7 @@ impl View for LineElement {
                 thickness: 0.0,
                 indent: 0.0,
                 end_indent: 0.0,
-                color: OUTLINE_VARIANT,
+                color: Color::TRANSPARENT,
             },
         );
         cx.bind(id, self.extent, move |e, extent| {
@@ -87,7 +92,7 @@ impl View for LineElement {
         cx.bind(id, self.line.end_indent, |e, v| {
             e.update_paint::<DividerPaint>(|p| p.end_indent = v);
         });
-        cx.bind(id, self.line.color, |e, v| {
+        cx.bind(id, color, |e, v| {
             e.update_paint::<DividerPaint>(|p| p.color = v);
         });
         id
@@ -141,7 +146,8 @@ pub struct Divider {
 }
 
 impl Divider {
-    /// 16 px of height with a 1 px line in `0xFFCAC4D0` across the full width.
+    /// 16 px of height with a 1 px line in the theme's `outline_variant` across the full
+    /// width.
     pub fn new() -> Self {
         Divider {
             height: Prop::Value(16.0),
@@ -173,9 +179,9 @@ impl Divider {
         self
     }
 
-    /// The line's color.
+    /// The line's color (default: the theme's `outline_variant`).
     pub fn color(mut self, color: impl IntoProp<Color>) -> Self {
-        self.line.color = color.into_prop();
+        self.line.color = Some(color.into_prop());
         self
     }
 }
@@ -199,7 +205,8 @@ pub struct VerticalDivider {
 }
 
 impl VerticalDivider {
-    /// 16 px of width with a 1 px line in `0xFFCAC4D0` across the full height.
+    /// 16 px of width with a 1 px line in the theme's `outline_variant` across the full
+    /// height.
     pub fn new() -> Self {
         VerticalDivider {
             width: Prop::Value(16.0),
@@ -231,9 +238,9 @@ impl VerticalDivider {
         self
     }
 
-    /// The line's color.
+    /// The line's color (default: the theme's `outline_variant`).
     pub fn color(mut self, color: impl IntoProp<Color>) -> Self {
-        self.line.color = color.into_prop();
+        self.line.color = Some(color.into_prop());
         self
     }
 }

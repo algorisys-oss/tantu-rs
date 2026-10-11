@@ -95,13 +95,12 @@ impl Density {
     /// Pixels added to a control's minimum extent: 4 per step, the step clamped to −3..=3
     /// (THEME-03).
     pub fn offset(self) -> f32 {
-        todo!()
+        f32::from(self.0.clamp(-3, 3)) * 4.0
     }
 
     /// `extent` plus the offset, never below 0 (THEME-03).
     pub fn apply(self, extent: f32) -> f32 {
-        let _ = extent;
-        todo!()
+        (extent + self.offset()).max(0.0)
     }
 }
 
@@ -121,26 +120,68 @@ pub struct Theme {
 impl Theme {
     /// Material 3's baseline light scheme: the widgets' original constants (THEME-01).
     pub fn light() -> Self {
-        todo!()
+        Theme::with_colors(ColorScheme {
+            primary: Color::from_argb32(0xFF67_50A4),
+            on_primary: Color::WHITE,
+            // Material's `0xFFFFFBFE` rounded to white: the window background stays as it was.
+            surface: Color::WHITE,
+            on_surface: Color::from_argb32(0xFF1C_1B1F),
+            on_surface_variant: Color::from_argb32(0xFF49_454F),
+            surface_container_highest: Color::from_argb32(0xFFE6_E0E9),
+            outline: Color::from_argb32(0xFF79_747E),
+            outline_variant: Color::from_argb32(0xFFCA_C4D0),
+            inverse_surface: Color::from_argb32(0xFF31_3033),
+            inverse_on_surface: Color::from_argb32(0xFFF4_EFF4),
+            error: Color::from_argb32(0xFFB3_261E),
+        })
     }
 
     /// Material 3's baseline dark scheme (THEME-01).
     pub fn dark() -> Self {
-        todo!()
+        Theme::with_colors(ColorScheme {
+            primary: Color::from_argb32(0xFFD0_BCFF),
+            on_primary: Color::from_argb32(0xFF38_1E72),
+            surface: Color::from_argb32(0xFF14_1218),
+            on_surface: Color::from_argb32(0xFFE6_E0E9),
+            on_surface_variant: Color::from_argb32(0xFFCA_C4D0),
+            surface_container_highest: Color::from_argb32(0xFF36_343B),
+            outline: Color::from_argb32(0xFF93_8F99),
+            outline_variant: Color::from_argb32(0xFF49_454F),
+            inverse_surface: Color::from_argb32(0xFFE6_E0E9),
+            inverse_on_surface: Color::from_argb32(0xFF32_2F35),
+            error: Color::from_argb32(0xFFF2_B8B5),
+        })
+    }
+
+    /// `colors` with the shared text presets, shape scale and default density.
+    fn with_colors(colors: ColorScheme) -> Self {
+        Theme {
+            colors,
+            text: TextTheme {
+                body: TextStyle::body(),
+                title: TextStyle::title(),
+                label: TextStyle::label(),
+            },
+            shape: Shape {
+                extra_small: 4.0,
+                small: 8.0,
+                medium: 12.0,
+                large: 16.0,
+            },
+            density: Density(0),
+        }
     }
 
     /// The theme in effect while building: the provided signal's value (a tracked read), or
     /// [`Theme::light`] (THEME-02).
     pub fn of(cx: &BuildCx<'_>) -> Theme {
-        let _ = cx;
-        todo!()
+        Theme::signal(cx).map_or_else(Theme::light, Signal::get)
     }
 
     /// The provided signal, if any: for reactive closures, and for apps switching the theme
     /// (THEME-02).
     pub fn signal(cx: &BuildCx<'_>) -> Option<Signal<Theme>> {
-        let _ = cx;
-        todo!()
+        cx.inherit::<Signal<Theme>>()
     }
 }
 
