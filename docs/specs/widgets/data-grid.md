@@ -1,7 +1,7 @@
 # DataGrid: data source, columns, header, virtualization and frozen columns
 
 - **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its nine
-  proposals); **part 2, frozen columns (WIDGETS-GRID-09), Agreed** on 2026-10-12 (decided by
+  proposals); **part 2, frozen columns (WIDGETS-GRID-09), Implemented** on 2026-10-12 (decided by
   the agent on the user's "continue and then commit and push"; proposals 10 to 12 are marked
   for review)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`, `DataSource`, `CellValue`,

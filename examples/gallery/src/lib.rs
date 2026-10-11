@@ -400,15 +400,16 @@ fn grid_section() -> impl View {
             DataGrid::new(
                 [
                     GridColumn::new("Id").width(80.0),
-                    GridColumn::new("Name").width(160.0),
-                    GridColumn::new("City").width(140.0),
-                    GridColumn::new("Amount"),
+                    GridColumn::new("Name").width(200.0),
+                    GridColumn::new("City").width(180.0),
+                    GridColumn::new("Amount").width(140.0),
                     GridColumn::new("Active").width(90.0),
-                    GridColumn::new("Score"),
+                    GridColumn::new("Score").width(140.0),
                 ],
                 source,
             )
-            .controllers(vertical, horizontal),
+            .controllers(vertical, horizontal)
+            .frozen_columns(1),
         )))
         .child(Keyed::new(
             "first-row",

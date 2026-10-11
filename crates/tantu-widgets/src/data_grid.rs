@@ -214,6 +214,8 @@ struct Geometry {
     row_count: Memo<usize>,
     column_count: usize,
     columns: ListExtents,
+    /// The leading columns pinned at the left (WIDGETS-GRID-09), at most `column_count`.
+    frozen_columns: usize,
 }
 
 impl Geometry {
@@ -225,10 +227,42 @@ impl Geometry {
         )
     }
 
-    /// The columns from `offset` to `offset + viewport`, with one of buffer each side
-    /// (WIDGETS-GRID-02).
-    fn column_range(&self, offset: f32, viewport: f32) -> Range<usize> {
-        range(&self.columns, self.column_count, offset, viewport)
+    /// The columns to build: the scrolling ones between the frozen width and `viewport`
+    /// (one of buffer each side, WIDGETS-GRID-02), then the frozen ones, which paint last
+    /// and so on top (WIDGETS-GRID-09).
+    fn visible_columns(&self, offset: f32, viewport: f32) -> Vec<usize> {
+        let frozen = self.frozen_columns;
+        let frozen_width = self.columns.start(frozen);
+        let scrolling = if viewport > frozen_width {
+            range(
+                &self.columns,
+                self.column_count,
+                offset + frozen_width,
+                viewport - frozen_width,
+            )
+        } else {
+            0..0
+        };
+        scrolling
+            .filter(|column| *column >= frozen)
+            .chain(0..frozen)
+            .collect()
+    }
+
+    /// The grid body for the strip: `rows` rows with the grid's columns and frozen columns.
+    fn body(&self, rows: ListExtents, row_count: usize) -> RenderGridBody {
+        let mut body =
+            RenderGridBody::new(rows, row_count, self.columns.clone(), self.column_count);
+        body.frozen_columns = self.frozen_columns;
+        body
+    }
+
+    /// Whether `column` is frozen, and whether it is the last frozen one (the edge).
+    fn frozen(&self, column: usize) -> (bool, bool) {
+        (
+            column < self.frozen_columns,
+            self.frozen_columns > 0 && column + 1 == self.frozen_columns,
+        )
     }
 
     /// The rows likewise, for `count` rows.
@@ -266,7 +300,6 @@ impl View for DataGrid {
         let (vertical, horizontal) = self.controllers.unwrap_or_default();
         let theme = ThemeHandle::of(cx);
         let wheel = self.wheel;
-        let _ = self.frozen;
         let revision = self.revision;
         let source = self.source;
         let row_count = {
@@ -284,6 +317,7 @@ impl View for DataGrid {
             row_count,
             column_count: self.columns.len(),
             columns: ListExtents::table(self.columns.iter().map(|c| c.width)),
+            frozen_columns: self.frozen.min(self.columns.len()),
         };
         let columns: Rc<[ColumnSpec]> = self
             .columns
@@ -543,37 +577,42 @@ impl View for HeaderStrip {
         let mut style = theme.snapshot().text.label;
         style.weight = HEADER_WEIGHT;
         let cells = {
-            let (geometry, columns) = (geometry.clone(), self.columns);
+            let (geometry, geometry_cells, columns) =
+                (geometry.clone(), geometry.clone(), self.columns);
             For::new(
                 move || {
                     if geometry.header_height <= 0.0 {
                         return Vec::new();
                     }
                     geometry
-                        .column_range(horizontal.offset(), horizontal.viewport_extent())
+                        .visible_columns(horizontal.offset(), horizontal.viewport_extent())
+                        .into_iter()
                         .map(|column| GridSlot { row: 0, column })
                         .collect()
                 },
                 |slot: &GridSlot| *slot,
-                move |slot| CellBox {
-                    slot,
-                    role: Role::ColumnHeader,
-                    name: Some(columns[slot.column].title.clone()),
-                    theme,
-                    child: AnyView::new(cell_content(
-                        Text::new(columns[slot.column].title.clone()).style(style.clone()),
-                    )),
+                {
+                    let geometry = geometry_cells;
+                    move |slot: GridSlot| {
+                        let (frozen, edge) = geometry.frozen(slot.column);
+                        CellBox {
+                            slot,
+                            role: Role::ColumnHeader,
+                            name: Some(columns[slot.column].title.clone()),
+                            theme,
+                            frozen,
+                            edge,
+                            child: AnyView::new(cell_content(
+                                Text::new(columns[slot.column].title.clone()).style(style.clone()),
+                            )),
+                        }
+                    }
                 },
             )
         };
         let rows = if geometry.header_height > 0.0 { 1 } else { 0 };
         let id = cx.render(
-            RenderGridBody::new(
-                ListExtents::Fixed(geometry.header_height),
-                rows,
-                geometry.columns.clone(),
-                geometry.column_count,
-            ),
+            geometry.body(ListExtents::Fixed(geometry.header_height), rows),
             [AnyView::new(cells)],
         );
         cx.set_paint(
@@ -621,7 +660,7 @@ impl View for Body {
             (self.geometry, self.vertical, self.horizontal, self.theme);
         let (source, revision, columns) = (self.source, self.revision, self.columns);
         let cells = {
-            let geometry = geometry.clone();
+            let (geometry, geometry_cells) = (geometry.clone(), geometry.clone());
             For::new(
                 move || {
                     let rows = geometry.row_range(
@@ -630,13 +669,14 @@ impl View for Body {
                         vertical.viewport_extent(),
                     );
                     let cols =
-                        geometry.column_range(horizontal.offset(), horizontal.viewport_extent());
-                    rows.flat_map(|row| cols.clone().map(move |column| GridSlot { row, column }))
+                        geometry.visible_columns(horizontal.offset(), horizontal.viewport_extent());
+                    rows.flat_map(|row| cols.iter().map(move |&column| GridSlot { row, column }))
                         .collect()
                 },
                 |slot: &GridSlot| *slot,
                 move |slot| {
                     let GridSlot { row, column } = slot;
+                    let (frozen, edge) = geometry_cells.frozen(column);
                     let source = Rc::clone(&source);
                     let child: AnyView = match &columns[column].builder {
                         // A built cell is rebuilt when the revision changes (WIDGETS-GRID-06).
@@ -666,18 +706,15 @@ impl View for Body {
                         role: Role::Cell,
                         name: None,
                         theme,
+                        frozen,
+                        edge,
                         child,
                     }
                 },
             )
         };
         let id = cx.render(
-            RenderGridBody::new(
-                ListExtents::Fixed(geometry.row_height),
-                0,
-                geometry.columns.clone(),
-                geometry.column_count,
-            ),
+            geometry.body(ListExtents::Fixed(geometry.row_height), 0),
             [AnyView::new(cells)],
         );
         cx.set_paint(
@@ -759,6 +796,10 @@ struct CellBox {
     role: Role,
     name: Option<String>,
     theme: ThemeHandle,
+    /// A frozen column's cell: opaque, painted over the scrolling ones (WIDGETS-GRID-09).
+    frozen: bool,
+    /// The last frozen column's cell: its right line is the theme's `outline`.
+    edge: bool,
     child: AnyView,
 }
 
@@ -781,28 +822,37 @@ impl View for CellBox {
             id,
             CellPaint {
                 line: Color::TRANSPARENT,
+                background: None,
+                edge: None,
             },
         );
-        cx.bind(
-            id,
-            self.theme.color_prop(|c| c.outline_variant),
-            |e, color| {
-                e.update_paint::<CellPaint>(|p| p.line = color);
-            },
-        );
+        let (frozen, edge) = (self.frozen, self.edge);
+        cx.bind(id, self.theme.colors_prop(), move |e, colors| {
+            e.update_paint::<CellPaint>(|p| {
+                p.line = colors.outline_variant;
+                p.background = frozen.then_some(colors.surface);
+                p.edge = edge.then_some(colors.outline);
+            });
+        });
         id
     }
 }
 
-/// Clips the content to the cell and draws its bottom and right lines.
+/// Clips the content to the cell and draws its bottom and right lines; a frozen cell fills
+/// its background first and a frozen edge uses the outline color (WIDGETS-GRID-09).
 struct CellPaint {
     line: Color,
+    background: Option<Color>,
+    edge: Option<Color>,
 }
 
 impl Paint for CellPaint {
     fn paint(&self, cx: &mut PaintCx<'_, '_>) {
         let size = cx.size();
         let bounds = Rect::from_ltwh(0.0, 0.0, size.width, size.height);
+        if let Some(background) = self.background {
+            cx.scene().fill_rect(bounds, background);
+        }
         cx.scene().push_clip(Clip::Rect(bounds));
         cx.paint_children();
         cx.scene().pop();
@@ -812,7 +862,7 @@ impl Paint for CellPaint {
         );
         cx.scene().fill_rect(
             Rect::from_ltwh(size.width - 1.0, 0.0, 1.0, size.height),
-            self.line,
+            self.edge.unwrap_or(self.line),
         );
     }
 
