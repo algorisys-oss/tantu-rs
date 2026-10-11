@@ -114,6 +114,8 @@ impl Paint for ParagraphPaint { /* ... */ }
   `SystemText` yields glyph runs whose fonts are in those `Resources`.
 - **VIEW-TEXT-06:** `TextPainter::image_id` (default `None`; `SystemText` interns in its
   resources) and `PaintCx::image_id`; see [Image](../widgets/image.md), where they were added.
+- **VIEW-TEXT-07:** `TextPainter::paint_rich` (default `paint_text`), `PaintCx::paint_rich`, and
+  `ParagraphPaint` painting the paragraph's spans; see [RichText](../widgets/rich-text.md).
 
 ## Performance and allocation
 

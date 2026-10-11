@@ -150,6 +150,10 @@ family.
   first_baseline`, with `color` and the style's size. The run's `FontId` names a font in
   `resources` holding the font file; painting again with the same font reuses the same `FontId`.
   Empty text records nothing; lines cut by `max_lines` record no glyphs.
+- **TEXT-SYS-10:** `measure_rich` lays out style spans with parley ranges; see
+  [RichText](../widgets/rich-text.md), where it was added.
+- **TEXT-SYS-11:** `paint_rich` paints spans with their colors as brushes; see
+  [RichText](../widgets/rich-text.md).
 
 ## Performance and allocation
 

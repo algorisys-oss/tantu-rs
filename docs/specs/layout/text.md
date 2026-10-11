@@ -209,6 +209,11 @@ words break at spaces, `\n` is a hard break, and it counts its calls.
 - **LAYOUT-TEXT-10:** With `NoTextMeasure` (a plain `LayoutTree::layout`), a paragraph is
   `constraints.smallest()`. Nothing panics for any constraints or any metrics a measurer
   returns (NaN, negative, infinite: the tree constrains sizes and sanitizes intrinsics).
+- **LAYOUT-TEXT-11:** `StyleSpan`, `TextMeasure::measure_rich` / `min_intrinsic_width_rich`
+  (defaults ignore spans) and `RenderParagraph::spans`; see [RichText](../widgets/rich-text.md),
+  where they were added.
+- **LAYOUT-TEXT-12:** `MeasureCache` caches rich paragraphs keyed by their spans too; see
+  [RichText](../widgets/rich-text.md).
 
 ## Performance and allocation
 
