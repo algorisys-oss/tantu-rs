@@ -125,7 +125,7 @@ fn layout_grid_02_placement() {
 fn layout_grid_03_content_intrinsics_and_equality() {
     assert_eq!(big().content(), s(2400.0, 32_000_000.0));
     assert_eq!(tables().content(), s(110.0, 60.0));
-    let (mut tree, root, _, log) = grid(tables(), &[slot(0, 0)]);
+    let (mut tree, root, cells, log) = grid(tables(), &[slot(0, 0)]);
     assert_eq!(tree.min_intrinsic_width(root, INF), 110.0);
     assert_eq!(tree.max_intrinsic_width(root, 20.0), 110.0);
     assert_eq!(tree.min_intrinsic_height(root, INF), 60.0);
@@ -135,11 +135,13 @@ fn layout_grid_03_content_intrinsics_and_equality() {
     assert!(!tree.set(root, tables()));
     tree.layout(root, BoxConstraints::loose(s(300.0, 300.0)));
     assert!(log.take().is_empty());
+    // A changed offset re-lays out the body: the cell moves (its own constraints are
+    // unchanged, so the layout cache keeps its size).
     let mut moved = tables();
     moved.offset = Vec2::new(0.0, 5.0);
     assert!(tree.set(root, moved));
     tree.layout(root, BoxConstraints::loose(s(300.0, 300.0)));
-    assert_eq!(log.take().len(), 1);
+    assert_eq!(tree.offset(cells[0]), Some(Vec2::new(0.0, -5.0)));
 }
 
 #[test]
