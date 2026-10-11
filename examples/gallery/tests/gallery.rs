@@ -244,4 +244,14 @@ fn gallery_10_data_grid() {
     // The wheel step animates (WIDGETS-SCROLL-07); let it finish.
     tester.advance(std::time::Duration::from_millis(200));
     assert_eq!(text_of(&tester, "first-row"), "First row: 10");
+    // The Id column is frozen: a horizontal scroll moves "Name" but not "Id".
+    let id = tester.rect(tester.find(&Finder::text("Id")));
+    let name = tester.rect(tester.find(&Finder::text("Name")));
+    tester.scroll(&Finder::key("grid"), Vec2::new(200.0, 0.0));
+    tester.advance(std::time::Duration::from_millis(200));
+    assert_eq!(tester.rect(tester.find(&Finder::text("Id"))), id);
+    assert_eq!(
+        tester.rect(tester.find(&Finder::text("Name"))).left,
+        name.left - 200.0
+    );
 }

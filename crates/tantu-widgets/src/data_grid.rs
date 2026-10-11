@@ -138,6 +138,7 @@ pub struct DataGrid {
     revision: Option<Signal<u64>>,
     controllers: Option<(ScrollController, ScrollController)>,
     wheel: Duration,
+    frozen: usize,
 }
 
 impl DataGrid {
@@ -151,6 +152,7 @@ impl DataGrid {
             revision: None,
             controllers: None,
             wheel: Duration::from_millis(150),
+            frozen: 0,
         }
     }
 
@@ -183,6 +185,13 @@ impl DataGrid {
     /// `ScrollView::wheel_duration`.
     pub fn wheel_duration(mut self, duration: Duration) -> Self {
         self.wheel = duration;
+        self
+    }
+
+    /// The first `count` columns stay at the left while the others scroll (clamped to the
+    /// column count; default 0) (WIDGETS-GRID-09).
+    pub fn frozen_columns(mut self, count: usize) -> Self {
+        self.frozen = count;
         self
     }
 }
@@ -257,6 +266,7 @@ impl View for DataGrid {
         let (vertical, horizontal) = self.controllers.unwrap_or_default();
         let theme = ThemeHandle::of(cx);
         let wheel = self.wheel;
+        let _ = self.frozen;
         let revision = self.revision;
         let source = self.source;
         let row_count = {

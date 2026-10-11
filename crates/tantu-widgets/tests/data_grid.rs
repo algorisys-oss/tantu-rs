@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/data-grid.md`, rules WIDGETS-GRID-01..07 (08 is in
+//! Tests for `docs/specs/widgets/data-grid.md`, rules WIDGETS-GRID-01..07 and 09 (08 is in
 //! `bench_scenarios.rs`).
 
 use std::cell::{Cell, RefCell};
@@ -437,4 +437,75 @@ fn widgets_grid_07_semantics() {
     assert!(has_role(Role::ColumnHeader, Some("Id")));
     assert!(has_role(Role::Cell, None));
     assert!(has_role(Role::Label, Some("r0c0")));
+}
+
+const SURFACE: Color = Color::from_argb32(0xFFFF_FFFF);
+const OUTLINE: Color = Color::from_argb32(0xFF79_747E);
+
+#[test]
+fn widgets_grid_09_frozen_columns() {
+    let (mut tester, _, horizontal) = grid(600.0, 400.0, || {
+        DataGrid::new(columns(20), source(1000)).frozen_columns(2)
+    });
+    let (c0, c1, h0) = (
+        rect(&tester, "r0c0"),
+        rect(&tester, "r0c1"),
+        rect(&tester, "Col 0"),
+    );
+    assert_eq!(
+        tester.enter(|| horizontal.max_scroll_extent()),
+        1800.0,
+        "the extents are unchanged"
+    );
+    tester.scroll(&Finder::key("g"), Vec2::new(240.0, 0.0));
+    assert_eq!(offset(&tester, horizontal), 240.0);
+    // Frozen cells and headers stay; the scrolling ones moved under them.
+    assert_eq!(rect(&tester, "r0c0"), c0);
+    assert_eq!(rect(&tester, "r0c1"), c1);
+    assert_eq!(rect(&tester, "Col 0"), h0);
+    assert_eq!(rect(&tester, "r0c4").left, 240.0 + 8.0);
+    assert_eq!(rect(&tester, "Col 4").left, 240.0 + 8.0);
+    assert!(has(&tester, "r0c3") && !has(&tester, "r0c2") && !has(&tester, "r0c8"));
+    assert!(has(&tester, "Col 3") && !has(&tester, "Col 2"));
+    // Frozen cells are opaque (a surface fill the size of a cell) and painted after the
+    // scrolling cells; the last frozen column's right line is the outline color.
+    let entries = tester.frame().scene.entries();
+    let cell_fills = |color: Color| {
+        entries
+            .iter()
+            .filter(|e| {
+                matches!(e.command, Command::Fill { shape, color: c } if c == color
+                    && shape.rect.width() == 120.0 && shape.rect.height() == 32.0)
+            })
+            .count()
+    };
+    let body_rows = texts(&tester).iter().filter(|t| t.ends_with("c0")).count();
+    assert_eq!(
+        cell_fills(SURFACE),
+        2 * body_rows + 2,
+        "{body_rows} frozen rows"
+    );
+    let edge_lines = entries
+        .iter()
+        .filter(|e| matches!(e.command, Command::Fill { shape, color } if color == OUTLINE && shape.rect.width() == 1.0))
+        .count();
+    assert_eq!(edge_lines, body_rows + 1);
+    let position = |text: &str| {
+        let id = tester.find(&Finder::text(text));
+        entries
+            .iter()
+            .position(|e| e.element == Some(id))
+            .expect("painted")
+    };
+    assert!(
+        position("r0c0") > position("r0c4"),
+        "frozen cells paint last"
+    );
+    // More frozen columns than columns: all frozen, nothing scrolls.
+    let (mut tester, _, horizontal) = grid(600.0, 400.0, || {
+        DataGrid::new(columns(3), source(10)).frozen_columns(5)
+    });
+    tester.scroll(&Finder::key("g"), Vec2::new(100.0, 0.0));
+    assert_eq!(offset(&tester, horizontal), 0.0);
+    assert_eq!(rect(&tester, "r0c2").left, 240.0 + 8.0);
 }
