@@ -139,10 +139,11 @@ impl WidgetTester {
 }
 ```
 
-Structure: a `LimitedBox` (`max_width` 280) around a render element (the *box*) with
-`RenderConstrainedBox(BoxConstraints::new(∞, ∞, 40, ∞))`, so the field fills a bounded width
-(280 px in an unbounded one) and is at least 40 px tall; it holds the focus, the pointer and
-key handlers, the chords and the `FieldPaint` (outline). Inside it a `Padding` of 16 × 8
+Structure: the *box* is a render element with a `RenderLimitedBox` (`max_width` 280) around
+a render element with `RenderConstrainedBox(BoxConstraints::new(∞, ∞, 40, ∞))`, so the field
+fills a bounded width (280 px in an unbounded one) and is at least 40 px tall. The outer
+element, which `Keyed` and finders see and which has the same size, holds the focus, the
+pointer and key handlers, the chords and the `FieldPaint` (outline). Inside, a `Padding` of 16 × 8
 holds the *editor* element: a `RenderParagraph` of the controller's text (the base style, no
 spans; `soft_wrap` false and `max_lines` 1 for a single-line field) with an `EditorPaint`
 that paints the selection rects, the text (or the placeholder), the caret, and records the
