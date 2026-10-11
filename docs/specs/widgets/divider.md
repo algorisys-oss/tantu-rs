@@ -1,6 +1,6 @@
 # Divider and VerticalDivider
 
-- **Status:** Draft (for review; proposals in Open questions)
+- **Status:** Agreed (the user said "continue" on the draft, taking its proposals)
 - **Crates:** `tantu-widgets` (plus one layout object added to `tantu-layout` and one widget to
   the layout widgets)
 - **Plan item:** Phase 3, "Widgets" → "`Divider`"
@@ -108,13 +108,13 @@ same with the axes swapped. Colors: outline-variant `0xFFCAC4D0` (Material 3's d
 
 ## Behavior
 
-- **LAYOUT-SINGLE-16:** `RenderLimitedBox` lays out its child with the incoming constraints,
+- **LAYOUT-SINGLE-16** (in [single-child layouts](../layout/single-child.md)): `RenderLimitedBox` lays out its child with the incoming constraints,
   except that on an axis whose incoming maximum is infinite the maximum becomes
   `constrain_width(max_width)` (`constrain_height(max_height)`, so a limit below the minimum
   is raised to it). The size is the child's, or the limited constraints' smallest size without
   a child. Intrinsics are the child's (0 without one). A limit that is negative or NaN counts
   as infinite. (Added to `tantu-layout` with this spec.)
-- **WIDGETS-LAYOUT-07:** `LimitedBox` builds a `RenderLimitedBox` with reactive `max_width` and
+- **WIDGETS-LAYOUT-07** (in [layout widgets](layout.md)): `LimitedBox` builds a `RenderLimitedBox` with reactive `max_width` and
   `max_height` (default infinite), like the other layout widgets (WIDGETS-LAYOUT-01..03, 06).
   (Added to the layout widgets with this spec.)
 - **WIDGETS-DIVIDER-01:** A `Divider` is `height` tall and as wide as the incoming maximum
@@ -138,7 +138,7 @@ only the extent goes through `update_render`.
 
 ## Open questions
 
-Proposals (the user says "continue" to take them):
+Resolved (2026-10-11; the user said "continue" on the draft):
 
 1. **`LimitedBox` rather than a custom render object.** The divider (and the slider after it)
    needs "fill a bounded width, else a fixed one". Flutter expresses that with `LimitedBox`

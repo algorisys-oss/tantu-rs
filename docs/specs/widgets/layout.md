@@ -24,6 +24,7 @@ In scope (in `tantu-widgets`):
 | `Align`, `Center` | `RenderPositionedBox` | `Align::new(alignment)`, `.width_factor`, `.height_factor`, `Center::new()`, `.child(..)` |
 | `SizedBox` | `RenderConstrainedBox` | `SizedBox::new(w, h)`, `::width(w)`, `::height(h)`, `::expand()`, `::shrink()`, `.child(..)` |
 | `ConstrainedBox` | `RenderConstrainedBox` | `ConstrainedBox::new(constraints)`, `.child(..)` |
+| `LimitedBox` | `RenderLimitedBox` | `LimitedBox::new()`, `.max_width(w)`, `.max_height(h)`, `.child(..)` (added with `Divider`, WIDGETS-LAYOUT-07) |
 | `Row`, `Column` | `RenderFlex` | `::new()`, `.main_axis_alignment`, `.main_axis_size`, `.cross_axis_alignment`, `.spacing`, `.child`, `.children` |
 | `Expanded`, `Flexible` | parent data `FlexParentData` | `Expanded::new(child)`, `Flexible::new(child)`, `.flex(n)`; `Flexible` also has `.fit(..)` |
 | `Spacer` | an empty box with `FlexParentData { flex, fit: Tight }` | `Spacer::new()`, `.flex(n)` |
@@ -112,6 +113,10 @@ offsets, because parent data is set once while building (see open question 2).
   `SizedBox::shrink()` is 0 × 0 and `SizedBox::expand()` fills bounded constraints.
 - **WIDGETS-LAYOUT-06:** Layout widgets paint nothing themselves (`NoPaint`). Their children are
   painted in order, so a `Stack` paints later children on top.
+- **WIDGETS-LAYOUT-07:** `LimitedBox` builds a `RenderLimitedBox` with reactive `max_width` and
+  `max_height` (default infinite), like the other layout widgets: in a `Row` (unbounded width)
+  a `LimitedBox` with `max_width` 100 around `SizedBox::expand()` is 100 wide, and under
+  bounded constraints the limit is ignored. (Added with [Divider](divider.md).)
 
 ## Performance and allocation
 

@@ -115,6 +115,16 @@ impl RenderFractionallySizedBox {
 /// constraints allow (Flutter's `RenderAspectRatio`).
 pub struct RenderAspectRatio { pub aspect_ratio: f32 }
 impl RenderAspectRatio { pub const fn new(aspect_ratio: f32) -> Self; }
+
+/// Caps the child's maximum width (height) at `max_width` (`max_height`) only when the
+/// incoming constraints are unbounded on that axis (Flutter's `RenderLimitedBox`, behind
+/// `LimitedBox`). Added with the Divider (LAYOUT-SINGLE-16).
+pub struct RenderLimitedBox { pub max_width: f32, pub max_height: f32 }
+impl RenderLimitedBox {
+    /// `max_width` and `max_height` (`f32::INFINITY` for no limit).
+    pub const fn new(max_width: f32, max_height: f32) -> Self;
+}
+impl Default for RenderLimitedBox { /* no limits */ }
 ```
 
 ## Behavior
@@ -192,6 +202,15 @@ intrinsic sizes through the tree, 0 without a child.
 - **LAYOUT-SINGLE-14:** Intrinsics: width (min and max) at a finite height is `height · ratio`;
   height (min and max) at a finite width is `width / ratio`; at an infinite argument, the
   child's. A ratio that isn't finite and positive gives the child's intrinsics.
+
+### RenderLimitedBox
+
+- **LAYOUT-SINGLE-16:** `RenderLimitedBox` lays out its child with the incoming constraints,
+  except that on an axis whose incoming maximum is infinite the maximum becomes
+  `constrain_width(max_width)` (`constrain_height(max_height)`, so a limit below the minimum
+  is raised to it). The size is the child's, or the limited constraints' smallest size without
+  a child. Intrinsics are the child's (0 without one). A limit that is negative or NaN counts
+  as infinite. `default()` has no limits. (Added with [Divider](../widgets/divider.md).)
 
 ### Shared
 
