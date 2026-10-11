@@ -1,19 +1,19 @@
-//! Tests for `docs/specs/widgets/layout.md`, rules WIDGETS-LAYOUT-01..06.
+//! Tests for `docs/specs/widgets/layout.md`, rules WIDGETS-LAYOUT-01..07.
 
 use std::cell::Cell;
 use std::rc::Rc;
 
 use tantu_view::core::{Color, EdgeInsets, Size, Vec2};
 use tantu_view::layout::{
-    Alignment, BoxConstraints, NoTextMeasure, RenderConstrainedBox, RenderFlex, RenderPadding,
-    RenderPositionedBox, RenderStack,
+    Alignment, BoxConstraints, NoTextMeasure, RenderConstrainedBox, RenderFlex, RenderLimitedBox,
+    RenderPadding, RenderPositionedBox, RenderStack,
 };
 use tantu_view::reactive::{Signal, signal};
 use tantu_view::scene::{Command, Scene};
 use tantu_view::{BuildCx, Dyn, ElementId, Paint, PaintCx, View, ViewTree};
 use tantu_widgets::{
-    Align, Center, Column, ConstrainedBox, Expanded, Flexible, Padding, Positioned, Row, SizedBox,
-    Spacer, Stack,
+    Align, Center, Column, ConstrainedBox, Expanded, Flexible, LimitedBox, Padding, Positioned,
+    Row, SizedBox, Spacer, Stack,
 };
 
 fn loose(w: f32, h: f32) -> BoxConstraints {
@@ -353,4 +353,56 @@ fn widgets_layout_06_layout_widgets_paint_nothing() {
             Color::from_argb32(0xFF0000FF)
         ]
     );
+}
+
+#[test]
+fn widgets_layout_07_limited_box() {
+    // In a row (unbounded width) the limit applies.
+    let mut tree = ViewTree::new(|| {
+        Row::new().child(LimitedBox::new().max_width(100.0).child(SizedBox::expand()))
+    });
+    tree.layout(tight(300.0, 100.0), &mut NoTextMeasure);
+    let limited = child(&tree, top(&tree), 0);
+    let render = |tree: &ViewTree, id: ElementId| {
+        let layout = tree.layout_id(id).expect("a render element");
+        tree.layout_tree().get::<RenderLimitedBox>(layout).copied()
+    };
+    assert!(render(&tree, limited).is_some());
+    assert_eq!(size(&tree, limited), Size::new(100.0, 100.0));
+    assert_eq!(
+        size(&tree, child(&tree, limited, 0)),
+        Size::new(100.0, 100.0)
+    );
+    // Under bounded constraints it is ignored; the default has no limits.
+    let mut tree = ViewTree::new(|| {
+        Center::new().child(
+            LimitedBox::new()
+                .max_width(100.0)
+                .max_height(10.0)
+                .child(SizedBox::expand()),
+        )
+    });
+    tree.layout(tight(200.0, 120.0), &mut NoTextMeasure);
+    assert_eq!(
+        size(&tree, child(&tree, top(&tree), 0)),
+        Size::new(200.0, 120.0)
+    );
+    let mut tree = ViewTree::new(|| LimitedBox::new().child(SizedBox::new(30.0, 20.0)));
+    tree.layout(loose(200.0, 120.0), &mut NoTextMeasure);
+    assert_eq!(size(&tree, top(&tree)), Size::new(30.0, 20.0));
+    assert_eq!(render(&tree, top(&tree)), Some(RenderLimitedBox::default()));
+    // The limits are reactive.
+    let max_width = signal(100.0f32);
+    let mut tree = ViewTree::new(move || {
+        Row::new().child(
+            LimitedBox::new()
+                .max_width(max_width)
+                .child(SizedBox::expand()),
+        )
+    });
+    frame(&mut tree, tight(300.0, 100.0));
+    assert_eq!(size(&tree, child(&tree, top(&tree), 0)).width, 100.0);
+    tree.enter(|| max_width.set(50.0));
+    frame(&mut tree, tight(300.0, 100.0));
+    assert_eq!(size(&tree, child(&tree, top(&tree), 0)).width, 50.0);
 }

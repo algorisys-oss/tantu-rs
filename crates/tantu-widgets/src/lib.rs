@@ -26,13 +26,15 @@
 #![forbid(unsafe_code)]
 
 mod basic;
+mod divider;
 mod layout;
 mod tooltip;
 
 pub use basic::{Button, Text};
+pub use divider::{Divider, VerticalDivider};
 pub use tooltip::Tooltip;
 
 pub use layout::{
-    Align, Center, Column, ConstrainedBox, Expanded, Flexible, Padding, Positioned, Row, SizedBox,
-    Spacer, Stack,
+    Align, Center, Column, ConstrainedBox, Expanded, Flexible, LimitedBox, Padding, Positioned,
+    Row, SizedBox, Spacer, Stack,
 };

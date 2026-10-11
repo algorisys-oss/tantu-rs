@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/layout/single-child.md`, rules LAYOUT-SINGLE-01..15.
+//! Tests for `docs/specs/layout/single-child.md`, rules LAYOUT-SINGLE-01..16.
 
 mod common;
 
@@ -6,8 +6,8 @@ use common::*;
 use tantu_core::{EdgeInsets, Size, Vec2};
 use tantu_layout::{
     Alignment, BoxConstraints, IntrinsicChildren, LayoutChildren, LayoutId, LayoutTree,
-    RenderAspectRatio, RenderBox, RenderConstrainedBox, RenderFractionallySizedBox, RenderPadding,
-    RenderPositionedBox,
+    RenderAspectRatio, RenderBox, RenderConstrainedBox, RenderFractionallySizedBox,
+    RenderLimitedBox, RenderPadding, RenderPositionedBox,
 };
 
 const INF: f32 = f32::INFINITY;
@@ -580,4 +580,59 @@ fn layout_single_15_shared_rules() {
     tree.layout(root2, loose(100.0, 100.0));
     assert!(!tree.set(root2, RenderAspectRatio::new(2.0)));
     assert!(!tree.set(root2, RenderAspectRatio::new(2.0)) && !tree.needs_layout(root2));
+}
+
+#[test]
+fn layout_single_16_limited_box() {
+    let child = Some(s(200.0, 200.0));
+    // Unbounded axes are capped at the limits; the size is the child's.
+    let mut t = one(RenderLimitedBox::new(100.0, 50.0), child);
+    assert_eq!(t.layout(BoxConstraints::UNCONSTRAINED), s(100.0, 50.0));
+    assert_eq!(
+        t.child_constraints(),
+        BoxConstraints::new(0.0, 100.0, 0.0, 50.0)
+    );
+    // Bounded axes ignore the limits.
+    assert_eq!(t.layout(loose(300.0, 300.0)), s(200.0, 200.0));
+    assert_eq!(t.child_constraints(), loose(300.0, 300.0));
+    // A limit below the minimum is raised to it.
+    assert_eq!(
+        t.layout(BoxConstraints::new(150.0, INF, 0.0, 10.0)),
+        s(150.0, 10.0)
+    );
+    assert_eq!(
+        t.child_constraints(),
+        BoxConstraints::new(150.0, 150.0, 0.0, 10.0)
+    );
+    // Without a child: the limited constraints' smallest size.
+    let mut t = one(RenderLimitedBox::new(100.0, 50.0), None);
+    assert_eq!(t.layout(BoxConstraints::UNCONSTRAINED), Size::ZERO);
+    assert_eq!(
+        t.layout(BoxConstraints::new(20.0, INF, 30.0, INF)),
+        s(20.0, 30.0)
+    );
+    // Negative or NaN limits count as infinite; the default has no limits.
+    for bad in [-1.0, NAN] {
+        let mut t = one(RenderLimitedBox::new(bad, bad), child);
+        assert_eq!(
+            t.layout(BoxConstraints::UNCONSTRAINED),
+            s(200.0, 200.0),
+            "{bad}"
+        );
+        assert_eq!(
+            t.child_constraints(),
+            BoxConstraints::UNCONSTRAINED,
+            "{bad}"
+        );
+    }
+    assert_eq!(RenderLimitedBox::default(), RenderLimitedBox::new(INF, INF));
+    // Intrinsics are the child's, 0 without one.
+    let mut t = one(RenderLimitedBox::new(100.0, 50.0), Some(s(30.0, 20.0)));
+    assert_eq!(t.tree.min_intrinsic_width(t.root, INF), 30.0);
+    assert_eq!(t.tree.max_intrinsic_width(t.root, INF), 30.0);
+    assert_eq!(t.tree.min_intrinsic_height(t.root, INF), 20.0);
+    assert_eq!(t.tree.max_intrinsic_height(t.root, INF), 20.0);
+    let mut t = one(RenderLimitedBox::new(100.0, 50.0), None);
+    assert_eq!(t.tree.min_intrinsic_width(t.root, INF), 0.0);
+    assert_eq!(t.tree.max_intrinsic_height(t.root, INF), 0.0);
 }

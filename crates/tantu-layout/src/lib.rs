@@ -53,8 +53,8 @@ pub use flex::{
     Axis, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment, MainAxisSize, RenderFlex,
 };
 pub use single_child::{
-    RenderAspectRatio, RenderConstrainedBox, RenderFractionallySizedBox, RenderPadding,
-    RenderPositionedBox,
+    RenderAspectRatio, RenderConstrainedBox, RenderFractionallySizedBox, RenderLimitedBox,
+    RenderPadding, RenderPositionedBox,
 };
 pub use stack::{RenderStack, StackFit, StackParentData};
 pub use text::{

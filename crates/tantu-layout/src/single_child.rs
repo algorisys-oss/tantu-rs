@@ -408,3 +408,41 @@ impl RenderBox for RenderAspectRatio {
         }
     }
 }
+
+/// Caps the child's maximum width (height) at `max_width` (`max_height`) only when the
+/// incoming constraints are unbounded on that axis (Flutter's `RenderLimitedBox`, behind
+/// `LimitedBox`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RenderLimitedBox {
+    /// The limit on an unbounded width (`f32::INFINITY` for none).
+    pub max_width: f32,
+    /// The limit on an unbounded height (`f32::INFINITY` for none).
+    pub max_height: f32,
+}
+
+impl RenderLimitedBox {
+    /// Limits of `max_width` and `max_height` (`f32::INFINITY` for no limit).
+    pub const fn new(max_width: f32, max_height: f32) -> Self {
+        RenderLimitedBox {
+            max_width,
+            max_height,
+        }
+    }
+}
+
+impl Default for RenderLimitedBox {
+    fn default() -> Self {
+        RenderLimitedBox::new(f32::INFINITY, f32::INFINITY)
+    }
+}
+
+impl RenderBox for RenderLimitedBox {
+    fn perform_layout(
+        &mut self,
+        constraints: BoxConstraints,
+        children: &mut LayoutChildren<'_>,
+    ) -> Size {
+        let _ = (constraints, children);
+        todo!("LAYOUT-SINGLE-16")
+    }
+}

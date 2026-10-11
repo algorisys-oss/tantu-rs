@@ -4,8 +4,8 @@
 use tantu_view::core::EdgeInsets;
 use tantu_view::layout::{
     Alignment, BoxConstraints, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment,
-    MainAxisSize, RenderBox, RenderConstrainedBox, RenderFlex, RenderPadding, RenderPositionedBox,
-    RenderStack, StackFit, StackParentData,
+    MainAxisSize, RenderBox, RenderConstrainedBox, RenderFlex, RenderLimitedBox, RenderPadding,
+    RenderPositionedBox, RenderStack, StackFit, StackParentData,
 };
 use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Prop, View};
 
@@ -627,5 +627,55 @@ impl View for Positioned {
             );
         }
         id
+    }
+}
+
+/// Caps its child's maximum size on an axis only when that axis is unbounded (Flutter's
+/// `LimitedBox`).
+pub struct LimitedBox {
+    max_width: Prop<f32>,
+    max_height: Prop<f32>,
+    child: Option<AnyView>,
+}
+
+impl LimitedBox {
+    /// No limits (both infinite).
+    pub fn new() -> Self {
+        LimitedBox {
+            max_width: Prop::Value(f32::INFINITY),
+            max_height: Prop::Value(f32::INFINITY),
+            child: None,
+        }
+    }
+
+    /// The width used when the incoming width is unbounded.
+    pub fn max_width(mut self, max_width: impl IntoProp<f32>) -> Self {
+        self.max_width = max_width.into_prop();
+        self
+    }
+
+    /// The height used when the incoming height is unbounded.
+    pub fn max_height(mut self, max_height: impl IntoProp<f32>) -> Self {
+        self.max_height = max_height.into_prop();
+        self
+    }
+
+    /// Sets the child (replacing a previous one).
+    pub fn child(mut self, child: impl View) -> Self {
+        self.child = Some(AnyView::new(child));
+        self
+    }
+}
+
+impl Default for LimitedBox {
+    fn default() -> Self {
+        LimitedBox::new()
+    }
+}
+
+impl View for LimitedBox {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let _ = (cx, RenderLimitedBox::default());
+        todo!("WIDGETS-LAYOUT-07")
     }
 }
