@@ -10,8 +10,10 @@ renderer-agnostic.
 rendering) woven into something larger. The name is about composition, not multithreading.
 By Algorisys Technologies.
 
-> **Status: pre-alpha, design phase.** There is no usable code yet. The API shown below is the
-> target, not something you can run today. See [PLAN.md](PLAN.md) for the roadmap.
+> **Status: pre-alpha.** Phases 0 to 2 are done and Phase 3 (the core widget set) is well under
+> way: windows, layout, text, focus, overlays and the first widgets work on Linux, Windows and
+> macOS. The API is still moving and nothing is published to crates.io yet. See
+> [PLAN.md](PLAN.md) for the roadmap and [HANDOFF.md](HANDOFF.md) for the current state.
 
 ## Goals
 
@@ -28,7 +30,70 @@ By Algorisys Technologies.
   i18n and theming.
 - **Also for small apps.** Fast startup and a single, reasonably small binary.
 
-## A taste of the API (planned)
+## Using Tantu in your app
+
+Tantu isn't on crates.io yet, so depend on the repository. The `tantu` crate is the facade: it
+re-exports everything an app needs and brings the default winit shell and wgpu renderer.
+
+```toml
+[package]
+name = "my-app"
+edition = "2024"
+rust-version = "1.88"
+
+[dependencies]
+tantu = { git = "https://github.com/algorisys-oss/tantu-rs" }
+```
+
+A window shows a *view*: a function building a tree of widgets, with state in signals.
+`src/main.rs`:
+
+```rust
+use tantu::prelude::*;
+
+fn app() -> impl View {
+    let name = TextEditingController::new("");
+    let greeting = move || {
+        let text = name.text();
+        if text.is_empty() { "Type your name".to_string() } else { format!("Hello, {text}!") }
+    };
+    Padding::all(16.0).child(
+        Column::new()
+            .spacing(12.0)
+            .child(Text::new(greeting).style(TextStyle::title()))
+            .child(TextField::new(name).placeholder("Name"))
+            .child(
+                Row::new()
+                    .spacing(8.0)
+                    .child(Button::new("Clear").on_press(move || name.set_text("")))
+                    .child(Icon::new(Icons::CHECK)),
+            ),
+    )
+}
+
+fn main() -> tantu::Result<()> {
+    App::new().window(Window::new("Hello").size(480.0, 320.0), app).run()
+}
+```
+
+`cargo run` opens the window. What you can build with today:
+
+- **Layout:** `Row`, `Column`, `Expanded`, `Flexible`, `Spacer`, `Padding`, `Align`, `Center`,
+  `SizedBox`, `ConstrainedBox`, `LimitedBox`, `Stack`, `Positioned`, `LayoutBuilder`.
+- **Widgets:** `Text`, `RichText`, `Button`, `IconButton`, `Icon` (Material Icons), `Image`
+  (PNG), `Checkbox`, `Radio`, `Switch`, `Slider`, `Divider`, `TextField` (with undo and IME),
+  `Tooltip`.
+- **State:** `signal`, `memo`, `effect`; every widget prop takes a value, a closure or a signal.
+- **Input:** pointer events, keyboard focus and Tab traversal, `Shortcuts` and `Actions`,
+  overlays anchored to widgets.
+- **Testing:** `tantu-test::WidgetTester` pumps frames, taps, types and compares goldens without
+  a window.
+
+Things still to come are listed in [PLAN.md](PLAN.md): scrolling and virtualized lists, theming,
+animation, accessibility, the data grid and the other enterprise widgets, and a gallery
+example. Until then, `examples/` has `counter` and `layout-demo` (`cargo run -p counter`).
+
+## The counter, in full
 
 ```rust
 use tantu::prelude::*;
