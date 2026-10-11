@@ -116,6 +116,10 @@ with a color and records each call.
   children may extend past their bounds.
 - **VIEW-PAINT-06:** Painting is deterministic: painting the same tree twice into fresh Scenes gives
   equal Scenes. Painting doesn't change the tree.
+- **VIEW-PAINT-07:** `ViewTree::paint` runs with the tree's runtime current, so a `Paint` can read
+  signals (untracked) and write them; a written signal that a binding depends on makes the
+  tree need a frame, as any write does. (Added with [ScrollView](../widgets/scroll.md), whose
+  paint records the scroll extents.)
 
 ## Performance and allocation
 
