@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (focus scopes and scrolling into view; Phase 3 done)_
+_Last updated: 2026-10-12 (DataGrid part 1 drafted for review)_
 
 ## Resume here (2026-10-12)
 
@@ -56,12 +56,14 @@ Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
 
 **Next (PLAN.md order): Phase 4, enterprise features.**
 
-1. `DataGrid`. The PLAN.md item is too big for one spec: first split it in PLAN.md (a data
-   source trait with a 1M-row test source; row and column virtualization over the viewport
-   and list machinery; frozen columns; sort and filter; column resize and reorder; cell
-   editors; selection models), then draft the first spec (the data source and the
-   virtualized grid body) for review. The `ListView` extent table and the scroll view are the
-   building blocks; menus and dialogs come after.
+1. **`DataGrid` part 1 is drafted and waits for review:** PLAN.md splits the item in seven
+   parts; `docs/specs/layout/grid.md` (`RenderGridBody`, a two-dimensional
+   `RenderListContent` with frozen columns) and `docs/specs/widgets/data-grid.md`
+   (`DataSource`/`CellValue`/`FnSource`, `GridColumn`, `DataGrid` with a pinned header,
+   per-cell virtualization keyed by (row, column), wheel and scrollbars on both axes,
+   provisional keys, `revision`, three roles, a gallery section and a `GridScroll`
+   benchmark) are Drafts with nine and three proposals. Say "continue" to accept them; the
+   agent then does the `spec:`/`test:`/`impl:` commits.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -1098,7 +1100,9 @@ Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
 | `202a8d4` | impl: ensure_visible, scoped traversal, focus_into, the ScrollView's reveal, FocusScope, WidgetTester::ensure_visible; Phase 3 ticked |
 | `3faa2c5` | docs: HANDOFF.md for focus scopes; Phase 3 done |
 | `80b650f` | test: WIDGETS-TEXTFIELD-05 presses the platform's primary modifier (fixes CI on macOS) |
-| _this commit_ | docs: HANDOFF.md, CI fix |
+| `e81504e` | docs: HANDOFF.md, the macOS CI fix |
+| `94c2b74` | chore: rust-analyzer builds in its own target directory (`rust-analyzer.toml`) |
+| _this commit_ | docs: draft DataGrid part 1 specs for review; PLAN.md DataGrid item split in seven |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
