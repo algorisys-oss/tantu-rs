@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..09.
+//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..13.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -636,4 +636,69 @@ fn facade_app_12_ime_events_and_area() {
     let (fake, _) = run(app, platform, &Recorders::default());
     assert!(!fake.windows[0].ime_allowed);
     assert_eq!(fake.windows[0].ime_area, None);
+}
+
+/// A view that records the provided theme signal (if any) and runs `then` with it.
+fn theme_probe(
+    seen: Rc<Cell<Option<Signal<Theme>>>>,
+    then: impl Fn(Option<Signal<Theme>>) + 'static,
+) -> impl View {
+    Builder::new(move |cx| {
+        let theme = Theme::signal(cx);
+        seen.set(theme);
+        then(theme);
+        SizedBox::shrink()
+    })
+}
+
+#[cfg(feature = "default-theme")]
+#[test]
+fn facade_app_13_runner_provides_the_theme() {
+    let recorders = Recorders::default();
+    let red = Color::from_argb32(0xFFFF_0000);
+    let seen: Rc<Cell<Option<Signal<Theme>>>> = Rc::default();
+    let app = with_font(App::new())
+        .window(Window::new("A").size(200.0, 100.0), {
+            let seen = seen.clone();
+            move || theme_probe(seen, |_| {})
+        })
+        .window(Window::new("B").size(200.0, 100.0), || {
+            theme_probe(Rc::default(), |theme| {
+                theme.expect("provided").set(Theme::dark());
+            })
+        })
+        .window(Window::new("C").size(200.0, 100.0).background(red), || {
+            theme_probe(Rc::default(), |theme| {
+                theme.expect("provided").set(Theme::dark());
+            })
+        });
+    run(app, FakePlatform::new(), &recorders);
+    assert!(seen.get().is_some());
+    for (i, color) in [
+        (0, Color::WHITE),
+        (1, Theme::dark().colors.surface),
+        (2, red),
+    ] {
+        let renderer = recorders.get(i);
+        let renderer = renderer.borrow();
+        let frame = renderer.last_frame().expect("a frame");
+        assert_eq!(first_fill(frame).1, color, "window {i}");
+    }
+}
+
+#[cfg(not(feature = "default-theme"))]
+#[test]
+fn facade_app_13_without_the_feature() {
+    let recorders = Recorders::default();
+    let seen: Rc<Cell<Option<Signal<Theme>>>> = Rc::default();
+    let app = with_font(App::new()).window(Window::new("A").size(200.0, 100.0), {
+        let seen = seen.clone();
+        move || theme_probe(seen, |_| {})
+    });
+    run(app, FakePlatform::new(), &recorders);
+    assert!(seen.get().is_none());
+    let renderer = recorders.get(0);
+    let renderer = renderer.borrow();
+    let frame = renderer.last_frame().expect("a frame");
+    assert_eq!(first_fill(frame).1, Color::WHITE);
 }

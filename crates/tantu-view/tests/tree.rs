@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/tree.md`, rules VIEW-TREE-01..11.
+//! Tests for `docs/specs/view/tree.md`, rules VIEW-TREE-01..12.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -8,7 +8,7 @@ use tantu_layout::{
     BoxConstraints, FlexParentData, NoTextMeasure, RenderConstrainedBox, RenderFlex,
 };
 use tantu_reactive::{Signal, effect, on_cleanup, signal};
-use tantu_view::{AnyView, BuildCx, ElementId, ElementKind, View, ViewTree};
+use tantu_view::{AnyView, BuildCx, Builder, ElementId, ElementKind, Provide, View, ViewTree};
 
 fn s(w: f32, h: f32) -> Size {
     Size::new(w, h)
@@ -392,4 +392,49 @@ fn view_tree_11_robustness() {
     let s = sig.get().expect("created");
     assert_eq!(tree.enter(|| s.get()), 1);
     assert_eq!(s.try_get(), None);
+}
+
+#[test]
+fn view_tree_12_builder_builds_in_place() {
+    let out = Rc::new(Cell::new(None));
+    let col_out = Rc::new(Cell::new(None));
+    let inherited = Rc::new(Cell::new(None));
+    let tree = {
+        let (out, col_out, inherited) = (out.clone(), col_out.clone(), inherited.clone());
+        ViewTree::new(move || {
+            Provide::new(
+                7i32,
+                ColInto(
+                    vec![AnyView::new(Builder::new(move |cx| {
+                        inherited.set(cx.inherit::<i32>());
+                        // The text styles are reachable too.
+                        let _ = cx.text_style(tantu_view::text::TextStyle::body());
+                        Leaf {
+                            size: s(5.0, 5.0),
+                            out: Some(out.clone()),
+                        }
+                    }))],
+                    col_out,
+                ),
+            )
+        })
+    };
+    let leaf = out.get().expect("built");
+    let col = col_out.get().expect("built");
+    assert_eq!(inherited.get(), Some(7));
+    // In place: the leaf is the column's direct child, with no element of its own in between.
+    assert_eq!(tree.parent(leaf), Some(col));
+    assert_eq!(tree.children(col), &[leaf]);
+    assert_eq!(tree.kind(leaf), Some(ElementKind::Render));
+}
+
+/// A column that records its id.
+struct ColInto(Vec<AnyView>, Rc<Cell<Option<ElementId>>>);
+
+impl View for ColInto {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderFlex::column(), self.0);
+        self.1.set(Some(id));
+        id
+    }
 }

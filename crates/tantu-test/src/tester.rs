@@ -5,8 +5,10 @@ use std::sync::Arc;
 
 use tantu_render_headless::{HeadlessRenderer, RecordedFrame};
 use tantu_render_soft::{SoftRenderer, decode_png, diff_images, encode_png};
+use tantu_theme::Theme;
 use tantu_view::core::{Point, Rect, Size, Vec2};
 use tantu_view::layout::{BoxConstraints, RenderBox, RenderParagraph};
+use tantu_view::reactive::Signal;
 use tantu_view::scene::{Renderer, Resources, Scene};
 use tantu_view::text::{FontFamily, TextSystem};
 use tantu_view::{
@@ -125,6 +127,11 @@ impl WidgetTester {
             panic!("the headless recorder failed: {error}");
         }
         changed
+    }
+
+    /// The theme signal provided at the root, initially `Theme::light()` (TEST-WT-12).
+    pub fn theme(&self) -> Signal<Theme> {
+        todo!()
     }
 
     /// The last recorded frame.

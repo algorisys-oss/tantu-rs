@@ -29,7 +29,7 @@
 //!
 //! - `wgpu` (default): GPU renderer
 //! - `winit` (default): winit platform shell
-//! - `default-theme` (default): the default themes
+//! - `default-theme` (default): the runner provides the light theme to every window
 //! - `soft`: CPU renderer built on tiny-skia
 
 #![forbid(unsafe_code)]
@@ -50,6 +50,8 @@ pub use tantu_reactive as reactive;
 pub use tantu_scene as scene;
 /// `tantu-text`: fonts, styles and shaping.
 pub use tantu_text as text;
+/// `tantu-theme`: design tokens and the default themes.
+pub use tantu_theme as theme;
 /// `tantu-view`: views, the view tree and event dispatch.
 pub use tantu_view as view;
 /// `tantu-widgets`: the standard widget set.
@@ -64,6 +66,7 @@ pub mod prelude {
     };
     pub use tantu_reactive::{Memo, Signal, batch, effect, memo, signal};
     pub use tantu_text::TextStyle;
-    pub use tantu_view::{AnyView, Dyn, For, IntoProp, Show, View};
+    pub use tantu_theme::{ColorScheme, Density, Shape, TextTheme, Theme, ThemeProvider};
+    pub use tantu_view::{AnyView, Builder, Dyn, For, IntoProp, Show, View};
     pub use tantu_widgets::*;
 }

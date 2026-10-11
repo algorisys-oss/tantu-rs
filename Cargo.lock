@@ -2372,6 +2372,7 @@ version = "0.0.0"
 dependencies = [
  "tantu-render-headless",
  "tantu-render-soft",
+ "tantu-theme",
  "tantu-view",
  "tantu-widgets",
 ]
@@ -2413,6 +2414,7 @@ version = "0.0.0"
 dependencies = [
  "png",
  "tantu-test",
+ "tantu-theme",
  "tantu-view",
  "tracing",
  "unicode-segmentation",

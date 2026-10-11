@@ -1,7 +1,9 @@
-//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..04.
+//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..05.
 
 use gallery::{SECTIONS, gallery};
 use tantu::core::{Rect, Vec2};
+use tantu::scene::Command;
+use tantu::theme::Theme;
 use tantu_test::{Finder, WidgetTester};
 
 fn rect(tester: &WidgetTester, key: &str) -> Rect {
@@ -89,4 +91,29 @@ fn gallery_04_goldens() {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/goldens/gallery-selection.png"
     ));
+}
+
+#[test]
+fn gallery_05_dark_mode() {
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    let fill_of = |tester: &WidgetTester, key: &str| {
+        let element = tester.find(&Finder::key(key));
+        tester
+            .frame()
+            .entries_for(element)
+            .find_map(|e| match e.command {
+                Command::Fill { color, .. } => Some(color),
+                _ => None,
+            })
+            .expect("a fill")
+    };
+    assert_eq!(fill_of(&tester, "press"), Theme::light().colors.primary);
+    tester.tap(&Finder::key("dark"));
+    assert_eq!(fill_of(&tester, "press"), Theme::dark().colors.primary);
+    tester.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-dark.png"
+    ));
+    tester.tap(&Finder::key("dark"));
+    assert_eq!(fill_of(&tester, "press"), Theme::light().colors.primary);
 }

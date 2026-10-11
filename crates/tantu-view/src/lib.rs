@@ -39,6 +39,7 @@
 
 #![forbid(unsafe_code)]
 
+mod builder;
 mod dynamic;
 mod events;
 mod focus;
@@ -53,6 +54,7 @@ mod shortcuts;
 mod text_context;
 mod tree;
 
+pub use builder::Builder;
 pub use dynamic::{Dyn, For, Show};
 pub use events::{CursorIcon, Handled, Phase, PointerButton, PointerCx, PointerEvent, PointerKind};
 pub use focus::{FocusOptions, ImeCx, ImeEvent, KeyCx, KeyEvent, LogicalKey, Modifiers, NamedKey};

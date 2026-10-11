@@ -13,6 +13,8 @@ workspace = true
 
 [dependencies]
 tantu-view = { workspace = true }
+# The tester provides the default theme (TEST-WT-12).
+tantu-theme = { workspace = true }
 tantu-render-soft = { workspace = true }
 tantu-render-headless = { workspace = true }
 

@@ -19,8 +19,8 @@ wgpu = ["dep:tantu-render-wgpu"]
 soft = ["dep:tantu-render-soft"]
 ## winit platform shell (tantu-platform-winit).
 winit = ["dep:tantu-platform-winit"]
-## Default themes (tantu-theme).
-default-theme = ["dep:tantu-theme"]
+## The runner provides the light theme at the root of every window (FACADE-APP-13).
+default-theme = []
 ## Material Icons and the `Icons` table (tantu-widgets).
 material-icons = ["tantu-widgets/material-icons"]
 
@@ -34,7 +34,7 @@ tantu-view = { workspace = true }
 tantu-widgets = { workspace = true }
 tantu-a11y = { workspace = true }
 tantu-platform = { workspace = true }
-tantu-theme = { workspace = true, optional = true }
+tantu-theme = { workspace = true }
 tantu-render-wgpu = { workspace = true, optional = true }
 tantu-render-soft = { workspace = true, optional = true }
 tantu-platform-winit = { workspace = true, optional = true }

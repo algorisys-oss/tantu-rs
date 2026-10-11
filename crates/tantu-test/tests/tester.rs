@@ -5,7 +5,9 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::cell::RefCell;
 use std::rc::Rc;
 use tantu_test::{Finder, WidgetTester};
+use tantu_theme::Theme;
 
+use tantu_view::Builder;
 use tantu_view::core::{Point, Rect, Size, Vec2};
 use tantu_view::layout::RenderConstrainedBox as Sized100;
 use tantu_view::layout::{RenderConstrainedBox, RenderParagraph};
@@ -342,4 +344,23 @@ fn test_wt_11_scroll() {
     let controller = out.borrow().expect("built");
     tester.scroll(&Finder::key("s"), Vec2::new(0.0, 30.0));
     assert_eq!(tester.enter(|| controller.offset()), 30.0);
+}
+
+#[test]
+fn test_wt_12_theme() {
+    let seen: Rc<RefCell<Option<Signal<Theme>>>> = Rc::default();
+    let tester = {
+        let seen = seen.clone();
+        WidgetTester::new(move || {
+            Builder::new(move |cx| {
+                *seen.borrow_mut() = Theme::signal(cx);
+                SizedBox::new(10.0, 10.0)
+            })
+        })
+    };
+    let inner = seen.borrow().expect("the tester provides a theme");
+    assert_eq!(tester.enter(|| tester.theme().get()), Theme::light());
+    assert_eq!(tester.enter(|| inner.get()), Theme::light());
+    tester.enter(|| tester.theme().set(Theme::dark()));
+    assert_eq!(tester.enter(|| inner.get()), Theme::dark());
 }
