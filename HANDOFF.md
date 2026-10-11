@@ -106,12 +106,19 @@ option, mark it for review, push at each milestone).
     at most 8 elements. Variable extents, separators and keyboard navigation remain (PLAN.md
     sub-item).
 
+  - **`examples/gallery`** (2026-10-12, `docs/specs/examples/gallery.md`, decision 60): six
+    sections (Buttons, Text, Selection, Text field, Lists, Media) behind a sidebar, samples
+    reporting their state as text, goldens `gallery-buttons.png` and `gallery-selection.png`;
+    `cargo run -p gallery`. The README points at it.
+
 **Next (PLAN.md order, Phase 3):**
 
-1. `examples/gallery`: every widget in one app (spec first, with WidgetTester tests and a
-   golden), which also satisfies the "gallery entry" rule of AGENTS.md for the widgets.
-2. `tantu-theme`, animation (which brings timers: tooltip delay, caret blink, double-click,
-   kinetic scrolling), `tantu-a11y`.
+1. `tantu-theme` (design tokens, light/dark, density, live switching): the widgets' Material
+   constants move behind tokens read from the tree.
+2. Animation (tickers, tweens, curves), which brings timers: tooltip delay, caret blink,
+   double-click, kinetic scrolling. Needs a timer in the platform trait (winit's
+   `WaitUntil`).
+3. `tantu-a11y`: the AccessKit tree for every widget.
 
 **Session summary (2026-10-11, the user away for ~4 hours):** Divider, Slider, Checkbox/Radio/
 Switch, Icon/IconButton, Image, RichText, the text editing model and the TextField widget
@@ -705,6 +712,9 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
     visible range comes from the scroll controller's offset and viewport extent with one item
     of buffer each side (not Flutter's 250 px cache extent); items keyed by index keep their
     elements across scrolls; the first frame shows no items because the extents come from it.
+60. **Gallery** (2026-10-12, spec `docs/specs/examples/gallery.md`, decided by the agent while
+    the user was away; review): six sections keyed by name, state echoed as text so tests and
+    readers see it, a generated gradient image (no asset file), goldens of two sections.
 
 ## Commit log
 
@@ -1027,7 +1037,11 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 | `54a96b2` | spec: WIDGETS-LIST-02 example count at offset 0 is 6 |
 | `0f41423` | test: RenderListContent and ListView, stubs + 5 failing tests |
 | `ff0f989` | impl: RenderListContent and ListView::builder (fixed-extent virtualization over the viewport) |
-| _this commit_ | docs: HANDOFF.md for ListView |
+| `5929626` | docs: HANDOFF.md for ListView |
+| `5e946cd` | spec: the widget gallery example (GALLERY-01..04) |
+| `c29c985` | test: the gallery example, stub + 4 failing tests |
+| `9100315` | impl: the widget gallery example with two goldens; README points at it |
+| _this commit_ | docs: HANDOFF.md for the gallery |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1036,7 +1050,7 @@ that with the real hash from `git log`.
 
 1. (`tantu-view` done.)
    content (`dynamic.md`), `LayoutBuilder` (`layout-builder.md`).
-3. Phase 3: `examples/gallery` next (see "Resume here").
+3. Phase 3: `tantu-theme` next (see "Resume here").
 
 ## Open questions
 
