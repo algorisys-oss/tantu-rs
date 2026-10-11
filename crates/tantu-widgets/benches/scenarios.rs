@@ -35,7 +35,7 @@ impl GridScroll {
     /// Builds the grid and runs its first frame.
     pub fn new() -> Self {
         let out: Rc<Cell<Option<ScrollController>>> = Rc::default();
-        let tester = {
+        let mut tester = {
             let out = out.clone();
             WidgetTester::with_size(WINDOW.0, WINDOW.1, move || {
                 let (vertical, horizontal) = (ScrollController::new(), ScrollController::new());
@@ -55,6 +55,8 @@ impl GridScroll {
                 )
             })
         };
+        // The cells appear one frame after the first paint records the extents.
+        tester.pump();
         GridScroll {
             tester,
             vertical: out.get().expect("built"),

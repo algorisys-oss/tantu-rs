@@ -46,7 +46,7 @@ fn grid(
 ) -> (WidgetTester, ScrollController, ScrollController) {
     let out: Two = Rc::default();
     let make = Cell::new(Some(make));
-    let tester = {
+    let mut tester = {
         let out = out.clone();
         WidgetTester::with_size(w, h, move || {
             let (vertical, horizontal) = (ScrollController::new(), ScrollController::new());
@@ -61,6 +61,8 @@ fn grid(
         })
     };
     let (vertical, horizontal) = out.get().expect("built");
+    // The cells appear one frame after the first paint records the extents, as list items.
+    tester.pump();
     (tester, vertical, horizontal)
 }
 

@@ -232,6 +232,8 @@ fn gallery_09_every_sample_has_a_node() {
 fn gallery_10_data_grid() {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
     tester.tap(&Finder::key(nav("Data grid")));
+    // The cells appear one frame after the grid's first paint.
+    tester.pump();
     tester.find(&Finder::key("grid"));
     assert_eq!(text_of(&tester, "first-row"), "First row: 0");
     tester.matches_golden(concat!(
