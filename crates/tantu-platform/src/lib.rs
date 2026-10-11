@@ -45,6 +45,8 @@ mod fake;
 mod platform;
 mod types;
 
+/// The AccessKit data crate, whose `TreeUpdate` and `ActionRequest` cross the platform trait.
+pub use accesskit;
 pub use fake::{FakeLog, FakePlatform, FakeStep, FakeWindow};
 pub use platform::{
     Platform, PlatformContext, PlatformError, PlatformHandler, SurfaceTarget, WindowHandles,
@@ -52,6 +54,6 @@ pub use platform::{
 /// The `raw-window-handle` version surface targets implement.
 pub use raw_window_handle;
 pub use types::{
-    ButtonState, ImeEvent, Key, KeyEvent, KeyLocation, Modifiers, NamedKey, PhysicalSize,
-    PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
+    AccessibilityEvent, ButtonState, ImeEvent, Key, KeyEvent, KeyLocation, Modifiers, NamedKey,
+    PhysicalSize, PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };

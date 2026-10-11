@@ -294,6 +294,18 @@ pub struct KeyEvent {
     pub text: Option<String>,
 }
 
+/// What assistive technology does with a window (PLATFORM-A11Y-01).
+#[derive(Clone, Debug, PartialEq)]
+pub enum AccessibilityEvent {
+    /// It wants the window's tree: send one with `update_accessibility` now and after every
+    /// change.
+    Activated,
+    /// No consumer any more; updates can stop.
+    Deactivated,
+    /// A request on a node.
+    Action(accesskit::ActionRequest),
+}
+
 /// An input-method event (winit's shape; offsets are byte offsets into `text`)
 /// (PLATFORM-IME-01).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -372,4 +384,6 @@ pub enum WindowEvent {
     ModifiersChanged(Modifiers),
     /// An input-method event (PLATFORM-IME-01).
     Ime(ImeEvent),
+    /// Assistive technology activity (PLATFORM-A11Y-01).
+    Accessibility(AccessibilityEvent),
 }

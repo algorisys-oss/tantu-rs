@@ -6,10 +6,13 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use tantu_core::{Point, Size, Vec2};
+use tantu_platform::accesskit::{
+    Action, ActionRequest, Node, NodeId, Role, Tree, TreeId, TreeUpdate,
+};
 use tantu_platform::{
-    ButtonState, FakePlatform, FakeStep, ImeEvent, Key, KeyEvent, KeyLocation, Modifiers, NamedKey,
-    PhysicalSize, Platform, PlatformContext, PlatformError, PlatformHandler, PointerButton,
-    PointerId, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
+    AccessibilityEvent, ButtonState, FakePlatform, FakeStep, ImeEvent, Key, KeyEvent, KeyLocation,
+    Modifiers, NamedKey, PhysicalSize, Platform, PlatformContext, PlatformError, PlatformHandler,
+    PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };
 
 // ---- Value types -------------------------------------------------------------------------
@@ -684,4 +687,106 @@ fn platform_fake_12_clock_and_advance() {
     assert_eq!(log.windows[0].redraws, 1 + 4);
     assert_eq!(handler.seen.iter().filter(|s| **s == Seen::Idle).count(), 4);
     assert!(log.wakes.is_empty());
+}
+
+/// A one-node tree update with the window labelled `label`.
+fn tree_update(label: &str) -> TreeUpdate {
+    let mut window = Node::new(Role::Window);
+    window.set_label(label);
+    TreeUpdate {
+        nodes: vec![(NodeId(0), window)],
+        tree: Some(Tree::new(NodeId(0))),
+        tree_id: TreeId::ROOT,
+        focus: NodeId(0),
+    }
+}
+
+#[test]
+fn platform_a11y_01_events_and_update() {
+    let request = ActionRequest {
+        action: Action::Click,
+        target_tree: TreeId::ROOT,
+        target_node: NodeId(7),
+        data: None,
+    };
+    let mut handler = Recorder::with(|cx, seen| match seen {
+        Seen::Started => {
+            cx.create_window(&WindowAttributes::new("A")).unwrap();
+        }
+        Seen::Event(w, WindowEvent::Accessibility(AccessibilityEvent::Activated)) => {
+            cx.update_accessibility(*w, tree_update("first"));
+        }
+        Seen::Event(w, WindowEvent::Accessibility(AccessibilityEvent::Action(_))) => {
+            cx.update_accessibility(*w, tree_update("after action"));
+        }
+        _ => {}
+    });
+    let log = FakePlatform::new()
+        .event(0, WindowEvent::Accessibility(AccessibilityEvent::Activated))
+        .event(
+            0,
+            WindowEvent::Accessibility(AccessibilityEvent::Action(request.clone())),
+        )
+        .event(
+            0,
+            WindowEvent::Accessibility(AccessibilityEvent::Deactivated),
+        )
+        .run_logged(&mut handler);
+    // The events reach the handler like any other, with AccessKit's own request type.
+    let events: Vec<&WindowEvent> = handler
+        .seen
+        .iter()
+        .filter_map(|s| match s {
+            Seen::Event(_, e) => Some(e),
+            _ => None,
+        })
+        .filter(|e| matches!(e, WindowEvent::Accessibility(_)))
+        .collect();
+    assert_eq!(
+        events,
+        [
+            &WindowEvent::Accessibility(AccessibilityEvent::Activated),
+            &WindowEvent::Accessibility(AccessibilityEvent::Action(request)),
+            &WindowEvent::Accessibility(AccessibilityEvent::Deactivated),
+        ]
+    );
+    let labels: Vec<Option<&str>> = log.windows[0]
+        .accessibility_updates
+        .iter()
+        .map(|u| u.nodes[0].1.label())
+        .collect();
+    assert_eq!(labels, [Some("first"), Some("after action")]);
+}
+
+#[test]
+fn platform_fake_13_records_updates() {
+    let mut handler = Recorder::with(|cx, seen| match seen {
+        Seen::Started => {
+            let a = cx.create_window(&WindowAttributes::new("A")).unwrap();
+            let b = cx.create_window(&WindowAttributes::new("B")).unwrap();
+            // Recorded without any activation, per window and in order.
+            cx.update_accessibility(a, tree_update("a1"));
+            cx.update_accessibility(b, tree_update("b1"));
+            cx.update_accessibility(a, tree_update("a2"));
+            // An unknown window is ignored.
+            cx.update_accessibility(WindowId::from_raw(99), tree_update("nobody"));
+        }
+        Seen::Event(w, WindowEvent::Focused(true)) => {
+            cx.update_accessibility(*w, tree_update("a3"));
+        }
+        _ => {}
+    });
+    let log = FakePlatform::new()
+        .event(0, WindowEvent::Focused(true))
+        .run_logged(&mut handler);
+    let labels = |w: usize| -> Vec<String> {
+        log.windows[w]
+            .accessibility_updates
+            .iter()
+            .map(|u| u.nodes[0].1.label().unwrap_or("").to_owned())
+            .collect()
+    };
+    assert_eq!(labels(0), ["a1", "a2", "a3"]);
+    assert_eq!(labels(1), ["b1"]);
+    assert_eq!(log.windows.len(), 2);
 }

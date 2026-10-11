@@ -15,4 +15,6 @@ workspace = true
 tantu-core = { workspace = true }
 # Window and display handles for renderers (wgpu, softbuffer, AccessKit take these).
 raw-window-handle = "0.6.2"
+# The AccessKit data types carried by accessibility events and updates (ADR 0013).
+accesskit = "0.24.1"
 

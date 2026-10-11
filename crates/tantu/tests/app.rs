@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..14.
+//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -749,4 +749,74 @@ fn facade_app_14_ticks_and_wake_ups() {
     let renderer = recorders.get(0);
     let renderer = renderer.borrow();
     assert_eq!(glyph_counts(renderer.last_frame().expect("a frame")), [4]);
+}
+
+#[test]
+fn facade_app_15_accessibility_trees_and_actions() {
+    use tantu::platform::AccessibilityEvent;
+    use tantu::platform::accesskit::{Action, ActionRequest, Role, TreeId};
+    let presses = Rc::new(Cell::new(0u32));
+    let app = with_font(App::new()).window(Window::new("Hello app").size(300.0, 200.0), {
+        let presses = presses.clone();
+        move || {
+            let presses = presses.clone();
+            Column::new().child(Button::new("Go").on_press(move || presses.set(presses.get() + 1)))
+        }
+    });
+    let updates_after_step = |log: &FakeLog| log.windows[0].accessibility_updates.len();
+    // Nothing is sent before activation, even though frames happen.
+    let platform = FakePlatform::new()
+        .event(0, WindowEvent::Resized(PhysicalSize::new(320, 200)))
+        .event(0, WindowEvent::Accessibility(AccessibilityEvent::Activated));
+    let (log, _) = run(app, platform, &Recorders::default());
+    assert_eq!(updates_after_step(&log), 1, "one tree on activation");
+    let first = &log.windows[0].accessibility_updates[0];
+    let root = first.tree.as_ref().expect("a full tree").root;
+    let window = &first
+        .nodes
+        .iter()
+        .find(|(id, _)| *id == root)
+        .expect("root")
+        .1;
+    assert_eq!(window.label(), Some("Hello app"));
+    let (button_id, button) = first
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == Role::Button)
+        .expect("the button has a node");
+    assert_eq!(button.label(), Some("Go"));
+
+    // Active: every frame sends a tree; an action reaches the view; deactivation stops it.
+    let presses = Rc::new(Cell::new(0u32));
+    let app = with_font(App::new()).window(Window::new("Hello app").size(300.0, 200.0), {
+        let presses = presses.clone();
+        move || {
+            let presses = presses.clone();
+            Column::new().child(Button::new("Go").on_press(move || presses.set(presses.get() + 1)))
+        }
+    });
+    let click = ActionRequest {
+        action: Action::Click,
+        target_tree: TreeId::ROOT,
+        target_node: *button_id,
+        data: None,
+    };
+    let platform = FakePlatform::new()
+        .event(0, WindowEvent::Accessibility(AccessibilityEvent::Activated))
+        .step(FakeStep::Idle)
+        .event(0, WindowEvent::Resized(PhysicalSize::new(320, 200)))
+        .event(
+            0,
+            WindowEvent::Accessibility(AccessibilityEvent::Action(click)),
+        )
+        .event(
+            0,
+            WindowEvent::Accessibility(AccessibilityEvent::Deactivated),
+        )
+        .event(0, WindowEvent::Resized(PhysicalSize::new(330, 200)));
+    let (log, _) = run(app, platform, &Recorders::default());
+    assert_eq!(presses.get(), 1, "the click reached the button");
+    // Activation: 1; idle: nothing; resize frame: 1; the click's frame: 1; after
+    // deactivation: nothing.
+    assert_eq!(updates_after_step(&log), 3);
 }

@@ -2302,6 +2302,7 @@ dependencies = [
 name = "tantu-platform"
 version = "0.0.0"
 dependencies = [
+ "accesskit",
  "raw-window-handle",
  "tantu-core",
 ]

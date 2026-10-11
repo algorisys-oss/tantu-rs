@@ -54,6 +54,8 @@ pub struct FakeWindow {
     pub ime_allowed: bool,
     /// What the handler last passed to `set_ime_cursor_area`.
     pub ime_area: Option<(Point, Size)>,
+    /// The updates sent with `update_accessibility`, in order (PLATFORM-FAKE-13).
+    pub accessibility_updates: Vec<accesskit::TreeUpdate>,
 }
 
 /// A platform without a display: runs a handler against a script of events.
@@ -220,6 +222,7 @@ impl PlatformContext for FakeContext {
             redraws: 0,
             ime_allowed: false,
             ime_area: None,
+            accessibility_updates: Vec::new(),
         });
         self.mark_pending(index);
         Ok(id)
@@ -271,6 +274,11 @@ impl PlatformContext for FakeContext {
 
     fn exit(&mut self) {
         self.log.exited = true;
+    }
+
+    fn update_accessibility(&mut self, window: WindowId, update: accesskit::TreeUpdate) {
+        let _ = (window, update);
+        todo!()
     }
 
     fn now(&self) -> std::time::Instant {

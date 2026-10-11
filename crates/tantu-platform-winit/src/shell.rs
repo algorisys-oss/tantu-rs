@@ -198,6 +198,15 @@ impl PlatformContext for Context<'_> {
         self.event_loop.exit();
     }
 
+    fn update_accessibility(
+        &mut self,
+        window: WindowId,
+        update: tantu_platform::accesskit::TreeUpdate,
+    ) {
+        let _ = (window, update);
+        todo!()
+    }
+
     fn now(&self) -> std::time::Instant {
         std::time::Instant::now()
     }

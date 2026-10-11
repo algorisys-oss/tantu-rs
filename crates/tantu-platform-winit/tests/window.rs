@@ -1,4 +1,4 @@
-//! Rules PLATFORM-WINIT-01..04 and -14 against a real window (spec `docs/specs/platform-winit/shell.md`,
+//! Rules PLATFORM-WINIT-01..04, -14 and -15 against a real window (spec `docs/specs/platform-winit/shell.md`,
 //! "Testing"). winit needs the main thread, so this target runs without the test harness. It runs
 //! only with `TANTU_WINDOW_TESTS=1`; otherwise it reports that it was skipped.
 
@@ -30,6 +30,8 @@ struct Run {
     /// When the wake-up was requested (for 50 ms later) and when `idle` saw it due.
     wake_requested: Option<Instant>,
     woke: Option<Instant>,
+    /// Whether an accessibility update could be sent (PLATFORM-WINIT-15).
+    a11y_update_sent: bool,
 }
 
 impl PlatformHandler for Run {
@@ -48,6 +50,20 @@ impl PlatformHandler for Run {
         self.handles_ok = cx
             .surface_target(w)
             .is_some_and(|t| t.window_handle().is_ok() && t.display_handle().is_ok());
+        // The adapter exists from creation; an update while inactive is a no-op.
+        use tantu_platform::accesskit::{Node, NodeId, Role, Tree, TreeId, TreeUpdate};
+        let mut window = Node::new(Role::Window);
+        window.set_label("Tantu window test");
+        cx.update_accessibility(
+            w,
+            TreeUpdate {
+                nodes: vec![(NodeId(0), window)],
+                tree: Some(Tree::new(NodeId(0))),
+                tree_id: TreeId::ROOT,
+                focus: NodeId(0),
+            },
+        );
+        self.a11y_update_sent = true;
     }
 
     fn window_event(&mut self, cx: &mut dyn PlatformContext, window: WindowId, event: WindowEvent) {
@@ -90,6 +106,13 @@ impl PlatformHandler for Run {
             }
         }
     }
+}
+
+fn platform_winit_15_adapter(run: &Run) {
+    assert!(
+        run.a11y_update_sent,
+        "update_accessibility ran without a screen reader"
+    );
 }
 
 fn platform_winit_14_wake_at(run: &Run) {
@@ -157,6 +180,7 @@ fn main() -> ExitCode {
     platform_winit_03_close_window(&run);
     platform_winit_04_surface_target(&run);
     platform_winit_14_wake_at(&run);
+    platform_winit_15_adapter(&run);
     println!("window tests passed");
     ExitCode::SUCCESS
 }

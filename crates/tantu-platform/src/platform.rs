@@ -85,6 +85,10 @@ pub trait PlatformContext {
     /// Ends the event loop after the current callback returns. [`Platform::run`] then returns.
     fn exit(&mut self);
 
+    /// Sends a tree update to the window's assistive technology (ignored while inactive or
+    /// for an unknown window) (PLATFORM-A11Y-01).
+    fn update_accessibility(&mut self, window: WindowId, update: accesskit::TreeUpdate);
+
     /// The platform's monotonic clock (PLATFORM-TIME-01).
     fn now(&self) -> std::time::Instant;
 
