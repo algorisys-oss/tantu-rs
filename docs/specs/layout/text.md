@@ -214,6 +214,8 @@ words break at spaces, `\n` is a hard break, and it counts its calls.
   where they were added.
 - **LAYOUT-TEXT-12:** `MeasureCache` caches rich paragraphs keyed by their spans too; see
   [RichText](../widgets/rich-text.md).
+- **LAYOUT-TEXT-13:** `TextGeometry` and its queries; see [TextField](../widgets/text-field.md),
+  where it was added.
 
 ## Performance and allocation
 

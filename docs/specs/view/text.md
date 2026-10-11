@@ -116,6 +116,8 @@ impl Paint for ParagraphPaint { /* ... */ }
   resources) and `PaintCx::image_id`; see [Image](../widgets/image.md), where they were added.
 - **VIEW-TEXT-07:** `TextPainter::paint_rich` (default `paint_text`), `PaintCx::paint_rich`, and
   `ParagraphPaint` painting the paragraph's spans; see [RichText](../widgets/rich-text.md).
+- **VIEW-TEXT-08:** `TextPainter::text_geometry` (default `None`) and `PaintCx::text_geometry`;
+  see [TextField](../widgets/text-field.md).
 
 ## Performance and allocation
 

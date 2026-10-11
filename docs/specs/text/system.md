@@ -154,6 +154,8 @@ family.
   [RichText](../widgets/rich-text.md), where it was added.
 - **TEXT-SYS-11:** `paint_rich` paints spans with their colors as brushes; see
   [RichText](../widgets/rich-text.md).
+- **TEXT-SYS-12:** `geometry` extracts a `TextGeometry` from parley's layout; see
+  [TextField](../widgets/text-field.md).
 
 ## Performance and allocation
 

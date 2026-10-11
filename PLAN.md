@@ -135,7 +135,7 @@ faster or more portable without changing how apps are written.
   - [x] `RichText` (multi-style paragraphs in `tantu-text`; spec `docs/specs/widgets/rich-text.md`)
   - [ ] `TextField`, in parts:
     - [x] editing model: text, selection, undo (spec `docs/specs/widgets/text-editing.md`)
-    - [ ] the widget: caret, selection painting, keys, pointer, clipboard
+    - [ ] the widget: caret, selection painting, keys, pointer (spec `docs/specs/widgets/text-field.md`; clipboard waits for the platform)
     - [ ] IME composition
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
 - [ ] Virtualized `ListView` (100k items at 60fps)

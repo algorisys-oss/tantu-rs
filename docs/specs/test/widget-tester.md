@@ -80,6 +80,9 @@ impl WidgetTester {
     /// A primary press at the element's center, a move by `delta` and a release there,
     /// pumping after each (TEST-WT-08, added with the Slider).
     pub fn drag(&mut self, finder: &Finder, delta: Vec2);
+    /// Taps the element, then types `text` character by character (TEST-WT-09, added with
+    /// the TextField).
+    pub fn enter_text(&mut self, finder: &Finder, text: &str);
     /// Dispatches a raw pointer event (no pump).
     pub fn pointer(&mut self, event: PointerEvent) -> bool;
     /// The single element `finder` matches (panics otherwise, naming the finder).
@@ -137,6 +140,8 @@ impl Finder {
 - **TEST-WT-08:** `drag` presses the primary button at the found element's center, moves by
   `delta` and releases there, pumping after each step, and panics like `tap` when the finder
   matches no element or several. (Added with [Slider](../widgets/slider.md).)
+- **TEST-WT-09:** `enter_text` taps the found element, then presses and releases a key with the
+  text of each character, pumping after each; see [TextField](../widgets/text-field.md).
 
 ## Open questions
 
