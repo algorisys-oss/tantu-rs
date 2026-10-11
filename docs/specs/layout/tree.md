@@ -279,7 +279,9 @@ on the next ones.
   marked node and the ancestors up to its boundary), plus any children they lay out with
   different constraints or that need layout. A dirty boundary whose ancestors are all clean is
   laid out with its last constraints, without laying out its ancestors. Boundaries are processed
-  from the top down, so a boundary inside another dirty one is laid out once.
+  from the top down, so a boundary inside another dirty one is laid out once. This holds for
+  every mark, including a boundary that an earlier pass laid out as part of an ancestor's
+  re-layout (which must not leave it stuck as "already queued").
 - **LAYOUT-TREE-14:** Structural changes count as marks: a new child list, a removed child and a new or
   cleared parent data mark the parent (LAYOUT-TREE-03, 02, 06), and the next pass re-lays out
   accordingly. A detached node keeps its last size and offset but isn't laid out by passes over
