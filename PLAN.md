@@ -127,7 +127,8 @@ faster or more portable without changing how apps are written.
 - [ ] Widgets: Text, RichText, Button, IconButton, Checkbox, Radio, Switch, Slider, TextField (with IME, selection, undo), Image, Icon, Divider, Tooltip
   - [x] `Text`, `Button` (Phase 2, `docs/specs/widgets/basic.md`; keyboard in `button-keyboard.md`)
   - [x] `Tooltip`: the overlay's first user (spec `docs/specs/widgets/tooltip.md`)
-  - [ ] `Divider` and `Slider`
+  - [ ] `Divider` and `VerticalDivider` (brings Flutter's `LimitedBox`) (spec `docs/specs/widgets/divider.md`)
+  - [ ] `Slider` (spec `docs/specs/widgets/slider.md`)
   - [ ] `Checkbox`, `Radio`, `Switch` (needs a check-mark shape: Scene paths or an icon glyph, decided in the spec)
   - [ ] `Icon` and `IconButton` (an icon font)
   - [ ] `Image` (decoding, fit, sizing)
