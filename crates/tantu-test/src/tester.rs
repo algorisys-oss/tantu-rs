@@ -159,6 +159,14 @@ impl WidgetTester {
         self.pump();
     }
 
+    /// A primary press at the center of the single element `finder` matches, a move by
+    /// `delta`, and a release there, pumping after each. Panics if it matches no element or
+    /// several.
+    pub fn drag(&mut self, finder: &Finder, delta: Vec2) {
+        let _ = (self.find(finder), delta);
+        todo!("TEST-WT-08")
+    }
+
     /// Presses and releases `key` (with `modifiers`) on the focused element, then pumps.
     pub fn press_key(&mut self, key: LogicalKey, modifiers: Modifiers) {
         self.tree

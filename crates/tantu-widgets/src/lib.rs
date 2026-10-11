@@ -28,10 +28,12 @@
 mod basic;
 mod divider;
 mod layout;
+mod slider;
 mod tooltip;
 
 pub use basic::{Button, Text};
 pub use divider::{Divider, VerticalDivider};
+pub use slider::Slider;
 pub use tooltip::Tooltip;
 
 pub use layout::{

@@ -1,13 +1,19 @@
-//! Tests for `docs/specs/test/widget-tester.md`, rules TEST-WT-01..06.
+//! Tests for `docs/specs/test/widget-tester.md`, rules TEST-WT-01..08.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use tantu_test::{Finder, WidgetTester};
-use tantu_view::core::{Point, Rect, Size};
+
+use tantu_view::core::{Point, Rect, Size, Vec2};
+use tantu_view::layout::RenderConstrainedBox as Sized100;
 use tantu_view::layout::{RenderConstrainedBox, RenderParagraph};
 use tantu_view::reactive::{Signal, signal};
 use tantu_view::scene::Command;
-use tantu_view::{Dyn, Keyed, PointerButton, PointerEvent, PointerKind};
+use tantu_view::{
+    BuildCx, Dyn, ElementId, Handled, Keyed, Phase, PointerButton, PointerEvent, PointerKind, View,
+};
 use tantu_widgets::{Button, Center, Column, Padding, SizedBox, Text};
 
 fn glyph_counts(tester: &WidgetTester) -> Vec<usize> {
@@ -226,4 +232,47 @@ fn test_wt_07_press_key_and_focus() {
         tester.focus(&Finder::text("Enters: 2"))
     }));
     assert!(not_focusable.is_err());
+}
+
+/// A 100 × 100 box recording the pointer events it receives, with their local positions.
+struct Recorder(Rc<RefCell<Vec<(PointerKind, Point)>>>);
+
+impl View for Recorder {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(Sized100::sized(Some(100.0), Some(100.0)), []);
+        let log = self.0;
+        cx.on_pointer(id, Phase::Bubble, move |p| {
+            log.borrow_mut().push((p.event.kind, p.local));
+            Handled::Stop
+        });
+        id
+    }
+}
+
+#[test]
+fn test_wt_08_drag() {
+    let log = Rc::new(RefCell::new(Vec::new()));
+    let events = Rc::clone(&log);
+    let mut tester =
+        WidgetTester::new(move || Center::new().child(Keyed::new("box", Recorder(events))));
+    tester.drag(&Finder::key("box"), Vec2::new(30.0, 10.0));
+    assert_eq!(
+        log.borrow().clone(),
+        vec![
+            (
+                PointerKind::Down(PointerButton::Primary),
+                Point::new(50.0, 50.0)
+            ),
+            (PointerKind::Move, Point::new(80.0, 60.0)),
+            (
+                PointerKind::Up(PointerButton::Primary),
+                Point::new(80.0, 60.0)
+            ),
+        ]
+    );
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        tester.drag(&Finder::key("nope"), Vec2::new(1.0, 1.0));
+    }));
+    let message = *result.unwrap_err().downcast::<String>().expect("a message");
+    assert!(message.contains("nope"), "{message}");
 }
