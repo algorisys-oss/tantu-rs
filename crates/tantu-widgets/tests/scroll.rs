@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/scroll.md`, rules WIDGETS-SCROLL-01..05.
+//! Tests for `docs/specs/widgets/scroll.md`, rules WIDGETS-SCROLL-01..06.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -6,7 +6,9 @@ use std::rc::Rc;
 use tantu_test::{Finder, WidgetTester};
 use tantu_view::core::{Color, Point, Rect, Vec2};
 use tantu_view::scene::Command;
-use tantu_view::{Keyed, PointerButton, PointerEvent, PointerKind, View};
+use tantu_view::{
+    Keyed, LogicalKey, Modifiers, NamedKey, PointerButton, PointerEvent, PointerKind, View,
+};
 use tantu_widgets::{Button, Column, Divider, ScrollController, ScrollView, SizedBox};
 
 const THUMB: Color = Color::from_argb32(0x661C_1B1F);
@@ -252,3 +254,41 @@ fn widgets_scroll_05_hit_testing_follows_the_scroll() {
 }
 
 fn _assert_view<V: View>(_: V) {}
+
+#[test]
+fn widgets_scroll_06_keyboard() {
+    let key = |tester: &mut WidgetTester, named: NamedKey| {
+        tester.press_key(LogicalKey::Named(named), Modifiers::default());
+    };
+    let (mut tester, c) = view(tall);
+    // Not focused: keys do nothing. A press focuses the view (Tab doesn't stop at it).
+    key(&mut tester, NamedKey::ArrowDown);
+    assert_eq!(offset(&tester, c), 0.0);
+    key(&mut tester, NamedKey::Tab);
+    key(&mut tester, NamedKey::ArrowDown);
+    assert_eq!(offset(&tester, c), 0.0);
+    tester.tap(&Finder::key("s"));
+    key(&mut tester, NamedKey::ArrowDown);
+    assert_eq!(offset(&tester, c), 40.0);
+    key(&mut tester, NamedKey::ArrowUp);
+    assert_eq!(offset(&tester, c), 0.0);
+    key(&mut tester, NamedKey::PageDown);
+    assert_eq!(offset(&tester, c), 200.0);
+    key(&mut tester, NamedKey::End);
+    assert_eq!(offset(&tester, c), 800.0);
+    key(&mut tester, NamedKey::PageUp);
+    assert_eq!(offset(&tester, c), 600.0);
+    key(&mut tester, NamedKey::Home);
+    assert_eq!(offset(&tester, c), 0.0);
+    // Cross-axis arrows and other keys pass through (nothing moves).
+    key(&mut tester, NamedKey::ArrowRight);
+    tester.press_key(LogicalKey::Character("a".into()), Modifiers::default());
+    assert_eq!(offset(&tester, c), 0.0);
+    // Horizontal views use the horizontal arrows.
+    let (mut tester, c) = view(|| ScrollView::new(SizedBox::new(1000.0, 100.0)).horizontal());
+    tester.tap(&Finder::key("s"));
+    key(&mut tester, NamedKey::ArrowRight);
+    assert_eq!(offset(&tester, c), 40.0);
+    key(&mut tester, NamedKey::ArrowDown);
+    assert_eq!(offset(&tester, c), 40.0);
+}
