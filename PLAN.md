@@ -134,7 +134,7 @@ faster or more portable without changing how apps are written.
   - [x] `Image` (decoding, fit, sizing; specs `docs/specs/widgets/image.md` and `docs/specs/layout/image.md`)
   - [x] `RichText` (multi-style paragraphs in `tantu-text`; spec `docs/specs/widgets/rich-text.md`)
   - [ ] `TextField`, in parts:
-    - [ ] editing model: text, selection, undo (spec `docs/specs/widgets/text-editing.md`)
+    - [x] editing model: text, selection, undo (spec `docs/specs/widgets/text-editing.md`)
     - [ ] the widget: caret, selection painting, keys, pointer, clipboard
     - [ ] IME composition
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling

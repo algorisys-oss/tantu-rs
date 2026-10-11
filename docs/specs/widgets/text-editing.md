@@ -1,7 +1,7 @@
 # Text editing model
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-11; review the
-  Open questions)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-11; review
+  the Open questions)
 - **Crate:** `tantu-widgets` (module `text_editing`; no view code)
 - **Plan item:** Phase 3, "Widgets" → "`TextField`, in parts" → "editing model (text,
   selection, undo)"
