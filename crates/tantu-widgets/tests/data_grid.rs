@@ -190,7 +190,10 @@ fn widgets_grid_03_column_builder_and_clipping() {
         DataGrid::new(
             [
                 GridColumn::new("Narrow").width(40.0).builder(|_, _| {
+                    // A builder decides its own wrapping; one unwrapped line overflows.
                     Text::new("a cell text much wider than its forty pixel column")
+                        .soft_wrap(false)
+                        .max_lines(1)
                 }),
                 GridColumn::new("B").builder(|row, value| Text::new(format!("B{row}:{value}"))),
                 GridColumn::new("C"),
