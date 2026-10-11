@@ -478,4 +478,33 @@ fn view_anim_08_control_methods_do_not_subscribe_the_caller() {
     assert_eq!(builds.get(), 1, "the Dyn built once");
     assert_eq!(out.get(), Some(leaf), "and kept its element");
     assert!((width_of(&tree, leaf) - 50.0).abs() < 1e-3);
+
+    // An animated prop inside a Dyn: the Dyn doesn't follow the target either.
+    let builds = Rc::new(Cell::new(0u32));
+    let out: Rc<Cell<Option<ElementId>>> = Rc::default();
+    let target_out: Rc<Cell<Option<Signal<f32>>>> = Rc::default();
+    let mut tree = {
+        let (builds, out, target_out) = (builds.clone(), out.clone(), target_out.clone());
+        ViewTree::new(move || {
+            let target = signal(100.0f32);
+            target_out.set(Some(target));
+            let (builds, out) = (builds.clone(), out.clone());
+            Dyn::new(move || {
+                builds.set(builds.get() + 1);
+                AnyView::new(Leaf {
+                    width: animated(target, ms(100)).curve(Curve::Linear).into_prop(),
+                    out: out.clone(),
+                })
+            })
+        })
+    };
+    let (leaf, target) = (out.get().expect("built"), target_out.get().expect("built"));
+    tree.tick(t0);
+    frame(&mut tree);
+    tree.enter(|| target.set(200.0));
+    tree.tick(t0 + ms(50));
+    frame(&mut tree);
+    assert_eq!(builds.get(), 1, "the Dyn built once");
+    assert_eq!(out.get(), Some(leaf));
+    assert_eq!(width_of(&tree, leaf), 150.0);
 }
