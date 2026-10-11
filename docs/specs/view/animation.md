@@ -192,7 +192,9 @@ impl<T: Lerp + PartialEq> IntoProp<T> for Animated<T> { /* see VIEW-ANIM-07 */ }
   and started inside a `Dyn`'s closure (or any effect) doesn't make that closure re-run when
   the controller's value changes, so the content is built once and animates in place. Found
   when the gallery hung: `repeat` read the value signal tracked, the `Dyn` subscribed to it
-  and rebuilt a new controller on every tick.
+  and rebuilt a new controller on every tick. Likewise `animated(target, d).into_prop()` reads
+  the target's first value without subscribing its caller, so a `Dyn` building a widget with
+  an animated prop doesn't rebuild when the target changes; the prop transitions in place.
 - **GALLERY-06:** An "Animation" section (key `animation`): a `Switch` (key `grow`) that
   animates a box (key `box`) between 100 and 200 px wide and two colors with `animated()` over
   300 ms, and a dot (key `dot`) moving back and forth across a track with a repeating
