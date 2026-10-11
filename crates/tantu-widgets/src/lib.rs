@@ -29,11 +29,13 @@ mod basic;
 mod divider;
 mod layout;
 mod slider;
+mod toggles;
 mod tooltip;
 
 pub use basic::{Button, Text};
 pub use divider::{Divider, VerticalDivider};
 pub use slider::Slider;
+pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;
 
 pub use layout::{
