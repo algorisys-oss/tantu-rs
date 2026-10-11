@@ -147,7 +147,7 @@ faster or more portable without changing how apps are written.
 - [x] `tantu-theme`: design tokens, light/dark, density, live theme switching (spec `docs/specs/theme/theme.md`, ADR 0012; `Builder` in `tantu-view`; the gallery's dark-mode switch)
 - [ ] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
   - [x] timers and tickers: platform `now`/`wake_at` (winit `WaitUntil`), `Runtime::tick`, `timer`/`ticker`, `WidgetTester::advance`; the tooltip's show delay (spec `docs/specs/reactive/timers.md`)
-  - [ ] `AnimationController`, `Tween`, curves, and `animated()` props (implicit transitions on any reactive prop)
+  - [x] `AnimationController`, `Tween`, curves, and `animated()` props (implicit transitions on any reactive prop) (spec `docs/specs/view/animation.md`; the gallery's Animation section)
   - [ ] enter/exit transitions: `Opacity`, `AnimatedSwitcher`, animated `Show`; caret blink, double-click and kinetic scrolling as users
 - [ ] `tantu-a11y`: AccessKit tree for every standard widget
 - [x] `examples/gallery` (spec `docs/specs/examples/gallery.md`)

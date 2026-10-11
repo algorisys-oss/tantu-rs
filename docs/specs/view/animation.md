@@ -1,6 +1,7 @@
 # Animation: controller, tweens, curves and animated props
 
-- **Status:** Agreed (the user said "ok" on the draft, 2026-10-11, taking its six proposals)
+- **Status:** Implemented (the user said "ok" on the draft, 2026-10-11, taking its six
+  proposals; VIEW-ANIM-08 added after the gallery hung)
 - **Crates:** `tantu-view` (`animation` module), `examples/gallery` (an Animation section)
 - **Plan item:** Phase 3, "Animation", sub-item "`AnimationController`, `Tween`, curves, and
   `animated()` props"

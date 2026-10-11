@@ -1,9 +1,13 @@
 //! The Tantu widget gallery (spec `docs/specs/examples/gallery.md`): a header, a sidebar of
 //! sections and the selected section's samples.
 
+use std::time::Duration;
+
+use tantu::core::Rect;
+use tantu::layout::{BoxConstraints, RenderConstrainedBox};
 use tantu::prelude::*;
-use tantu::scene::ImageData;
-use tantu::view::Keyed;
+use tantu::scene::{BorderRadius, ImageData, RoundedRect};
+use tantu::view::{BuildCx, ElementId, Keyed, Paint, PaintCx, Prop};
 
 /// The section names, in sidebar order.
 pub const SECTIONS: [&str; 7] = [
@@ -301,9 +305,102 @@ fn media_section() -> impl View {
         .child(image)
 }
 
-/// The Animation section (GALLERY-06).
+/// The Animation section (GALLERY-06): an implicitly animated box and a controller-driven
+/// dot.
 fn animation_section() -> impl View {
-    SizedBox::shrink()
+    let grow = signal(false);
+    let transition = Duration::from_millis(300);
+    let width = animated(
+        move || if grow.get() { 200.0f32 } else { 100.0 },
+        transition,
+    );
+    let color = animated(move || if grow.get() { RED } else { PRIMARY }, transition);
+    let controller = AnimationController::new(Duration::from_secs(1));
+    controller.repeat(true);
+    let x = controller
+        .drive(Tween::new(0.0f32, 276.0))
+        .curve(Curve::EaseInOut);
+    Column::new()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .spacing(12.0)
+        .child(
+            Row::new()
+                .cross_axis_alignment(CrossAxisAlignment::Center)
+                .spacing(8.0)
+                .child(Keyed::new(
+                    "grow",
+                    Switch::new(grow).on_change(move |v| grow.set(v)),
+                ))
+                .child(Text::new("Grow the box (300 ms, ease in-out)")),
+        )
+        .child(Keyed::new(
+            "box",
+            ColorBox {
+                width: width.into_prop(),
+                color: color.into_prop(),
+            },
+        ))
+        .child(
+            Text::new("A controller repeating back and forth every second:")
+                .style(TextStyle::label()),
+        )
+        .child(
+            SizedBox::new(300.0, 24.0).child(
+                Align::new(Alignment::CENTER_LEFT).child(
+                    Padding::new(move || EdgeInsets {
+                        left: x.get(),
+                        top: 0.0,
+                        right: 0.0,
+                        bottom: 0.0,
+                    })
+                    .child(Keyed::new(
+                        "dot",
+                        Icon::new(Icons::CIRCLE).size(24.0).color(PRIMARY),
+                    )),
+                ),
+            ),
+        )
+}
+
+/// A 40 px tall filled box whose width and color are reactive (the animated props' target).
+struct ColorBox {
+    width: Prop<f32>,
+    color: Prop<Color>,
+}
+
+impl View for ColorBox {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(
+            RenderConstrainedBox::new(BoxConstraints::tight(Size::new(100.0, 40.0))),
+            [],
+        );
+        cx.set_paint(id, ColorBoxPaint(PRIMARY));
+        cx.bind(id, self.width, |e, width| {
+            e.update_render::<RenderConstrainedBox>(|r| {
+                r.additional = BoxConstraints::tight(Size::new(width, 40.0));
+            });
+        });
+        cx.bind(id, self.color, |e, color| {
+            e.update_paint::<ColorBoxPaint>(|p| p.0 = color);
+        });
+        id
+    }
+}
+
+/// Fills the box with its color, rounded.
+struct ColorBoxPaint(Color);
+
+impl Paint for ColorBoxPaint {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        let size = cx.size();
+        cx.scene().fill(
+            RoundedRect::new(
+                Rect::from_ltwh(0.0, 0.0, size.width, size.height),
+                BorderRadius::circular(8.0),
+            ),
+            self.0,
+        );
+    }
 }
 
 /// A `width` × `height` image fading from the primary color to white.

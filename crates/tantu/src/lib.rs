@@ -67,6 +67,9 @@ pub mod prelude {
     pub use tantu_reactive::{Memo, Signal, batch, effect, memo, signal};
     pub use tantu_text::TextStyle;
     pub use tantu_theme::{ColorScheme, Density, Shape, TextTheme, Theme, ThemeProvider};
-    pub use tantu_view::{AnyView, Builder, Dyn, For, IntoProp, Show, View};
+    pub use tantu_view::{
+        Animated, Animation, AnimationController, AnimationStatus, AnyView, Builder, Curve, Dyn,
+        For, IntoProp, Lerp, Show, Tween, View, animated,
+    };
     pub use tantu_widgets::*;
 }
