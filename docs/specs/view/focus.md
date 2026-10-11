@@ -154,7 +154,7 @@ impl WidgetTester {
   focusable.
 - **VIEW-IME-01:** `BuildCx::on_ime` and `ViewTree::dispatch_ime` to the focused element; see
   [TextField IME](../widgets/text-field-ime.md).
-- **VIEW-IME-02:** `ElementMut::set_ime_area` and `ViewTree::ime_area` in window coordinates; see
+- **VIEW-IME-02:** `BuildCx::ime_area` providers and `ViewTree::ime_area` in window coordinates; see
   [TextField IME](../widgets/text-field-ime.md).
 
 ## Open questions

@@ -24,7 +24,7 @@ In scope:
 
 - `ImeEvent` and `WindowEvent::Ime`; `PlatformContext::set_ime_allowed` and
   `set_ime_cursor_area`; the winit conversion and calls; `FakePlatform` scripting IME events.
-- `BuildCx::on_ime`, `ViewTree::dispatch_ime` (the focused element only), `ElementMut::set_ime_area`
+- `BuildCx::on_ime`, `ViewTree::dispatch_ime` (the focused element only), `BuildCx::ime_area`
   and `ViewTree::ime_area` (window coordinates).
 - The runner forwarding IME events and keeping the platform's IME state in step with the
   focused element's area (allowed while an element declares an area).
@@ -66,10 +66,11 @@ impl BuildCx<'_> {
     /// Calls `handler` for IME events while `element` has focus.
     pub fn on_ime(&mut self, element: ElementId, handler: impl Fn(&ImeCx<'_>) + 'static);
 }
-impl ElementMut<'_> {
-    /// The caret area, in the element's coordinates, while the element wants IME input
-    /// (`None`: it doesn't). Read by the runner through `ViewTree::ime_area`.
-    pub fn set_ime_area(&mut self, area: Option<Rect>);
+impl BuildCx<'_> {
+    /// Registers how `element` reports its caret area, in its own coordinates, while it wants
+    /// IME input (`None`: it doesn't). Asked through `ViewTree::ime_area` while focused, so
+    /// it can read paint-time data such as the text geometry.
+    pub fn ime_area(&mut self, element: ElementId, provider: impl Fn() -> Option<Rect> + 'static);
 }
 impl ViewTree {
     /// Delivers `event` to the focused element's IME handlers; returns whether any ran.
@@ -108,9 +109,9 @@ impl WidgetTester {
 - **VIEW-IME-01:** `dispatch_ime` calls the handlers registered with `on_ime` on the focused
   element (not its ancestors); with nothing focused, or no handlers, it returns false.
   Removing the element drops its handlers and area. (In [focus](../view/focus.md).)
-- **VIEW-IME-02:** `ime_area` is the focused element's area set through `set_ime_area`,
-  offset to window coordinates by its layout position; `None` when the focused element
-  declared none, nothing is focused, or focus moved to another element.
+- **VIEW-IME-02:** `ime_area` asks the focused element's provider and offsets the area to
+  window coordinates by the element's layout position; `None` when the focused element has
+  no provider or it returns `None`, nothing is focused, or focus moved to another element.
 - **FACADE-APP-12:** The runner forwards `WindowEvent::Ime` to the window's tree. After each
   frame it compares `ime_area()` with what it last told the platform: a new area is sent with
   `set_ime_cursor_area` (and `set_ime_allowed(true)` the first time); `None` after `Some`
