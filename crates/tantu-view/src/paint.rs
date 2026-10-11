@@ -115,8 +115,8 @@ impl<'b> PaintCx<'_, 'b> {
         max_width: f32,
         max_lines: Option<u32>,
     ) -> Option<TextGeometry> {
-        let _ = (text, style, spans, max_width, max_lines);
-        todo!("VIEW-TEXT-08")
+        self.text
+            .text_geometry(text, style, spans, max_width, max_lines)
     }
 
     /// `paint_text` with `spans` (VIEW-TEXT-07).

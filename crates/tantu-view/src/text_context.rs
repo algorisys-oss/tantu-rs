@@ -124,8 +124,10 @@ impl TextPainter for SystemText<'_> {
         max_width: f32,
         max_lines: Option<u32>,
     ) -> Option<TextGeometry> {
-        let _ = (text, style, spans, max_width, max_lines);
-        todo!("VIEW-TEXT-08")
+        Some(
+            self.system
+                .geometry(text, style, spans, max_width, max_lines),
+        )
     }
 
     fn paint_rich(

@@ -1,7 +1,7 @@
 # TextField
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-11; review the
-  Open questions)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-11; review
+  the Open questions)
 - **Crates:** `tantu-widgets` (`TextField`), `tantu-layout` (`TextGeometry`), `tantu-text`
   (geometry from parley), `tantu-view` (`TextPainter::text_geometry`), `tantu-test`
   (`WidgetTester::enter_text`)

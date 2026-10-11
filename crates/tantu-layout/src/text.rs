@@ -473,31 +473,103 @@ pub struct TextGeometry {
 impl TextGeometry {
     /// The line holding `offset`: the last line whose range starts at or before it.
     pub fn line_of(&self, offset: usize) -> Option<usize> {
-        let _ = offset;
-        todo!("LAYOUT-TEXT-13")
+        if self.lines.is_empty() {
+            return None;
+        }
+        let mut index = 0;
+        for (i, line) in self.lines.iter().enumerate() {
+            if line.range.start <= offset {
+                index = i;
+            } else {
+                break;
+            }
+        }
+        Some(index)
     }
 
-    /// The caret rect for `offset`: zero width, the line's top and height.
+    /// The caret rect for `offset`: zero width, the line's top and height, at the left edge
+    /// of the cluster starting at `offset` or the right edge of the line's last cluster.
     pub fn caret(&self, offset: usize) -> Rect {
-        let _ = offset;
-        todo!("LAYOUT-TEXT-13")
+        let Some(index) = self.line_of(offset) else {
+            return Rect::from_ltrb(0.0, 0.0, 0.0, 0.0);
+        };
+        let line = &self.lines[index];
+        let x = line
+            .clusters
+            .iter()
+            .find(|c| c.range.start == offset)
+            .map(|c| c.left)
+            .or_else(|| line.clusters.last().map(|c| c.right))
+            .unwrap_or(0.0);
+        Rect::from_ltrb(x, line.top, x, line.top + line.height)
     }
 
-    /// The offset under `point`.
+    /// The offset under `point`: the line containing `point.y` (the first above, the last
+    /// below), then the nearest cluster boundary to `point.x`.
     pub fn hit_test(&self, point: Point) -> usize {
-        let _ = point;
-        todo!("LAYOUT-TEXT-13")
+        if self.lines.is_empty() {
+            return 0;
+        }
+        let line = self
+            .lines
+            .iter()
+            .position(|l| point.y < l.top + l.height)
+            .unwrap_or(self.lines.len() - 1);
+        self.offset_at(line, point.x)
     }
 
-    /// `hit_test` within line `line` at `x`.
+    /// `hit_test` within line `line` at `x`; a line index past the last gives the text's end.
     pub fn offset_at(&self, line: usize, x: f32) -> usize {
-        let _ = (line, x);
-        todo!("LAYOUT-TEXT-13")
+        let Some(last) = self.lines.last() else {
+            return 0;
+        };
+        let Some(line) = self.lines.get(line) else {
+            return Self::line_end(last);
+        };
+        for cluster in &line.clusters {
+            if x < (cluster.left + cluster.right) / 2.0 {
+                return cluster.range.start;
+            }
+        }
+        Self::line_end(line)
     }
 
-    /// The rects covering `start..end`, one per line touched.
+    /// The offset at the end of `line`, before a trailing newline (a zero-width last cluster).
+    fn line_end(line: &LineGeometry) -> usize {
+        match line.clusters.last() {
+            Some(last) if last.right > last.left => last.range.end,
+            Some(last) => last.range.start,
+            None => line.range.start,
+        }
+    }
+
+    /// The rects covering `start..end`, one per line touched, at least 2 px wide.
     pub fn selection_rects(&self, start: usize, end: usize) -> Vec<Rect> {
-        let _ = (start, end);
-        todo!("LAYOUT-TEXT-13")
+        if start >= end {
+            return Vec::new();
+        }
+        let mut rects = Vec::new();
+        for line in &self.lines {
+            if line.range.end <= start || line.range.start >= end {
+                continue;
+            }
+            let inside: Vec<&ClusterGeometry> = line
+                .clusters
+                .iter()
+                .filter(|c| c.range.start < end && c.range.end > start)
+                .collect();
+            let left = match inside.first() {
+                Some(first) => first.left,
+                None => line.clusters.first().map_or(0.0, |c| c.left),
+            };
+            let right = inside.last().map_or(left, |c| c.right).max(left + 2.0);
+            rects.push(Rect::from_ltrb(
+                left,
+                line.top,
+                right,
+                line.top + line.height,
+            ));
+        }
+        rects
     }
 }

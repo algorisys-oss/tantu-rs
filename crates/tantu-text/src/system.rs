@@ -10,7 +10,9 @@ use parley::{
     LineHeight, PositionedLayoutItem, StyleProperty,
 };
 use tantu_core::{Color, Point};
-use tantu_layout::{StyleSpan, TextGeometry, TextMeasure, TextMetrics, TextStyleKey};
+use tantu_layout::{
+    ClusterGeometry, LineGeometry, StyleSpan, TextGeometry, TextMeasure, TextMetrics, TextStyleKey,
+};
 use tantu_scene::{FontData, FontId, Glyph, Resources, SceneBuilder};
 
 /// A font family: a name, or a generic family resolved by the font system.
@@ -468,8 +470,42 @@ impl TextSystem {
         max_width: f32,
         max_lines: Option<u32>,
     ) -> TextGeometry {
-        let _ = (text, style, spans, max_width, max_lines);
-        todo!("TEXT-SYS-12")
+        if text.is_empty() {
+            return TextGeometry::default();
+        }
+        let keep = lines_to_keep(max_lines);
+        let spans = valid_spans(text, spans);
+        let layout = self.broken_layout(text, style, &spans, max_width);
+        let mut lines = Vec::new();
+        let mut top = 0.0;
+        for line in layout.lines().take(keep) {
+            let metrics = line.metrics();
+            let mut clusters = Vec::new();
+            for item in line.items() {
+                let PositionedLayoutItem::GlyphRun(run) = item else {
+                    continue;
+                };
+                let mut x = run.offset();
+                for cluster in run.run().visual_clusters() {
+                    let advance = cluster.advance();
+                    clusters.push(ClusterGeometry {
+                        range: cluster.text_range(),
+                        left: x,
+                        right: x + advance,
+                    });
+                    x += advance;
+                }
+            }
+            lines.push(LineGeometry {
+                range: line.text_range(),
+                top,
+                height: metrics.line_height,
+                baseline: metrics.baseline,
+                clusters,
+            });
+            top += metrics.line_height;
+        }
+        TextGeometry { lines }
     }
 }
 

@@ -1,6 +1,7 @@
 //! [`WidgetTester`] and [`Finder`].
 
 use std::path::Path;
+use std::sync::Arc;
 
 use tantu_render_headless::{HeadlessRenderer, RecordedFrame};
 use tantu_render_soft::{SoftRenderer, decode_png, diff_images, encode_png};
@@ -179,8 +180,17 @@ impl WidgetTester {
     /// for each character of `text`, a key carrying it as text, pumping after each
     /// (TEST-WT-09).
     pub fn enter_text(&mut self, finder: &Finder, text: &str) {
-        let _ = (self.find(finder), text);
-        todo!("TEST-WT-09")
+        self.tap(finder);
+        for ch in text.chars() {
+            let character: Arc<str> = ch.to_string().into();
+            let key = LogicalKey::Character(character.clone());
+            let mut press = KeyEvent::press(key.clone(), Modifiers::default());
+            press.text = Some(character);
+            self.tree.dispatch_key(press);
+            self.tree
+                .dispatch_key(KeyEvent::release(key, Modifiers::default()));
+            self.pump();
+        }
     }
 
     /// Presses and releases `key` (with `modifiers`) on the focused element, then pumps.
