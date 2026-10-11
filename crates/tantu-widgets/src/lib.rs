@@ -32,6 +32,7 @@ mod icon;
 mod icons;
 mod image;
 mod layout;
+mod list_view;
 mod rich_text;
 mod scroll;
 mod slider;
@@ -49,6 +50,7 @@ pub use icon::{MATERIAL_ICONS_FAMILY, MATERIAL_ICONS_FONT};
 #[cfg(feature = "material-icons")]
 pub use icons::Icons;
 pub use image::{BoxFit, Image, ImageError, decode_png};
+pub use list_view::ListView;
 pub use rich_text::{RichText, TextSpan};
 pub use scroll::{ScrollController, ScrollView};
 pub use slider::Slider;

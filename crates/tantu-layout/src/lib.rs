@@ -42,6 +42,7 @@ mod alignment;
 mod constraints;
 mod flex;
 mod image;
+mod list;
 mod single_child;
 mod stack;
 mod text;
@@ -55,6 +56,7 @@ pub use flex::{
     Axis, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment, MainAxisSize, RenderFlex,
 };
 pub use image::RenderImage;
+pub use list::{ListIndex, RenderListContent};
 pub use single_child::{
     RenderAspectRatio, RenderConstrainedBox, RenderFractionallySizedBox, RenderLimitedBox,
     RenderPadding, RenderPositionedBox,
