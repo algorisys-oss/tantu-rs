@@ -39,8 +39,9 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
   architecture doc now say so.
 - Workspace: 69 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
-  (`-D warnings`) are green locally (checked 2026-10-12 before this push). CI was not checked
-  from this session.
+  (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** the two
+  pushes before this one were red on macOS only (the text field's chord test pressed Control
+  where macOS binds Command); fixed in this push, so check the run on `main` is green.
 
 **Working pattern:** the agent writes each spec as a Draft with open questions and proposals and
 stops; the user says "continue" to accept the proposals; the agent then does
@@ -1095,7 +1096,9 @@ Narrator on Windows, VoiceOver on macOS) and report what is read and what isn't.
 | `709425d` | spec: WIDGETS-SCROLL-09 takes the extents from the last layout (a culled view still reveals) |
 | `9f451a4` | test: focus-scope fixture and expectations follow VIEW-SCOPE-02/03 and VIEW-REVEAL-03 |
 | `202a8d4` | impl: ensure_visible, scoped traversal, focus_into, the ScrollView's reveal, FocusScope, WidgetTester::ensure_visible; Phase 3 ticked |
-| _this commit_ | docs: HANDOFF.md for focus scopes; Phase 3 done |
+| `3faa2c5` | docs: HANDOFF.md for focus scopes; Phase 3 done |
+| `80b650f` | test: WIDGETS-TEXTFIELD-05 presses the platform's primary modifier (fixes CI on macOS) |
+| _this commit_ | docs: HANDOFF.md, CI fix |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
