@@ -317,6 +317,7 @@ fn animation_section() -> impl View {
     let color = animated(move || if grow.get() { RED } else { PRIMARY }, transition);
     let controller = AnimationController::new(Duration::from_secs(1));
     controller.repeat(true);
+    let card = signal(0usize);
     let x = controller
         .drive(Tween::new(0.0f32, 276.0))
         .curve(Curve::EaseInOut);
@@ -360,7 +361,26 @@ fn animation_section() -> impl View {
                 ),
             ),
         )
+        .child(Text::new("A switcher cross-fading between cards:").style(TextStyle::label()))
+        .child(
+            Row::new()
+                .cross_axis_alignment(CrossAxisAlignment::Center)
+                .spacing(12.0)
+                .child(Keyed::new(
+                    "next",
+                    Button::new("Next").on_press(move || card.update(|c| *c = (*c + 1) % 3)),
+                ))
+                .child(Keyed::new(
+                    "switcher",
+                    AnimatedSwitcher::new(card, |c| {
+                        AnyView::new(Text::new(CARDS[c]).style(TextStyle::title()).color(PRIMARY))
+                    }),
+                )),
+        )
 }
+
+/// The switcher's cards.
+const CARDS: [&str; 3] = ["One", "Two", "Three"];
 
 /// A 40 px tall filled box whose width and color are reactive (the animated props' target).
 struct ColorBox {

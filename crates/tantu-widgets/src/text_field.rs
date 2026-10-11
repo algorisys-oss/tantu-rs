@@ -3,13 +3,14 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::Duration;
 
 use tantu_view::core::{Affine, EdgeInsets, Point, Rect, Vec2};
 use tantu_view::layout::{
     BoxConstraints, RenderConstrainedBox, RenderLimitedBox, RenderParagraph, TextGeometry,
     TextStyleKey,
 };
-use tantu_view::reactive::{Signal, signal};
+use tantu_view::reactive::{Scope, Signal, Timer, effect, signal, timer};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::text::TextStyle;
 use tantu_view::{
@@ -19,7 +20,9 @@ use tantu_view::{
 
 use tantu_theme::ColorScheme;
 
-use crate::text_editing::{Direction, EditingValue, Movement, TextRange, TextSelection};
+use crate::text_editing::{
+    Direction, EditingValue, Movement, TextRange, TextSelection, segment_at,
+};
 use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at};
 use crate::util::dynamic;
 use crate::{Padding, TextEditingController};
@@ -44,6 +47,12 @@ const MIN_HEIGHT: f32 = 40.0;
 const PADDING: EdgeInsets = EdgeInsets::symmetric(16.0, 8.0);
 /// The caret's width.
 const CARET_WIDTH: f32 = 2.0;
+/// Half a blink period (WIDGETS-TEXTFIELD-10).
+const BLINK_HALF_PERIOD: Duration = Duration::from_millis(500);
+/// A second press within this interval of the first is a double-click (WIDGETS-TEXTFIELD-11).
+const DOUBLE_CLICK_INTERVAL: Duration = Duration::from_millis(500);
+/// ... and within this distance.
+const DOUBLE_CLICK_SLOP: f32 = 4.0;
 
 /// A text input (Flutter's `TextField`, Material 3 outlined look), editing a
 /// [`TextEditingController`].
@@ -149,6 +158,7 @@ impl View for TextField {
         let enabled = dynamic(self.enabled);
         let single_line = self.max_lines == Some(1);
         let focused = signal(false);
+        let caret_visible = signal(true);
         let dragging = Cell::new(false);
         let anchor = Cell::new(0usize);
         let geometry: SharedGeometry = Rc::default();
@@ -173,6 +183,7 @@ impl View for TextField {
             geometry: Rc::clone(&geometry),
             shift: Rc::clone(&shift),
             theme,
+            caret_visible,
         };
         let content = Padding::new(PADDING).child(editor);
         FieldBox {
@@ -183,6 +194,7 @@ impl View for TextField {
             theme,
             enabled: Rc::clone(&enabled),
             focused,
+            caret_visible,
             controller,
             single_line,
             on_change,
@@ -226,6 +238,7 @@ struct FieldBox {
     theme: ThemeHandle,
     enabled: Rc<dyn Fn() -> bool>,
     focused: Signal<bool>,
+    caret_visible: Signal<bool>,
     controller: TextEditingController,
     single_line: bool,
     on_change: Option<Rc<dyn Fn(String)>>,
@@ -283,6 +296,30 @@ impl View for FieldBox {
                 e.update_paint::<FieldPaint>(|p| p.focused = on);
             },
         );
+        // The field's scope owns its timers and the blink effect, so they die with it.
+        let scope = cx.tree().scope(id);
+        // The caret blinks while focused, restarting on every edit or caret move
+        // (WIDGETS-TEXTFIELD-10).
+        if let Some(scope) = scope {
+            let blink = Rc::new(Blink {
+                scope,
+                visible: self.caret_visible,
+                pending: Cell::new(None),
+            });
+            let enabled = Rc::clone(&enabled);
+            scope.run(|| {
+                effect(move || {
+                    let on = focused.get() && enabled();
+                    // Tracks the text and the selection.
+                    let _ = controller.value();
+                    if on {
+                        blink.restart();
+                    } else {
+                        blink.stop();
+                    }
+                });
+            });
+        }
         // Chords (WIDGETS-TEXTFIELD-05).
         cx.shortcut(
             id,
@@ -404,11 +441,16 @@ impl View for FieldBox {
                 Handled::Stop
             });
         }
-        // The pointer (WIDGETS-TEXTFIELD-06).
+        // The pointer (WIDGETS-TEXTFIELD-06), with double-click word selection
+        // (WIDGETS-TEXTFIELD-11): a pending 500 ms timer is the click interval.
         {
             let (geometry, dragging, anchor) =
                 (Rc::clone(&self.geometry), self.dragging, self.anchor);
             let (enabled, shift) = (Rc::clone(&enabled), Rc::clone(&self.shift));
+            let clicks = Cell::new(0u8);
+            let last_press = Cell::new(Point::ZERO);
+            let interval: Cell<Option<Timer>> = Cell::new(None);
+            let word_anchor: Cell<Option<TextRange>> = Cell::new(None);
             cx.on_pointer(id, Phase::Bubble, move |p| {
                 let local = Point::new(
                     p.local.x - PADDING.left + shift.get(),
@@ -416,15 +458,50 @@ impl View for FieldBox {
                 );
                 match p.event.kind {
                     PointerKind::Down(PointerButton::Primary) if enabled() => {
+                        let near = (p.local.x - last_press.get().x)
+                            .hypot(p.local.y - last_press.get().y)
+                            <= DOUBLE_CLICK_SLOP;
+                        let within = interval.get().is_some_and(Timer::is_pending);
+                        let count = if within && near { clicks.get() + 1 } else { 1 };
+                        // A third press starts over (triple-click is later).
+                        let count = if count > 2 { 1 } else { count };
+                        clicks.set(count);
+                        last_press.set(p.local);
+                        if let Some(timer) = interval.take() {
+                            timer.cancel();
+                        }
+                        if let Some(scope) = scope.filter(|s| !s.is_disposed()) {
+                            interval.set(Some(scope.run(|| timer(DOUBLE_CLICK_INTERVAL, || {}))));
+                        }
                         let offset = geometry.borrow().hit_test(local);
-                        anchor.set(offset);
+                        if count == 2 {
+                            let word = segment_at(&controller.text(), offset);
+                            word_anchor.set(Some(word));
+                            anchor.set(word.start);
+                            controller.select(TextSelection::new(word.start, word.end));
+                        } else {
+                            word_anchor.set(None);
+                            anchor.set(offset);
+                            controller.select(TextSelection::collapsed(offset));
+                        }
                         dragging.set(true);
-                        controller.select(TextSelection::collapsed(offset));
                         Handled::Stop
                     }
                     PointerKind::Move if dragging.get() => {
                         let offset = geometry.borrow().hit_test(local);
-                        controller.select(TextSelection::new(anchor.get(), offset));
+                        let selection = match word_anchor.get() {
+                            // Extend by whole words after a double-click.
+                            Some(word) => {
+                                let here = segment_at(&controller.text(), offset);
+                                if offset >= word.start {
+                                    TextSelection::new(word.start, here.end)
+                                } else {
+                                    TextSelection::new(word.end, here.start)
+                                }
+                            }
+                            None => TextSelection::new(anchor.get(), offset),
+                        };
+                        controller.select(selection);
                         Handled::Stop
                     }
                     PointerKind::Up(PointerButton::Primary) if dragging.get() => {
@@ -482,6 +559,47 @@ impl View for FieldBox {
         }
         cx.set_cursor(id, CursorIcon::Text);
         id
+    }
+}
+
+/// The caret blink: a chain of half-period timers in the field's scope
+/// (WIDGETS-TEXTFIELD-10).
+struct Blink {
+    scope: Scope,
+    visible: Signal<bool>,
+    pending: Cell<Option<Timer>>,
+}
+
+impl Blink {
+    /// Shows the caret and starts the cycle from the beginning.
+    fn restart(self: &Rc<Self>) {
+        self.stop();
+        if !self.visible.get_untracked() {
+            self.visible.set(true);
+        }
+        self.arm();
+    }
+
+    /// Cancels the next toggle (the caret stays as it is; the paint hides it when unfocused).
+    fn stop(&self) {
+        if let Some(timer) = self.pending.take() {
+            timer.cancel();
+        }
+    }
+
+    /// Toggles after half a period, then arms again.
+    fn arm(self: &Rc<Self>) {
+        if self.scope.is_disposed() {
+            return;
+        }
+        let me = Rc::clone(self);
+        let timer = self.scope.run(|| {
+            timer(BLINK_HALF_PERIOD, move || {
+                me.visible.update(|v| *v = !*v);
+                me.arm();
+            })
+        });
+        self.pending.set(Some(timer));
     }
 }
 
@@ -550,6 +668,7 @@ struct Editor {
     geometry: SharedGeometry,
     shift: SharedShift,
     theme: ThemeHandle,
+    caret_visible: Signal<bool>,
 }
 
 impl View for Editor {
@@ -569,6 +688,15 @@ impl View for Editor {
                 selection: TextSelection::default(),
                 composing: None,
                 colors: self.theme.colors(),
+                caret_visible: true,
+            },
+        );
+        let caret_visible = self.caret_visible;
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || caret_visible.get())),
+            |e, on| {
+                e.update_paint::<EditorPaint>(|p| p.caret_visible = on);
             },
         );
         cx.bind(id, self.theme.colors_prop(), |e, colors| {
@@ -630,6 +758,8 @@ struct EditorPaint {
     selection: TextSelection,
     composing: Option<TextRange>,
     colors: ColorScheme,
+    /// The blink's phase (WIDGETS-TEXTFIELD-10).
+    caret_visible: bool,
 }
 
 impl Paint for EditorPaint {
@@ -707,7 +837,7 @@ impl Paint for EditorPaint {
                 );
             }
         }
-        if active {
+        if active && self.caret_visible {
             let caret = geometry.caret(self.selection.extent);
             cx.scene().fill_rect(
                 Rect::from_ltrb(

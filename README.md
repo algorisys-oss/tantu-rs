@@ -93,15 +93,17 @@ fn main() -> tantu::Result<()> {
 - **Theming:** `Theme::light()` and `Theme::dark()` (Material 3 colors, text presets, shape,
   density); every window gets a `Signal<Theme>` it can switch at run time, and `ThemeProvider`
   scopes a theme to a subtree.
-- **Animation:** `AnimationController`, `Tween` and `Curve` as in Flutter, and `animated()`,
-  which turns any reactive prop's changes into transitions; timers and tickers underneath.
+- **Animation:** `AnimationController`, `Tween` and `Curve` as in Flutter, `animated()`, which
+  turns any reactive prop's changes into transitions, `Opacity` and a cross-fading
+  `AnimatedSwitcher`; timers and tickers underneath. The caret blinks, double-click selects a
+  word and the wheel scrolls smoothly.
 - **Testing:** `tantu-test::WidgetTester` pumps frames, taps, types, advances a fake clock and
   compares goldens without a window.
 
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
 window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
-Things still to come are listed in [PLAN.md](PLAN.md): enter/exit transitions, accessibility,
-the data grid and the other enterprise widgets.
+Things still to come are listed in [PLAN.md](PLAN.md): accessibility, the data grid and the
+other enterprise widgets.
 
 ## The counter, in full
 

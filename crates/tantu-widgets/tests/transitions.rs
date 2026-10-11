@@ -218,15 +218,16 @@ fn widgets_switcher_02_retarget_third_key_same_key_zero_duration() {
     tester.enter(|| key.set(3));
     tester.pump();
     assert!(present(&tester, "card-1") && present(&tester, "card-2") && present(&tester, "card-3"));
-    tester.advance(ms(200));
-    assert!(
-        !present(&tester, "card-1"),
-        "card-1's fade out (from 2/3) is over"
-    );
-    assert!(present(&tester, "card-2") && present(&tester, "card-3"));
+    tester.advance(ms(50));
+    assert!(present(&tester, "card-1") && present(&tester, "card-2") && present(&tester, "card-3"));
+    // card-2 was at 1/3: its fade out takes 100 ms; card-1 at 2/3 takes 200 ms.
+    tester.advance(ms(50));
+    assert!(present(&tester, "card-1") && !present(&tester, "card-2"));
     tester.advance(ms(100));
-    assert!(!present(&tester, "card-2"));
+    assert!(!present(&tester, "card-1"));
     assert!(present(&tester, "card-3"));
+    tester.advance(ms(100));
+    assert!(layers(&tester).is_empty(), "card-3 at full opacity");
     // The same key again: nothing.
     let card3 = tester.find(&Finder::key("card-3"));
     tester.enter(|| key.set(3));

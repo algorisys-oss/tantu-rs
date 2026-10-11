@@ -73,12 +73,14 @@ fn widgets_list_02_virtualization() {
     assert_eq!(item_elements(&tester), 6);
     assert_eq!(built.get(), 6);
     let third = tester.find(&Finder::text("Item 3"));
+    // Wheel steps animate (WIDGETS-SCROLL-07): each is waited out.
+    let step = std::time::Duration::from_millis(150);
     tester.scroll(&Finder::key("l"), Vec2::new(0.0, 10.0));
-    tester.pump();
+    tester.advance(step);
     assert_eq!(tester.find(&Finder::text("Item 3")), third);
     assert!(item_elements(&tester) <= 8);
     tester.scroll(&Finder::key("l"), Vec2::new(0.0, 400.0));
-    tester.pump();
+    tester.advance(step);
     assert!(tester.find_all(&Finder::text("Item 3")).is_empty());
     assert!(item_elements(&tester) <= 8);
     tester.find(&Finder::text("Item 10"));
@@ -92,6 +94,7 @@ fn widgets_list_02_virtualization() {
     // Scrolling across the list keeps the element count bounded.
     for _ in 0..200 {
         tester.scroll(&Finder::key("l"), Vec2::new(0.0, -25.0));
+        tester.advance(step);
         assert!(item_elements(&tester) <= 8);
     }
 }

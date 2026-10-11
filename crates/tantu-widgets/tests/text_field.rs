@@ -558,7 +558,7 @@ fn widgets_textfield_10_caret_blinks() {
     assert!(caret(&tester).is_none());
     assert!(!selection(&tester).is_empty());
     // Losing focus stops it.
-    tester.focus(&Finder::text("Next"));
+    key(&mut tester, NamedKey::Tab, Modifiers::default());
     assert!(caret(&tester).is_none());
     tester.advance(ms(500));
     assert!(caret(&tester).is_none());
@@ -635,7 +635,8 @@ fn widgets_textfield_11_double_click_selects_a_word() {
     // Whitespace between words selects the whitespace run.
     let (mut tester, c) = plain("a   b");
     let editor = tester.rect(tester.find(&Finder::text("a   b")));
-    let (x, y) = (editor.center().x, editor.center().y);
+    // Inside the spaces (the paragraph spans the field; "a" is about 9 px wide).
+    let (x, y) = (editor.left + 14.0, editor.center().y);
     for _ in 0..2 {
         for kind in [
             PointerKind::Down(PointerButton::Primary),

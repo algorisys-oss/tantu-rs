@@ -411,3 +411,20 @@ impl TextEditingController {
         self.history.with(|h| !h.redo.is_empty())
     }
 }
+
+/// The UAX #29 segment holding byte `offset` of `text` (the last one at the end), as a
+/// range: a word, or a run of whitespace or punctuation (WIDGETS-TEXTFIELD-11).
+pub(crate) fn segment_at(text: &str, offset: usize) -> TextRange {
+    let mut last = TextRange { start: 0, end: 0 };
+    for (start, segment) in text.split_word_bound_indices() {
+        let range = TextRange {
+            start,
+            end: start + segment.len(),
+        };
+        if offset >= range.start && offset < range.end {
+            return range;
+        }
+        last = range;
+    }
+    last
+}

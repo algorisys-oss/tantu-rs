@@ -6,11 +6,11 @@ use std::time::Duration;
 
 use tantu_view::core::{Color, Point, Rect, Size};
 use tantu_view::layout::{RenderViewport, ScrollAxis};
-use tantu_view::reactive::{Signal, signal};
+use tantu_view::reactive::{Signal, effect, signal};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::{
-    AnyView, BuildCx, Curve, ElementId, FocusOptions, Handled, LogicalKey, NamedKey, Paint,
-    PaintCx, Phase, PointerButton, PointerKind, Prop, View,
+    AnimationController, AnyView, BuildCx, Curve, ElementId, FocusOptions, Handled, LogicalKey,
+    NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, View,
 };
 
 use crate::theme::{ThemeHandle, at};
@@ -33,14 +33,38 @@ pub struct ScrollController {
     offset: Signal<f32>,
     /// (viewport extent, max scroll extent) from the last frame.
     extents: Signal<(f32, f32)>,
+    /// The running animation's driver (WIDGETS-SCROLL-07, -08).
+    fade: AnimationController,
+    /// What the animation moves between, and its curve.
+    plan: Signal<(f32, f32, Curve)>,
+    /// Where accumulated wheel steps are heading, while a wheel animation runs.
+    wheel_target: Signal<Option<f32>>,
 }
 
 impl ScrollController {
     /// A controller at offset 0 with no extents yet.
     pub fn new() -> Self {
+        let offset = signal(0.0f32);
+        let fade = AnimationController::new(Duration::from_millis(150));
+        let plan = signal((0.0f32, 0.0f32, Curve::Linear));
+        // The animation writes the offset while it runs; a jump or a step stops it first.
+        effect(move || {
+            let t = fade.progress();
+            if !fade.is_animating() && t < 1.0 {
+                return;
+            }
+            let (from, to, curve) = plan.get_untracked();
+            let next = from + (to - from) * curve.transform(t) as f32;
+            if next != offset.get_untracked() {
+                offset.set(next);
+            }
+        });
         ScrollController {
-            offset: signal(0.0),
+            offset,
             extents: signal((0.0, 0.0)),
+            fade,
+            plan,
+            wheel_target: signal(None),
         }
     }
 
@@ -51,6 +75,7 @@ impl ScrollController {
 
     /// Sets the offset; clamped to `0..=max_scroll_extent` at the next frame.
     pub fn jump_to(&self, offset: f32) {
+        self.interrupt();
         self.offset.set(offset);
     }
 
@@ -58,8 +83,55 @@ impl ScrollController {
     /// along `curve`; a wheel step or a jump during the animation takes over
     /// (WIDGETS-SCROLL-08). A zero duration is `jump_to`.
     pub fn animate_to(&self, offset: f32, duration: Duration, curve: Curve) {
-        let _ = (offset, duration, curve);
-        todo!()
+        self.interrupt();
+        self.start(offset, duration, curve);
+    }
+
+    /// Stops a running animation and forgets the wheel target.
+    fn interrupt(&self) {
+        self.fade.stop();
+        if self.wheel_target.get_untracked().is_some() {
+            self.wheel_target.set(None);
+        }
+    }
+
+    /// Animates from the current offset to `to` (clamped), or jumps for a zero duration.
+    fn start(&self, to: f32, duration: Duration, curve: Curve) {
+        let max = self.extents.get_untracked().1.max(0.0);
+        let to = if to.is_finite() {
+            to.clamp(0.0, max)
+        } else {
+            0.0
+        };
+        if duration.is_zero() {
+            self.offset.set(to);
+            return;
+        }
+        let from = self.offset.get_untracked();
+        self.plan.set((from, to, curve));
+        self.fade.set_value(0.0);
+        self.fade.animate_to(1.0, Some(duration));
+    }
+
+    /// A wheel step: animates to the accumulated target over `duration` (WIDGETS-SCROLL-07);
+    /// true when the target moved.
+    fn wheel(&self, delta: f32, duration: Duration) -> bool {
+        if duration.is_zero() {
+            return self.scroll_by(delta);
+        }
+        let max = self.extents.get_untracked().1.max(0.0);
+        let base = self
+            .wheel_target
+            .get_untracked()
+            .unwrap_or_else(|| self.offset.get_untracked());
+        let target = (base + delta).clamp(0.0, max);
+        if target == base {
+            return false;
+        }
+        self.fade.stop();
+        self.wheel_target.set(Some(target));
+        self.start(target, duration, Curve::EaseOut);
+        true
     }
 
     /// The largest offset: content minus viewport along the axis, at least 0 (0 before the
@@ -85,8 +157,9 @@ impl ScrollController {
         }
     }
 
-    /// Moves by `delta` within the extents; true when the offset changed.
+    /// Moves by `delta` at once within the extents; true when the offset changed.
     fn scroll_by(&self, delta: f32) -> bool {
+        self.interrupt();
         let max = self.extents.get_untracked().1.max(0.0);
         let before = self.offset.get_untracked();
         let after = (before + delta).clamp(0.0, max);
@@ -218,7 +291,7 @@ impl View for ScrollView {
             ScrollAxis::Vertical
         };
         let theme = ThemeHandle::of(cx);
-        let _wheel = self.wheel;
+        let wheel = self.wheel;
         let id = cx.render(RenderViewport::new(axis), [self.child]);
         let shared: Shared = Rc::default();
         cx.set_paint(
@@ -300,7 +373,7 @@ impl View for ScrollView {
             };
             match p.event.kind {
                 PointerKind::Scroll(delta) => {
-                    if controller.scroll_by(along(Point::new(delta.x, delta.y))) {
+                    if controller.wheel(along(Point::new(delta.x, delta.y)), wheel) {
                         Handled::Stop
                     } else {
                         Handled::Continue

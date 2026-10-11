@@ -1,6 +1,7 @@
 # Transitions: Opacity, AnimatedSwitcher, and the animation's first users
 
-- **Status:** Agreed (the user said "next" on the draft, 2026-10-11, taking its seven proposals)
+- **Status:** Implemented (the user said "next" on the draft, 2026-10-11, taking its seven
+  proposals)
 - **Crates:** `tantu-widgets` (`Opacity`, `AnimatedSwitcher`, the `TextField` caret blink and
   double-click, `ScrollView` smooth wheel scrolling and `ScrollController::animate_to`),
   `examples/gallery`

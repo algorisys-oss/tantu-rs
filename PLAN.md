@@ -140,15 +140,16 @@ faster or more portable without changing how apps are written.
 - [ ] Scroll: `ScrollView`, scrollbars, kinetic/wheel/trackpad handling
   - [x] `RenderViewport` and `ScrollView`: wheel/trackpad deltas, clamping, scrollbar, clipping (specs `docs/specs/layout/viewport.md`, `docs/specs/widgets/scroll.md`)
   - [x] keyboard scrolling (arrows, PageUp/Down, Home/End) (WIDGETS-SCROLL-06)
-  - [ ] kinetic scrolling and smooth wheel animation (after the animation item), `ensure_visible`
+  - [x] smooth wheel animation and `ScrollController::animate_to` (WIDGETS-SCROLL-07, -08; kinetic fling deferred, see `docs/specs/widgets/transitions.md`)
+  - [ ] `ensure_visible` (with focus scopes)
 - [ ] Virtualized `ListView` (100k items at 60fps)
   - [x] fixed-extent `ListView::builder` on the viewport (specs `docs/specs/layout/list.md`, `docs/specs/widgets/list-view.md`)
   - [ ] variable item extents, separators, keyboard navigation
 - [x] `tantu-theme`: design tokens, light/dark, density, live theme switching (spec `docs/specs/theme/theme.md`, ADR 0012; `Builder` in `tantu-view`; the gallery's dark-mode switch)
-- [ ] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
+- [x] Animation: tickers, tweens, curves, implicit property transitions keyed by stable id, enter/exit transitions
   - [x] timers and tickers: platform `now`/`wake_at` (winit `WaitUntil`), `Runtime::tick`, `timer`/`ticker`, `WidgetTester::advance`; the tooltip's show delay (spec `docs/specs/reactive/timers.md`)
   - [x] `AnimationController`, `Tween`, curves, and `animated()` props (implicit transitions on any reactive prop) (spec `docs/specs/view/animation.md`; the gallery's Animation section)
-  - [ ] enter/exit transitions: `Opacity`, `AnimatedSwitcher`, animated `Show`; caret blink, double-click and kinetic scrolling as users
+  - [x] enter/exit transitions: `Opacity`, `AnimatedSwitcher` (the animated `Show` is a switcher on a `bool`); caret blink, double-click and smooth wheel scrolling as users (spec `docs/specs/widgets/transitions.md`; kinetic fling deferred until touch or trackpad gestures exist)
 - [ ] `tantu-a11y`: AccessKit tree for every standard widget
 - [x] `examples/gallery` (spec `docs/specs/examples/gallery.md`)
 

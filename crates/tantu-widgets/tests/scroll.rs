@@ -134,6 +134,7 @@ fn widgets_scroll_02_wheel() {
                     ))
                     .child(SizedBox::new(300.0, 1000.0)),
             )
+            .wheel_duration(Duration::ZERO)
         })
     };
     let inner = inner_out.get().expect("built");
