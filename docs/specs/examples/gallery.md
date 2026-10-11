@@ -1,7 +1,7 @@
 # Gallery
 
-- **Status:** Agreed (decided by the agent while the user was away, 2026-10-12; review the
-  Open questions)
+- **Status:** Implemented (decided by the agent while the user was away, 2026-10-12; review
+  the Open questions)
 - **Crate:** `examples/gallery`
 - **Plan item:** Phase 3, "`examples/gallery`"
 - **Related:** every widget spec in `docs/specs/widgets/`, [layout demo](layout-demo.md),

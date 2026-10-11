@@ -89,9 +89,13 @@ fn main() -> tantu::Result<()> {
 - **Testing:** `tantu-test::WidgetTester` pumps frames, taps, types and compares goldens without
   a window.
 
-Things still to come are listed in [PLAN.md](PLAN.md): scrolling and virtualized lists, theming,
-animation, accessibility, the data grid and the other enterprise widgets, and a gallery
-example. Until then, `examples/` has `counter` and `layout-demo` (`cargo run -p counter`).
+- **Scrolling:** `ScrollView` with a scrollbar, and `ListView::builder` that builds only the
+  rows in view (100 000 rows cost what a dozen do).
+
+`cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
+window; `examples/counter` and `examples/layout-demo` are smaller. Things still to come are
+listed in [PLAN.md](PLAN.md): theming, animation, accessibility, the data grid and the other
+enterprise widgets.
 
 ## The counter, in full
 
