@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..08.
+//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..09.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -464,4 +464,64 @@ fn widgets_textfield_08_composing_underline() {
     assert!(line.bottom <= editor.height());
     tester.ime(ImeEvent::Commit("ab".into()));
     assert_eq!(underline(&tester), None);
+}
+
+/// The translation of the transform scope the editor paints its content in.
+fn content_shift(tester: &WidgetTester, text: &str) -> f32 {
+    let editor = tester.find(&Finder::text(text));
+    tester
+        .frame()
+        .entries_for(editor)
+        .find_map(|e| match e.command {
+            Command::PushTransform(t) => Some(t.coeffs()[4]),
+            _ => None,
+        })
+        .unwrap_or(0.0)
+}
+
+#[test]
+fn widgets_textfield_09_caret_following() {
+    let (mut tester, c) = plain("");
+    tester.focus(&Finder::key("f"));
+    let long: String = "w".repeat(80);
+    tester.enter(|| c.set_text(long.clone()));
+    tester.pump();
+    let editor = tester.rect(tester.find(&Finder::text(&long)));
+    let caret_rect = caret(&tester).expect("a caret");
+    assert!(
+        caret_rect.left > editor.width(),
+        "the text is wider than the editor"
+    );
+    let painted = caret_rect.left + content_shift(&tester, &long);
+    assert!(painted >= 0.0 && painted <= editor.width(), "{painted}");
+    // The shift stays within the overflow, and Home brings the content back.
+    assert!(-content_shift(&tester, &long) <= caret_rect.left - editor.width() + 2.0);
+    key(&mut tester, NamedKey::Home, Modifiers::default());
+    assert_eq!(content_shift(&tester, &long), 0.0);
+    // Moving right within the visible part doesn't shift; a press lands where it is painted.
+    for _ in 0..3 {
+        key(&mut tester, NamedKey::ArrowRight, Modifiers::default());
+    }
+    assert_eq!(content_shift(&tester, &long), 0.0);
+    key(&mut tester, NamedKey::End, Modifiers::default());
+    let s = content_shift(&tester, &long);
+    assert!(s < 0.0);
+    let x = editor.left + 5.0;
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(x, editor.center().y),
+    });
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Up(PointerButton::Primary),
+        position: Point::new(x, editor.center().y),
+    });
+    tester.pump();
+    let offset = sel(&tester, c).extent;
+    assert!(offset > 0 && offset < 80, "{offset}");
+    // A multi-line field never shifts.
+    let (mut tester, c) = field("", |f| f.max_lines(None));
+    tester.focus(&Finder::key("f"));
+    tester.enter(|| c.set_text("w ".repeat(80)));
+    tester.pump();
+    assert_eq!(content_shift(&tester, &long), 0.0);
 }
