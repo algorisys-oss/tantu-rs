@@ -378,6 +378,11 @@ fn gallery_14_kitchen_sink_goldens() {
     tester.tap(&Finder::key("sink-typography"));
     tester.press_key(LogicalKey::Named(NamedKey::End), Modifiers::default());
     tester.pump();
+    let last = sink_rect(&tester, "focus");
+    assert!(
+        last.bottom <= 640.0 && last.top > 0.0,
+        "at the end: {last:?}"
+    );
     tester.matches_golden(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/goldens/gallery-sink-end.png"
