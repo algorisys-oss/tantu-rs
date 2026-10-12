@@ -439,7 +439,7 @@ fn widgets_grid_28_escape_blur_and_tab() {
         assert!(f.fields().is_empty());
     }
     f.open(1, 1);
-    f.t.tap(&Finder::key("after"));
+    f.t.focus(&Finder::key("after"));
     f.t.pump();
     let after = f.t.find(&Finder::key("after"));
     assert_eq!(f.t.a11y_tree().focus.0, after.to_raw());
