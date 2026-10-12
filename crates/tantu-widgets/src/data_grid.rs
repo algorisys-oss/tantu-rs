@@ -1,7 +1,7 @@
 //! [`DataGrid`], [`DataSource`], [`CellValue`], [`FnSource`] and [`GridColumn`]. Specs:
 //! `docs/specs/widgets/data-grid.md`, `data-grid-sort.md` and `data-grid-columns.md`.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::fmt;
 use std::ops::Range;
@@ -13,15 +13,19 @@ use tantu_view::layout::{
     Alignment, BoxConstraints, CrossAxisAlignment, GridSlot, ListExtents, RenderConstrainedBox,
     RenderGridBody, ScrollAxis,
 };
-use tantu_view::reactive::{Memo, Signal, memo, signal};
+use tantu_view::reactive::{Memo, Signal, effect, memo, on_cleanup, signal};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::{
     AnyView, BuildCx, Dyn, ElementId, FocusOptions, For, Handled, LogicalKey, NamedKey, Paint,
-    PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics, View,
+    PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics, SemanticsAction,
+    SemanticsActions, SortDirection, View,
 };
 
+use crate::grid_selection::Mapping;
+use crate::{GridCell, GridSelection, GridSelectionController, GridSelectionMode};
+
 use crate::scroll::{KEY_STEP, Scrollbar, THUMB_ALPHA, THUMB_WIDTH};
-use crate::theme::{ThemeHandle, at};
+use crate::theme::{ThemeHandle, at, blend};
 use crate::{Align, Column, Expanded, Padding, ScrollController, Text};
 
 /// A cell's horizontal padding.
@@ -222,6 +226,8 @@ impl GridColumn {
 /// axes, with frozen columns, sorting and filtering, and columns the user can resize and
 /// reorder (the enterprise data grid; selection and cell editors are still to come).
 pub struct DataGrid {
+    selection_mode: GridSelectionMode,
+    selection: Option<GridSelectionController>,
     columns: Vec<GridColumn>,
     source: Rc<dyn DataSource>,
     row_height: f32,
@@ -240,18 +246,22 @@ pub struct DataGrid {
 
 impl DataGrid {
     /// Enables row, cell or rectangular selection (default disabled).
-    pub fn selection_mode(self, _mode: crate::GridSelectionMode) -> Self {
-        todo!("WIDGETS-GRID-16")
+    pub fn selection_mode(mut self, mode: GridSelectionMode) -> Self {
+        self.selection_mode = mode;
+        self
     }
 
     /// Shares selection and source-cell mapping with the application.
-    pub fn selection_controller(self, _controller: crate::GridSelectionController) -> Self {
-        todo!("WIDGETS-GRID-16")
+    pub fn selection_controller(mut self, controller: GridSelectionController) -> Self {
+        self.selection = Some(controller);
+        self
     }
 
     /// A grid with `columns` over `source`.
     pub fn new(columns: impl IntoIterator<Item = GridColumn>, source: Rc<dyn DataSource>) -> Self {
         DataGrid {
+            selection_mode: GridSelectionMode::None,
+            selection: None,
             columns: columns.into_iter().collect(),
             source,
             row_height: 32.0,
@@ -688,7 +698,44 @@ impl View for DataGrid {
                 sortable: c.sortable.unwrap_or(client_sort),
             })
             .collect();
+        let mode = self.selection_mode;
+        let controller = self.selection.unwrap_or_default();
+        {
+            let controller = controller.clone();
+            let geometry = geometry.clone();
+            effect(move || {
+                let state = controller.selection();
+                let rows = geometry.row_count.get();
+                let cols = geometry.column_count;
+                let valid = |c: GridCell| c.row < rows && c.column < cols;
+                let normalized = state
+                    .filter(|s| {
+                        mode != GridSelectionMode::None && valid(s.anchor) && valid(s.active)
+                    })
+                    .map(|s| {
+                        if mode == GridSelectionMode::Cell {
+                            GridSelection::single(s.active)
+                        } else {
+                            s
+                        }
+                    });
+                controller.set_selection(normalized);
+            });
+        }
+        let nav = Rc::new(Navigation {
+            mode,
+            controller: controller.clone(),
+            header: signal(None),
+            focused: signal(false),
+            active_id: signal(None),
+            geometry: geometry.clone(),
+            vertical,
+            horizontal,
+            columns: Rc::clone(&columns),
+            sort,
+        });
         let header = HeaderStrip {
+            nav: Rc::clone(&nav),
             geometry: geometry.clone(),
             columns: Rc::clone(&columns),
             horizontal,
@@ -696,6 +743,7 @@ impl View for DataGrid {
             sort,
         };
         let body = Body {
+            nav: Rc::clone(&nav),
             geometry: geometry.clone(),
             columns,
             source,
@@ -715,9 +763,155 @@ impl View for DataGrid {
             id,
             Semantics {
                 role: Role::Grid,
+                focusable: true,
+                actions: SemanticsActions {
+                    focus: true,
+                    ..Default::default()
+                },
+                multiselectable: matches!(mode, GridSelectionMode::Row | GridSelectionMode::Range),
                 ..Default::default()
             },
         );
+        // Presentation mapping and resets apply with the pumped model, never per scroll.
+        let owner = Rc::new(());
+        let previous = Rc::new(RefCell::new(None));
+        {
+            let (nav, owner, previous) = (Rc::clone(&nav), Rc::clone(&owner), Rc::clone(&previous));
+            let geometry = geometry.clone();
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || {
+                    let layout = geometry.layout.get();
+                    let filter_id = filter
+                        .and_then(|f| f.get())
+                        .map(|f| Rc::as_ptr(&f) as *const () as usize);
+                    let marker = (
+                        sort.get(),
+                        revision.map(|r| r.get()),
+                        filter_id,
+                        Rc::clone(&layout.order),
+                    );
+                    (geometry.row_count.get(), map.get(), layout.order, marker)
+                })),
+                move |e, (rows, map, order, marker)| {
+                    let reset = previous
+                        .borrow()
+                        .as_ref()
+                        .is_some_and(|last| *last != marker);
+                    *previous.borrow_mut() = Some(marker);
+                    nav.controller.mapping.set(Some(Mapping {
+                        owner: Rc::clone(&owner),
+                        rows,
+                        map,
+                        order: Rc::clone(&order),
+                    }));
+                    let state = nav.controller.state.get_untracked();
+                    let valid = |c: GridCell| c.row < rows && c.column < order.len();
+                    let normalized = state
+                        .filter(|s| {
+                            !reset
+                                && nav.mode != GridSelectionMode::None
+                                && valid(s.anchor)
+                                && valid(s.active)
+                        })
+                        .map(|s| {
+                            if nav.mode == GridSelectionMode::Cell {
+                                GridSelection::single(s.active)
+                            } else {
+                                s
+                            }
+                        });
+                    nav.controller.set_selection(normalized);
+                    e.update_semantics(|sem| {
+                        sem.row_count = Some(rows);
+                        sem.column_count = Some(order.len());
+                    });
+                },
+            );
+        }
+        {
+            let controller = controller.clone();
+            let owner = Rc::clone(&owner);
+            on_cleanup(move || {
+                if controller
+                    .mapping
+                    .with_untracked(|m| m.as_ref().is_some_and(|m| Rc::ptr_eq(&m.owner, &owner)))
+                {
+                    controller.mapping.set(None);
+                }
+            });
+        }
+        {
+            let nav = Rc::clone(&nav);
+            let focus = nav.focused;
+            cx.on_focus_change(id, move |focused| focus.set(focused));
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || (nav.focused.get(), nav.active_id.get()))),
+                |e, (focused, active)| {
+                    e.update_semantics(|s| {
+                        s.active_descendant = focused.then_some(active).flatten()
+                    });
+                },
+            );
+        }
+        {
+            let apply_nav = Rc::clone(&nav);
+            let nav = Rc::clone(&nav);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || {
+                    let s = nav.controller.selection();
+                    let header = nav.header.get();
+                    nav.geometry.layout.get();
+                    nav.vertical.viewport_extent();
+                    nav.horizontal.viewport_extent();
+                    (s, header)
+                })),
+                {
+                    let nav = apply_nav;
+                    move |_, (selection, header)| {
+                        if let Some(source) = header {
+                            if let Some(display) = nav
+                                .geometry
+                                .layout
+                                .with_untracked(|l| l.order.iter().position(|&c| c == source))
+                            {
+                                nav.reveal_column(display);
+                            }
+                        } else if let Some(s) = selection {
+                            nav.reveal(s.active);
+                        }
+                    }
+                },
+            );
+        }
+        {
+            let nav = Rc::clone(&nav);
+            cx.on_action(id, move |a| {
+                if *a.action != SemanticsAction::ScrollIntoView {
+                    return false;
+                }
+                let mut target = Some(a.target);
+                while let Some(id) = target {
+                    if id == a.element {
+                        break;
+                    }
+                    if let Some(s) = a.tree.semantics(id) {
+                        if let Some(column) = s.column_index {
+                            if let Some(row) = s.row_index {
+                                nav.reveal(GridCell { row, column });
+                            } else {
+                                nav.reveal_column(column);
+                            }
+                            return true;
+                        }
+                    }
+                    target = a.tree.parent(id);
+                }
+                false
+            });
+        }
         let shared: Shared = Rc::default();
         cx.set_paint(
             id,
@@ -740,13 +934,21 @@ impl View for DataGrid {
         cx.focusable(
             id,
             FocusOptions {
-                traversable: false,
+                traversable: mode != GridSelectionMode::None,
                 focus_on_press: true,
             },
         );
         {
             let (shared, geometry) = (Rc::clone(&shared), geometry.clone());
+            let nav = Rc::clone(&nav);
             cx.on_key(id, Phase::Bubble, move |k| {
+                if mode != GridSelectionMode::None {
+                    return if nav.key(k.event) {
+                        Handled::Stop
+                    } else {
+                        Handled::Continue
+                    };
+                }
                 if !k.event.pressed {
                     return Handled::Continue;
                 }
@@ -780,9 +982,11 @@ impl View for DataGrid {
         }
         // Wheel and thumbs (WIDGETS-GRID-04).
         let drag: Rc<Cell<Option<(ScrollAxis, f32, f32)>>> = Rc::default();
+        let pointer_geometry = geometry.clone();
         cx.on_pointer(id, Phase::Bubble, move |p| {
+            let geometry = &pointer_geometry;
             let (size, content) = shared.get();
-            let bars = Bars::new(&geometry, size, content);
+            let bars = Bars::new(geometry, size, content);
             match p.event.kind {
                 PointerKind::Scroll(delta) => {
                     let moved_y = vertical.wheel(delta.y, wheel);
@@ -838,6 +1042,41 @@ impl View for DataGrid {
                 _ => Handled::Continue,
             }
         });
+        if mode != GridSelectionMode::None {
+            cx.on_pointer(id, Phase::Bubble, move |p| {
+                if p.event.kind != PointerKind::Down(PointerButton::Primary) {
+                    return Handled::Continue;
+                }
+                let local = p.local;
+                if geometry.row_height <= 0.0 {
+                    return Handled::Continue;
+                }
+                if local.y < geometry.header_height {
+                    return Handled::Continue;
+                }
+                let row = ((local.y - geometry.header_height + vertical.offset_untracked())
+                    / geometry.row_height)
+                    .floor() as usize;
+                let column = geometry.layout.with_untracked(|l| {
+                    let frozen = l.extents.start(geometry.frozen_columns);
+                    let x = local.x
+                        + if local.x < frozen {
+                            0.0
+                        } else {
+                            horizontal.offset_untracked()
+                        };
+                    l.extents.index_at(x, geometry.column_count)
+                });
+                let Some(column) = column else {
+                    return Handled::Continue;
+                };
+                if row >= geometry.row_count.get_untracked() {
+                    return Handled::Continue;
+                }
+                nav.select(GridCell { row, column }, p.event.modifiers.shift);
+                Handled::Stop
+            });
+        }
         id
     }
 }
@@ -930,6 +1169,7 @@ struct ColumnSpec {
 
 /// The header: one row of column titles, following the horizontal offset only.
 struct HeaderStrip {
+    nav: Rc<Navigation>,
     geometry: Geometry,
     columns: Rc<[ColumnSpec]>,
     horizontal: ScrollController,
@@ -941,6 +1181,7 @@ impl View for HeaderStrip {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let (geometry, horizontal, theme, sort) =
             (self.geometry, self.horizontal, self.theme, self.sort);
+        let nav = self.nav;
         let mut style = theme.snapshot().text.label;
         style.weight = HEADER_WEIGHT;
         let cells = {
@@ -968,6 +1209,8 @@ impl View for HeaderStrip {
                         let (frozen, edge) = geometry.frozen(key.display);
                         let column = key.source;
                         CellBox {
+                            nav: Rc::clone(&nav),
+                            value: None,
                             key,
                             role: Role::ColumnHeader,
                             name: Some(columns[column].title.clone()),
@@ -975,6 +1218,7 @@ impl View for HeaderStrip {
                             frozen,
                             edge,
                             header: Some(HeaderCx {
+                                nav: Some(Rc::clone(&nav)),
                                 column,
                                 display: key.display,
                                 sortable: columns[column].sortable,
@@ -1039,6 +1283,7 @@ impl View for HeaderStrip {
 
 /// The body: every row, following both offsets, holding only the visible cells.
 struct Body {
+    nav: Rc<Navigation>,
     geometry: Geometry,
     columns: Rc<[ColumnSpec]>,
     source: Rc<dyn DataSource>,
@@ -1055,6 +1300,7 @@ impl View for Body {
         let (geometry, vertical, horizontal, theme) =
             (self.geometry, self.vertical, self.horizontal, self.theme);
         let (source, revision, columns, map) = (self.source, self.revision, self.columns, self.map);
+        let nav = self.nav;
         // The source row shown at a display row (a tracked read of the map).
         let source_row = move |row: usize| {
             map.with(|m| m.as_ref().and_then(|m| m.get(row).copied()).unwrap_or(row))
@@ -1088,6 +1334,12 @@ impl View for Body {
                     } = key;
                     let (frozen, edge) = geometry_cells.frozen(display);
                     let source = Rc::clone(&source);
+                    let value = memo(move || {
+                        if let Some(revision) = revision {
+                            revision.get();
+                        }
+                        source.cell(source_row(row), column)
+                    });
                     let child: AnyView = match &columns[column].builder {
                         // A built cell is rebuilt when the revision changes (WIDGETS-GRID-06).
                         Some(builder) => {
@@ -1097,7 +1349,7 @@ impl View for Body {
                                     revision.get();
                                 }
                                 let row = source_row(row);
-                                cell_content(builder(row, source.cell(row, column)))
+                                cell_content(builder(row, value.get()))
                             }))
                         }
                         // The default text re-reads its value in place.
@@ -1106,13 +1358,15 @@ impl View for Body {
                                 if let Some(revision) = revision {
                                     revision.get();
                                 }
-                                source.cell(source_row(row), column).to_string()
+                                value.get().to_string()
                             })
                             .max_lines(1)
                             .soft_wrap(false),
                         )),
                     };
                     CellBox {
+                        nav: Rc::clone(&nav),
+                        value: Some(Prop::Dynamic(Box::new(move || value.get().to_string()))),
                         key,
                         role: Role::Cell,
                         name: None,
@@ -1217,6 +1471,7 @@ impl Paint for StripPaint {
 /// What a header cell's pointer handler needs: sorting (WIDGETS-GRID-10, -15), resizing
 /// (WIDGETS-GRID-13) and reordering (WIDGETS-GRID-14).
 struct HeaderCx {
+    nav: Option<Rc<Navigation>>,
     /// The source column.
     column: usize,
     display: usize,
@@ -1333,6 +1588,8 @@ impl HeaderCx {
 /// One built cell: a box carrying its `GridSlot`, its role, a clip and the grid lines
 /// (WIDGETS-GRID-03, -07).
 struct CellBox {
+    nav: Rc<Navigation>,
+    value: Option<Prop<String>>,
     key: CellKey,
     role: Role,
     name: Option<String>,
@@ -1358,6 +1615,16 @@ impl View for CellBox {
             Semantics {
                 role: self.role,
                 name: self.name,
+                row_index: (self.role == Role::Cell).then_some(self.key.row),
+                column_index: Some(self.key.display),
+                actions: SemanticsActions {
+                    click: if self.role == Role::Cell {
+                        self.nav.mode != GridSelectionMode::None
+                    } else {
+                        self.header.as_ref().is_some_and(|h| h.sortable)
+                    },
+                    ..Default::default()
+                },
                 ..Default::default()
             },
         );
@@ -1371,6 +1638,10 @@ impl View for CellBox {
                 chevron_color: Color::TRANSPARENT,
                 held: false,
                 held_color: Color::TRANSPARENT,
+                selected: false,
+                selection_color: Color::TRANSPARENT,
+                cursor: false,
+                cursor_color: Color::TRANSPARENT,
             },
         );
         let (frozen, edge) = (self.frozen, self.edge);
@@ -1381,8 +1652,59 @@ impl View for CellBox {
                 p.edge = edge.then_some(colors.outline);
                 p.chevron_color = colors.on_surface_variant;
                 p.held_color = colors.surface_container_highest;
+                p.selection_color = blend(colors.surface, colors.primary, 0.12);
+                p.cursor_color = colors.primary;
             });
         });
+        if let Some(value) = self.value {
+            cx.bind(id, value, |e, value| {
+                e.update_semantics(|s| s.value = Some(value));
+            });
+        }
+        let key = self.key;
+        let is_header = self.role == Role::ColumnHeader;
+        {
+            let nav = Rc::clone(&self.nav);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || {
+                    let selected = !is_header
+                        && nav.selected(GridCell {
+                            row: key.row,
+                            column: key.display,
+                        });
+                    (selected, nav.cursor(key, is_header), nav.mode)
+                })),
+                move |e, (selected, cursor, mode)| {
+                    e.update_paint::<CellPaint>(|p| {
+                        p.selected = selected;
+                        p.cursor = cursor;
+                    });
+                    e.update_semantics(|s| {
+                        s.selected =
+                            (!is_header && mode != GridSelectionMode::None).then_some(selected)
+                    });
+                },
+            );
+        }
+        {
+            let nav = Rc::clone(&self.nav);
+            effect(move || {
+                if nav.cursor(key, is_header) {
+                    if nav.active_id.get_untracked() != Some(id) {
+                        nav.active_id.set(Some(id));
+                    }
+                } else if nav.active_id.get_untracked() == Some(id) {
+                    nav.active_id.set(None);
+                }
+            });
+            let active = self.nav.active_id;
+            on_cleanup(move || {
+                if active.get_untracked() == Some(id) {
+                    active.set(None);
+                }
+            });
+        }
         if let Some(header) = self.header {
             let (sort, column, drag) = (header.sort, header.column, header.geometry.drag);
             cx.bind(
@@ -1394,6 +1716,15 @@ impl View for CellBox {
                 })),
                 |e, chevron| {
                     e.update_paint::<CellPaint>(|p| p.chevron = chevron);
+                    e.update_semantics(|s| {
+                        s.sort_direction = chevron.map(|up| {
+                            if up {
+                                SortDirection::Ascending
+                            } else {
+                                SortDirection::Descending
+                            }
+                        })
+                    });
                 },
             );
             // The held header's background (WIDGETS-GRID-14).
@@ -1415,6 +1746,11 @@ impl View for CellBox {
                 let x = p.event.position.x;
                 match (p.event.kind, press.get()) {
                     (PointerKind::Down(PointerButton::Primary), _) => {
+                        if let Some(nav) = &header.nav {
+                            if nav.mode != GridSelectionMode::None {
+                                nav.header.set(Some(column));
+                            }
+                        }
                         let on_handle = p.local.x >= p.size.width - HANDLE_WIDTH;
                         if resizable && on_handle {
                             press.set(Some(Press::Resize {
@@ -1479,6 +1815,10 @@ struct CellPaint {
     /// A header held for reordering is highlighted (WIDGETS-GRID-14).
     held: bool,
     held_color: Color,
+    selected: bool,
+    selection_color: Color,
+    cursor: bool,
+    cursor_color: Color,
 }
 
 /// One bar of the chevron: a rect of `CHEVRON_STROKE` from `from` to `to` in a transform
@@ -1506,6 +1846,9 @@ impl Paint for CellPaint {
         if self.held {
             cx.scene().fill_rect(bounds, self.held_color);
         }
+        if self.selected {
+            cx.scene().fill_rect(bounds, self.selection_color);
+        }
         cx.scene().push_clip(Clip::Rect(bounds));
         cx.paint_children();
         cx.scene().pop();
@@ -1517,6 +1860,19 @@ impl Paint for CellPaint {
             Rect::from_ltwh(size.width - 1.0, 0.0, 1.0, size.height),
             self.edge.unwrap_or(self.line),
         );
+        if self.cursor {
+            let w = size.width;
+            let h = size.height;
+            let t = 2.0f32.min(w / 2.0).min(h / 2.0).max(0.0);
+            for rect in [
+                Rect::from_ltwh(0.0, 0.0, w, t),
+                Rect::from_ltwh(0.0, h - t, w, t),
+                Rect::from_ltwh(0.0, t, t, (h - 2.0 * t).max(0.0)),
+                Rect::from_ltwh(w - t, t, t, (h - 2.0 * t).max(0.0)),
+            ] {
+                cx.scene().fill_rect(rect, self.cursor_color);
+            }
+        }
         if let Some(ascending) = self.chevron {
             let (x, y) = (
                 size.width - CELL_PADDING - CHEVRON_WIDTH / 2.0,
@@ -1532,5 +1888,289 @@ impl Paint for CellPaint {
 
     fn clips_children(&self) -> bool {
         true
+    }
+}
+
+/// Navigation state stays with the grid, independently of virtualized cell elements.
+struct Navigation {
+    mode: GridSelectionMode,
+    controller: GridSelectionController,
+    header: Signal<Option<usize>>,
+    focused: Signal<bool>,
+    active_id: Signal<Option<ElementId>>,
+    geometry: Geometry,
+    vertical: ScrollController,
+    horizontal: ScrollController,
+    columns: Rc<[ColumnSpec]>,
+    sort: Signal<Option<SortState>>,
+}
+
+impl Navigation {
+    fn selected(&self, cell: GridCell) -> bool {
+        self.controller
+            .selection()
+            .is_some_and(|s| s.contains(cell, self.mode))
+    }
+
+    fn select(&self, cell: GridCell, extend: bool) {
+        self.header.set(None);
+        let anchor = if extend && self.mode != GridSelectionMode::Cell {
+            self.controller
+                .state
+                .get_untracked()
+                .map_or(cell, |s| s.anchor)
+        } else {
+            cell
+        };
+        self.controller.set_selection(Some(GridSelection {
+            anchor,
+            active: cell,
+        }));
+    }
+
+    fn cursor(&self, key: CellKey, header: bool) -> bool {
+        if self.mode == GridSelectionMode::None || !self.focused.get() {
+            return false;
+        }
+        match self.header.get() {
+            Some(source) => header && key.source == source,
+            None => {
+                !header
+                    && self.controller.selection().is_some_and(|s| {
+                        s.active
+                            == GridCell {
+                                row: key.row,
+                                column: key.display,
+                            }
+                    })
+            }
+        }
+    }
+
+    fn reveal_column(&self, column: usize) {
+        if column < self.geometry.frozen_columns {
+            return;
+        }
+        self.geometry.layout.with_untracked(|l| {
+            let start = l.extents.start(column);
+            reveal_axis(
+                self.horizontal,
+                start,
+                start + l.extents.extent(column),
+                l.extents.start(self.geometry.frozen_columns),
+            );
+        });
+    }
+
+    fn reveal(&self, cell: GridCell) {
+        if cell.row >= self.geometry.row_count.get_untracked()
+            || cell.column >= self.geometry.column_count
+        {
+            return;
+        }
+        let y = cell.row as f32 * self.geometry.row_height;
+        reveal_axis(self.vertical, y, y + self.geometry.row_height, 0.0);
+        self.reveal_column(cell.column);
+    }
+
+    fn header_context(&self, display: usize, column: usize) -> HeaderCx {
+        HeaderCx {
+            column,
+            display,
+            sortable: self.columns[column].sortable,
+            frozen: display < self.geometry.frozen_columns,
+            geometry: self.geometry.clone(),
+            horizontal: self.horizontal,
+            sort: self.sort,
+            nav: None,
+        }
+    }
+
+    fn key(&self, event: &tantu_view::KeyEvent) -> bool {
+        if !event.pressed {
+            return false;
+        }
+        let m = event.modifiers;
+        let primary = if cfg!(target_os = "macos") {
+            m.super_key && !m.control
+        } else {
+            m.control && !m.super_key
+        };
+        let plain = !m.alt && !m.control && !m.super_key;
+        if event.key == LogicalKey::Named(NamedKey::F(6)) && plain && !m.shift {
+            if self.geometry.header_height <= 0.0 || self.geometry.column_count == 0 {
+                return false;
+            }
+            if self.header.get_untracked().is_some() {
+                self.header.set(None);
+            } else {
+                let display = self
+                    .controller
+                    .state
+                    .get_untracked()
+                    .map_or(0, |s| s.active.column);
+                if let Some(column) = self
+                    .geometry
+                    .layout
+                    .with_untracked(|l| l.order.get(display).copied())
+                {
+                    self.header.set(Some(column));
+                    self.reveal_column(display);
+                }
+            }
+            return true;
+        }
+        if let Some(source) = self.header.get_untracked() {
+            let order = self.geometry.layout.with_untracked(|l| Rc::clone(&l.order));
+            let Some(display) = order.iter().position(|&c| c == source) else {
+                return false;
+            };
+            let direction = match event.key {
+                LogicalKey::Named(NamedKey::ArrowLeft) => Some(false),
+                LogicalKey::Named(NamedKey::ArrowRight) => Some(true),
+                _ => None,
+            };
+            let context = self.header_context(display, source);
+            if let Some(right) = direction {
+                if m.alt && !m.control && !m.super_key && !m.shift {
+                    if !self.geometry.sizing[source].resizable {
+                        return false;
+                    }
+                    let width = self
+                        .geometry
+                        .layout
+                        .with_untracked(|l| l.extents.extent(display));
+                    context.resize(width + if right { 10.0 } else { -10.0 });
+                    return true;
+                }
+                if primary && m.shift && !m.alt {
+                    if !self.geometry.reorderable {
+                        return false;
+                    }
+                    let at = if right {
+                        (display + 1).min(order.len() - 1)
+                    } else {
+                        display.saturating_sub(1)
+                    };
+                    if at != display {
+                        let mut next = order.to_vec();
+                        next.swap(display, at);
+                        self.geometry.order.set(next);
+                    }
+                    return true;
+                }
+            }
+            if !plain || m.shift {
+                return false;
+            }
+            let next = match &event.key {
+                LogicalKey::Named(NamedKey::ArrowLeft) => display.saturating_sub(1),
+                LogicalKey::Named(NamedKey::ArrowRight) => (display + 1).min(order.len() - 1),
+                LogicalKey::Named(NamedKey::Home) => 0,
+                LogicalKey::Named(NamedKey::End) => order.len() - 1,
+                LogicalKey::Named(NamedKey::Enter) => {
+                    if !context.sortable {
+                        return false;
+                    }
+                    context.click();
+                    return true;
+                }
+                LogicalKey::Character(c) if c.as_ref() == " " => {
+                    if !context.sortable {
+                        return false;
+                    }
+                    context.click();
+                    return true;
+                }
+                _ => return false,
+            };
+            self.header.set(Some(order[next]));
+            self.reveal_column(next);
+            return true;
+        }
+        if plain && !m.shift && event.key == LogicalKey::Named(NamedKey::Escape) {
+            self.controller.set_selection(None);
+            return true;
+        }
+        let (rows, cols) = (
+            self.geometry.row_count.get_untracked(),
+            self.geometry.column_count,
+        );
+        if rows == 0 || cols == 0 || m.alt || (!plain && !primary) {
+            return false;
+        }
+        let LogicalKey::Named(key) = event.key else {
+            return false;
+        };
+        if primary && !matches!(key, NamedKey::Home | NamedKey::End) {
+            return false;
+        }
+        if !matches!(
+            key,
+            NamedKey::ArrowLeft
+                | NamedKey::ArrowRight
+                | NamedKey::ArrowUp
+                | NamedKey::ArrowDown
+                | NamedKey::Home
+                | NamedKey::End
+                | NamedKey::PageUp
+                | NamedKey::PageDown
+        ) {
+            return false;
+        }
+        let Some(selection) = self.controller.state.get_untracked() else {
+            self.select(GridCell { row: 0, column: 0 }, false);
+            return true;
+        };
+        let mut cell = selection.active;
+        let page = if self.geometry.row_height > 0.0 {
+            (self.vertical.viewport_extent_untracked() / self.geometry.row_height).floor() as usize
+        } else {
+            1
+        };
+        let page = page.max(1);
+        match key {
+            NamedKey::ArrowDown => cell.row = cell.row.saturating_add(1).min(rows - 1),
+            NamedKey::ArrowUp => cell.row = cell.row.saturating_sub(1),
+            NamedKey::ArrowRight => cell.column = cell.column.saturating_add(1).min(cols - 1),
+            NamedKey::ArrowLeft => cell.column = cell.column.saturating_sub(1),
+            NamedKey::PageDown => cell.row = cell.row.saturating_add(page).min(rows - 1),
+            NamedKey::PageUp => cell.row = cell.row.saturating_sub(page),
+            NamedKey::Home => {
+                cell.column = 0;
+                if primary {
+                    cell.row = 0;
+                }
+            }
+            NamedKey::End => {
+                cell.column = cols - 1;
+                if primary {
+                    cell.row = rows - 1;
+                }
+            }
+            _ => return false,
+        }
+        self.select(cell, m.shift);
+        true
+    }
+}
+
+/// Reveal within the nonfrozen part of an axis, using immediate, clamped scrolling.
+fn reveal_axis(controller: ScrollController, start: f32, end: f32, leading: f32) {
+    let viewport = controller.viewport_extent_untracked();
+    if viewport <= leading {
+        return;
+    }
+    let offset = controller.offset_untracked();
+    let target = if end - start > viewport - leading || start < offset + leading {
+        start - leading
+    } else if end > offset + viewport {
+        end - viewport
+    } else {
+        offset
+    };
+    let target = target.clamp(0.0, controller.max_scroll_extent_untracked());
+    if target != offset {
+        controller.jump_to(target);
     }
 }

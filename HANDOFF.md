@@ -3,13 +3,13 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 5 selection spec drafted for review)_
+_Last updated: 2026-10-12 (DataGrid part 5 selection and keyboard navigation implemented)_
 
 ## Resume here (2026-10-12)
 
-DataGrid part 4 is committed. Part 5 now has a Draft spec for review (see below); no part 5
-tests or implementation have started. When resuming, tell the agent: "Read HANDOFF.md and
-continue."
+DataGrid parts 1 to 5 are committed on `phase3/focus` (fast-forward into `main` and push
+when requested). Next is part 6, cell editors. When resuming, tell the agent:
+"Read HANDOFF.md and continue."
 
 **Where things stand:**
 
@@ -38,7 +38,7 @@ continue."
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 73 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 75 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** the two
   pushes before this one were red on macOS only (the text field's chord test pressed Control
@@ -75,16 +75,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    user said "continue" on the draft's seven proposals): widths and display order as shared
    signals, a 6 px resize handle, an opt-in reorder drag with a drop line, sorting on the
    click. The gallery's Data grid section echoes "Name width: …" and "Order: …".
-4. **`DataGrid` part 5 is drafted for review** in
-   `docs/specs/widgets/data-grid-selection.md` (2026-10-12, the user asked "lets continue
-   datagrid part 5"). Nine proposals: opt-in None/Row/Cell/Range; display-coordinate
-   anchor/active selection with a controller exposing source-cell mapping; contiguous
-   Shift ranges; clear on model changes; one Tab stop and F6 body/header navigation;
-   keyboard sort/resize/reorder; immediate reveal and selection paint; accessibility
-   dimensions/indices/values/sort/active descendant; pointer modifier snapshots (the
-   current PointerEvent has none, so Shift-click needs a view/runner/tester amendment).
-   **Next: user reviews the draft**, then Agreed spec commit, failing tests and
-   implementation. Parts 6 (cell editors) and 7 (`examples/data-grid-stress`) follow.
+4. **`DataGrid` part 5 is done** (decision 75, 2026-10-12, spec
+   `docs/specs/widgets/data-grid-selection.md`). The user said "YOu have all the permissions"
+   after the draft; the agent took its recommended options and continued autonomously.
+   Opt-in None/Row/Cell/Range selection, an app-visible controller with source-cell mapping,
+   Shift ranges, a single Tab stop, F6 header navigation, keyboard sort/resize/reorder,
+   immediate active-cell reveal, accessibility dimensions/indices/values/sort direction and
+   validated active descendants. Pointer modifiers are forwarded per window; the tester has
+   `tap_with_modifiers`. The gallery offers all modes and has row/range selection goldens.
+   Selection resets on sort/filter/revision/actual reorder; widths and scrolling preserve it.
+   **Validation:** workspace tests, strict workspace Clippy, formatting, spec coverage
+   (75 checked, no draft/problems), no-default-feature facade tests and rustdoc with
+   warnings denied pass. Standalone GridScroll median **0.793 ms** (part 4: 0.797 ms);
+   the initial concurrent validation measurement was noisy. No dependency/pipeline change.
+5. Next: `DataGrid` part 6 (cell editors), then part 7 (`examples/data-grid-stress`).
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -828,6 +832,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     nothing (WIDGETS-GRID-14's grid got 600 px). The README's "today/planned" lines were
     stale since Phase 3 and now mention the grid and accessibility.
 
+75. **DataGrid selection and keyboard navigation** (2026-10-12, spec
+    `docs/specs/widgets/data-grid-selection.md`; recommended decisions taken on the user's
+    authorization to continue autonomously). Display-coordinate anchor/active endpoints
+    represent Row intervals, single Cell selection or Range rectangles, without materializing
+    the selected area. `GridSelectionController` maps any display cell through the shared
+    row map and normalized column order. Selection is opt-in; model changes clear it because
+    `DataSource` has no stable row identities. Keyboard focus stays on the grid while cells
+    virtualize; F6 switches its body/header cursor and semantics exposes a validated
+    `active_descendant`. Header keys sort, resize and reorder. Shift-click required adding
+    modifiers to view pointer events and per-window runner snapshots. Existing theme tokens
+    supply an opaque 12% primary tint over surface; the draft's nonexistent secondary
+    tokens were corrected in a spec/test amendment. `ensure_visible` walks from a buffered
+    cell's descendant to its cell metadata. No architecture edges or stages changed.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1264,15 +1282,22 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `2966a07` | test: WIDGETS-GRID-14's main grid gets a 600 px window |
 | `4ef964f` | impl: DataGrid column resize and reorder; the gallery's echoes; PLAN.md part 4 ticked |
 | `8c9c477` | docs: HANDOFF.md for DataGrid part 4 (decision 74) |
-| _this commit_ | docs: draft DataGrid part 5 selection and keyboard navigation spec for review; PLAN.md link and HANDOFF.md resume point |
+| `579e046` | docs: draft DataGrid part 5 selection and keyboard navigation spec for review; PLAN.md link and HANDOFF.md resume point |
+| `56456fa` | spec: DataGrid selection, navigation, table semantics and pointer modifiers |
+| `e81f109` | test: selection/input/a11y/gallery tests with compiling stubs; the missing behaviors fail |
+| `41c3cd3` | spec: selection paint uses existing surface and primary tokens |
+| `bcfdfd0` | test: selection tint is absent from the scene |
+| `8559080` | spec: buffered-cell reveal accepts descendants |
+| `d6e998d` | test: mapped sorting/filtering, controller disposal, header sorting and failing descendant reveal |
+| `583b5ed` | spec: selection controller Default signature |
+| _this commit_ | impl: DataGrid part 5 selection/navigation/reveal, pointer modifiers and table semantics; gallery controls and goldens; checks pass, PLAN.md ticked and HANDOFF.md current |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: review the Draft `DataGrid` part 5 spec, then its failing tests
-and implementation, then parts 6 and 7,
+See "Resume here" above: draft `DataGrid` part 6 (cell editors), then part 7,
 then the rest of Phase 4 in PLAN.md order.
 
 ## Open questions
@@ -1316,7 +1341,7 @@ then the rest of Phase 4 in PLAN.md order.
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
   lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3), 73 (the
-  kitchen sink) and 74 (column resize and reorder).
+  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec

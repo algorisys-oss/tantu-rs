@@ -1,6 +1,6 @@
 # DataGrid: selection and keyboard navigation
 
-- **Status:** Agreed (2026-10-12; the user authorized all permissions after the draft;
+- **Status:** Implemented (2026-10-12; the user authorized all permissions after the draft;
   the agent takes the nine recommended proposals)
 - **Crates:** `tantu-widgets`, `tantu-view` (semantics and pointer modifiers), `tantu-a11y`
   (property mapping), `tantu` (pointer translation and exports), `tantu-test` (modified taps),
@@ -19,7 +19,7 @@ positions to their data source. Assistive technology receives the table dimensio
 positions, values, selection and current navigation target.
 
 This amends WIDGETS-GRID-05's provisional keyboard scrolling only when selection is enabled.
-The implementation follows agreement of this draft and failing rule tests.
+The implementation followed agreement and failing rule tests.
 
 ## Scope
 
@@ -326,11 +326,12 @@ authorization to continue autonomously:
    forwards each window's state and the tester gains tap_with_modifiers. Existing pointer
    literals will need a default-modifier field, with no other behavior change.
 
-Before agreement, settle these proposals. Then commit the Agreed spec and amendments to
-the existing grid/column/semantics specs, write failing tests (including pure membership
-and normalization cases, pointer/keyboard fixtures, frozen/reordered/mapped cells,
-controller disposal, a11y property mapping and the gallery), and implement. No architecture
-dependency edge or pipeline stage changes are proposed.
+Validation: workspace tests, strict workspace Clippy, formatting, spec coverage, facade tests
+without default features and rustdoc with warnings denied pass. The row/range gallery
+goldens were rendered and visually inspected. GridScroll's final median is 0.793 ms per
+step (30 samples, release, the reference laptop); the isolated part 4 comparison is
+0.797 ms. The first measurement under concurrent validation was noisy, so these numbers
+come from standalone runs. No architecture dependency edge or pipeline stage changed.
 
 Implementation amendment (2026-10-12): ColorScheme has no secondary_container tokens;
 WIDGETS-GRID-20 uses the existing surface/primary blend and on_surface instead.

@@ -205,8 +205,19 @@ impl WidgetTester {
     }
 
     /// Primary press and release with `modifiers`, then a pump.
-    pub fn tap_with_modifiers(&mut self, _finder: &Finder, _modifiers: Modifiers) {
-        todo!("TEST-WT-16")
+    pub fn tap_with_modifiers(&mut self, finder: &Finder, modifiers: Modifiers) {
+        let center = self.rect(self.find(finder)).center();
+        for kind in [
+            PointerKind::Down(PointerButton::Primary),
+            PointerKind::Up(PointerButton::Primary),
+        ] {
+            self.pointer(PointerEvent {
+                kind,
+                position: center,
+                modifiers,
+            });
+        }
+        self.pump();
     }
 
     /// A pointer move to the center of the single element `finder` matches, then a pump.

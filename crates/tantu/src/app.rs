@@ -229,7 +229,6 @@ impl App {
             windows: Vec::new(),
             factory: Box::new(renderer),
             error: None,
-            modifiers: tantu_view::Modifiers::default(),
             wake: None,
         }
     }
@@ -288,6 +287,7 @@ impl Paint for BackgroundPaint {
 
 /// One open window.
 struct WindowState {
+    modifiers: tantu_view::Modifiers,
     id: WindowId,
     tree: ViewTree,
     renderer: Box<dyn Renderer>,
@@ -322,8 +322,6 @@ pub struct AppHandler {
     windows: Vec<WindowState>,
     factory: RendererFactory,
     error: Option<Error>,
-    /// The modifiers held, from `ModifiersChanged` (FACADE-APP-11).
-    modifiers: tantu_view::Modifiers,
     /// The wake-up deadline last passed to the platform (FACADE-APP-14).
     wake: Option<std::time::Instant>,
     /// The accessibility tree's window name: the first window's title (FACADE-APP-15).
@@ -361,6 +359,7 @@ impl AppHandler {
         fit(renderer.as_mut(), cx, id);
         cx.request_redraw(id);
         self.windows.push(WindowState {
+            modifiers: tantu_view::Modifiers::default(),
             id,
             tree,
             renderer,
@@ -587,7 +586,7 @@ impl PlatformHandler for AppHandler {
             }
             WindowEvent::RedrawRequested => self.redraw(cx, index),
             WindowEvent::ModifiersChanged(m) => {
-                self.modifiers = tantu_view::Modifiers {
+                self.windows[index].modifiers = tantu_view::Modifiers {
                     shift: m.shift,
                     control: m.control,
                     alt: m.alt,
@@ -595,7 +594,7 @@ impl PlatformHandler for AppHandler {
                 };
             }
             WindowEvent::Keyboard(ref key) => {
-                if let Some(event) = key_event(key, self.modifiers) {
+                if let Some(event) = key_event(key, self.windows[index].modifiers) {
                     self.windows[index].tree.dispatch_key(event);
                 }
             }
@@ -620,7 +619,8 @@ impl PlatformHandler for AppHandler {
                 }
             }
             ref other => {
-                if let Some(pointer) = pointer_event(other) {
+                if let Some(mut pointer) = pointer_event(other) {
+                    pointer.modifiers = self.windows[index].modifiers;
                     self.windows[index].tree.dispatch_pointer(pointer);
                 }
             }

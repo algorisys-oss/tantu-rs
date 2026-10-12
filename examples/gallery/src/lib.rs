@@ -409,6 +409,31 @@ fn media_section() -> impl View {
 fn grid_section() -> impl View {
     let (vertical, horizontal) = (ScrollController::new(), ScrollController::new());
     let sort = signal(None::<SortState>);
+    let mode = signal(GridSelectionMode::Row);
+    let selection = GridSelectionController::new();
+    let grid_selection = selection.clone();
+    let echo_selection = selection.clone();
+    let mode_controls = Row::new().spacing(8.0).children(
+        [
+            ("none", GridSelectionMode::None),
+            ("row", GridSelectionMode::Row),
+            ("cell", GridSelectionMode::Cell),
+            ("range", GridSelectionMode::Range),
+        ]
+        .into_iter()
+        .map(|(name, next)| {
+            let selection = selection.clone();
+            Keyed::new(
+                format!("grid-mode-{name}"),
+                Button::new(format!("{next:?}"))
+                    .enabled(move || mode.get() != next)
+                    .on_press(move || {
+                        selection.set_selection(None);
+                        mode.set(next);
+                    }),
+            )
+        }),
+    );
     const TITLES: [&str; 6] = ["Id", "Name", "City", "Amount", "Active", "Score"];
     // The widths and the display order are the app's (GALLERY-15), so it could persist them.
     let widths = signal(vec![80.0f32, 200.0, 180.0, 140.0, 90.0, 140.0]);
@@ -440,8 +465,10 @@ fn grid_section() -> impl View {
             )
             .style(TextStyle::label()),
         )
-        .child(
-            SizedBox::new(700.0, 400.0).child(Keyed::new(
+        .child(Keyed::new("grid-selection-mode", mode_controls))
+        .child(SizedBox::new(700.0, 400.0).child(Dyn::new(move || {
+            let mode = mode.get();
+            Keyed::new(
                 "grid",
                 DataGrid::new(
                     [
@@ -452,16 +479,41 @@ fn grid_section() -> impl View {
                         GridColumn::new("Active").width(90.0).sortable(true),
                         GridColumn::new("Score").width(140.0).sortable(true),
                     ],
-                    source,
+                    source.clone(),
                 )
+                .selection_mode(mode)
+                .selection_controller(grid_selection.clone())
                 .controllers(vertical, horizontal)
                 .frozen_columns(1)
                 .sort_state(sort)
                 .column_widths(widths)
                 .reorderable(true)
                 .column_order(order),
-            )),
-        )
+            )
+        })))
+        .child(Keyed::new(
+            "grid-selection",
+            Text::new(move || {
+                let Some(s) = echo_selection.selection() else {
+                    return "Selection: none".to_owned();
+                };
+                match mode.get() {
+                    GridSelectionMode::None => "Selection: none".to_owned(),
+                    GridSelectionMode::Row => format!(
+                        "Selection: rows {}..{}",
+                        s.anchor.row.min(s.active.row),
+                        s.anchor.row.max(s.active.row)
+                    ),
+                    GridSelectionMode::Cell => {
+                        format!("Selection: cell ({}, {})", s.active.row, s.active.column)
+                    }
+                    GridSelectionMode::Range => format!(
+                        "Selection: ({}, {})..({}, {})",
+                        s.anchor.row, s.anchor.column, s.active.row, s.active.column
+                    ),
+                }
+            }),
+        ))
         // The sort state echoed (GALLERY-11); the source stays in its own order.
         .child(Keyed::new(
             "sort",

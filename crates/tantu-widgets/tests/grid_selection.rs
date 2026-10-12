@@ -313,62 +313,124 @@ fn widgets_grid_22_accessibility_values_and_active_cell() {
 
 #[test]
 fn widgets_grid_21_sorted_filtered_mapping_and_detach() {
-    use tantu_view::{AnyView,Dyn};
-    use tantu_widgets::{RowFilter,SizedBox};
-    let out=Rc::new(RefCell::new(None));let capture=out.clone();
-    let mut t=WidgetTester::with_size(360.0,200.0,move || {
-        let controller=GridSelectionController::new();let visible=signal(true);
-        let filter:RowFilter=Rc::new(|_,row|row%2==0);
-        let filter=signal(Some(filter));
-        let sort=signal(Some(SortState {column:0,ascending:true}));
-        *capture.borrow_mut()=Some((controller.clone(),visible,sort,filter));
+    use tantu_view::{AnyView, Dyn};
+    use tantu_widgets::{RowFilter, SizedBox};
+    let out = Rc::new(RefCell::new(None));
+    let capture = out.clone();
+    let mut t = WidgetTester::with_size(360.0, 200.0, move || {
+        let controller = GridSelectionController::new();
+        let visible = signal(true);
+        let filter: RowFilter = Rc::new(|_, row| row % 2 == 0);
+        let filter = signal(Some(filter));
+        let sort = signal(Some(SortState {
+            column: 0,
+            ascending: true,
+        }));
+        *capture.borrow_mut() = Some((controller.clone(), visible, sort, filter));
         Dyn::new(move || {
             if visible.get() {
-                AnyView::new(Keyed::new("g",DataGrid::new([GridColumn::new("Key"),GridColumn::new("Value")],
-                    Rc::new(FnSource::new(6,|r,c| if c==0 {CellValue::Int(5-r as i64)}else{CellValue::Text(format!("row {r}"))})))
-                    .client_sort(true).sort_state(sort).filter(filter).column_order(signal(vec![1,0]))
-                    .selection_mode(Mode::Cell).selection_controller(controller.clone())))
-            }else {AnyView::new(SizedBox::new(10.0,10.0))}
+                AnyView::new(Keyed::new(
+                    "g",
+                    DataGrid::new(
+                        [GridColumn::new("Key"), GridColumn::new("Value")],
+                        Rc::new(FnSource::new(6, |r, c| {
+                            if c == 0 {
+                                CellValue::Int(5 - r as i64)
+                            } else {
+                                CellValue::Text(format!("row {r}"))
+                            }
+                        })),
+                    )
+                    .client_sort(true)
+                    .sort_state(sort)
+                    .filter(filter)
+                    .column_order(signal(vec![1, 0]))
+                    .selection_mode(Mode::Cell)
+                    .selection_controller(controller.clone()),
+                ))
+            } else {
+                AnyView::new(SizedBox::new(10.0, 10.0))
+            }
         })
     });
-    t.pump();let (controller,visible,sort,filter)=out.borrow_mut().take().expect("built");
-    assert_eq!(t.enter(||controller.source_cell(cell(0,0))),Some(cell(4,1)));
-    t.enter(||controller.set_selection(Some(single(1,1))));t.pump();
-    t.enter(||sort.set(None));t.pump();t.pump();
-    assert_eq!(t.enter(||controller.selection()),None);
-    assert_eq!(t.enter(||controller.source_cell(cell(0,0))),Some(cell(0,1)));
-    t.enter(||filter.set(None));t.pump();t.pump();
-    assert_eq!(t.enter(||controller.source_cell(cell(5,0))),Some(cell(5,1)));
-    t.enter(||controller.set_selection(Some(single(1,1))));t.pump();
-    t.enter(||visible.set(false));t.pump();
-    assert_eq!(t.enter(||controller.source_cell(cell(0,0))),None);
-    assert_eq!(t.enter(||controller.selection()),Some(single(1,1)));
-    t.enter(||visible.set(true));t.pump();t.pump();
-    assert_eq!(t.enter(||controller.selection()),Some(single(1,1)));
+    t.pump();
+    let (controller, visible, sort, filter) = out.borrow_mut().take().expect("built");
+    assert_eq!(
+        t.enter(|| controller.source_cell(cell(0, 0))),
+        Some(cell(4, 1))
+    );
+    t.enter(|| controller.set_selection(Some(single(1, 1))));
+    t.pump();
+    t.enter(|| sort.set(None));
+    t.pump();
+    t.pump();
+    assert_eq!(t.enter(|| controller.selection()), None);
+    assert_eq!(
+        t.enter(|| controller.source_cell(cell(0, 0))),
+        Some(cell(0, 1))
+    );
+    t.enter(|| filter.set(None));
+    t.pump();
+    t.pump();
+    assert_eq!(
+        t.enter(|| controller.source_cell(cell(5, 0))),
+        Some(cell(5, 1))
+    );
+    t.enter(|| controller.set_selection(Some(single(1, 1))));
+    t.pump();
+    t.enter(|| visible.set(false));
+    t.pump();
+    assert_eq!(t.enter(|| controller.source_cell(cell(0, 0))), None);
+    assert_eq!(t.enter(|| controller.selection()), Some(single(1, 1)));
+    t.enter(|| visible.set(true));
+    t.pump();
+    t.pump();
+    assert_eq!(t.enter(|| controller.selection()), Some(single(1, 1)));
 }
 
 #[test]
 fn widgets_grid_22_buffered_descendant_reveal() {
-    let mut f=Fixture::new(Mode::Cell);
+    let mut f = Fixture::new(Mode::Cell);
     f.t.ensure_visible(&Finder::text("r6c0"));
     f.t.pump();
-    assert!(f.t.enter(||f.h.vertical.offset())>0.0);
+    assert!(f.t.enter(|| f.h.vertical.offset()) > 0.0);
 }
 
 #[test]
 fn widgets_grid_19_keyboard_sorts_focused_header() {
-    let out=Rc::new(RefCell::new(None));let capture=out.clone();
-    let mut t=WidgetTester::with_size(360.0,200.0,move || {
-        let sort=signal(None);*capture.borrow_mut()=Some(sort);
-        Keyed::new("g",DataGrid::new([GridColumn::new("Key").sortable(true)],
-            Rc::new(FnSource::new(10,|r,_|CellValue::Int(r as i64))))
-            .selection_mode(Mode::Cell).sort_state(sort))
+    let out = Rc::new(RefCell::new(None));
+    let capture = out.clone();
+    let mut t = WidgetTester::with_size(360.0, 200.0, move || {
+        let sort = signal(None);
+        *capture.borrow_mut() = Some(sort);
+        Keyed::new(
+            "g",
+            DataGrid::new(
+                [GridColumn::new("Key").sortable(true)],
+                Rc::new(FnSource::new(10, |r, _| CellValue::Int(r as i64))),
+            )
+            .selection_mode(Mode::Cell)
+            .sort_state(sort),
+        )
     });
-    t.pump();t.focus(&Finder::key("g"));
-    t.press_key(LogicalKey::Named(NamedKey::F(6)),Modifiers::default());
-    t.press_key(LogicalKey::Named(NamedKey::Enter),Modifiers::default());
-    let sort=out.borrow_mut().take().expect("built");
-    assert_eq!(t.enter(||sort.get()),Some(SortState {column:0,ascending:true}));
-    t.press_key(LogicalKey::Character(" ".into()),Modifiers::default());
-    assert_eq!(t.enter(||sort.get()),Some(SortState {column:0,ascending:false}));
+    t.pump();
+    t.focus(&Finder::key("g"));
+    t.press_key(LogicalKey::Named(NamedKey::F(6)), Modifiers::default());
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    let sort = out.borrow_mut().take().expect("built");
+    assert_eq!(
+        t.enter(|| sort.get()),
+        Some(SortState {
+            column: 0,
+            ascending: true
+        })
+    );
+    t.press_key(LogicalKey::Character(" ".into()), Modifiers::default());
+    assert_eq!(
+        t.enter(|| sort.get()),
+        Some(SortState {
+            column: 0,
+            ascending: false
+        })
+    );
 }

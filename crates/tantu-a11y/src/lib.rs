@@ -112,6 +112,21 @@ fn visit(
                 visit(tree, *child, nodes, &mut children);
             }
             let mut node = node(semantics);
+            if let Some(active) = semantics.active_descendant.filter(|active| {
+                if *active == element || tree.semantics(*active).is_none() {
+                    return false;
+                }
+                let mut parent = tree.parent(*active);
+                while let Some(id) = parent {
+                    if id == element {
+                        return true;
+                    }
+                    parent = tree.parent(id);
+                }
+                false
+            }) {
+                node.set_active_descendant(AccessibilityTree::node_id(active));
+            }
             if let Some(bounds) = tree.bounds(element) {
                 node.set_bounds(rect(bounds));
             }
@@ -152,6 +167,27 @@ fn node(semantics: &Semantics) -> Node {
         R::Cell => Role::Cell,
     };
     let mut node = Node::new(role);
+    if let Some(v) = semantics.row_count {
+        node.set_row_count(v);
+    }
+    if let Some(v) = semantics.column_count {
+        node.set_column_count(v);
+    }
+    if let Some(v) = semantics.row_index {
+        node.set_row_index(v);
+    }
+    if let Some(v) = semantics.column_index {
+        node.set_column_index(v);
+    }
+    if semantics.multiselectable {
+        node.set_multiselectable();
+    }
+    if let Some(v) = semantics.sort_direction {
+        node.set_sort_direction(match v {
+            tantu_view::SortDirection::Ascending => accesskit::SortDirection::Ascending,
+            tantu_view::SortDirection::Descending => accesskit::SortDirection::Descending,
+        });
+    }
     if let Some(name) = &semantics.name {
         node.set_label(name.as_str());
     }
