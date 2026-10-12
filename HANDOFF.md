@@ -65,11 +65,11 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 **Next (PLAN.md order): Phase 4, enterprise features.**
 
 1. **`DataGrid` part 3, sorting and filtering, is drafted and waits for review:**
-   WIDGETS-GRID-10..12 and GALLERY-11 in `docs/specs/widgets/data-grid.md` (a shared
+   `docs/specs/widgets/data-grid-sort.md` (WIDGETS-GRID-10..12, GALLERY-11: a shared
    `Signal<Option<SortState>>` the header click cycles, a painted chevron, `client_sort`
    ordering rows by `CellValue::compare`, a `RowFilter` predicate signal applied before
-   sorting, builders seeing source rows, the gallery echoing the state), with proposals 13
-   to 19. Say "continue" to accept them; the agent then does the `spec:`/`test:`/`impl:`
+   sorting, builders seeing source rows, the gallery echoing the state), with seven
+   proposals. Say "continue" to accept them; the agent then does the `spec:`/`test:`/`impl:`
    commits. Then parts 4 to 7.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
@@ -1166,7 +1166,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `2d9d899` | test: WIDGETS-GRID-09 counts painted frozen rows; GALLERY-10 checks Name moved left |
 | `9b9bb52` | impl: DataGrid frozen columns; the gallery freezes its Id column; PLAN.md part 2 ticked |
 | `cb28bed` | docs: HANDOFF.md for DataGrid part 2 |
-| _this commit_ | docs: draft DataGrid part 3 (sorting and filtering) for review |
+| `0da4197` | docs: draft DataGrid part 3 (sorting and filtering) for review |
+| _this commit_ | docs: the part 3 draft as its own Draft spec (the coverage check reads a file's status) |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

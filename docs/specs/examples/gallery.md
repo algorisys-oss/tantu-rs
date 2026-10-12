@@ -77,8 +77,6 @@ Sections and their samples:
   [ListView: variable extents](../widgets/list-view-advanced.md).
 - **GALLERY-09:** Every sample has an accessibility node; see [semantics](../a11y/semantics.md).
 - **GALLERY-10:** The Data grid section; see [DataGrid](../widgets/data-grid.md).
-- **GALLERY-11:** The Data grid section's sortable headers and sort text; see
-  [DataGrid](../widgets/data-grid.md).
 
 ## Open questions
 

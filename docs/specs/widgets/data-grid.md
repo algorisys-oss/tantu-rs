@@ -1,10 +1,9 @@
-# DataGrid: data source, columns, header, virtualization, frozen columns, sorting and filtering
+# DataGrid: data source, columns, header, virtualization and frozen columns
 
 - **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its nine
   proposals); **part 2, frozen columns (WIDGETS-GRID-09), Implemented** on 2026-10-12 (decided by
   the agent on the user's "continue and then commit and push"; proposals 10 to 12 are marked
-  for review); **part 3, sorting and filtering (WIDGETS-GRID-10..12, GALLERY-11), Draft**
-  (2026-10-12; proposals 13 to 19 under Open questions wait for review)
+  for review); part 3, sorting and filtering, is [its own spec](data-grid-sort.md)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`, `DataSource`, `CellValue`,
   `FnSource`), `tantu-view` and `tantu-a11y` (three roles), `examples/gallery`
 - **Plan item:** Phase 4, "`DataGrid`" → "data source, columns, header, row and column
@@ -115,38 +114,6 @@ impl DataGrid {
     /// The first `count` columns stay at the left while the others scroll (clamped to the
     /// column count; default 0) (WIDGETS-GRID-09).
     pub fn frozen_columns(self, count: usize) -> Self;
-    /// Shares the sort state with the app (the grid owns one otherwise) (WIDGETS-GRID-10).
-    pub fn sort_state(self, state: Signal<Option<SortState>>) -> Self;
-    /// The grid orders the rows itself by the sorted column's values, and every column is
-    /// sortable unless it says otherwise (default false: the app reorders its source)
-    /// (WIDGETS-GRID-11).
-    pub fn client_sort(self, enabled: bool) -> Self;
-    /// Shows only the source rows the predicate accepts (`None`: every row) (WIDGETS-GRID-12).
-    pub fn filter(self, filter: Signal<Option<RowFilter>>) -> Self;
-}
-
-impl GridColumn {
-    /// Whether a header click sorts by this column (default: only with `client_sort`)
-    /// (WIDGETS-GRID-10).
-    pub fn sortable(self, sortable: bool) -> Self;
-}
-
-/// Which column the grid is sorted by, and how (Flutter's `sortColumnIndex` and
-/// `sortAscending`).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SortState {
-    pub column: usize,
-    pub ascending: bool,
-}
-
-/// A predicate over a source's rows.
-pub type RowFilter = Rc<dyn Fn(&dyn DataSource, usize) -> bool>;
-
-impl CellValue {
-    /// A total order over values for sorting: `Empty`, then `Bool` (false first), then
-    /// numbers (`Int` and `Float` compared as `f64`, NaN lowest), then `Text` (byte order)
-    /// (WIDGETS-GRID-11).
-    pub fn compare(&self, other: &CellValue) -> Ordering;
 }
 
 // tantu-view
@@ -224,40 +191,12 @@ background with a 1 px `outline_variant` line below the strip. Body rows get a 1
   right line is the theme's `outline` (the others stay `outline_variant`). The horizontal
   extents are unchanged (the content width minus the grid width). `frozen_columns(0)` is the
   part 1 behavior.
-- **WIDGETS-GRID-10:** Sort state (part 3): the grid holds a `Signal<Option<SortState>>`
-  (its own, or the app's through `sort_state`). A primary press on a sortable column's
-  header cycles the state: an unsorted or differently sorted column becomes ascending, an
-  ascending one descending, a descending one unsorted (`None`); presses on a column that
-  isn't sortable change nothing; the press doesn't bubble past the grid when it sorted.
-  The sorted column's header shows a chevron after its title (a 10 px mark of two 2 px bars
-  in `on_surface_variant`, pointing up for ascending and down for descending), and the other
-  headers show none; setting the signal from the app moves the chevron the same way. The
-  state alone reorders nothing: without `client_sort` the app reorders its source (and bumps
-  `revision`), as a database-backed source would.
-- **WIDGETS-GRID-11:** Client-side sorting: with `client_sort(true)`, a sort state orders the
-  displayed rows by `CellValue::compare` of the sorted column's values (a stable sort, so
-  equal values keep their source order; descending reverses the comparison, not the stable
-  order), recomputed when the state, the filter or the revision changes and never while
-  scrolling; `None` shows the source order. Display row `d` shows source row `map[d]`: the
-  default text reads `cell(map[d], column)`, a column `builder` is called with the source
-  row, and the header stays. `compare` orders `Empty` < `Bool(false)` < `Bool(true)` <
-  numbers (`Int(2)` < `Float(2.5)`, NaN lowest) < `Text` (byte order, so "B" < "a").
-- **WIDGETS-GRID-12:** Filtering: with `filter(signal)` holding `Some(predicate)`, the grid
-  shows only the source rows the predicate accepts (called with the source and the row, in
-  source order, once per row when the filter or the revision changes), then sorts them when
-  `client_sort` applies; the row count, the vertical extents and the scrollbar follow the
-  matches; `None` shows every row. The map of matches is shared, not copied, between the
-  frames that reuse it.
 - **GALLERY-10:** A "Data grid" section (key `grid`): a 1 000 000-row `FnSource` with six
   columns (Id, Name, City, Amount, Active, Score), the Id column frozen, a "First row: N"
   text (key `first-row`) following the vertical controller, and a golden
   `tests/goldens/gallery-grid.png`; a wheel scroll of 320 px changes the text to "First row:
   10", and a horizontal wheel scroll of 200 px leaves the "Id" header where it was while
   "Name" moves left.
-- **GALLERY-11:** The Data grid section's columns are sortable and its sort state is echoed
-  as "Sort: none" / "Sort: Score ascending" / "Sort: Score descending" (key `sort`); a tap
-  on the "Score" header cycles it. The gallery does not enable `client_sort` (a million
-  generated rows would be compared in a debug test); the grid stays in source order.
 
 ## Performance and allocation
 
@@ -327,29 +266,3 @@ Part 2, frozen columns (decided by the agent, 2026-10-12; review):
     content width − grid width): the scrolling region is narrower by the frozen width, and so
     is the scrolling content, so the arithmetic is unchanged and `jump_to`/`animate_to`
     targets keep their meaning.
-
-Part 3, sorting and filtering (proposals for review, 2026-10-12):
-
-13. **The sort state is a shared signal the grid cycles; ordering is the app's job unless
-    `client_sort` is on.** Enterprise sources sort in the database, so PLAN.md's "the
-    source's sort and filter hooks" become: the app reads the state (or is told through the
-    signal) and reorders its source, then bumps `revision`. `DataSource` stays a plain row
-    store with no new methods. The in-memory case gets `client_sort`.
-14. **Client sorting compares `CellValue`s with a fixed cross-kind order and byte-order
-    text**, deterministic and locale-free; locale-aware collation comes with Phase 4 i18n
-    as a comparator hook on the column. A sort over a million rows costs n log n `cell`
-    calls (about 20 million), so the doc says it is for sources whose `cell` is cheap.
-15. **The filter is a predicate signal over source rows** (`Rc<dyn Fn(&dyn DataSource,
-    usize) -> bool>`), applied before sorting, rather than per-column filter models: those
-    are UI (filter rows under the header, filter menus) and can be built on this later.
-16. **Builders and the source see source rows, not display rows.** A builder that looks its
-    row up in app data needs the source index; the display index is a presentation detail.
-    The selection part will have to decide which index its signal carries (display, since
-    keys move through display rows, with a helper to map to source rows).
-17. **The chevron is painted** (two bars, like the checkbox's check mark), not an icon-font
-    glyph, so it needs no font and goldens stay deterministic.
-18. **Columns are sortable only when asked** (`sortable(true)`) or when `client_sort` is
-    on: a header click on a database-backed grid should do nothing until the app wires the
-    state, rather than show a chevron over an unsorted table.
-19. **The gallery echoes the state only;** `client_sort` over its million generated rows
-    would take seconds in a debug test.
