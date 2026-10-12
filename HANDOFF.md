@@ -1397,7 +1397,9 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 
 | `2657047` | docs: draft TreeView source/state/navigation/virtualization/semantics/demo proposals for review; split PLAN.md enterprise widget items and update HANDOFF.md |
 
-| _this commit_ | spec: agree TreeView on the user's implementation request, including the kitchen-sink example |
+| `dce57a4` | spec: agree TreeView on the user's implementation request, including the kitchen-sink example |
+
+| _this commit_ | test: TreeView API/semantic stubs and failing widget/a11y/gallery regressions; no implementation yet |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

@@ -53,6 +53,10 @@ pub enum Role {
     ColumnHeader,
     /// A cell in a grid.
     Cell,
+    /// A hierarchical tree.
+    Tree,
+    /// A tree row.
+    TreeItem,
 }
 
 /// A checkable element's state.
@@ -82,6 +86,10 @@ pub struct NumericValue {
 /// The actions an element supports, as assistive technology may request them.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SemanticsActions {
+    /// Expanding a branch.
+    pub expand: bool,
+    /// Collapsing a branch.
+    pub collapse: bool,
     /// A press (a button, a toggle).
     pub click: bool,
     /// Taking keyboard focus.
@@ -99,6 +107,14 @@ pub struct SemanticsActions {
 /// What assistive technology is told about an element (VIEW-SEM-01).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Semantics {
+    /// Open or closed; None for leaves.
+    pub expanded: Option<bool>,
+    /// One-based tree depth.
+    pub level: Option<usize>,
+    /// One-based sibling position.
+    pub position_in_set: Option<usize>,
+    /// Declared sibling count.
+    pub size_of_set: Option<usize>,
     /// Total displayed body rows, excluding headers.
     pub row_count: Option<usize>,
     /// Total displayed columns.
@@ -145,6 +161,10 @@ pub enum SortDirection {
 /// What assistive technology asked for (VIEW-SEM-03).
 #[derive(Clone, Debug, PartialEq)]
 pub enum SemanticsAction {
+    /// Expand a branch.
+    Expand,
+    /// Collapse a branch.
+    Collapse,
     /// Give the element keyboard focus.
     Focus,
     /// Press it.
@@ -273,6 +293,7 @@ impl ViewTree {
         };
         let (role, actions) = (semantics.role, semantics.actions);
         let supported = match &action {
+            SemanticsAction::Expand | SemanticsAction::Collapse => false,
             SemanticsAction::Focus => actions.focus,
             SemanticsAction::Click => actions.click,
             SemanticsAction::Increment => actions.increment,
@@ -285,6 +306,7 @@ impl ViewTree {
             return false;
         }
         match action {
+            SemanticsAction::Expand | SemanticsAction::Collapse => false,
             SemanticsAction::Focus => self.focus(element),
             SemanticsAction::Click => {
                 let Some(center) = self.bounds(element).map(|b| b.center()) else {

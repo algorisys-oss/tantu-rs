@@ -165,6 +165,7 @@ fn node(semantics: &Semantics) -> Node {
         R::Grid => Role::Grid,
         R::ColumnHeader => Role::ColumnHeader,
         R::Cell => Role::Cell,
+        R::Tree | R::TreeItem => Role::Group,
     };
     let mut node = Node::new(role);
     if let Some(v) = semantics.row_count {

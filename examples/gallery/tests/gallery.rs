@@ -694,3 +694,85 @@ fn gallery_19_kitchen_sink_popup_inherits_local_theme() {
     t.tap(&Finder::key("sink-popup-close"));
     assert!(t.find_all(&Finder::key("sink-popup-close")).is_empty());
 }
+
+#[test]
+fn gallery_20_tree_section_navigation_activation_and_golden() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    assert!(SECTIONS.contains(&"Tree view"));
+    t.tap(&Finder::key("nav-tree-view"));
+    t.pump();
+    t.tap(&Finder::text("src"));
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers::default(),
+    );
+    t.pump();
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers::default(),
+    );
+    t.pump();
+    assert_eq!(text_of(&t, "tree-selection"), "Selected: 2");
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    assert_eq!(text_of(&t, "tree-activated"), "Activated: 2");
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-tree.png"
+    ));
+    t.tap(&Finder::text("Generated"));
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers::default(),
+    );
+    t.press_key(LogicalKey::Named(NamedKey::End), Modifiers::default());
+    t.pump();
+    t.find(&Finder::text("Generated 4999"));
+    assert!(
+        t.a11y_tree()
+            .nodes
+            .iter()
+            .filter(|(_, n)| n.role() == tantu_test::accesskit::Role::TreeItem)
+            .count()
+            < 25
+    );
+}
+
+#[test]
+fn gallery_21_kitchen_sink_tree_selection_collapse_and_golden() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "tree" && widgets.contains(&"tree_view"))
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-tree"));
+    t.pump();
+    t.tap(&Finder::text("src"));
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers::default(),
+    );
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers::default(),
+    );
+    t.pump();
+    assert_eq!(text_of(&t, "sink-tree-state"), "Selected: 2, expanded: 2");
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    assert_eq!(text_of(&t, "sink-tree-activated"), "Activated: 2");
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-sink-tree.png"
+    ));
+    // Collapse Workspace through its disclosure control.
+    let tree = rect(&t, "sink-tree_view");
+    t.pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(tree.left + 10.0, tree.top + 16.0),
+        modifiers: Default::default(),
+    });
+    t.pump();
+    assert_eq!(text_of(&t, "sink-tree-state"), "Selected: 0, expanded: 0");
+}

@@ -46,6 +46,7 @@ mod text_field;
 mod theme;
 mod toggles;
 mod tooltip;
+mod tree_view;
 mod util;
 
 pub use basic::{Button, Text};
@@ -73,6 +74,7 @@ pub use text_editing::{
 pub use text_field::{RedoIntent, SelectAllIntent, TextField, UndoIntent};
 pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;
+pub use tree_view::{TreeDataSource, TreeNodeId, TreeRowState, TreeView};
 
 pub use layout::{
     Align, Center, Column, ConstrainedBox, Expanded, Flexible, LimitedBox, Padding, Positioned,

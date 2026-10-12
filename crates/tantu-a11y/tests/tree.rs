@@ -354,3 +354,52 @@ fn a11y_tree_04_map_action() {
         None
     );
 }
+
+#[test]
+fn a11y_tree_05_roles_properties_and_expand_collapse_requests() {
+    let tree = ViewTree::new(|| {
+        leaf(Some(Semantics {
+            role: tantu_view::Role::TreeItem,
+            expanded: Some(false),
+            level: Some(3),
+            position_in_set: Some(2),
+            size_of_set: Some(5),
+            actions: SemanticsActions {
+                expand: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        }))
+    });
+    let update = AccessibilityTree::new("tree").update(&tree);
+    let item = update
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == AkRole::TreeItem)
+        .expect("tree item role");
+    assert_eq!(
+        (
+            item.1.is_expanded(),
+            item.1.level(),
+            item.1.position_in_set(),
+            item.1.size_of_set()
+        ),
+        (Some(false), Some(3), Some(2), Some(5))
+    );
+    assert!(item.1.supports_action(Action::Expand));
+    for (action, expected) in [
+        (Action::Expand, SemanticsAction::Expand),
+        (Action::Collapse, SemanticsAction::Collapse),
+    ] {
+        let request = ActionRequest {
+            action,
+            target_tree: TreeId::ROOT,
+            target_node: item.0,
+            data: None,
+        };
+        assert_eq!(
+            AccessibilityTree::map_action(&request),
+            Some((ElementId::from_raw(item.0.0).unwrap(), expected))
+        );
+    }
+}
