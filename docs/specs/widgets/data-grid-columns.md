@@ -1,6 +1,7 @@
 # DataGrid: column resize and reorder
 
-- **Status:** Draft (2026-10-12; proposals under Open questions wait for review)
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its seven
+  proposals)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`), `examples/gallery`
 - **Plan item:** Phase 4, "`DataGrid`" → "column resize and reorder"
 - **Related:** [DataGrid](data-grid.md) (parts 1 and 2), [DataGrid sorting](data-grid-sort.md)
@@ -95,7 +96,7 @@ move writes one signal.
 
 ## Open questions
 
-Proposals (for review):
+Resolved (2026-10-12; the user said "continue" on the draft, taking these proposals):
 
 1. **Widths and order as shared signals, indexed by source column,** rather than mutable
    fields on `GridColumn`: an app can persist and restore them, and every consumer (sort

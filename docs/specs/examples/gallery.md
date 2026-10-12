@@ -50,7 +50,7 @@ Sections and their samples:
 | Lists | a `ListView` of 10 000 rows of 32 px ("Row N") in a 320 px tall box (`list`) |
 | Media | a row of `Icon`s, an `Image` of a generated 64 × 64 gradient shown at 128 × 128 (`image`) |
 | Animation | a `Switch` (`grow`) animating a box (`box`) with `animated()`, a dot (`dot`) moved by a repeating controller (GALLERY-06) |
-| Data grid | a `DataGrid` over a 1 000 000-row `FnSource` (`grid`) with "First row: N" (`first-row`) (GALLERY-10) and "Sort: …" (`sort`) (GALLERY-11) |
+| Data grid | a `DataGrid` over a 1 000 000-row `FnSource` (`grid`) with "First row: N" (`first-row`) (GALLERY-10) and "Sort: …" (`sort`) (GALLERY-11), "Name width: …" (`name-width`) and "Order: …" (`order`) (GALLERY-15) |
 | Kitchen sink | every widget on one scrolling page (`sink`), twelve cards (GALLERY-12..14, [kitchen sink](kitchen-sink.md)) |
 
 ## Behavior
@@ -81,6 +81,8 @@ Sections and their samples:
 - **GALLERY-11:** The Data grid section's sortable headers and "Sort: …" text; see
   [DataGrid sorting](../widgets/data-grid-sort.md).
 - **GALLERY-12, -13, -14:** The Kitchen sink section; see [kitchen sink](kitchen-sink.md).
+- **GALLERY-15:** The Data grid section's resizable and reorderable columns with "Name width: …" and
+  "Order: …" texts; see [column resize and reorder](../widgets/data-grid-columns.md).
 
 ## Open questions
 

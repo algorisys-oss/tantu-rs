@@ -69,7 +69,8 @@ impl CellValue {
 
 - **WIDGETS-GRID-10:** Sort state (part 3): the grid holds a `Signal<Option<SortState>>`
   (its own, or the app's through `sort_state`). A primary press on a sortable column's
-  header cycles the state: an unsorted or differently sorted column becomes ascending, an
+  header (since part 4 a *click*, a press and release without a drag: WIDGETS-GRID-15 in
+  [column resize and reorder](data-grid-columns.md)) cycles the state: an unsorted or differently sorted column becomes ascending, an
   ascending one descending, a descending one unsorted (`None`); presses on a column that
   isn't sortable change nothing; the press doesn't bubble past the grid when it sorted.
   The sorted column's header shows a chevron after its title (a 10 px mark of two 2 px bars
