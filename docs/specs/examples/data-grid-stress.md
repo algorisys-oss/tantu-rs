@@ -123,6 +123,10 @@ additional library APIs. No new facade or widget API is needed.
 
 ## Hardware validation procedure
 
+Performance benchmarks and native stress-app trials run locally only (the user, 2026-10-12).
+GitHub Actions may run the bounded deterministic correctness tests; no benchmark or native
+performance workload is added there.
+
 1. Run `cargo run --release -p data-grid-stress` at 1280 × 720 logical pixels with the
    window fully visible. Record commit, OS/display backend, CPU, GPU/driver, display refresh
    rate, scale factor and power mode. Run with a 60 Hz display mode for a 60 Hz trial.

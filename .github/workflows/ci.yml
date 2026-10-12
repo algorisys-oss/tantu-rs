@@ -45,6 +45,7 @@ jobs:
           sudo apt-get install -y mesa-vulkan-drivers
           echo "TANTU_REQUIRE_GPU=1" >> "$GITHUB_ENV"
           echo "WGPU_BACKEND=vulkan" >> "$GITHUB_ENV"
+      # Bounded correctness tests only; performance benchmarks/native stress trials stay local.
       - run: cargo test --workspace --all-features
       # The facade without its default backends (FACADE-APP-08: `run` reports Unsupported).
       - if: runner.os == 'Linux'

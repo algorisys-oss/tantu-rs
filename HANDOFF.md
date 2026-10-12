@@ -10,7 +10,9 @@ _Last updated: 2026-10-12 (DataGrid part 7 and kitchen-sink refresh implemented;
 DataGrid parts 1 to 7 are complete. The user accepted the stress-example proposals with
 "continue", requested a kitchen-sink update, and authorized commit/push when done.
 The checked implementation is committed on `phase3/focus` and fast-forwarded into `main`
-for the authorized push, following decision 14. Inspect the new CI run on this tip.
+for the authorized push, following decision 14. Commit `9d78f30` is pushed; its CI run
+was queued when checked. The user explicitly requires performance stress tests to stay local;
+GitHub runs only deterministic bounded correctness tests and normal build/lint checks.
 
 `cargo run --release -p data-grid-stress` opens the 1M × 20 text-cell workload with Start/Stop,
 beginning/middle/end jumps, optional two frozen columns and bounded redraw-tick cadence stats.
@@ -1366,7 +1368,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `2649063` | spec: DataGrid part 7 stress example agreed; kitchen-sink GALLERY-18 composition amendment, PLAN.md and HANDOFF.md |
 | `46b7c41` | test: seven stress tests and two kitchen-sink GALLERY-18 tests with compiling stubs; missing source/workload/cadence/status behavior confirmed |
 | `2900d3c` | test: measure header/body cell centers correctly (text is centered in 36/32 px cells) |
-| _this commit_ | impl: bounded stress app/cadence stats, kitchen-sink grid refresh, goldens, README and architecture diagram; all checks pass, PLAN.md ticked and HANDOFF.md current |
+| `9d78f30` | impl: bounded stress app/cadence stats, kitchen-sink grid refresh, goldens, README and architecture diagram; all checks pass, PLAN.md ticked and HANDOFF.md current |
+| _this commit_ | docs: record the user's local-only performance testing preference; GitHub CI has no benchmark or native stress-app run |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1375,7 +1378,8 @@ that with the real hash from `git log`.
 
 Inspect CI for the authorized `main` push (decision 14).
 Next feature: overlay-inheritance amendment before menus/dialogs; otherwise PLAN.md order.
-Run the native 60 fps protocol on recorded mid-range hardware when a desktop/profiler is available.
+Run benchmarks and the native 60 fps protocol **locally only**, on recorded mid-range hardware
+when a desktop/profiler is available. Do not add performance stress runs to GitHub Actions.
 
 ## Open questions
 

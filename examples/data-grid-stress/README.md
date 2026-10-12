@@ -29,6 +29,10 @@ For a repeatable native trial:
 4. Separately run `cargo bench -p tantu-widgets --bench grid` for CPU grid work. Its target
    is below 8 ms per step; it does not include native GPU presentation.
 
+Performance benchmarks and native stress-app trials run **locally only**, as requested by
+the user. GitHub Actions runs normal build/lint checks and bounded deterministic correctness
+tests; it does not launch this desktop workload or run Criterion benchmarks.
+
 Deterministic checks: `cargo test -p data-grid-stress`. No host-speed assertion runs in CI.
 The software golden checks the initial stopped view. The spec is
 [`docs/specs/examples/data-grid-stress.md`](../../docs/specs/examples/data-grid-stress.md).
