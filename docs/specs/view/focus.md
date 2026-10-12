@@ -83,6 +83,9 @@ pub struct FocusOptions {
 pub struct KeyCx<'a> { pub event: &'a KeyEvent, pub element: ElementId, pub phase: Phase }
 
 impl BuildCx<'_> {
+    /// Focuses a live focusable element during building, with ViewTree::focus semantics.
+    /// Register its focusability and handlers before calling this. Does not reveal it.
+    pub fn focus(&mut self, element: ElementId) -> bool;
     /// Makes `element` focusable.
     pub fn focusable(&mut self, element: ElementId, options: FocusOptions);
     /// Calls `handler` for key events in `phase` on the focused path through `element`.
@@ -121,6 +124,13 @@ impl WidgetTester {
 ```
 
 ## Behavior
+
+- **VIEW-FOCUS-10:** `BuildCx::focus` delegates the same contract as ViewTree::focus during
+  building: a registered live focusable element becomes focused, its focus-change handlers
+  run, and the method returns true. Unknown or nonfocusable elements return false without
+  changing focus. It does not expose mutable tree access or perform scrolling. Added as an
+  agreed cell-editor integration amendment (2026-10-12; review): the field must take focus
+  after building and cancellation must restore the grid from a build-time update.
 
 - **VIEW-FOCUS-01:** `focus` focuses a focusable element and returns true. For an element
   that isn't focusable, or an unknown one, it returns false and changes nothing. `focused`

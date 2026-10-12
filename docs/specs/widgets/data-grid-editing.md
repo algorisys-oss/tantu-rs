@@ -1,7 +1,7 @@
 # DataGrid: cell editors
 
 - **Status:** Agreed (2026-10-12; the user said "continue" on the eight proposals)
-- **Crates:** `tantu-widgets`, `tantu` (exports), `examples/gallery`
+- **Crates:** `tantu-widgets`, `tantu-view` (BuildCx::focus), `tantu` (exports), `examples/gallery`
 - **Plan item:** Phase 4, `DataGrid` part 6, cell editors
 - **Related:** [DataGrid](data-grid.md), [selection and navigation](data-grid-selection.md),
   [sorting and filtering](data-grid-sort.md), [TextField](text-field.md),
@@ -200,6 +200,10 @@ and expiry belong to the mounted grid's reactive scope and are disposed with it.
 ## Open questions
 
 Resolved (2026-10-12; the user said "continue", accepting all eight proposals):
+
+Integration amendment (review): add `BuildCx::focus` under VIEW-FOCUS-10 so the editor
+can take focus after building and restore it when closing. This grants no mutable tree
+access and changes no dependency edge.
 
 1. **Opt-in per column**, with a default read-only DataSource setter for compatibility.
    Double-click works without selection; F2 needs an active cell in an enabled mode.

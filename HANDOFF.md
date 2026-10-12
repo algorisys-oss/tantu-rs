@@ -1299,7 +1299,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `583b5ed` | spec: selection controller Default signature |
 | `8de5d10` | impl: DataGrid part 5 selection/navigation/reveal, pointer modifiers and table semantics; gallery controls and goldens; checks pass, PLAN.md ticked and HANDOFF.md current |
 | `1a833eb` | spec: DataGrid part 6 cell editors agreed; PLAN.md spec link and HANDOFF.md resume point |
-| _this commit_ | test: cell-editor API stubs, 12 failing widget tests and failing GALLERY-17; missing editors/default setter/status UI confirmed |
+| `cfcc8aa` | test: cell-editor API stubs, 12 failing widget tests and failing GALLERY-17; missing editors/default setter/status UI confirmed |
+| _this commit_ | spec: BuildCx::focus integration amendment, VIEW-FOCUS-10 (review); required for agreed editor entry/restoration |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
