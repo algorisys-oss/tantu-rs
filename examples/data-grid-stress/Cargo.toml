@@ -1,0 +1,19 @@
+[package]
+name = "data-grid-stress"
+description = "A million-row Tantu DataGrid workload with repeatable scrolling and redraw cadence."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+tantu = { workspace = true }
+
+[dev-dependencies]
+tantu-test = { workspace = true }

@@ -14,7 +14,8 @@ redraw-tick cadence statistics and a manual native presentation measurement prot
 The user accepted its four proposals with "continue" and requested a kitchen-sink update
 and commit/push when done. Kitchen-sink GALLERY-18 composes existing grid features
 (resize/reorder, range selection, editors, errors and the stress command); details marked review.
-Next: failing tests, implementation, checks and push. The existing ~0.804 ms
+Compiling test stubs are committed next: seven stress tests and two GALLERY-18 tests
+fail on absent source/workload/cadence behavior. Next: implementation, checks and push. The existing ~0.804 ms
 headless CPU benchmark does not establish 60 fps delivery; that hardware criterion remains
 unverified. No code changed for part 7 yet.
 When resuming, tell the agent: "Read HANDOFF.md and continue."
@@ -1338,7 +1339,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `ca36dc8` | test: editor blur fixture explicitly moves focus (Button clicks do not request focus); Tab and pointer entry remain separately exercised |
 | `d0f1332` | test: inclusive 500 ms double-click boundary and unchanged-value builder revision fail; additional frozen/nonfinite/stale-submit regressions |
 | `aa2574f` | impl: typed cell editors, BuildCx::focus, local refresh, cancellation and errors; sparse editable gallery and goldens; all checks pass, PLAN.md ticked and HANDOFF.md current |
-| _this commit_ | spec: DataGrid part 7 stress example agreed; kitchen-sink GALLERY-18 composition amendment, PLAN.md and HANDOFF.md |
+| `2649063` | spec: DataGrid part 7 stress example agreed; kitchen-sink GALLERY-18 composition amendment, PLAN.md and HANDOFF.md |
+| _this commit_ | test: seven stress tests and two kitchen-sink GALLERY-18 tests with compiling stubs; missing source/workload/cadence/status behavior confirmed |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

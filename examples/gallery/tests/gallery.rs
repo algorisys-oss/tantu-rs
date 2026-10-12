@@ -533,3 +533,118 @@ fn gallery_14_kitchen_sink_goldens() {
         "/tests/goldens/gallery-sink-end.png"
     ));
 }
+
+#[test]
+fn gallery_18_kitchen_sink_grid_editing_and_selection() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-grid"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-grid-edit-error"), "Edit error: none");
+    t.find(&Finder::text("cargo run --release -p data-grid-stress"));
+    t.tap(&Finder::text("Item 0"));
+    assert_eq!(
+        text_of(&t, "sink-grid-selection"),
+        "Selection: (0, 1)..(0, 1)"
+    );
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowDown),
+        Modifiers {
+            shift: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(
+        text_of(&t, "sink-grid-selection"),
+        "Selection: (0, 1)..(1, 1)"
+    );
+    t.press_key(LogicalKey::Named(NamedKey::F(2)), Modifiers::default());
+    t.pump();
+    for c in "Updated".chars() {
+        t.press_key(
+            LogicalKey::Character(c.to_string().into()),
+            Modifiers::default(),
+        );
+    }
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    t.pump();
+    t.find(&Finder::text("Updated"));
+    // A client-sort grid clears selection when a successful edit recomputes its row map.
+    t.tap(&Finder::text("Updated"));
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers::default(),
+    );
+    t.press_key(LogicalKey::Named(NamedKey::F(2)), Modifiers::default());
+    t.pump();
+    for c in "101".chars() {
+        t.press_key(
+            LogicalKey::Character(c.to_string().into()),
+            Modifiers::default(),
+        );
+    }
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    t.pump();
+    assert_eq!(
+        text_of(&t, "sink-grid-edit-error"),
+        "Edit error: Score must be between 0 and 100"
+    );
+    assert!(
+        t.a11y_tree()
+            .nodes
+            .iter()
+            .any(|(_, n)| n.role() == tantu_test::accesskit::Role::TextInput)
+    );
+    t.press_key(LogicalKey::Named(NamedKey::Escape), Modifiers::default());
+    t.pump();
+    // A double click enters Name again; Escape preserves its committed value.
+    t.tap(&Finder::text("Updated"));
+    t.tap(&Finder::text("Updated"));
+    t.pump();
+    assert!(
+        t.a11y_tree()
+            .nodes
+            .iter()
+            .any(|(_, n)| n.role() == tantu_test::accesskit::Role::TextInput)
+    );
+    t.press_key(LogicalKey::Named(NamedKey::Escape), Modifiers::default());
+    t.pump();
+    t.find(&Finder::text("Updated"));
+}
+
+#[test]
+fn gallery_18_kitchen_sink_grid_header_controls_and_golden() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-grid"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-grid-name-width"), "Name width: 200");
+    assert_eq!(text_of(&t, "sink-grid-order"), "Order: Id, Name, Score");
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-sink-grid.png"
+    ));
+    t.tap(&Finder::text("Item 0"));
+    t.press_key(LogicalKey::Named(NamedKey::F(6)), Modifiers::default());
+    let primary = Modifiers {
+        control: !cfg!(target_os = "macos"),
+        super_key: cfg!(target_os = "macos"),
+        ..Default::default()
+    };
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers {
+            alt: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(text_of(&t, "sink-grid-name-width"), "Name width: 210");
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers {
+            shift: true,
+            ..primary
+        },
+    );
+    assert_eq!(text_of(&t, "sink-grid-order"), "Order: Id, Score, Name");
+}
