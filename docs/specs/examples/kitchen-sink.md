@@ -74,7 +74,8 @@ snake case (`sink-button`, `sink-icon_button`, …) where a test needs them.
   first visible row; focusing a button in the focus card by a tap echoes "Focus: Two", and
   Tab from the scope's last button wraps to its first (the outside button is never reached).
 - **GALLERY-14:** Goldens at 960 × 640: `tests/goldens/gallery-sink-top.png` (the page as
-  opened) and `tests/goldens/gallery-sink-end.png` (after `jump_to` the maximum extent).
+  opened) and `tests/goldens/gallery-sink-end.png` (after a tap on the page focuses its
+  scroll view and End scrolls it to the maximum extent).
 
 ## Performance and allocation
 
