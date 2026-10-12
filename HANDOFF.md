@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 3, sorting and filtering)_
+_Last updated: 2026-10-12 (kitchen sink drafted for review)_
 
 ## Resume here (2026-10-12)
 
@@ -65,10 +65,17 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 **Next (PLAN.md order): Phase 4, enterprise features.**
 
 1. **`DataGrid` part 3, sorting and filtering, is done** (decision 72, 2026-10-12; the user
-   said "continue" on the draft's seven proposals). Next: part 4, column resize and reorder
-   (a header edge drag changes a column's width, a header drag moves a column; widths and
-   order as shared signals so apps can persist them). Draft the spec for review, then parts
-   5 to 7.
+   said "continue" on the draft's seven proposals).
+2. **The kitchen sink is drafted and waits for review** (the user asked for "a kitchen sink
+   like demo to show case all component examples", 2026-10-12):
+   `docs/specs/examples/kitchen-sink.md` (GALLERY-12..14): a last gallery section, one
+   `ScrollView` over twelve labelled cards covering every exported widget and layout widget
+   (listed in a public `SINK_CARDS` constant the test iterates), state echoed as text, two
+   goldens; six proposals. Say "continue" to accept; the agent then does the
+   `spec:`/`test:`/`impl:` commits. PLAN.md has the item under Phase 4.
+3. Then `DataGrid` part 4, column resize and reorder (a header edge drag changes a column's
+   width, a header drag moves a column; widths and order as shared signals so apps can
+   persist them), and parts 5 to 7.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -1188,7 +1195,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `bec8fdb` | spec: GALLERY-11's example taps the City header |
 | `6d40e59` | test: WIDGETS-GRID-11 names its columns Key and Value; GALLERY-11 taps City |
 | `82cb7e3` | impl: DataGrid sorting and filtering: sort state and header presses, the chevron, client_sort over a row map, RowFilter, source rows for builders; the gallery's sortable headers; PLAN.md part 3 ticked |
-| _this commit_ | docs: HANDOFF.md for DataGrid part 3 |
+| `f54a5cf` | docs: HANDOFF.md for DataGrid part 3 |
+| _this commit_ | docs: draft kitchen-sink spec for review; PLAN.md item |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
