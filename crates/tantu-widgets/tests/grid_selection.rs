@@ -234,6 +234,18 @@ fn widgets_grid_20_reveal_and_virtualization() {
 }
 
 #[test]
+fn widgets_grid_20_selection_paint() {
+    let mut f=Fixture::new(Mode::Row);
+    f.set(Some(single(2,1)));
+    let colors=f.t.enter(||f.t.theme().get().colors);
+    let mix=|base:f32,accent:f32|base*0.88+accent*0.12;
+    let expected=tantu_view::core::Color {r:mix(colors.surface.r,colors.primary.r),
+        g:mix(colors.surface.g,colors.primary.g),b:mix(colors.surface.b,colors.primary.b),a:colors.surface.a};
+    assert!(f.t.frame().scene.entries().iter().any(|entry|matches!(entry.command,
+        tantu_view::scene::Command::Fill {color,..} if color==expected)));
+}
+
+#[test]
 fn widgets_grid_21_model_reset_and_mapping() {
     let mut f = Fixture::new(Mode::Row);
     assert_eq!(
