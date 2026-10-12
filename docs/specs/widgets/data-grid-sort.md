@@ -92,8 +92,8 @@ impl CellValue {
   matches; `None` shows every row. The map of matches is shared, not copied, between the
   frames that reuse it.
 - **GALLERY-11:** The Data grid section's columns are sortable and its sort state is echoed
-  as "Sort: none" / "Sort: Score ascending" / "Sort: Score descending" (key `sort`); a tap
-  on the "Score" header cycles it. The gallery does not enable `client_sort` (a million
+  as "Sort: none" / "Sort: City ascending" / "Sort: City descending" (key `sort`); a tap on
+  the "City" header cycles it (the Score column sits mostly past the grid's right edge). The gallery does not enable `client_sort` (a million
   generated rows would be compared in a debug test); the grid stays in source order.
 
 ## Performance and allocation
