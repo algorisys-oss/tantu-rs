@@ -378,7 +378,8 @@ fn widgets_tree_08_identity_reposition_and_scope_disposal() {
     assert!(live.get() > 0 && live.get() <= 6);
     f.t.enter(|| f.h.controller.jump_to(1000.0));
     f.pump();
-    assert!(live.get() <= 6);
+    // An unaligned viewport intersects five rows, plus two buffered rows.
+    assert!(live.get() <= 7);
     f.t.enter(|| f.h.shown.set(false));
     f.pump();
     assert_eq!(live.get(), 0);
