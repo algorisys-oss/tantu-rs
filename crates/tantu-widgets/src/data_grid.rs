@@ -2,6 +2,7 @@
 //! `docs/specs/widgets/data-grid.md`.
 
 use std::cell::Cell;
+use std::cmp::Ordering;
 use std::fmt;
 use std::ops::Range;
 use std::rc::Rc;
@@ -59,6 +60,29 @@ impl fmt::Display for CellValue {
     }
 }
 
+impl CellValue {
+    /// A total order over values for sorting: `Empty`, then `Bool` (false first), then
+    /// numbers (`Int` and `Float` compared as `f64`, NaN lowest), then `Text` (byte order)
+    /// (WIDGETS-GRID-11).
+    pub fn compare(&self, other: &CellValue) -> Ordering {
+        let _ = other;
+        todo!()
+    }
+}
+
+/// Which column the grid is sorted by, and how (Flutter's `sortColumnIndex` and
+/// `sortAscending`) (WIDGETS-GRID-10).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SortState {
+    /// The sorted column.
+    pub column: usize,
+    /// Ascending (true) or descending.
+    pub ascending: bool,
+}
+
+/// A predicate over a source's rows (WIDGETS-GRID-12).
+pub type RowFilter = Rc<dyn Fn(&dyn DataSource, usize) -> bool>;
+
 /// Where a grid's rows come from. Indices are 0-based; the grid asks only for the cells it
 /// shows, each time it builds or refreshes them, so `cell` should be cheap or cached.
 pub trait DataSource: 'static {
@@ -102,6 +126,8 @@ pub struct GridColumn {
     title: String,
     width: f32,
     builder: Option<CellBuilder>,
+    /// Whether a header click sorts by this column; `None` follows `client_sort`.
+    sortable: Option<bool>,
 }
 
 impl GridColumn {
@@ -111,7 +137,15 @@ impl GridColumn {
             title: title.into(),
             width: COLUMN_WIDTH,
             builder: None,
+            sortable: None,
         }
+    }
+
+    /// Whether a header click sorts by this column (default: only with `client_sort`)
+    /// (WIDGETS-GRID-10).
+    pub fn sortable(mut self, sortable: bool) -> Self {
+        self.sortable = Some(sortable);
+        self
     }
 
     /// The column's width in logical pixels (negative or NaN counts as 0).
@@ -139,6 +173,9 @@ pub struct DataGrid {
     controllers: Option<(ScrollController, ScrollController)>,
     wheel: Duration,
     frozen: usize,
+    sort: Option<Signal<Option<SortState>>>,
+    client_sort: bool,
+    filter: Option<Signal<Option<RowFilter>>>,
 }
 
 impl DataGrid {
@@ -153,6 +190,9 @@ impl DataGrid {
             controllers: None,
             wheel: Duration::from_millis(150),
             frozen: 0,
+            sort: None,
+            client_sort: false,
+            filter: None,
         }
     }
 
@@ -192,6 +232,26 @@ impl DataGrid {
     /// column count; default 0) (WIDGETS-GRID-09).
     pub fn frozen_columns(mut self, count: usize) -> Self {
         self.frozen = count;
+        self
+    }
+
+    /// Shares the sort state with the app (the grid owns one otherwise) (WIDGETS-GRID-10).
+    pub fn sort_state(mut self, state: Signal<Option<SortState>>) -> Self {
+        self.sort = Some(state);
+        self
+    }
+
+    /// The grid orders the rows itself by the sorted column's values, and every column is
+    /// sortable unless it says otherwise (default false: the app reorders its source)
+    /// (WIDGETS-GRID-11).
+    pub fn client_sort(mut self, enabled: bool) -> Self {
+        self.client_sort = enabled;
+        self
+    }
+
+    /// Shows only the source rows the predicate accepts (`None`: every row) (WIDGETS-GRID-12).
+    pub fn filter(mut self, filter: Signal<Option<RowFilter>>) -> Self {
+        self.filter = Some(filter);
         self
     }
 }
@@ -300,6 +360,12 @@ impl View for DataGrid {
         let (vertical, horizontal) = self.controllers.unwrap_or_default();
         let theme = ThemeHandle::of(cx);
         let wheel = self.wheel;
+        let _ = (
+            self.sort,
+            self.client_sort,
+            self.filter,
+            self.columns.iter().any(|c| c.sortable.is_some()),
+        );
         let revision = self.revision;
         let source = self.source;
         let row_count = {

@@ -1,5 +1,5 @@
 //! Tests for `docs/specs/widgets/data-grid.md`, rules WIDGETS-GRID-01..07 and 09 (08 is in
-//! `bench_scenarios.rs`).
+//! `bench_scenarios.rs`), and `docs/specs/widgets/data-grid-sort.md`, WIDGETS-GRID-10..12.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -15,8 +15,8 @@ use tantu_view::{
     Keyed, LogicalKey, Modifiers, NamedKey, PointerButton, PointerEvent, PointerKind,
 };
 use tantu_widgets::{
-    CellValue, Column, DataGrid, DataSource, FnSource, GridColumn, ScrollController, ScrollView,
-    SizedBox, Text,
+    CellValue, Column, DataGrid, DataSource, FnSource, GridColumn, RowFilter, ScrollController,
+    ScrollView, SizedBox, SortState, Text,
 };
 
 const THUMB: Color = Color::from_argb32(0x661C_1B1F);
@@ -514,4 +514,284 @@ fn widgets_grid_09_frozen_columns() {
     tester.scroll(&Finder::key("g"), Vec2::new(100.0, 0.0));
     assert_eq!(offset(&tester, horizontal), 0.0);
     assert_eq!(rect(&tester, "r0c2").left, 240.0 + 8.0);
+}
+
+const ON_SURFACE_VARIANT: Color = Color::from_argb32(0xFF49_454F);
+
+/// The chevron's bars: 2 px fills in on-surface-variant.
+fn chevron_bars(tester: &WidgetTester) -> usize {
+    tester
+        .frame()
+        .scene
+        .entries()
+        .iter()
+        .filter(|e| matches!(e.command, Command::Fill { shape, color } if color == ON_SURFACE_VARIANT && shape.rect.height() == 2.0))
+        .count()
+}
+
+/// The display order of column `c`'s texts, top to bottom.
+fn column_texts(tester: &WidgetTester, prefix: &str) -> Vec<String> {
+    let mut cells: Vec<(f32, String)> = tester
+        .find_all(&Finder::render::<RenderParagraph>())
+        .into_iter()
+        .filter_map(|e| tester.text(e).map(|t| (tester.rect(e).top, t)))
+        .filter(|(_, t)| t.starts_with(prefix))
+        .collect();
+    cells.sort_by(|a, b| a.0.total_cmp(&b.0));
+    cells.into_iter().map(|(_, t)| t).collect()
+}
+
+#[test]
+fn widgets_grid_10_sort_state_and_header_clicks() {
+    let state: Rc<Cell<Option<Signal<Option<SortState>>>>> = Rc::default();
+    let (mut tester, _, _) = grid(600.0, 400.0, {
+        let state = state.clone();
+        move || {
+            let sort = signal(None::<SortState>);
+            state.set(Some(sort));
+            DataGrid::new(
+                [
+                    GridColumn::new("Col 0"),
+                    GridColumn::new("Col 1").sortable(true),
+                    GridColumn::new("Col 2").sortable(true),
+                ],
+                source(5),
+            )
+            .sort_state(sort)
+        }
+    });
+    let sort = state.get().expect("built");
+    let read = |t: &WidgetTester| t.enter(|| sort.get());
+    assert_eq!(read(&tester), None);
+    assert_eq!(chevron_bars(&tester), 0);
+    // Not sortable: nothing.
+    tester.tap(&Finder::text("Col 0"));
+    assert_eq!(read(&tester), None);
+    // Ascending, descending, none.
+    tester.tap(&Finder::text("Col 1"));
+    assert_eq!(
+        read(&tester),
+        Some(SortState {
+            column: 1,
+            ascending: true
+        })
+    );
+    assert_eq!(chevron_bars(&tester), 2);
+    tester.tap(&Finder::text("Col 1"));
+    assert_eq!(
+        read(&tester),
+        Some(SortState {
+            column: 1,
+            ascending: false
+        })
+    );
+    assert_eq!(chevron_bars(&tester), 2);
+    tester.tap(&Finder::text("Col 1"));
+    assert_eq!(read(&tester), None);
+    assert_eq!(chevron_bars(&tester), 0);
+    // Another sortable column starts ascending; the app can set the state too.
+    tester.tap(&Finder::text("Col 1"));
+    tester.tap(&Finder::text("Col 2"));
+    assert_eq!(
+        read(&tester),
+        Some(SortState {
+            column: 2,
+            ascending: true
+        })
+    );
+    tester.enter(|| {
+        sort.set(Some(SortState {
+            column: 0,
+            ascending: false,
+        }))
+    });
+    tester.pump();
+    assert_eq!(chevron_bars(&tester), 2);
+    // The state alone reorders nothing.
+    assert_eq!(column_texts(&tester, "r")[0], "r0c0");
+    // Without a shared signal the grid owns one; with client_sort every column is sortable.
+    let (mut tester, _, _) = grid(600.0, 400.0, || {
+        DataGrid::new(columns(3), source(5)).client_sort(true)
+    });
+    tester.tap(&Finder::text("Col 0"));
+    assert_eq!(chevron_bars(&tester), 2);
+}
+
+#[test]
+fn widgets_grid_11_client_sort() {
+    use std::cmp::Ordering::Equal;
+    // The value order.
+    let order = [
+        CellValue::Empty,
+        CellValue::Bool(false),
+        CellValue::Bool(true),
+        CellValue::Float(f64::NAN),
+        CellValue::Int(2),
+        CellValue::Float(2.5),
+        CellValue::Int(3),
+        CellValue::Text("B".into()),
+        CellValue::Text("a".into()),
+    ];
+    for (i, a) in order.iter().enumerate() {
+        for (j, b) in order.iter().enumerate() {
+            assert_eq!(a.compare(b), i.cmp(&j), "{a:?} vs {b:?}");
+        }
+    }
+    assert_eq!(CellValue::Int(2).compare(&CellValue::Float(2.0)), Equal);
+    assert_eq!(
+        CellValue::Float(f64::NAN).compare(&CellValue::Float(f64::NAN)),
+        Equal
+    );
+    // A grid over rows whose column 0 is "b", "a", "c", "a" and column 1 "x0".."x3".
+    let data = Rc::new(RefCell::new(
+        ["b", "a", "c", "a"]
+            .iter()
+            .enumerate()
+            .map(|(i, t)| vec![(*t).to_owned(), format!("x{i}")])
+            .collect::<Vec<_>>(),
+    ));
+    let state: Rc<Cell<Option<Signal<Option<SortState>>>>> = Rc::default();
+    let rev: Rc<Cell<Option<Signal<u64>>>> = Rc::default();
+    let (mut tester, _, _) = grid(600.0, 400.0, {
+        let (data, state, rev) = (data.clone(), state.clone(), rev.clone());
+        move || {
+            let (sort, revision) = (signal(None::<SortState>), signal(0u64));
+            state.set(Some(sort));
+            rev.set(Some(revision));
+            DataGrid::new(
+                [
+                    GridColumn::new("K"),
+                    GridColumn::new("V").builder(|row, value| Text::new(format!("B{row}:{value}"))),
+                ],
+                Rc::new(VecSource(data)),
+            )
+            .client_sort(true)
+            .sort_state(sort)
+            .revision(revision)
+        }
+    });
+    let (sort, revision) = (state.get().expect("built"), rev.get().expect("built"));
+    let keys = |t: &WidgetTester| column_texts(t, "");
+    // Ascending: a (source 1), a (source 3), b, c; stable, and builders see source rows.
+    tester.tap(&Finder::text("K"));
+    let texts = keys(&tester);
+    let col0: Vec<&str> = texts
+        .iter()
+        .filter(|t| t.len() == 1)
+        .map(String::as_str)
+        .collect();
+    assert_eq!(col0, ["a", "a", "b", "c"]);
+    let col1: Vec<&str> = texts
+        .iter()
+        .filter(|t| t.starts_with('B'))
+        .map(String::as_str)
+        .collect();
+    assert_eq!(col1, ["B1:x1", "B3:x3", "B0:x0", "B2:x2"]);
+    // Descending reverses the comparison, not the stable order.
+    tester.tap(&Finder::text("K"));
+    let texts = keys(&tester);
+    let col0: Vec<&str> = texts
+        .iter()
+        .filter(|t| t.len() == 1)
+        .map(String::as_str)
+        .collect();
+    assert_eq!(col0, ["c", "b", "a", "a"]);
+    let col1: Vec<&str> = texts
+        .iter()
+        .filter(|t| t.starts_with('B'))
+        .map(String::as_str)
+        .collect();
+    assert_eq!(col1, ["B2:x2", "B0:x0", "B1:x1", "B3:x3"]);
+    // None: the source order.
+    tester.tap(&Finder::text("K"));
+    let texts = keys(&tester);
+    let col0: Vec<&str> = texts
+        .iter()
+        .filter(|t| t.len() == 1)
+        .map(String::as_str)
+        .collect();
+    assert_eq!(col0, ["b", "a", "c", "a"]);
+    // A revision change re-sorts.
+    tester.enter(|| {
+        sort.set(Some(SortState {
+            column: 0,
+            ascending: true,
+        }))
+    });
+    tester.pump();
+    data.borrow_mut()[2][0] = "0".into();
+    tester.enter(|| revision.update(|n| *n += 1));
+    tester.pump();
+    let texts = keys(&tester);
+    let col0: Vec<&str> = texts
+        .iter()
+        .filter(|t| t.len() == 1)
+        .map(String::as_str)
+        .collect();
+    assert_eq!(col0, ["0", "a", "a", "b"]);
+}
+
+#[test]
+fn widgets_grid_12_filter() {
+    let calls = Rc::new(Cell::new(0usize));
+    let filt: Rc<Cell<Option<Signal<Option<RowFilter>>>>> = Rc::default();
+    let state: Rc<Cell<Option<Signal<Option<SortState>>>>> = Rc::default();
+    let (mut tester, vertical, _) = grid(600.0, 400.0, {
+        let (filt, state) = (filt.clone(), state.clone());
+        move || {
+            let (filter, sort) = (signal(None::<RowFilter>), signal(None::<SortState>));
+            filt.set(Some(filter));
+            state.set(Some(sort));
+            DataGrid::new(
+                [GridColumn::new("Id"), GridColumn::new("Name")],
+                Rc::new(FnSource::new(20, |r, c| match c {
+                    0 => CellValue::Int(r as i64),
+                    _ => CellValue::Text(format!("n{r}")),
+                })),
+            )
+            .filter(filter)
+            .client_sort(true)
+            .sort_state(sort)
+        }
+    });
+    let (filter, sort) = (filt.get().expect("built"), state.get().expect("built"));
+    assert_eq!(tester.enter(|| vertical.max_scroll_extent()), 640.0 - 364.0);
+    // Even ids only: 10 rows, once per source row.
+    let even: RowFilter = {
+        let calls = calls.clone();
+        Rc::new(move |source, row| {
+            calls.set(calls.get() + 1);
+            matches!(source.cell(row, 0), CellValue::Int(n) if n % 2 == 0)
+        })
+    };
+    tester.enter(|| filter.set(Some(even)));
+    tester.pump();
+    assert_eq!(calls.get(), 20);
+    assert_eq!(tester.enter(|| vertical.max_scroll_extent()), 0.0);
+    assert_eq!(
+        column_texts(&tester, "n"),
+        (0..10).map(|i| format!("n{}", 2 * i)).collect::<Vec<_>>()
+    );
+    // Sorted after filtering.
+    tester.enter(|| {
+        sort.set(Some(SortState {
+            column: 0,
+            ascending: false,
+        }))
+    });
+    tester.pump();
+    assert_eq!(column_texts(&tester, "n")[0], "n18");
+    assert_eq!(
+        calls.get(),
+        20,
+        "the filter wasn't re-run for a sort change"
+    );
+    // Back to every row.
+    tester.enter(|| {
+        filter.set(None);
+        sort.set(None);
+    });
+    tester.pump();
+    assert_eq!(tester.enter(|| vertical.max_scroll_extent()), 640.0 - 364.0);
+    assert!(has(&tester, "n1"));
 }

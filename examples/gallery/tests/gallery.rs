@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..10.
+//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..11.
 
 use gallery::{SECTIONS, gallery};
 use tantu::core::{Rect, Vec2};
@@ -252,4 +252,18 @@ fn gallery_10_data_grid() {
     assert_eq!(tester.rect(tester.find(&Finder::text("Id"))), id);
     let moved = tester.rect(tester.find(&Finder::text("Name")));
     assert!(moved.left < name.left, "{moved:?} vs {name:?}");
+}
+
+#[test]
+fn gallery_11_sortable_headers() {
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    tester.tap(&Finder::key(nav("Data grid")));
+    tester.pump();
+    assert_eq!(text_of(&tester, "sort"), "Sort: none");
+    tester.tap(&Finder::text("Score"));
+    assert_eq!(text_of(&tester, "sort"), "Sort: Score ascending");
+    tester.tap(&Finder::text("Score"));
+    assert_eq!(text_of(&tester, "sort"), "Sort: Score descending");
+    tester.tap(&Finder::text("Score"));
+    assert_eq!(text_of(&tester, "sort"), "Sort: none");
 }
