@@ -533,3 +533,66 @@ fn widgets_grid_24_drag_resets_double_click_candidate() {
     f.t.pump();
     assert_eq!(f.fields().len(), 1);
 }
+
+#[test]
+fn widgets_grid_24_double_click_includes_500_ms_boundary() {
+    let mut f = Fixture::new();
+    f.t.tap(&Finder::text("row 1"));
+    f.t.advance(Duration::from_millis(500));
+    f.t.tap(&Finder::text("row 1"));
+    f.t.pump();
+    assert_eq!(f.fields().len(), 1);
+}
+
+#[test]
+fn widgets_grid_24_model_reset_clears_pending_double_click() {
+    let mut f = Fixture::new();
+    f.t.tap(&Finder::text("row 1"));
+    f.t.enter(|| f.h.revision.update(|r| *r += 1));
+    f.t.pump();
+    f.t.tap(&Finder::text("row 1"));
+    assert!(f.fields().is_empty());
+    f.t.tap(&Finder::text("row 1"));
+    f.t.pump();
+    assert_eq!(f.fields().len(), 1);
+}
+
+#[test]
+fn widgets_grid_27_unchanged_nonfinite_value_and_frozen_edit() {
+    let mut f = Fixture::new();
+    f.store
+        .values
+        .borrow_mut()
+        .insert((0, 3), CellValue::Float(f64::NAN));
+    f.t.enter(|| f.h.revision.update(|r| *r += 1));
+    f.t.pump();
+    f.open(0, 3);
+    f.key(NamedKey::Enter);
+    assert!(f.store.writes.borrow().is_empty());
+    assert!(f.fields().is_empty());
+    f.t.enter(|| f.h.order.set(vec![1, 0, 2, 3, 4, 5]));
+    f.t.pump();
+    f.open(1, 0);
+    f.type_text("pinned");
+    f.t.enter(|| f.h.horizontal.jump_to(200.0));
+    f.t.pump();
+    assert_eq!(f.fields()[0].1.value(), Some("pinned"));
+    f.key(NamedKey::Enter);
+    assert_eq!(
+        &*f.store.writes.borrow(),
+        &[(1, 1, CellValue::Text("pinned".into()))]
+    );
+}
+
+#[test]
+fn widgets_grid_28_raw_submit_after_revision_does_not_write_stale_record() {
+    let mut f = Fixture::new();
+    f.open(1, 1);
+    f.type_text("stale");
+    // Change the model and send Enter before any frame applies cancellation bindings.
+    f.t.enter(|| f.h.revision.update(|r| *r += 1));
+    f.key(NamedKey::Enter);
+    assert!(f.store.writes.borrow().is_empty());
+    assert!(f.fields().is_empty());
+    f.assert_grid_focus();
+}

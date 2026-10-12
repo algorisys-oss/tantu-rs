@@ -403,6 +403,14 @@ fn widgets_grid_06_revision() {
     assert_eq!(tester.find(&Finder::text("changed")), a0);
     assert!(!has(&tester, "r0c0"));
     assert_ne!(tester.find(&Finder::text("B:new")), b0);
+    let unchanged = tester.find(&Finder::text("B:new"));
+    tester.enter(|| revision.update(|n| *n += 1));
+    tester.pump();
+    assert_ne!(
+        tester.find(&Finder::text("B:new")),
+        unchanged,
+        "a revision refreshes builder content even when its CellValue is unchanged"
+    );
     // The row count followed.
     assert_eq!(tester.enter(|| vertical.max_scroll_extent()), 800.0 - 364.0);
     // Without a revision signal the source is read once per cell build.

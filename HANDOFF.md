@@ -1302,7 +1302,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `cfcc8aa` | test: cell-editor API stubs, 12 failing widget tests and failing GALLERY-17; missing editors/default setter/status UI confirmed |
 | `a3205fb` | spec: BuildCx::focus integration amendment, VIEW-FOCUS-10 (review); required for agreed editor entry/restoration |
 | `d080eff` | test: BuildCx::focus stub fails the registered focusable target assertion; invalid-target and handler checks compile |
-| _this commit_ | test: editor blur fixture explicitly moves focus (Button clicks do not request focus); Tab and pointer entry remain separately exercised |
+| `ca36dc8` | test: editor blur fixture explicitly moves focus (Button clicks do not request focus); Tab and pointer entry remain separately exercised |
+| _this commit_ | test: inclusive 500 ms double-click boundary and unchanged-value builder revision fail; additional frozen/nonfinite/stale-submit regressions |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
