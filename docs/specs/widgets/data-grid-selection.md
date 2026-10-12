@@ -262,7 +262,8 @@ source coordinates. Applications map each displayed row they need. The column in
   body cell or header; if scrolling unbuilds that cell the property is absent until it is
   built again. Cells expose Click for selection when enabled, sortable headers Click for
   sort; the grid exposes Focus. Synthesized Click selects/sorts through existing input
-  behavior, and ScrollIntoView on a built buffered cell reveals it via grid geometry.
+  behavior, and ScrollIntoView on a built buffered cell or its descendant reveals that
+  cell via grid geometry.
   No node is created for an unbuilt cell or for a million-row selection. No extra cell()
   reads occur while merely moving selection across already built cells.
 
