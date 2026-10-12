@@ -76,7 +76,9 @@ fn grid_stress_01_source_and_dimensions() {
     let r0 = f.tester.rect(f.tester.find(&Finder::text("r0c0")));
     let r1 = f.tester.rect(f.tester.find(&Finder::text("r1c0")));
     assert_eq!(r1.top - r0.top, ROW_HEIGHT);
-    assert_eq!(r0.top - c0.top, HEADER_HEIGHT);
+    // Text is centered in differently sized header/body cells.
+    assert_eq!(c0.center().y - grid.top, HEADER_HEIGHT / 2.0);
+    assert_eq!(r0.center().y - grid.top, HEADER_HEIGHT + ROW_HEIGHT / 2.0);
 }
 
 #[test]

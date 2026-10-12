@@ -1340,7 +1340,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `d0f1332` | test: inclusive 500 ms double-click boundary and unchanged-value builder revision fail; additional frozen/nonfinite/stale-submit regressions |
 | `aa2574f` | impl: typed cell editors, BuildCx::focus, local refresh, cancellation and errors; sparse editable gallery and goldens; all checks pass, PLAN.md ticked and HANDOFF.md current |
 | `2649063` | spec: DataGrid part 7 stress example agreed; kitchen-sink GALLERY-18 composition amendment, PLAN.md and HANDOFF.md |
-| _this commit_ | test: seven stress tests and two kitchen-sink GALLERY-18 tests with compiling stubs; missing source/workload/cadence/status behavior confirmed |
+| `46b7c41` | test: seven stress tests and two kitchen-sink GALLERY-18 tests with compiling stubs; missing source/workload/cadence/status behavior confirmed |
+| _this commit_ | test: measure header/body cell centers correctly (text is centered in 36/32 px cells) |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
