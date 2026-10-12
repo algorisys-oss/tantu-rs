@@ -165,7 +165,10 @@ faster or more portable without changing how apps are written.
   - [x] cell editors (double-click or F2 opens a `TextField` in the cell, Enter commits, Escape cancels, `DataSource::set_cell`; spec `docs/specs/widgets/data-grid-editing.md`)
   - [x] `examples/data-grid-stress`: the 1M-row stress test against the 60 fps criterion (spec `docs/specs/examples/data-grid-stress.md`; native hardware verification recorded separately)
 - [x] Overlay content inherits from its portal target (spec `docs/specs/view/overlay.md`, ADR 0014), with a themed-popup kitchen-sink sample
-- [ ] `TreeView`, `TabView`, `SplitView`, docking layout manager (drag panels, persist layout)
+- [ ] `TreeView`: stable node IDs, expansion, single selection, keyboard navigation, virtualized rows, accessibility, gallery and kitchen-sink samples (draft spec `docs/specs/widgets/tree-view.md`)
+- [ ] `TabView` (separate spec)
+- [ ] `SplitView` (separate spec)
+- [ ] Docking layout manager (drag panels, persist layout; separate spec)
 - [ ] Menus (native + custom), context menus, toolbars, status bar
 - [ ] Dialogs, native file dialogs, notifications, system tray
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images)

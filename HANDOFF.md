@@ -3,33 +3,31 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (overlay inheritance and themed-popup demo implemented; checks pass)_
+_Last updated: 2026-10-12 (TreeView spec drafted for review; preceding main CI is green)_
 
 ## Resume here (2026-10-12)
 
-DataGrid parts 1 to 7 are complete. The user accepted the stress-example proposals with
-"continue", requested a kitchen-sink update, and authorized commit/push when done.
-The checked implementation is committed on `phase3/focus` and fast-forwarded into `main`
-for the authorized push, following decision 14. Commit `9d78f30` is pushed; its CI run
-was queued when checked. The user explicitly requires performance stress tests to stay local;
-GitHub runs only deterministic bounded correctness tests and normal build/lint checks.
+The user said "Lets start Treeview". On `phase4/tree-view`, PLAN.md's grouped enterprise
+widget item is split into TreeView, TabView, SplitView and docking. TreeView's first spec is
+**Draft** at `docs/specs/widgets/tree-view.md`; no TreeView code or tests have been written.
+Its six proposals await review under AGENTS.md's "Get the spec reviewed/agreed before moving
+on" instruction. Recommended scope: stable u64 node IDs and a queryable source, expanded
+preorder metadata with viewport-only widgets, shared expansion/single-selection signals,
+desktop keys, themed disclosure/selection/focus, proper tree accessibility metadata/actions,
+a gallery section and a kitchen-sink card. Expanding a large branch enumerates its displayed
+metadata; collapsed descendants are not traversed. This limitation is explicit in the spec.
 
-`cargo run --release -p data-grid-stress` opens the 1M × 20 text-cell workload with Start/Stop,
-beginning/middle/end jumps, optional two frozen columns and bounded redraw-tick cadence stats.
-`cargo run -p gallery` → Kitchen sink shows the updated grid: resize/reorder, range selection,
-editable Name/Score, validation feedback and the stress command. Native GPU/compositor
-60 fps on recorded mid-range hardware remains **unverified**; no native desktop display is
-exported to this command environment. Software goldens were rendered and visually inspected.
-Overlay inheritance is implemented (decision 78, VIEW-OVERLAY-08..10, ADR 0014), on the
-user's "ok, then continue". Generic values and signals follow the portal target; structural
-parent/layout/paint/event/focus/a11y paths remain in the root overlay layer. Tooltip resolves
-its theme in its overlay context, including providers on the target itself. The Kitchen sink's
-Buttons card has a local dark/light popup that stays open while its colors update, closes on
-outside press/Close, and leaves its status text readable. All checks pass; this feature branch
-`phase4/overlay-inheritance` is fast-forwarded into `main` for the authorized milestone push
-(decision 14). Inspect CI on the new tip. The preceding `3c7da2f` main run is green.
-Next: draft TreeView's spec, splitting the grouped PLAN item into its individual features.
-When resuming, tell the agent: "Read HANDOFF.md and continue."
+Next: agree the draft, commit it as `spec:`, add and confirm failing rule tests (`test:`),
+implement (`impl:`), run the required checks, then fast-forward main and push. The user's
+existing commit/push authorization persists; no PR (decision 14). Performance stress runs
+stay local; GitHub receives only bounded deterministic correctness tests and normal checks.
+Draft-only documentation can be committed/pushed as `docs:` without marking the feature done.
+
+DataGrid parts 1–7 and overlay inheritance are complete. Main `c37b814` passed CI:
+https://github.com/algorisys-oss/tantu-rs/actions/runs/38234613244 (checked this session).
+`cargo run -p gallery` shows the editable kitchen-sink grid and locally themed popup.
+`cargo run --release -p data-grid-stress` provides the local 1M x 20 cadence workload;
+native GPU/compositor 60 fps remains unverified. See decisions 77–78 and open questions.
 
 **Where things stand:**
 
@@ -58,7 +56,7 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 77 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 77 implemented specs plus one TreeView draft, every agreed rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and full-workspace/all-feature rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** inspect the
   new run on `main` after this push; the prior macOS Control/Command chord issue is fixed.
@@ -179,7 +177,7 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
   (decision 28), `tantu-render-wgpu` (decision 29), the `scene-window` demo (decision 30) and
   `tantu-render-conformance` (decision 31).
   `tantu-theme` is implemented (decision 62) and so is `tantu-a11y` (decision 67).
-- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main` for the milestone push; latest feature work was on `phase4/overlay-inheritance`.
+- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Feature branch: `phase4/tree-view`; draft documentation is fast-forwarded to `main` for the authorized push.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
   - `CLAUDE.md`: Claude Code notes (imports AGENTS.md and PLAN.md)
@@ -1404,20 +1402,26 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `2592da3` | test: VIEW-OVERLAY-08..10, tooltip target-theme and GALLERY-19; all five new tests compile and fail for missing context/demo behavior |
 | `e6244e8` | spec: place the kitchen-sink popup beside compact controls so feedback stays readable |
 | `0cb8cff` | test: popup-demo placement assertion fails for the old below-target placement |
-| _this commit_ | impl: overlay inheritance, tooltip context lookup and local-theme popup demo; goldens/docs/PLAN.md/HANDOFF.md current; all checks pass |
+| `c37b814` | impl: overlay inheritance, tooltip context lookup and local-theme popup demo; goldens/docs/PLAN.md/HANDOFF.md current; all checks pass |
+
+| _this commit_ | docs: draft TreeView source/state/navigation/virtualization/semantics/demo proposals for review; split PLAN.md enterprise widget items and update HANDOFF.md |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Inspect CI for the milestone `main` push (decision 14). Draft TreeView's spec next, splitting
-PLAN.md's grouped TreeView/TabView/SplitView/docking item into separate specs as they begin.
+Review/agree the six proposals in `docs/specs/widgets/tree-view.md`, then follow separate
+`spec:` / failing `test:` / green `impl:` commits. PLAN.md now has independent TreeView,
+TabView, SplitView and docking items. The preceding main push passed CI (run 38234613244).
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
 ## Open questions
 
+- **TreeView draft needs review.** Source/ID API, expansion/selection signals, fixed metrics,
+  navigation/activation, tree semantics additions and both demos are proposed in the draft;
+  no implementation decision has been marked Agreed yet.
 - **DataGrid native 60 fps remains unverified.** Part 7 implements repeatable scrolling
   and redraw-tick cadence statistics, with GPU/compositor delivery checked on recorded hardware.
   Headless CPU timing is separate evidence. The example is complete; native presentation remains a manual check.
