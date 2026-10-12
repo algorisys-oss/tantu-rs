@@ -369,6 +369,8 @@ fn media_section() -> impl View {
 /// first visible row read from its vertical controller.
 fn grid_section() -> impl View {
     let (vertical, horizontal) = (ScrollController::new(), ScrollController::new());
+    let sort = signal(None::<SortState>);
+    const TITLES: [&str; 6] = ["Id", "Name", "City", "Amount", "Active", "Score"];
     const CITIES: [&str; 7] = [
         "Mumbai",
         "Pune",
@@ -399,18 +401,31 @@ fn grid_section() -> impl View {
             "grid",
             DataGrid::new(
                 [
-                    GridColumn::new("Id").width(80.0),
-                    GridColumn::new("Name").width(200.0),
-                    GridColumn::new("City").width(180.0),
-                    GridColumn::new("Amount").width(140.0),
-                    GridColumn::new("Active").width(90.0),
-                    GridColumn::new("Score").width(140.0),
+                    GridColumn::new("Id").width(80.0).sortable(true),
+                    GridColumn::new("Name").width(200.0).sortable(true),
+                    GridColumn::new("City").width(180.0).sortable(true),
+                    GridColumn::new("Amount").width(140.0).sortable(true),
+                    GridColumn::new("Active").width(90.0).sortable(true),
+                    GridColumn::new("Score").width(140.0).sortable(true),
                 ],
                 source,
             )
             .controllers(vertical, horizontal)
-            .frozen_columns(1),
+            .frozen_columns(1)
+            .sort_state(sort),
         )))
+        // The sort state echoed (GALLERY-11); the source stays in its own order.
+        .child(Keyed::new(
+            "sort",
+            Text::new(move || match sort.get() {
+                None => "Sort: none".to_owned(),
+                Some(state) => format!(
+                    "Sort: {} {}",
+                    TITLES[state.column],
+                    if state.ascending { "ascending" } else { "descending" }
+                ),
+            }),
+        ))
         .child(Keyed::new(
             "first-row",
             Text::new(move || format!("First row: {}", (vertical.offset() / 32.0) as usize)),

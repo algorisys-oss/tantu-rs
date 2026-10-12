@@ -1,6 +1,6 @@
 # DataGrid: sorting and filtering
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its seven
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its seven
   proposals)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`, `SortState`, `RowFilter`,
   `CellValue::compare`), `examples/gallery`

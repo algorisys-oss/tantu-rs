@@ -8,12 +8,12 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::time::Duration;
 
-use tantu_view::core::{Color, EdgeInsets, Point, Rect, Size, Vec2};
+use tantu_view::core::{Affine, Color, EdgeInsets, Point, Rect, Size, Vec2};
 use tantu_view::layout::{
     Alignment, BoxConstraints, CrossAxisAlignment, GridSlot, ListExtents, RenderConstrainedBox,
     RenderGridBody, ScrollAxis,
 };
-use tantu_view::reactive::{Memo, Signal, memo};
+use tantu_view::reactive::{Memo, Signal, memo, signal};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::{
     AnyView, BuildCx, Dyn, ElementId, FocusOptions, For, Handled, LogicalKey, NamedKey, Paint,
@@ -30,6 +30,9 @@ const CELL_PADDING: f32 = 8.0;
 const COLUMN_WIDTH: f32 = 120.0;
 /// The header's bold weight.
 const HEADER_WEIGHT: f32 = 700.0;
+/// The sort chevron's width and bar thickness (WIDGETS-GRID-10).
+const CHEVRON_WIDTH: f32 = 10.0;
+const CHEVRON_STROKE: f32 = 2.0;
 
 /// A cell's value.
 #[derive(Clone, Debug, PartialEq)]
@@ -65,8 +68,34 @@ impl CellValue {
     /// numbers (`Int` and `Float` compared as `f64`, NaN lowest), then `Text` (byte order)
     /// (WIDGETS-GRID-11).
     pub fn compare(&self, other: &CellValue) -> Ordering {
-        let _ = other;
-        todo!()
+        fn rank(value: &CellValue) -> u8 {
+            match value {
+                CellValue::Empty => 0,
+                CellValue::Bool(_) => 1,
+                CellValue::Int(_) | CellValue::Float(_) => 2,
+                CellValue::Text(_) => 3,
+            }
+        }
+        fn number(value: &CellValue) -> Option<f64> {
+            match value {
+                CellValue::Int(n) => Some(*n as f64),
+                CellValue::Float(x) => Some(*x),
+                _ => None,
+            }
+        }
+        match (self, other) {
+            (CellValue::Bool(a), CellValue::Bool(b)) => a.cmp(b),
+            (CellValue::Text(a), CellValue::Text(b)) => a.cmp(b),
+            _ => match (number(self), number(other)) {
+                (Some(a), Some(b)) => match (a.is_nan(), b.is_nan()) {
+                    (true, true) => Ordering::Equal,
+                    (true, false) => Ordering::Less,
+                    (false, true) => Ordering::Greater,
+                    (false, false) => a.partial_cmp(&b).unwrap_or(Ordering::Equal),
+                },
+                _ => rank(self).cmp(&rank(other)),
+            },
+        }
     }
 }
 
@@ -360,21 +389,58 @@ impl View for DataGrid {
         let (vertical, horizontal) = self.controllers.unwrap_or_default();
         let theme = ThemeHandle::of(cx);
         let wheel = self.wheel;
-        let _ = (
-            self.sort,
-            self.client_sort,
-            self.filter,
-            self.columns.iter().any(|c| c.sortable.is_some()),
-        );
         let revision = self.revision;
         let source = self.source;
-        let row_count = {
+        // The sort state (WIDGETS-GRID-10) and the row map behind filtering and client
+        // sorting (WIDGETS-GRID-11, -12): the filtered rows, then their order.
+        let sort = self.sort.unwrap_or_else(|| signal(None));
+        let (client_sort, filter) = (self.client_sort, self.filter);
+        let filtered: Memo<Option<Rc<[usize]>>> = {
             let source = Rc::clone(&source);
             memo(move || {
                 if let Some(revision) = revision {
                     revision.get();
                 }
-                source.row_count()
+                let accept = filter.and_then(|f| f.get())?;
+                let count = source.row_count();
+                let rows: Vec<usize> = (0..count).filter(|row| accept(&*source, *row)).collect();
+                Some(Rc::from(rows))
+            })
+        };
+        let map: Memo<Option<Rc<[usize]>>> = {
+            let source = Rc::clone(&source);
+            memo(move || {
+                let filtered = filtered.get();
+                let sort = if client_sort { sort.get() } else { None };
+                let Some(SortState { column, ascending }) = sort else {
+                    return filtered;
+                };
+                let mut rows: Vec<usize> = match filtered {
+                    Some(rows) => rows.to_vec(),
+                    None => {
+                        if let Some(revision) = revision {
+                            revision.get();
+                        }
+                        (0..source.row_count()).collect()
+                    }
+                };
+                rows.sort_by(|a, b| {
+                    let order = source.cell(*a, column).compare(&source.cell(*b, column));
+                    if ascending { order } else { order.reverse() }
+                });
+                Some(Rc::from(rows))
+            })
+        };
+        let row_count = {
+            let source = Rc::clone(&source);
+            memo(move || match map.get() {
+                Some(rows) => rows.len(),
+                None => {
+                    if let Some(revision) = revision {
+                        revision.get();
+                    }
+                    source.row_count()
+                }
             })
         };
         let geometry = Geometry {
@@ -391,6 +457,7 @@ impl View for DataGrid {
             .map(|c| ColumnSpec {
                 title: c.title,
                 builder: c.builder,
+                sortable: c.sortable.unwrap_or(client_sort),
             })
             .collect();
         let header = HeaderStrip {
@@ -398,12 +465,14 @@ impl View for DataGrid {
             columns: Rc::clone(&columns),
             horizontal,
             theme,
+            sort,
         };
         let body = Body {
             geometry: geometry.clone(),
             columns,
             source,
             revision,
+            map,
             vertical,
             horizontal,
             theme,
@@ -627,6 +696,8 @@ impl Paint for GridPaint {
 struct ColumnSpec {
     title: String,
     builder: Option<CellBuilder>,
+    /// Whether a header press sorts by the column (WIDGETS-GRID-10).
+    sortable: bool,
 }
 
 /// The header: one row of column titles, following the horizontal offset only.
@@ -635,11 +706,13 @@ struct HeaderStrip {
     columns: Rc<[ColumnSpec]>,
     horizontal: ScrollController,
     theme: ThemeHandle,
+    sort: Signal<Option<SortState>>,
 }
 
 impl View for HeaderStrip {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let (geometry, horizontal, theme) = (self.geometry, self.horizontal, self.theme);
+        let (geometry, horizontal, theme, sort) =
+            (self.geometry, self.horizontal, self.theme, self.sort);
         let mut style = theme.snapshot().text.label;
         style.weight = HEADER_WEIGHT;
         let cells = {
@@ -661,15 +734,37 @@ impl View for HeaderStrip {
                     let geometry = geometry_cells;
                     move |slot: GridSlot| {
                         let (frozen, edge) = geometry.frozen(slot.column);
+                        let column = slot.column;
+                        // A press on a sortable header cycles the sort state
+                        // (WIDGETS-GRID-10): ascending, descending, none.
+                        let on_press: Option<Rc<dyn Fn()>> = columns[column].sortable.then(|| {
+                            Rc::new(move || {
+                                let next = match sort.get_untracked() {
+                                    Some(state) if state.column == column => {
+                                        state.ascending.then_some(SortState {
+                                            column,
+                                            ascending: false,
+                                        })
+                                    }
+                                    _ => Some(SortState {
+                                        column,
+                                        ascending: true,
+                                    }),
+                                };
+                                sort.set(next);
+                            }) as Rc<dyn Fn()>
+                        });
                         CellBox {
                             slot,
                             role: Role::ColumnHeader,
-                            name: Some(columns[slot.column].title.clone()),
+                            name: Some(columns[column].title.clone()),
                             theme,
                             frozen,
                             edge,
+                            on_press,
+                            chevron: Some((sort, column)),
                             child: AnyView::new(cell_content(
-                                Text::new(columns[slot.column].title.clone()).style(style.clone()),
+                                Text::new(columns[column].title.clone()).style(style.clone()),
                             )),
                         }
                     }
@@ -715,6 +810,8 @@ struct Body {
     columns: Rc<[ColumnSpec]>,
     source: Rc<dyn DataSource>,
     revision: Option<Signal<u64>>,
+    /// Display row to source row, when filtered or client-sorted (WIDGETS-GRID-11, -12).
+    map: Memo<Option<Rc<[usize]>>>,
     vertical: ScrollController,
     horizontal: ScrollController,
     theme: ThemeHandle,
@@ -724,7 +821,11 @@ impl View for Body {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let (geometry, vertical, horizontal, theme) =
             (self.geometry, self.vertical, self.horizontal, self.theme);
-        let (source, revision, columns) = (self.source, self.revision, self.columns);
+        let (source, revision, columns, map) = (self.source, self.revision, self.columns, self.map);
+        // The source row shown at a display row (a tracked read of the map).
+        let source_row = move |row: usize| {
+            map.with(|m| m.as_ref().and_then(|m| m.get(row).copied()).unwrap_or(row))
+        };
         let cells = {
             let (geometry, geometry_cells) = (geometry.clone(), geometry.clone());
             For::new(
@@ -752,6 +853,7 @@ impl View for Body {
                                 if let Some(revision) = revision {
                                     revision.get();
                                 }
+                                let row = source_row(row);
                                 cell_content(builder(row, source.cell(row, column)))
                             }))
                         }
@@ -761,7 +863,7 @@ impl View for Body {
                                 if let Some(revision) = revision {
                                     revision.get();
                                 }
-                                source.cell(row, column).to_string()
+                                source.cell(source_row(row), column).to_string()
                             })
                             .max_lines(1)
                             .soft_wrap(false),
@@ -774,6 +876,8 @@ impl View for Body {
                         theme,
                         frozen,
                         edge,
+                        on_press: None,
+                        chevron: None,
                         child,
                     }
                 },
@@ -866,6 +970,10 @@ struct CellBox {
     frozen: bool,
     /// The last frozen column's cell: its right line is the theme's `outline`.
     edge: bool,
+    /// A header's press handler (sorting, WIDGETS-GRID-10).
+    on_press: Option<Rc<dyn Fn()>>,
+    /// A header's sort state and column, for its chevron.
+    chevron: Option<(Signal<Option<SortState>>, usize)>,
     child: AnyView,
 }
 
@@ -890,6 +998,8 @@ impl View for CellBox {
                 line: Color::TRANSPARENT,
                 background: None,
                 edge: None,
+                chevron: None,
+                chevron_color: Color::TRANSPARENT,
             },
         );
         let (frozen, edge) = (self.frozen, self.edge);
@@ -898,8 +1008,32 @@ impl View for CellBox {
                 p.line = colors.outline_variant;
                 p.background = frozen.then_some(colors.surface);
                 p.edge = edge.then_some(colors.outline);
+                p.chevron_color = colors.on_surface_variant;
             });
         });
+        if let Some((sort, column)) = self.chevron {
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || {
+                    sort.get()
+                        .filter(|state| state.column == column)
+                        .map(|state| state.ascending)
+                })),
+                |e, chevron| {
+                    e.update_paint::<CellPaint>(|p| p.chevron = chevron);
+                },
+            );
+        }
+        if let Some(press) = self.on_press {
+            cx.on_pointer(id, Phase::Bubble, move |p| {
+                if p.event.kind == PointerKind::Down(PointerButton::Primary) {
+                    press();
+                    Handled::Stop
+                } else {
+                    Handled::Continue
+                }
+            });
+        }
         id
     }
 }
@@ -910,6 +1044,24 @@ struct CellPaint {
     line: Color,
     background: Option<Color>,
     edge: Option<Color>,
+    /// A header's sort chevron: `Some(true)` points up (ascending) (WIDGETS-GRID-10).
+    chevron: Option<bool>,
+    chevron_color: Color,
+}
+
+/// One bar of the chevron: a rect of `CHEVRON_STROKE` from `from` to `to` in a transform
+/// scope that rotates it into place (as the checkbox's check mark).
+fn chevron_bar(cx: &mut PaintCx<'_, '_>, from: Point, to: Point, color: Color) {
+    let (dx, dy) = (to.x - from.x, to.y - from.y);
+    let mid = Vec2::new((from.x + to.x) / 2.0, (from.y + to.y) / 2.0);
+    let half = dx.hypot(dy) / 2.0;
+    let scene = cx.scene();
+    scene.push_transform(Affine::translate(mid) * Affine::rotate(dy.atan2(dx)));
+    scene.fill_rect(
+        Rect::from_ltrb(-half, -CHEVRON_STROKE / 2.0, half, CHEVRON_STROKE / 2.0),
+        color,
+    );
+    scene.pop();
 }
 
 impl Paint for CellPaint {
@@ -930,6 +1082,17 @@ impl Paint for CellPaint {
             Rect::from_ltwh(size.width - 1.0, 0.0, 1.0, size.height),
             self.edge.unwrap_or(self.line),
         );
+        if let Some(ascending) = self.chevron {
+            let (x, y) = (
+                size.width - CELL_PADDING - CHEVRON_WIDTH / 2.0,
+                size.height / 2.0,
+            );
+            let (tip, base) = if ascending { (-2.5, 2.5) } else { (2.5, -2.5) };
+            let tip = Point::new(x, y + tip);
+            let half = CHEVRON_WIDTH / 2.0;
+            chevron_bar(cx, Point::new(x - half, y + base), tip, self.chevron_color);
+            chevron_bar(cx, tip, Point::new(x + half, y + base), self.chevron_color);
+        }
     }
 
     fn clips_children(&self) -> bool {
