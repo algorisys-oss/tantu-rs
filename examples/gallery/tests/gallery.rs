@@ -374,8 +374,9 @@ fn gallery_14_kitchen_sink_goldens() {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/goldens/gallery-sink-top.png"
     ));
-    // A tap on the page's heading area focuses the scroll view; End goes to the bottom.
-    tester.tap(&Finder::key("sink-typography"));
+    // A tap on a card title near the top focuses the page's scroll view (a card further
+    // down may sit below the window); End goes to the bottom.
+    tester.tap(&Finder::text("Toggles"));
     tester.press_key(LogicalKey::Named(NamedKey::End), Modifiers::default());
     tester.pump();
     let last = sink_rect(&tester, "focus");
