@@ -219,8 +219,8 @@ source coordinates. Applications map each displayed row they need. The column in
   to the right of the frozen columns. Frozen cells do not change horizontal scroll. A
   cell larger than the available viewport aligns its leading edge; a zero-sized viewport
   does not cause repeated scrolling. Extents clamp every target. Selection painting uses
-  the theme's secondary_container background (opaque for frozen cells) and
-  on_secondary_container for default text; custom builder content controls its own colors.
+  the theme's surface blended with primary at 12% (an opaque background, including
+  frozen cells) and on_surface for default text; custom builder content controls its own colors.
   The active body cell or header has a 2 px primary outline inside its bounds while the
   grid itself has focus. Losing focus keeps selection backgrounds and hides this outline.
   The header cursor hides the body outline. Only built cells are painted or instantiated:
@@ -311,7 +311,7 @@ authorization to continue autonomously:
    which built cell or header is current. Interactive descendants keep their own handling.
 6. **Home/End are row-local; primary+Home/End go to grid corners.** Header Enter/Space
    sorts, Alt+Left/Right resizes by 10 px, primary+Shift+Left/Right reorders one position.
-7. **Selection uses secondary_container and an inset primary cursor outline.** Reveal
+7. **Selection uses a 12% primary tint over surface and an inset primary cursor outline.** Reveal
    jumps immediately and uses the scrolling region beside frozen columns.
 8. **Zero-based accessibility positions exclude the header from body row count.** Values,
    selection, sort direction and a validated active_descendant accompany the indices;
@@ -325,3 +325,6 @@ the existing grid/column/semantics specs, write failing tests (including pure me
 and normalization cases, pointer/keyboard fixtures, frozen/reordered/mapped cells,
 controller disposal, a11y property mapping and the gallery), and implement. No architecture
 dependency edge or pipeline stage changes are proposed.
+
+Implementation amendment (2026-10-12): ColorScheme has no secondary_container tokens;
+WIDGETS-GRID-20 uses the existing surface/primary blend and on_surface instead.
