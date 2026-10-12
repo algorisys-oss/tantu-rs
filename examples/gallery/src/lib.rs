@@ -11,7 +11,7 @@ use tantu::scene::{BorderRadius, ImageData, RoundedRect};
 use tantu::view::{BuildCx, ElementId, Keyed, Paint, PaintCx, Prop};
 
 /// The section names, in sidebar order.
-pub const SECTIONS: [&str; 8] = [
+pub const SECTIONS: [&str; 9] = [
     "Buttons",
     "Text",
     "Selection",
@@ -20,6 +20,7 @@ pub const SECTIONS: [&str; 8] = [
     "Media",
     "Animation",
     "Data grid",
+    "Kitchen sink",
 ];
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
@@ -27,7 +28,7 @@ pub const SECTIONS: [&str; 8] = [
 pub const SINK_CARDS: [(&str, &[&str]); 12] = [
     ("buttons", &["button", "icon_button", "tooltip"]),
     ("toggles", &["checkbox", "radio", "switch"]),
-    ("slider", &["slider"]),
+    ("sliders", &["slider"]),
     (
         "text",
         &["text", "rich_text", "divider", "vertical_divider"],
@@ -146,6 +147,7 @@ fn content(section: Signal<&'static str>) -> impl View {
             "Media" => AnyView::new(media_section()),
             "Animation" => AnyView::new(animation_section()),
             "Data grid" => AnyView::new(grid_section()),
+            "Kitchen sink" => AnyView::new(kitchen_sink_section()),
             _ => AnyView::new(buttons_section()),
         };
         Column::new()
@@ -543,6 +545,545 @@ fn animation_section() -> impl View {
 
 /// The switcher's cards.
 const CARDS: [&str; 3] = ["One", "Two", "Three"];
+
+/// The Kitchen sink section (GALLERY-12..14): every widget on one scrolling page. It fills
+/// the rest of the content column (`Expanded`) so the page scrolls.
+fn kitchen_sink_section() -> impl View {
+    let page = SizedBox::width(720.0).child(
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Stretch)
+            .spacing(24.0)
+            .child(sink_buttons())
+            .child(sink_toggles())
+            .child(sink_slider())
+            .child(sink_text())
+            .child(sink_fields())
+            .child(sink_media())
+            .child(sink_lists())
+            .child(sink_grid())
+            .child(sink_layout())
+            .child(sink_scrolling())
+            .child(sink_animation())
+            .child(sink_focus()),
+    );
+    Expanded::new(Keyed::new(
+        "kitchen-sink",
+        Padding::all(0.0).child(Keyed::new("sink", ScrollView::new(page))),
+    ))
+}
+
+/// A labelled card keyed `sink-<key>`: a title, the body and an optional echo keyed
+/// `sink-<key>-state`.
+fn card(key: &str, title: &'static str, body: impl View, echo: Option<AnyView>) -> impl View {
+    let mut column = Column::new()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .spacing(8.0)
+        .child(Text::new(title).style(TextStyle::title()))
+        .child(body);
+    if let Some(echo) = echo {
+        column = column.child(Keyed::new(format!("sink-{key}-state"), echo));
+    }
+    Keyed::new(format!("sink-{key}"), column)
+}
+
+/// A reactive-text echo for a card.
+fn echo(text: impl Fn() -> String + 'static) -> Option<AnyView> {
+    Some(AnyView::new(Text::new(text)))
+}
+
+/// A filled, rounded `width` × 40 box (the gallery's `ColorBox`).
+fn swatch(width: f32, color: Color) -> ColorBox {
+    ColorBox {
+        width: width.into_prop(),
+        color: color.into_prop(),
+    }
+}
+
+fn on_off(state: bool) -> &'static str {
+    if state { "on" } else { "off" }
+}
+
+fn sink_buttons() -> impl View {
+    let presses = signal(0u32);
+    card(
+        "buttons",
+        "Buttons",
+        Row::new()
+            .cross_axis_alignment(CrossAxisAlignment::Center)
+            .spacing(12.0)
+            .child(Keyed::new(
+                "sink-button",
+                Button::new("Press").on_press(move || presses.update(|n| *n += 1)),
+            ))
+            .child(Button::new("Disabled").enabled(false))
+            .child(Keyed::new(
+                "sink-icon_button",
+                IconButton::new(Icons::FAVORITE).on_press(|| {}),
+            ))
+            .child(Keyed::new(
+                "sink-tooltip",
+                Tooltip::new("A tooltip", Button::new("Hover me")),
+            )),
+        echo(move || format!("Pressed {}", presses.get())),
+    )
+}
+
+fn sink_toggles() -> impl View {
+    let (checked, choice, on) = (signal(true), signal('b'), signal(false));
+    card(
+        "toggles",
+        "Toggles",
+        Row::new()
+            .cross_axis_alignment(CrossAxisAlignment::Center)
+            .spacing(12.0)
+            .child(Keyed::new(
+                "sink-checkbox",
+                Checkbox::new(checked).on_change(move |v| checked.set(v)),
+            ))
+            .child(Checkbox::new(false).indeterminate(true))
+            .child(Checkbox::new(true).enabled(false))
+            .child(Keyed::new(
+                "sink-radio",
+                Radio::new('a', choice).on_change(move |v| choice.set(v)),
+            ))
+            .child(Keyed::new(
+                "sink-radio-b",
+                Radio::new('b', choice).on_change(move |v| choice.set(v)),
+            ))
+            .child(Keyed::new(
+                "sink-radio-c",
+                Radio::new('c', choice).on_change(move |v| choice.set(v)),
+            ))
+            .child(Keyed::new(
+                "sink-switch",
+                Switch::new(on).on_change(move |v| on.set(v)),
+            )),
+        echo(move || {
+            format!(
+                "Checkbox {}, Radio {}, Switch {}",
+                on_off(checked.get()),
+                choice.get(),
+                on_off(on.get())
+            )
+        }),
+    )
+}
+
+fn sink_slider() -> impl View {
+    let (a, b) = (signal(50.0f64), signal(25.0f64));
+    card(
+        "slider",
+        "Slider",
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .spacing(4.0)
+            .child(
+                SizedBox::width(320.0).child(Keyed::new(
+                    "sink-slider",
+                    Slider::new(a)
+                        .range(0.0, 100.0)
+                        .on_change(move |v| a.set(v)),
+                )),
+            )
+            .child(
+                SizedBox::width(320.0).child(
+                    Slider::new(b)
+                        .range(0.0, 100.0)
+                        .divisions(4)
+                        .on_change(move |v| b.set(v)),
+                ),
+            ),
+        echo(move || format!("Slider {} / {}", a.get().round(), b.get().round())),
+    )
+}
+
+fn sink_text() -> impl View {
+    card(
+        "text",
+        "Text",
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .spacing(8.0)
+            .child(Keyed::new("sink-text", Text::new("Body text")))
+            .child(Text::new("Title text").style(TextStyle::title()))
+            .child(Text::new("Label text").style(TextStyle::label()))
+            .child(Keyed::new(
+                "sink-rich_text",
+                RichText::new(
+                    TextSpan::group()
+                        .child(TextSpan::new("Rich "))
+                        .child(TextSpan::new("bold").bold().color(RED))
+                        .child(TextSpan::new(" text")),
+                ),
+            ))
+            .child(Keyed::new("sink-divider", Divider::new()))
+            .child(
+                SizedBox::height(24.0).child(
+                    Row::new()
+                        .spacing(8.0)
+                        .child(Text::new("Left"))
+                        .child(Keyed::new("sink-vertical_divider", VerticalDivider::new()))
+                        .child(Text::new("Right")),
+                ),
+            ),
+        None,
+    )
+}
+
+fn sink_fields() -> impl View {
+    let (single, multi, off) = (
+        TextEditingController::new(""),
+        TextEditingController::new("Many lines\nof text"),
+        TextEditingController::new("Disabled"),
+    );
+    card(
+        "fields",
+        "Text fields",
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .spacing(8.0)
+            .child(SizedBox::width(320.0).child(Keyed::new(
+                "sink-text_field",
+                TextField::new(single).placeholder("Type here"),
+            )))
+            .child(SizedBox::width(320.0).child(TextField::new(multi).max_lines(None)))
+            .child(SizedBox::width(320.0).child(TextField::new(off).enabled(false))),
+        echo(move || format!("Typed: {}", single.text())),
+    )
+}
+
+fn sink_media() -> impl View {
+    let images: AnyView = match (gradient(64, 64), gradient(64, 64), gradient(64, 64)) {
+        (Ok(a), Ok(b), Ok(c)) => AnyView::new(
+            Row::new()
+                .spacing(12.0)
+                .child(Keyed::new(
+                    "sink-image",
+                    Image::new(a).size(96.0, 64.0).fit(BoxFit::Contain),
+                ))
+                .child(Image::new(b).size(96.0, 64.0).fit(BoxFit::Cover))
+                .child(Image::new(c).size(96.0, 64.0).fit(BoxFit::Fill)),
+        ),
+        _ => AnyView::new(SizedBox::shrink()),
+    };
+    card(
+        "media",
+        "Media",
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .spacing(8.0)
+            .child(
+                Row::new()
+                    .spacing(12.0)
+                    .child(Keyed::new(
+                        "sink-icon",
+                        Icon::new(Icons::HOME).size(32.0).color(PRIMARY),
+                    ))
+                    .child(Icon::new(Icons::SEARCH).size(32.0).color(PRIMARY))
+                    .child(Icon::new(Icons::SETTINGS).size(32.0).color(PRIMARY)),
+            )
+            .child(images),
+        None,
+    )
+}
+
+fn sink_lists() -> impl View {
+    let selection = signal(None::<usize>);
+    card(
+        "lists",
+        "Lists",
+        SizedBox::new(400.0, 160.0).child(Keyed::new(
+            "sink-list_view",
+            ListView::separated(
+                1000usize,
+                32.0,
+                |i| {
+                    Padding::new(EdgeInsets::symmetric(8.0, 0.0)).child(
+                        Align::new(Alignment::CENTER_LEFT).child(Text::new(format!("Row {i}"))),
+                    )
+                },
+                1.0,
+                |_| Divider::new(),
+            )
+            .selection(selection),
+        )),
+        echo(move || match selection.get() {
+            Some(i) => format!("Selected {i}"),
+            None => "Selected none".to_owned(),
+        }),
+    )
+}
+
+fn sink_grid() -> impl View {
+    const TITLES: [&str; 3] = ["Id", "Name", "Score"];
+    let (sort, filter, even) = (
+        signal(None::<SortState>),
+        signal(None::<RowFilter>),
+        signal(false),
+    );
+    let source = Rc::new(FnSource::new(1000, |row, column| match column {
+        0 => CellValue::Int(row as i64),
+        1 => CellValue::Text(format!("Item {row}")),
+        _ => CellValue::Int((row * 37 % 101) as i64),
+    }));
+    card(
+        "grid",
+        "Data grid",
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .spacing(8.0)
+            .child(
+                Row::new()
+                    .cross_axis_alignment(CrossAxisAlignment::Center)
+                    .spacing(8.0)
+                    .child(Keyed::new(
+                        "sink-grid-filter",
+                        Switch::new(even).on_change(move |v| {
+                            even.set(v);
+                            let predicate: Option<RowFilter> = v.then(|| {
+                                Rc::new(|source: &dyn DataSource, row: usize| {
+                                    matches!(source.cell(row, 0), CellValue::Int(n) if n % 2 == 0)
+                                }) as RowFilter
+                            });
+                            filter.set(predicate);
+                        }),
+                    ))
+                    .child(Text::new("Even rows only")),
+            )
+            .child(
+                SizedBox::new(600.0, 240.0).child(Keyed::new(
+                    "sink-data_grid",
+                    DataGrid::new(
+                        [
+                            GridColumn::new("Id").width(80.0),
+                            GridColumn::new("Name").width(200.0),
+                            GridColumn::new("Score").width(120.0),
+                        ],
+                        source,
+                    )
+                    .frozen_columns(1)
+                    .client_sort(true)
+                    .sort_state(sort)
+                    .filter(filter),
+                )),
+            ),
+        echo(move || {
+            let sort = match sort.get() {
+                None => "none".to_owned(),
+                Some(state) => format!(
+                    "{} {}",
+                    TITLES[state.column],
+                    if state.ascending {
+                        "ascending"
+                    } else {
+                        "descending"
+                    }
+                ),
+            };
+            format!("Sort: {sort}, rows {}", if even.get() { 500 } else { 1000 })
+        }),
+    )
+}
+
+fn sink_layout() -> impl View {
+    card(
+        "layout",
+        "Layout",
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .spacing(8.0)
+            .child(Keyed::new(
+                "sink-row",
+                Row::new()
+                    .spacing(8.0)
+                    .child(Keyed::new(
+                        "sink-expanded",
+                        Expanded::new(swatch(100.0, PRIMARY)),
+                    ))
+                    .child(Keyed::new(
+                        "sink-flexible",
+                        Flexible::new(swatch(100.0, RED)),
+                    ))
+                    .child(Keyed::new("sink-spacer", Spacer::new()))
+                    .child(swatch(60.0, PRIMARY)),
+            ))
+            .child(Keyed::new(
+                "sink-column",
+                Column::new()
+                    .cross_axis_alignment(CrossAxisAlignment::Start)
+                    .spacing(4.0)
+                    .child(swatch(100.0, PRIMARY))
+                    .child(swatch(60.0, RED)),
+            ))
+            .child(
+                SizedBox::new(200.0, 80.0).child(Keyed::new(
+                    "sink-stack",
+                    Stack::new()
+                        .child(Keyed::new(
+                            "sink-positioned",
+                            Positioned::new(swatch(80.0, PRIMARY)).left(0.0).top(0.0),
+                        ))
+                        .child(Positioned::new(swatch(80.0, RED)).right(0.0).bottom(0.0)),
+                )),
+            )
+            .child(
+                Row::new()
+                    .spacing(8.0)
+                    .child(SizedBox::new(100.0, 60.0).child(Keyed::new(
+                        "sink-center",
+                        Center::new().child(swatch(40.0, PRIMARY)),
+                    )))
+                    .child(SizedBox::new(100.0, 60.0).child(Keyed::new(
+                        "sink-align",
+                        Align::new(Alignment::BOTTOM_RIGHT).child(swatch(40.0, RED)),
+                    )))
+                    .child(SizedBox::new(100.0, 60.0).child(Keyed::new(
+                        "sink-padding",
+                        Padding::all(8.0).child(swatch(100.0, PRIMARY)),
+                    )))
+                    .child(Keyed::new(
+                        "sink-sized_box",
+                        SizedBox::new(50.0, 30.0).child(swatch(100.0, RED)),
+                    ))
+                    .child(Keyed::new(
+                        "sink-constrained_box",
+                        ConstrainedBox::new(BoxConstraints::loose(Size::new(60.0, 20.0)))
+                            .child(swatch(100.0, PRIMARY)),
+                    ))
+                    .child(Keyed::new(
+                        "sink-limited_box",
+                        LimitedBox::new().max_width(60.0).child(swatch(100.0, RED)),
+                    )),
+            ),
+        None,
+    )
+}
+
+fn sink_scrolling() -> impl View {
+    let vertical = ScrollController::new();
+    card(
+        "scrolling",
+        "Scrolling",
+        Row::new()
+            .spacing(16.0)
+            .child(
+                SizedBox::new(300.0, 240.0).child(Keyed::new(
+                    "sink-scroll_view",
+                    ScrollView::new(
+                        Column::new()
+                            .cross_axis_alignment(CrossAxisAlignment::Start)
+                            .children((0..30).map(|i| {
+                                SizedBox::height(28.0).child(
+                                    Align::new(Alignment::CENTER_LEFT)
+                                        .child(Text::new(format!("Line {i}"))),
+                                )
+                            })),
+                    )
+                    .controller(vertical),
+                )),
+            )
+            .child(
+                SizedBox::new(300.0, 60.0).child(
+                    ScrollView::new(Row::new().spacing(8.0).children(
+                        (0..20).map(|i| swatch(60.0, if i % 2 == 0 { PRIMARY } else { RED })),
+                    ))
+                    .horizontal(),
+                ),
+            ),
+        echo(move || format!("Offset {}", vertical.offset().round())),
+    )
+}
+
+fn sink_animation() -> impl View {
+    let (alpha, on) = (signal(1.0f64), signal(false));
+    card(
+        "animation",
+        "Animation",
+        Row::new()
+            .cross_axis_alignment(CrossAxisAlignment::Center)
+            .spacing(16.0)
+            .child(
+                SizedBox::width(200.0).child(
+                    Slider::new(alpha)
+                        .range(0.0, 1.0)
+                        .on_change(move |v| alpha.set(v)),
+                ),
+            )
+            .child(Keyed::new(
+                "sink-opacity",
+                Opacity::new(move || alpha.get() as f32, swatch(100.0, PRIMARY)),
+            ))
+            .child(Keyed::new(
+                "sink-switcher-toggle",
+                Switch::new(on).on_change(move |v| on.set(v)),
+            ))
+            .child(Keyed::new(
+                "sink-animated_switcher",
+                AnimatedSwitcher::new(on, |on| {
+                    AnyView::new(
+                        Text::new(if on { "On" } else { "Off" })
+                            .style(TextStyle::title())
+                            .color(PRIMARY),
+                    )
+                }),
+            )),
+        None,
+    )
+}
+
+fn sink_focus() -> impl View {
+    let focus = signal("none");
+    let button = move |key: &'static str, name: &'static str| {
+        Keyed::new(
+            key,
+            FocusEcho {
+                name,
+                focus,
+                child: AnyView::new(Button::new(name)),
+            },
+        )
+    };
+    card(
+        "focus",
+        "Focus scope",
+        Row::new()
+            .cross_axis_alignment(CrossAxisAlignment::Center)
+            .spacing(8.0)
+            .child(Keyed::new(
+                "sink-focus_scope",
+                FocusScope::new(
+                    Row::new()
+                        .spacing(8.0)
+                        .child(button("sink-focus-one", "One"))
+                        .child(button("sink-focus-two", "Two"))
+                        .child(button("sink-focus-three", "Three")),
+                ),
+            ))
+            .child(Text::new("| outside the scope:"))
+            .child(button("sink-focus-outside", "Outside")),
+        echo(move || format!("Focus: {}", focus.get())),
+    )
+}
+
+/// Reports its child's focus into a signal (the focus card's echo).
+struct FocusEcho {
+    name: &'static str,
+    focus: Signal<&'static str>,
+    child: AnyView,
+}
+
+impl View for FocusEcho {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = self.child.build(cx);
+        let (name, focus) = (self.name, self.focus);
+        cx.on_focus_change(id, move |focused| {
+            if focused {
+                focus.set(name);
+            }
+        });
+        id
+    }
+}
 
 /// A 40 px tall filled box whose width and color are reactive (the animated props' target).
 struct ColorBox {
