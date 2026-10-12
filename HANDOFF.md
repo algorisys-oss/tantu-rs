@@ -3,12 +3,13 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 5 selection and keyboard navigation implemented)_
+_Last updated: 2026-10-12 (DataGrid part 6 cell-editor spec agreed; failing tests next)_
 
 ## Resume here (2026-10-12)
 
 DataGrid parts 1 to 5 are committed on `phase3/focus` (fast-forward into `main` and push
-when requested). Next is part 6, cell editors. When resuming, tell the agent:
+when requested). Part 6's spec, `docs/specs/widgets/data-grid-editing.md`, is Agreed on the user's
+"continue"; failing tests and implementation follow. When resuming, tell the agent:
 "Read HANDOFF.md and continue."
 
 **Where things stand:**
@@ -88,7 +89,13 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    (75 checked, no draft/problems), no-default-feature facade tests and rustdoc with
    warnings denied pass. Standalone GridScroll median **0.793 ms** (part 4: 0.797 ms);
    the initial concurrent validation measurement was noisy. No dependency/pipeline change.
-5. Next: `DataGrid` part 6 (cell editors), then part 7 (`examples/data-grid-stress`).
+5. **`DataGrid` part 6 is agreed** (2026-10-12, on "Lets continue cell editors"):
+   `docs/specs/widgets/data-grid-editing.md` proposes opt-in columns, double-click/F2 entry,
+   a typed synchronous `DataSource::set_cell` with default ReadOnly rejection,
+   `GridEditError` and `on_edit_error`, Enter commit, Escape/blur/Tab cancel, model/viewport
+   cancellation, local refresh after writes, and sparse editable gallery overrides.
+   The user accepted the eight proposals with "continue". Next: the separate `spec:`/failing `test:`/`impl:` commits and checks;
+   part 7 (`examples/data-grid-stress`) follows.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -1290,14 +1297,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `8559080` | spec: buffered-cell reveal accepts descendants |
 | `d6e998d` | test: mapped sorting/filtering, controller disposal, header sorting and failing descendant reveal |
 | `583b5ed` | spec: selection controller Default signature |
-| _this commit_ | impl: DataGrid part 5 selection/navigation/reveal, pointer modifiers and table semantics; gallery controls and goldens; checks pass, PLAN.md ticked and HANDOFF.md current |
+| `8de5d10` | impl: DataGrid part 5 selection/navigation/reveal, pointer modifiers and table semantics; gallery controls and goldens; checks pass, PLAN.md ticked and HANDOFF.md current |
+| _this commit_ | spec: DataGrid part 6 cell editors agreed; PLAN.md spec link and HANDOFF.md resume point |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: draft `DataGrid` part 6 (cell editors), then part 7,
+See "Resume here" above: implement `DataGrid` part 6's agreed cell-editor spec
+with failing tests and separate workflow commits; then part 7,
 then the rest of Phase 4 in PLAN.md order.
 
 ## Open questions

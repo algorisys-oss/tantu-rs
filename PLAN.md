@@ -162,7 +162,7 @@ faster or more portable without changing how apps are written.
   - [x] sorting and filtering (header click, sort indicators, the source's sort and filter hooks) (spec `docs/specs/widgets/data-grid-sort.md`)
   - [x] column resize and reorder (header edge and header drag; widths and order as shared signals) (spec `docs/specs/widgets/data-grid-columns.md`)
   - [x] selection models (row, cell, range) with keyboard navigation, and row/column indices in the accessibility tree (spec `docs/specs/widgets/data-grid-selection.md`)
-  - [ ] cell editors (double-click or F2 opens a `TextField` in the cell, Enter commits, Escape cancels, `DataSource::set_cell`)
+  - [ ] cell editors (double-click or F2 opens a `TextField` in the cell, Enter commits, Escape cancels, `DataSource::set_cell`; spec `docs/specs/widgets/data-grid-editing.md`)
   - [ ] `examples/data-grid-stress`: the 1M-row stress test against the 60 fps criterion
 - [ ] `TreeView`, `TabView`, `SplitView`, docking layout manager (drag panels, persist layout)
 - [ ] Menus (native + custom), context menus, toolbars, status bar
