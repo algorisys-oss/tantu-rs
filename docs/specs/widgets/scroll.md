@@ -108,7 +108,9 @@ least 24 px; its position is `track_start + (track − thumb) · offset / max`.
 - **WIDGETS-SCROLL-05:** Taps reach scrolled content: a button at y = 500 in the content, after
   scrolling by 400, is tapped at y = 100 of the view, and a button scrolled out of the view
   isn't hit.
-- **WIDGETS-SCROLL-06:** Keyboard: a scroll view is focusable (a primary press focuses it; Tab
+- **WIDGETS-SCROLL-06:** Amendment for TreeView integration (2026-10-12, review):
+  Control/Command/Alt/Shift-modified key presses pass through without scrolling.
+ Keyboard: a scroll view is focusable (a primary press focuses it; Tab
   doesn't stop at it). While focused, a press (repeats included) of the arrow key along the
   axis scrolls by 40 px (down/right forward, up/left back), PageDown/PageUp by the viewport
   extent, End/Home to the maximum/0, each clamped and handled (stopping the event) when the

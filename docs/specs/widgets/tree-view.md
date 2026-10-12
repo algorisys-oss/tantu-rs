@@ -161,7 +161,8 @@ types. There are no new feature flags.
   revision, selection becomes None; no whole-source search is made. Unseen expansion IDs
   remain harmless in the set (the application may prune them). A shorter tree clamps the
   scroll offset. Changes to `expanded` rebuild structure; selection, hover and scrolling
-  alone do not re-enumerate the model. Removing the view disposes its internal state and
+  alone do not re-enumerate the model. ScrollView's fallback scrolling keys also ignore
+  modified chords so they can reach app shortcuts (WIDGETS-SCROLL-06 amendment). Removing the view disposes its internal state and
   handlers; externally supplied signals survive with their owning application scope.
 - **WIDGETS-TREE-08:** Surviving mounted rows retain their wrapper element identity by
   TreeNodeId when rows are inserted, removed or reordered above them; their position/depth
