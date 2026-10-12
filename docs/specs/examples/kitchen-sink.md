@@ -6,6 +6,7 @@
 - **Plan item:** Phase 4, "Kitchen sink"
 - **Related:** [gallery](gallery.md) (the sections and keys this adds to),
   [DataGrid](../widgets/data-grid.md), [DataGrid sorting](../widgets/data-grid-sort.md),
+  [cell editors](../widgets/data-grid-editing.md), [stress example](data-grid-stress.md),
   [scroll](../widgets/scroll.md), [focus scopes](../view/focus-scope.md)
 
 ## Purpose
@@ -54,7 +55,7 @@ equal a sample key (`sliders`, `typography`).
 | `fields` | `TextField` single-line, multi-line, with a placeholder, disabled | "Typed: …" |
 | `media` | `Icon`s, `Image` in `BoxFit::Contain`, `Cover` and `Fill` at 96 × 64 | |
 | `lists` | `ListView::builder` (1 000 rows) and `separated` with a selection | "Selected N" |
-| `grid` | `DataGrid` (1 000 rows, frozen Id, sortable, `client_sort`) with a "Even rows" `Switch` setting a `RowFilter` | "Sort: …, rows N" |
+| `grid` | `DataGrid` (1 000 rows, frozen Id, sortable, `client_sort`), resize/reorder headers, range selection, editable Name/Score and a "Even rows" filter | Sort/rows, selection, widths/order and edit errors |
 | `layout` | `Row`/`Column` with `Expanded`, `Flexible` and `Spacer`; `Stack` with `Positioned`; `Center`, `Align`, `Padding`, `SizedBox`, `ConstrainedBox`, `LimitedBox` as colored boxes | |
 | `scrolling` | a 240 px tall `ScrollView` of 30 rows and a horizontal `ScrollView` of 20 boxes | "Offset N" |
 | `animation` | `Opacity` driven by a `Slider`, `AnimatedSwitcher` toggled by a `Switch` | |
@@ -78,6 +79,20 @@ equal a sample key (`sliders`, `typography`).
 - **GALLERY-14:** Goldens at 960 × 640: `tests/goldens/gallery-sink-top.png` (the page as
   opened) and `tests/goldens/gallery-sink-end.png` (after a tap on the page focuses its
   scroll view and End scrolls it to the maximum extent).
+
+- **GALLERY-18:** Amendment on the user's request to update the kitchen sink (2026-10-12;
+  routine composition of agreed grid APIs, implementation details marked review): the grid
+  keeps its frozen Id, sorting and Even rows filter; Name and Score are editable, Id is
+  read-only, successful writes are stored as sparse overrides and Score outside 0..=100
+  reports "Score must be between 0 and 100" in `sink-grid-edit-error` while retaining the
+  draft. Double-click/F2, Enter and Escape follow the cell-editor spec. Range selection
+  echoes anchor/active source coordinates in `sink-grid-selection`. Resizing and reordering
+  share app-visible width/order signals echoed as `sink-grid-name-width` and
+  `sink-grid-order`; keyboard header navigation can resize/reorder them. Instructions
+  explain editing and selection; `sink-grid-stress-command` shows
+  `cargo run --release -p data-grid-stress` for the separate million-row workload. A golden
+  at 960 × 640 with the grid card scrolled into view records these controls and feedback.
+  Existing GALLERY-12..14 remain valid.
 
 ## Performance and allocation
 
@@ -106,3 +121,8 @@ Resolved (2026-10-12; the user said "continue" on the draft, taking these propos
    and the per-widget goldens already live in the widget tests.
 6. **The grid demo turns `client_sort` on with 1 000 rows** (not a million): small enough to
    sort in a debug test, large enough to scroll.
+
+7. **Kitchen-sink grid refresh (review, 2026-10-12):** the user asked to update the demo
+   alongside the stress example. Compose the completed resize/reorder, range selection
+   and editor APIs; keep the source small for client sorting and provide the standalone
+   stress command as text. No process launch or library API is added.

@@ -3,12 +3,20 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 6 cell editors implemented)_
+_Last updated: 2026-10-12 (DataGrid part 7 agreed; kitchen-sink grid refresh specified)_
 
 ## Resume here (2026-10-12)
 
 DataGrid parts 1 to 6 are committed on `phase3/focus` (fast-forward into `main` and push
-when requested). Next is part 7, `examples/data-grid-stress`, to validate the 60 fps target.
+when requested). Part 7's agreed spec is `docs/specs/examples/data-grid-stress.md`: a standalone
+1M × 20 text-cell workload, automatic scrolling, optional two frozen columns, bounded
+redraw-tick cadence statistics and a manual native presentation measurement protocol.
+The user accepted its four proposals with "continue" and requested a kitchen-sink update
+and commit/push when done. Kitchen-sink GALLERY-18 composes existing grid features
+(resize/reorder, range selection, editors, errors and the stress command); details marked review.
+Next: failing tests, implementation, checks and push. The existing ~0.804 ms
+headless CPU benchmark does not establish 60 fps delivery; that hardware criterion remains
+unverified. No code changed for part 7 yet.
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 **Where things stand:**
@@ -104,7 +112,9 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    GridScroll estimate **0.804 ms** (0.795–0.814 ms), no measured performance regression.
    Existing WIDGETS-GRID-06 behavior is preserved: a custom builder refreshes on revision
    even if its CellValue is unchanged. No architecture edges or pipeline stages changed.
-   Next: part 7 (`examples/data-grid-stress`).
+   Next: implement the agreed part 7 spec (`docs/specs/examples/data-grid-stress.md`), then failing
+   tests and implementation. Recommended scope uses the existing ticker and facade, with
+   no new profiler API or dependency edges. Native frame delivery is a separate manual check.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -1327,18 +1337,22 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `d080eff` | test: BuildCx::focus stub fails the registered focusable target assertion; invalid-target and handler checks compile |
 | `ca36dc8` | test: editor blur fixture explicitly moves focus (Button clicks do not request focus); Tab and pointer entry remain separately exercised |
 | `d0f1332` | test: inclusive 500 ms double-click boundary and unchanged-value builder revision fail; additional frozen/nonfinite/stale-submit regressions |
-| _this commit_ | impl: typed cell editors, BuildCx::focus, local refresh, cancellation and errors; sparse editable gallery and goldens; all checks pass, PLAN.md ticked and HANDOFF.md current |
+| `aa2574f` | impl: typed cell editors, BuildCx::focus, local refresh, cancellation and errors; sparse editable gallery and goldens; all checks pass, PLAN.md ticked and HANDOFF.md current |
+| _this commit_ | spec: DataGrid part 7 stress example agreed; kitchen-sink GALLERY-18 composition amendment, PLAN.md and HANDOFF.md |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: draft `DataGrid` part 7 (`examples/data-grid-stress`),
-then the rest of Phase 4 in PLAN.md order.
+See "Resume here" above: implement `DataGrid` part 7's agreed spec (`examples/data-grid-stress`),
+then its test/implementation commits and checks, followed by the rest of Phase 4 in PLAN.md order.
 
 ## Open questions
 
+- **DataGrid native 60 fps remains unverified.** Part 7's draft proposes repeatable scrolling
+  and redraw-tick cadence statistics, with GPU/compositor delivery checked on recorded hardware.
+  Headless CPU timing is separate evidence. Its four proposals were agreed by the user on 2026-10-12; native presentation remains a manual check.
 - **Accessibility is unchecked with a real screen reader.** The tree and the adapter are
   tested through `FakePlatform` and the opt-in window test only. The user should run the
   gallery under Orca (Linux), Narrator (Windows) and VoiceOver (macOS) and note what each
