@@ -942,7 +942,7 @@ const CELL_PADDING_IN_TEST: f32 = 8.0;
 fn widgets_grid_14_reorder() {
     type Shared = Rc<Cell<Option<(Signal<Vec<usize>>, Signal<Option<SortState>>)>>>;
     let shared: Shared = Rc::default();
-    let (mut tester, _, horizontal) = grid(300.0, 400.0, {
+    let (mut tester, _, _) = grid(600.0, 400.0, {
         let shared = shared.clone();
         move || {
             let (order, sort) = (signal(Vec::<usize>::new()), signal(None::<SortState>));
@@ -1060,7 +1060,6 @@ fn widgets_grid_14_reorder() {
         header_lefts(&tester3, &["Col 0"])[0].floor(),
         CELL_PADDING_IN_TEST
     );
-    let _ = horizontal;
 }
 
 #[test]
