@@ -7,21 +7,12 @@ _Last updated: 2026-10-12 (TreeView spec drafted for review; preceding main CI i
 
 ## Resume here (2026-10-12)
 
-The user said "Lets start Treeview". On `phase4/tree-view`, PLAN.md's grouped enterprise
-widget item is split into TreeView, TabView, SplitView and docking. TreeView's first spec is
-**Draft** at `docs/specs/widgets/tree-view.md`; no TreeView code or tests have been written.
-Its six proposals await review under AGENTS.md's "Get the spec reviewed/agreed before moving
-on" instruction. Recommended scope: stable u64 node IDs and a queryable source, expanded
-preorder metadata with viewport-only widgets, shared expansion/single-selection signals,
-desktop keys, themed disclosure/selection/focus, proper tree accessibility metadata/actions,
-a gallery section and a kitchen-sink card. Expanding a large branch enumerates its displayed
-metadata; collapsed descendants are not traversed. This limitation is explicit in the spec.
-
-Next: agree the draft, commit it as `spec:`, add and confirm failing rule tests (`test:`),
-implement (`impl:`), run the required checks, then fast-forward main and push. The user's
-existing commit/push authorization persists; no PR (decision 14). Performance stress runs
-stay local; GitHub receives only bounded deterministic correctness tests and normal checks.
-Draft-only documentation can be committed/pushed as `docs:` without marking the feature done.
+The user accepted the TreeView draft with "implement it and also update kitchen sink with
+this example". The six proposals are now Agreed. Work on `phase4/tree-view` follows
+spec → failing tests → implementation; next add compiling API stubs and regressions for
+source/index, virtualization, pointer/keys, revisions, identity/disposal, themes, tree
+semantics/actions and both demos. Commit/push authorization persists; performance stress
+runs stay local. No new architecture dependency or pipeline change is planned.
 
 DataGrid parts 1–7 and overlay inheritance are complete. Main `c37b814` passed CI:
 https://github.com/algorisys-oss/tantu-rs/actions/runs/38234613244 (checked this session).
@@ -1404,14 +1395,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `0cb8cff` | test: popup-demo placement assertion fails for the old below-target placement |
 | `c37b814` | impl: overlay inheritance, tooltip context lookup and local-theme popup demo; goldens/docs/PLAN.md/HANDOFF.md current; all checks pass |
 
-| _this commit_ | docs: draft TreeView source/state/navigation/virtualization/semantics/demo proposals for review; split PLAN.md enterprise widget items and update HANDOFF.md |
+| `2657047` | docs: draft TreeView source/state/navigation/virtualization/semantics/demo proposals for review; split PLAN.md enterprise widget items and update HANDOFF.md |
+
+| _this commit_ | spec: agree TreeView on the user's implementation request, including the kitchen-sink example |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Review/agree the six proposals in `docs/specs/widgets/tree-view.md`, then follow separate
+Implement the agreed `docs/specs/widgets/tree-view.md` using separate
 `spec:` / failing `test:` / green `impl:` commits. PLAN.md now has independent TreeView,
 TabView, SplitView and docking items. The preceding main push passed CI (run 38234613244).
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
@@ -1419,9 +1412,8 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
 
 ## Open questions
 
-- **TreeView draft needs review.** Source/ID API, expansion/selection signals, fixed metrics,
-  navigation/activation, tree semantics additions and both demos are proposed in the draft;
-  no implementation decision has been marked Agreed yet.
+- **TreeView is Agreed.** The six source/state/navigation/semantics/demo proposals were
+  accepted by the user; no unresolved design question blocks implementation.
 - **DataGrid native 60 fps remains unverified.** Part 7 implements repeatable scrolling
   and redraw-tick cadence statistics, with GPU/compositor delivery checked on recorded hardware.
   Headless CPU timing is separate evidence. The example is complete; native presentation remains a manual check.

@@ -1,6 +1,6 @@
 # TreeView: expansion, selection and virtualized rows
 
-- **Status:** Draft (2026-10-12, on the user's "Lets start Treeview")
+- **Status:** Agreed (2026-10-12, the user said "implement it and also update kitchen sink with this example")
 - **Crates:** `tantu-widgets`, `tantu-view` and `tantu-a11y` (tree semantics),
   `examples/gallery`
 - **Plan item:** Phase 4, "TreeView"
@@ -240,7 +240,7 @@ check call/live-row counts, not wall-clock thresholds. Performance trials remain
 
 ## Open questions
 
-Recommended proposals for review before the spec is Agreed:
+Resolved: the user accepted all six proposals by requesting implementation and the kitchen-sink example.
 
 1. **Source trait + u64 IDs**, rather than a recursively owned node struct: apps can wrap
    existing models or generate children without copying them into widgets. A flattened
