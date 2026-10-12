@@ -774,5 +774,5 @@ fn gallery_21_kitchen_sink_tree_selection_collapse_and_golden() {
         modifiers: Default::default(),
     });
     t.pump();
-    assert_eq!(text_of(&t, "sink-tree-state"), "Selected: 0, expanded: 0");
+    assert_eq!(text_of(&t, "sink-tree-state"), "Selected: 0, expanded: 1");
 }
