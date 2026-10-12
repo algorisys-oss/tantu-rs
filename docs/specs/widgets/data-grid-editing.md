@@ -1,6 +1,6 @@
 # DataGrid: cell editors
 
-- **Status:** Agreed (2026-10-12; the user said "continue" on the eight proposals)
+- **Status:** Implemented (2026-10-12; the user said "continue" on the eight proposals)
 - **Crates:** `tantu-widgets`, `tantu-view` (BuildCx::focus), `tantu` (exports), `examples/gallery`
 - **Plan item:** Phase 4, `DataGrid` part 6, cell editors
 - **Related:** [DataGrid](data-grid.md), [selection and navigation](data-grid-selection.md),

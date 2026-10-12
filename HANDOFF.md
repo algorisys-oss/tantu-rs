@@ -3,14 +3,13 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 6 cell-editor failing tests committed; implementation next)_
+_Last updated: 2026-10-12 (DataGrid part 6 cell editors implemented)_
 
 ## Resume here (2026-10-12)
 
-DataGrid parts 1 to 5 are committed on `phase3/focus` (fast-forward into `main` and push
-when requested). Part 6's spec, `docs/specs/widgets/data-grid-editing.md`, is Agreed on the user's
-"continue"; the compiling editor tests fail for missing behavior; implementation follows. When resuming, tell the agent:
-"Read HANDOFF.md and continue."
+DataGrid parts 1 to 6 are committed on `phase3/focus` (fast-forward into `main` and push
+when requested). Next is part 7, `examples/data-grid-stress`, to validate the 60 fps target.
+When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 **Where things stand:**
 
@@ -39,7 +38,7 @@ when requested). Part 6's spec, `docs/specs/widgets/data-grid-editing.md`, is Ag
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 75 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 76 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** the two
   pushes before this one were red on macOS only (the text field's chord test pressed Control
@@ -89,13 +88,23 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    (75 checked, no draft/problems), no-default-feature facade tests and rustdoc with
    warnings denied pass. Standalone GridScroll median **0.793 ms** (part 4: 0.797 ms);
    the initial concurrent validation measurement was noisy. No dependency/pipeline change.
-5. **`DataGrid` part 6 is agreed** (2026-10-12, on "Lets continue cell editors"):
-   `docs/specs/widgets/data-grid-editing.md` proposes opt-in columns, double-click/F2 entry,
-   a typed synchronous `DataSource::set_cell` with default ReadOnly rejection,
-   `GridEditError` and `on_edit_error`, Enter commit, Escape/blur/Tab cancel, model/viewport
-   cancellation, local refresh after writes, and sparse editable gallery overrides.
-   The user accepted the eight proposals with "continue". Next: the separate `spec:`/failing `test:`/`impl:` commits and checks;
-   part 7 (`examples/data-grid-stress`) follows.
+5. **`DataGrid` part 6 is done** (decision 76, 2026-10-12, spec
+   `docs/specs/widgets/data-grid-editing.md`). The user said "continue" on the eight
+   proposals. Columns opt into editing; double-click/F2 opens a focused single-line
+   TextField, Enter commits typed values, Escape/blur/Tab cancel. Default sources remain
+   read-only. Rejected writes preserve the draft and report source coordinates and errors.
+   Sort/filter/order/revision changes and complete viewport exit cancel safely. A successful
+   write refreshes this grid without an app revision bump, recomputing active row maps.
+   The million-row gallery uses sparse overrides, rejects Score outside 0..=100, and has
+   an editor golden. Integration amendment (review): `BuildCx::focus` (VIEW-FOCUS-10)
+   permits entry/restoration after building without exposing mutable tree access.
+   **Validation:** 16 editor tests, the focus amendment, gallery behaviors/goldens, all
+   workspace tests, strict workspace Clippy, formatting, spec coverage (76, no problems),
+   no-default-feature facade tests and rustdoc with warnings denied pass. Standalone
+   GridScroll estimate **0.804 ms** (0.795–0.814 ms), no measured performance regression.
+   Existing WIDGETS-GRID-06 behavior is preserved: a custom builder refreshes on revision
+   even if its CellValue is unchanged. No architecture edges or pipeline stages changed.
+   Next: part 7 (`examples/data-grid-stress`).
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -120,7 +129,7 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
   (decision 28), `tantu-render-wgpu` (decision 29), the `scene-window` demo (decision 30) and
   `tantu-render-conformance` (decision 31).
   `tantu-theme` is implemented (decision 62) and so is `tantu-a11y` (decision 67).
-- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main`.
+- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `phase3/focus`; merge/push when requested.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
   - `CLAUDE.md`: Claude Code notes (imports AGENTS.md and PLAN.md)
@@ -853,6 +862,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     tokens were corrected in a spec/test amendment. `ensure_visible` walks from a buffered
     cell's descendant to its cell metadata. No architecture edges or stages changed.
 
+76. **DataGrid cell editors** (2026-10-12, spec `docs/specs/widgets/data-grid-editing.md`;
+    the user accepted eight proposals with "continue"). Editable columns replace one cell's
+    content with a scoped TextField; sessions snapshot source indices and the original value
+    type. `DataSource::set_cell(&self, ...)` is synchronous with a default ReadOnly error;
+    `GridEditError` and `on_edit_error` let the app surface conversion/source rejection.
+    Enter writes once, composition blocks submission, and failed writes retain drafts.
+    Cancellation follows Escape, Tab, blur, model changes and complete viewport exit; no
+    hidden editor is pinned. Local refresh keeps read-only scrolling unchanged and rebuilds
+    active client maps after successful writes. Field controllers/undo live in the dynamic
+    cell's version scope. The integration amendment `BuildCx::focus` is marked review;
+    it follows ViewTree::focus and enables post-build entry and restoration. The gallery
+    stores only edited overrides and validates Score; its editor and selection goldens
+    show the existing 32 px rows. Benchmark: 0.804 ms, no measured regression.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1303,15 +1326,15 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `a3205fb` | spec: BuildCx::focus integration amendment, VIEW-FOCUS-10 (review); required for agreed editor entry/restoration |
 | `d080eff` | test: BuildCx::focus stub fails the registered focusable target assertion; invalid-target and handler checks compile |
 | `ca36dc8` | test: editor blur fixture explicitly moves focus (Button clicks do not request focus); Tab and pointer entry remain separately exercised |
-| _this commit_ | test: inclusive 500 ms double-click boundary and unchanged-value builder revision fail; additional frozen/nonfinite/stale-submit regressions |
+| `d0f1332` | test: inclusive 500 ms double-click boundary and unchanged-value builder revision fail; additional frozen/nonfinite/stale-submit regressions |
+| _this commit_ | impl: typed cell editors, BuildCx::focus, local refresh, cancellation and errors; sparse editable gallery and goldens; all checks pass, PLAN.md ticked and HANDOFF.md current |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: implement `DataGrid` part 6's agreed cell-editor spec
-with failing tests and separate workflow commits; then part 7,
+See "Resume here" above: draft `DataGrid` part 7 (`examples/data-grid-stress`),
 then the rest of Phase 4 in PLAN.md order.
 
 ## Open questions
@@ -1355,7 +1378,7 @@ then the rest of Phase 4 in PLAN.md order.
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
   lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3), 73 (the
-  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation).
+  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation); decision 76's BuildCx::focus integration amendment is also marked for review.
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec

@@ -1,6 +1,8 @@
 //! The Tantu widget gallery (spec `docs/specs/examples/gallery.md`): a header, a sidebar of
 //! sections and the selected section's samples.
 
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -406,6 +408,43 @@ fn media_section() -> impl View {
 /// dot.
 /// The Data grid section (GALLERY-10): a million generated rows in a `DataGrid`, and the
 /// first visible row read from its vertical controller.
+/// Generated data with memory proportional to committed edits, not the row count.
+struct EditableGridSource {
+    generated: FnSource,
+    edits: RefCell<HashMap<(usize, usize), CellValue>>,
+    error: Signal<String>,
+}
+impl DataSource for EditableGridSource {
+    fn row_count(&self) -> usize {
+        self.generated.row_count()
+    }
+    fn cell(&self, row: usize, column: usize) -> CellValue {
+        self.edits
+            .borrow()
+            .get(&(row, column))
+            .cloned()
+            .unwrap_or_else(|| self.generated.cell(row, column))
+    }
+    fn set_cell(
+        &self,
+        row: usize,
+        column: usize,
+        value: CellValue,
+    ) -> std::result::Result<(), GridEditError> {
+        if row >= self.row_count() || column == 0 || column >= 6 {
+            return Err(GridEditError::ReadOnly);
+        }
+        if column == 5 && !matches!(value, CellValue::Int(0..=100)) {
+            return Err(GridEditError::Rejected(
+                "Score must be between 0 and 100".to_owned(),
+            ));
+        }
+        self.edits.borrow_mut().insert((row, column), value);
+        self.error.set("none".to_owned());
+        Ok(())
+    }
+}
+
 fn grid_section() -> impl View {
     let (vertical, horizontal) = (ScrollController::new(), ScrollController::new());
     let sort = signal(None::<SortState>);
@@ -447,24 +486,30 @@ fn grid_section() -> impl View {
         "Kolkata",
         "Hyderabad",
     ];
-    let source = Rc::new(FnSource::new(1_000_000, |row, column| match column {
-        0 => CellValue::Int(row as i64),
-        1 => CellValue::Text(format!("Person {row}")),
-        2 => CellValue::Text(CITIES[row % CITIES.len()].to_owned()),
-        3 => CellValue::Float((row % 1000) as f64 * 1.25),
-        4 => CellValue::Bool(row % 3 == 0),
-        _ => CellValue::Int((row * 37 % 101) as i64),
-    }));
+    let edit_error = signal("none".to_owned());
+    let source = Rc::new(EditableGridSource {
+        error: edit_error,
+        edits: RefCell::default(),
+        generated: FnSource::new(1_000_000, |row, column| match column {
+            0 => CellValue::Int(row as i64),
+            1 => CellValue::Text(format!("Person {row}")),
+            2 => CellValue::Text(CITIES[row % CITIES.len()].to_owned()),
+            3 => CellValue::Float((row % 1000) as f64 * 1.25),
+            4 => CellValue::Bool(row % 3 == 0),
+            _ => CellValue::Int((row * 37 % 101) as i64),
+        }),
+    });
     Column::new()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .spacing(8.0)
         .child(
             Text::new(
                 "1 000 000 rows and 6 columns; only the visible cells are built. Scroll on both \
-                 axes, drag a header's right edge to resize it, drag a header to move it.",
+                 axes; resize/reorder headers. Double-click or F2 edits; Enter commits, Escape cancels.",
             )
             .style(TextStyle::label()),
         )
+        .child(Keyed::new("grid-edit-error", Text::new(move || format!("Edit error: {}", edit_error.get()))))
         .child(Keyed::new("grid-selection-mode", mode_controls))
         .child(SizedBox::new(700.0, 400.0).child(Dyn::new(move || {
             let mode = mode.get();
@@ -473,14 +518,15 @@ fn grid_section() -> impl View {
                 DataGrid::new(
                     [
                         GridColumn::new("Id").width(80.0).sortable(true),
-                        GridColumn::new("Name").width(200.0).sortable(true),
-                        GridColumn::new("City").width(180.0).sortable(true),
-                        GridColumn::new("Amount").width(140.0).sortable(true),
-                        GridColumn::new("Active").width(90.0).sortable(true),
-                        GridColumn::new("Score").width(140.0).sortable(true),
+                        GridColumn::new("Name").width(200.0).sortable(true).editable(true),
+                        GridColumn::new("City").width(180.0).sortable(true).editable(true),
+                        GridColumn::new("Amount").width(140.0).sortable(true).editable(true),
+                        GridColumn::new("Active").width(90.0).sortable(true).editable(true),
+                        GridColumn::new("Score").width(140.0).sortable(true).editable(true),
                     ],
                     source.clone(),
                 )
+                .on_edit_error(move |_, error| edit_error.set(error.to_string()))
                 .selection_mode(mode)
                 .selection_controller(grid_selection.clone())
                 .controllers(vertical, horizontal)

@@ -21,6 +21,9 @@ use tantu_view::{
     SemanticsActions, SortDirection, View,
 };
 
+mod editing;
+use editing::{CellEditor, Editing, ErrorHandler, RestoreFocus};
+
 use crate::grid_selection::Mapping;
 use crate::{GridCell, GridSelection, GridSelectionController, GridSelectionMode};
 
@@ -136,8 +139,12 @@ pub enum GridEditError {
 }
 
 impl fmt::Display for GridEditError {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!("WIDGETS-GRID-23: edit errors")
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ReadOnly => f.write_str("Cell is read-only"),
+            Self::InvalidValue => f.write_str("Invalid cell value"),
+            Self::Rejected(message) => f.write_str(message),
+        }
     }
 }
 
@@ -158,7 +165,7 @@ pub trait DataSource: 'static {
         _column: usize,
         _value: CellValue,
     ) -> Result<(), GridEditError> {
-        todo!("WIDGETS-GRID-23: default read-only setter")
+        Err(GridEditError::ReadOnly)
     }
 }
 
@@ -193,6 +200,7 @@ type CellBuilder = Rc<dyn Fn(usize, CellValue) -> AnyView>;
 
 /// A column of a [`DataGrid`].
 pub struct GridColumn {
+    editable: bool,
     title: String,
     width: f32,
     builder: Option<CellBuilder>,
@@ -206,12 +214,14 @@ pub struct GridColumn {
 
 impl GridColumn {
     /// Allows a text editor in this column (default false), replacing any custom builder.
-    pub fn editable(self, _editable: bool) -> Self {
-        self // WIDGETS-GRID-23..28: compiling stub
+    pub fn editable(mut self, editable: bool) -> Self {
+        self.editable = editable;
+        self
     }
     /// A column titled `title`, 120 px wide, showing values as text.
     pub fn new(title: impl Into<String>) -> Self {
         GridColumn {
+            editable: false,
             title: title.into(),
             width: COLUMN_WIDTH,
             builder: None,
@@ -257,8 +267,9 @@ impl GridColumn {
 
 /// A table over a [`DataSource`] that builds only its visible cells and scrolls on both
 /// axes, with frozen columns, sorting and filtering, and columns the user can resize and
-/// reorder (the enterprise data grid; selection and cell editors are still to come).
+/// reorder, selection models, keyboard navigation and opt-in cell editors.
 pub struct DataGrid {
+    edit_error: Option<ErrorHandler>,
     selection_mode: GridSelectionMode,
     selection: Option<GridSelectionController>,
     columns: Vec<GridColumn>,
@@ -279,8 +290,9 @@ pub struct DataGrid {
 
 impl DataGrid {
     /// Reports a failed commit with source coordinates; the editor retains its draft.
-    pub fn on_edit_error(self, _handler: impl Fn(GridCell, GridEditError) + 'static) -> Self {
-        self // WIDGETS-GRID-26..27: compiling stub
+    pub fn on_edit_error(mut self, handler: impl Fn(GridCell, GridEditError) + 'static) -> Self {
+        self.edit_error = Some(Rc::new(handler));
+        self
     }
     /// Enables row, cell or rectangular selection (default disabled).
     pub fn selection_mode(mut self, mode: GridSelectionMode) -> Self {
@@ -297,6 +309,7 @@ impl DataGrid {
     /// A grid with `columns` over `source`.
     pub fn new(columns: impl IntoIterator<Item = GridColumn>, source: Rc<dyn DataSource>) -> Self {
         DataGrid {
+            edit_error: None,
             selection_mode: GridSelectionMode::None,
             selection: None,
             columns: columns.into_iter().collect(),
@@ -625,6 +638,7 @@ impl View for DataGrid {
         let wheel = self.wheel;
         let revision = self.revision;
         let source = self.source;
+        let refresh = signal(0u64);
         // The sort state (WIDGETS-GRID-10) and the row map behind filtering and client
         // sorting (WIDGETS-GRID-11, -12): the filtered rows, then their order.
         let sort = self.sort.unwrap_or_else(|| signal(None));
@@ -632,6 +646,7 @@ impl View for DataGrid {
         let filtered: Memo<Option<Rc<[usize]>>> = {
             let source = Rc::clone(&source);
             memo(move || {
+                refresh.get();
                 if let Some(revision) = revision {
                     revision.get();
                 }
@@ -644,6 +659,7 @@ impl View for DataGrid {
         let map: Memo<Option<Rc<[usize]>>> = {
             let source = Rc::clone(&source);
             memo(move || {
+                refresh.get();
                 let filtered = filtered.get();
                 let sort = if client_sort { sort.get() } else { None };
                 let Some(SortState { column, ascending }) = sort else {
@@ -667,13 +683,16 @@ impl View for DataGrid {
         };
         let row_count = {
             let source = Rc::clone(&source);
-            memo(move || match map.get() {
-                Some(rows) => rows.len(),
-                None => {
-                    if let Some(revision) = revision {
-                        revision.get();
+            memo(move || {
+                refresh.get();
+                match map.get() {
+                    Some(rows) => rows.len(),
+                    None => {
+                        if let Some(revision) = revision {
+                            revision.get();
+                        }
+                        source.row_count()
                     }
-                    source.row_count()
                 }
             })
         };
@@ -730,6 +749,7 @@ impl View for DataGrid {
             .columns
             .into_iter()
             .map(|c| ColumnSpec {
+                editable: c.editable,
                 title: c.title,
                 builder: c.builder,
                 sortable: c.sortable.unwrap_or(client_sort),
@@ -771,6 +791,16 @@ impl View for DataGrid {
             columns: Rc::clone(&columns),
             sort,
         });
+        let editing = Rc::new(Editing::new(
+            Rc::clone(&nav),
+            Rc::clone(&source),
+            map,
+            revision,
+            filter,
+            client_sort,
+            refresh,
+            self.edit_error,
+        ));
         let header = HeaderStrip {
             nav: Rc::clone(&nav),
             geometry: geometry.clone(),
@@ -780,6 +810,7 @@ impl View for DataGrid {
             sort,
         };
         let body = Body {
+            editing: Rc::clone(&editing),
             nav: Rc::clone(&nav),
             geometry: geometry.clone(),
             columns,
@@ -790,11 +821,19 @@ impl View for DataGrid {
             horizontal,
             theme,
         };
+        let bridge = Rc::clone(&editing);
         let id = Column::new()
             .cross_axis_alignment(CrossAxisAlignment::Stretch)
             .child(header)
             .child(Expanded::new(body))
+            .child(Dyn::new(move || {
+                bridge.wake.get();
+                RestoreFocus(Rc::clone(&bridge))
+            }))
             .build(cx);
+        editing.grid.set(Some(id));
+        editing.scope.set(cx.tree().scope(id));
+
         // The grid's role (WIDGETS-GRID-07).
         cx.set_semantics(
             id,
@@ -815,6 +854,7 @@ impl View for DataGrid {
         {
             let (nav, owner, previous) = (Rc::clone(&nav), Rc::clone(&owner), Rc::clone(&previous));
             let geometry = geometry.clone();
+            let editing = Rc::clone(&editing);
             cx.bind(
                 id,
                 Prop::Dynamic(Box::new(move || {
@@ -836,6 +876,10 @@ impl View for DataGrid {
                         .as_ref()
                         .is_some_and(|last| *last != marker);
                     *previous.borrow_mut() = Some(marker);
+                    if reset {
+                        editing.reset_click();
+                        editing.close(true);
+                    }
                     nav.controller.mapping.set(Some(Mapping {
                         owner: Rc::clone(&owner),
                         rows,
@@ -967,18 +1011,85 @@ impl View for DataGrid {
                 e.update_paint::<GridPaint>(|p| p.thumb = color);
             },
         );
+        {
+            let read = Rc::clone(&editing);
+            let apply = Rc::clone(&editing);
+            let g = geometry.clone();
+            let nav = Rc::clone(&nav);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || {
+                    read.target.get();
+                    nav.controller.selection();
+                    sort.get();
+                    if let Some(r) = revision {
+                        r.get();
+                    }
+                    if let Some(f) = filter {
+                        f.get();
+                    }
+                    g.layout.get();
+                    g.row_count.get();
+                    vertical.offset();
+                    horizontal.offset();
+                    vertical.viewport_extent();
+                    horizontal.viewport_extent();
+                })),
+                move |_, ()| apply.check(),
+            );
+            let read = Rc::clone(&editing);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || read.target.get().is_none())),
+                move |e, idle| {
+                    e.set_focusable(Some(FocusOptions {
+                        traversable: idle && mode != GridSelectionMode::None,
+                        focus_on_press: true,
+                    }));
+                },
+            );
+        }
+        {
+            let editing = Rc::clone(&editing);
+            let nav = Rc::clone(&nav);
+            cx.on_key(id, Phase::Capture, move |k| {
+                if !k.event.pressed {
+                    return Handled::Continue;
+                }
+                if editing.target.get_untracked().is_some() {
+                    if k.event.key == LogicalKey::Named(NamedKey::Escape) {
+                        editing.close(true);
+                        return Handled::Stop;
+                    }
+                    return if k.event.key == LogicalKey::Named(NamedKey::F(2)) {
+                        Handled::Stop
+                    } else {
+                        Handled::Continue
+                    };
+                }
+                if k.event.key == LogicalKey::Named(NamedKey::F(2))
+                    && !k.event.repeat
+                    && k.event.modifiers == Default::default()
+                    && nav.focused.get_untracked()
+                    && nav.header.get_untracked().is_none()
+                    && let Some(s) = nav.controller.state.get_untracked()
+                    && editing.begin(s.active)
+                {
+                    return Handled::Stop;
+                }
+                Handled::Continue
+            });
+        }
         // Keys (WIDGETS-GRID-05): a press focuses the grid, Tab doesn't stop at it.
-        cx.focusable(
-            id,
-            FocusOptions {
-                traversable: mode != GridSelectionMode::None,
-                focus_on_press: true,
-            },
-        );
+
         {
             let (shared, geometry) = (Rc::clone(&shared), geometry.clone());
             let nav = Rc::clone(&nav);
+            let editing = Rc::clone(&editing);
             cx.on_key(id, Phase::Bubble, move |k| {
+                if editing.target.get_untracked().is_some() {
+                    return Handled::Continue;
+                }
                 if mode != GridSelectionMode::None {
                     return if nav.key(k.event) {
                         Handled::Stop
@@ -1079,43 +1190,67 @@ impl View for DataGrid {
                 _ => Handled::Continue,
             }
         });
-        if mode != GridSelectionMode::None {
+        {
+            let capture = Rc::clone(&editing);
+            let hit_geometry = geometry.clone();
+            cx.on_pointer(id, Phase::Capture, move |p| {
+                let body = body_cell(&hit_geometry, vertical, horizontal, p.local).is_some();
+                capture.pointer_capture(
+                    p.event.kind,
+                    p.event.position,
+                    body,
+                    p.event.modifiers == Default::default(),
+                );
+                Handled::Continue
+            });
             cx.on_pointer(id, Phase::Bubble, move |p| {
                 if p.event.kind != PointerKind::Down(PointerButton::Primary) {
                     return Handled::Continue;
                 }
-                let local = p.local;
-                if geometry.row_height <= 0.0 {
-                    return Handled::Continue;
-                }
-                if local.y < geometry.header_height {
-                    return Handled::Continue;
-                }
-                let row = ((local.y - geometry.header_height + vertical.offset_untracked())
-                    / geometry.row_height)
-                    .floor() as usize;
-                let column = geometry.layout.with_untracked(|l| {
-                    let frozen = l.extents.start(geometry.frozen_columns);
-                    let x = local.x
-                        + if local.x < frozen {
-                            0.0
-                        } else {
-                            horizontal.offset_untracked()
-                        };
-                    l.extents.index_at(x, geometry.column_count)
-                });
-                let Some(column) = column else {
+                let Some(cell) = body_cell(&geometry, vertical, horizontal, p.local) else {
                     return Handled::Continue;
                 };
-                if row >= geometry.row_count.get_untracked() {
+                if p.event.modifiers == Default::default() && editing.press(cell, p.event.position)
+                {
+                    return Handled::Stop;
+                }
+                if mode == GridSelectionMode::None {
                     return Handled::Continue;
                 }
-                nav.select(GridCell { row, column }, p.event.modifiers.shift);
+                nav.select(cell, p.event.modifiers.shift);
                 Handled::Stop
             });
         }
         id
     }
+}
+
+/// Hit testing shared by selection and editor entry; frozen cells occlude scrolling cells.
+fn body_cell(
+    g: &Geometry,
+    vertical: ScrollController,
+    horizontal: ScrollController,
+    p: Point,
+) -> Option<GridCell> {
+    if g.row_height <= 0.0 || p.y < g.header_height {
+        return None;
+    }
+    let row =
+        ((p.y - g.header_height + vertical.offset_untracked()) / g.row_height).floor() as usize;
+    if row >= g.row_count.get_untracked() {
+        return None;
+    }
+    g.layout.with_untracked(|l| {
+        let x = p.x
+            + if p.x < l.extents.start(g.frozen_columns) {
+                0.0
+            } else {
+                g.offset_untracked(horizontal)
+            };
+        l.extents
+            .index_at(x, g.column_count)
+            .map(|column| GridCell { row, column })
+    })
 }
 
 /// A point's coordinate along an axis.
@@ -1198,6 +1333,7 @@ impl Paint for GridPaint {
 
 /// A column's title and cell builder.
 struct ColumnSpec {
+    editable: bool,
     title: String,
     builder: Option<CellBuilder>,
     /// Whether a header press sorts by the column (WIDGETS-GRID-10).
@@ -1320,6 +1456,7 @@ impl View for HeaderStrip {
 
 /// The body: every row, following both offsets, holding only the visible cells.
 struct Body {
+    editing: Rc<Editing>,
     nav: Rc<Navigation>,
     geometry: Geometry,
     columns: Rc<[ColumnSpec]>,
@@ -1338,6 +1475,8 @@ impl View for Body {
             (self.geometry, self.vertical, self.horizontal, self.theme);
         let (source, revision, columns, map) = (self.source, self.revision, self.columns, self.map);
         let nav = self.nav;
+        let editing = self.editing;
+        let refresh = editing.refresh;
         // The source row shown at a display row (a tracked read of the map).
         let source_row = move |row: usize| {
             map.with(|m| m.as_ref().and_then(|m| m.get(row).copied()).unwrap_or(row))
@@ -1372,34 +1511,35 @@ impl View for Body {
                     let (frozen, edge) = geometry_cells.frozen(display);
                     let source = Rc::clone(&source);
                     let value = memo(move || {
+                        refresh.get();
                         if let Some(revision) = revision {
                             revision.get();
                         }
                         source.cell(source_row(row), column)
                     });
-                    let child: AnyView = match &columns[column].builder {
-                        // A built cell is rebuilt when the revision changes (WIDGETS-GRID-06).
-                        Some(builder) => {
-                            let builder = Rc::clone(builder);
-                            AnyView::new(Dyn::new(move || {
-                                if let Some(revision) = revision {
-                                    revision.get();
-                                }
-                                let row = source_row(row);
-                                cell_content(builder(row, value.get()))
-                            }))
-                        }
-                        // The default text re-reads its value in place.
-                        None => AnyView::new(cell_content(
-                            Text::new(move || {
-                                if let Some(revision) = revision {
-                                    revision.get();
-                                }
-                                value.get().to_string()
-                            })
-                            .max_lines(1)
-                            .soft_wrap(false),
-                        )),
+                    let builder = columns[column].builder.clone();
+                    let normal = move || {
+                        normal_cell(builder.clone(), row, value, source_row, revision, refresh)
+                    };
+                    let child = if columns[column].editable {
+                        let cell = GridCell {
+                            row,
+                            column: display,
+                        };
+                        let read = Rc::clone(&editing);
+                        let edit = Rc::clone(&editing);
+                        AnyView::new(
+                            tantu_view::Show::new(
+                                move || read.target.get() == Some(cell),
+                                move || CellEditor {
+                                    editing: Rc::clone(&edit),
+                                    cell,
+                                },
+                            )
+                            .fallback(normal),
+                        )
+                    } else {
+                        normal()
                     };
                     CellBox {
                         nav: Rc::clone(&nav),
@@ -1456,6 +1596,31 @@ impl View for Body {
             },
         );
         id
+    }
+}
+
+/// The ordinary content factory is invoked only when an editable cell switches mode.
+fn normal_cell(
+    builder: Option<CellBuilder>,
+    row: usize,
+    value: Memo<CellValue>,
+    source_row: impl Fn(usize) -> usize + 'static,
+    revision: Option<Signal<u64>>,
+    refresh: Signal<u64>,
+) -> AnyView {
+    match builder {
+        Some(builder) => AnyView::new(Dyn::new(move || {
+            refresh.get();
+            if let Some(revision) = revision {
+                revision.get();
+            }
+            cell_content(builder(source_row(row), value.get()))
+        })),
+        None => AnyView::new(cell_content(
+            Text::new(move || value.get().to_string())
+                .max_lines(1)
+                .soft_wrap(false),
+        )),
     }
 }
 
