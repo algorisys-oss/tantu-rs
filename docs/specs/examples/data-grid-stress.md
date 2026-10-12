@@ -1,6 +1,6 @@
 # DataGrid: million-row stress example
 
-- **Status:** Agreed (the user said "continue", 2026-10-12)
+- **Status:** Implemented (the user said "continue", 2026-10-12)
 - **Crate:** `examples/data-grid-stress`
 - **Plan item:** Phase 4, DataGrid part 7, the 1M-row stress test against the 60 fps criterion
 - **Related:** [DataGrid](../widgets/data-grid.md), [frame clock](../reactive/timers.md),

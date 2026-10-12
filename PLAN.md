@@ -156,14 +156,14 @@ faster or more portable without changing how apps are written.
 - [x] `examples/gallery` (spec `docs/specs/examples/gallery.md`)
 
 ### Phase 4 — Enterprise features (weeks 17–26)
-- [ ] `DataGrid`: virtualized rows **and** columns, frozen columns, sort/filter, resize/reorder, cell editors, selection models, 1M-row data source trait, in parts:
+- [x] `DataGrid`: virtualized rows **and** columns, frozen columns, sort/filter, resize/reorder, cell editors, selection models, 1M-row data source trait, in parts:
   - [x] data source, columns, header, row and column virtualization, scrolling on both axes, roles, the gallery section and the scrolling benchmark (1.30 ms per scroll step at 1280 × 720) (specs `docs/specs/layout/grid.md`, `docs/specs/widgets/data-grid.md`)
   - [x] frozen columns (pinned at the left, painted over the scrolling ones) (WIDGETS-GRID-09 in `docs/specs/widgets/data-grid.md`)
   - [x] sorting and filtering (header click, sort indicators, the source's sort and filter hooks) (spec `docs/specs/widgets/data-grid-sort.md`)
   - [x] column resize and reorder (header edge and header drag; widths and order as shared signals) (spec `docs/specs/widgets/data-grid-columns.md`)
   - [x] selection models (row, cell, range) with keyboard navigation, and row/column indices in the accessibility tree (spec `docs/specs/widgets/data-grid-selection.md`)
   - [x] cell editors (double-click or F2 opens a `TextField` in the cell, Enter commits, Escape cancels, `DataSource::set_cell`; spec `docs/specs/widgets/data-grid-editing.md`)
-  - [ ] `examples/data-grid-stress`: the 1M-row stress test against the 60 fps criterion (spec `docs/specs/examples/data-grid-stress.md`; native hardware verification recorded separately)
+  - [x] `examples/data-grid-stress`: the 1M-row stress test against the 60 fps criterion (spec `docs/specs/examples/data-grid-stress.md`; native hardware verification recorded separately)
 - [ ] `TreeView`, `TabView`, `SplitView`, docking layout manager (drag panels, persist layout)
 - [ ] Menus (native + custom), context menus, toolbars, status bar
 - [ ] Dialogs, native file dialogs, notifications, system tray
@@ -194,6 +194,7 @@ faster or more portable without changing how apps are written.
 
 - Same app source runs on Windows, macOS, Linux (Wayland + X11) with GPU and software renderers
 - 60fps scrolling a 1M-row DataGrid on mid-range hardware; cold start < 300 ms
+  - Native GPU/compositor delivery remains unverified; `examples/data-grid-stress` now supplies the repeatable workload and measurement procedure.
 - Screen readers (Narrator, VoiceOver, Orca) can operate the gallery
 - Full IME (CJK) and RTL text in TextField
 - Every widget has tests + goldens; CI green on all three OSes

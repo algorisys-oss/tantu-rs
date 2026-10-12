@@ -3,28 +3,29 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 7 agreed; kitchen-sink grid refresh specified)_
+_Last updated: 2026-10-12 (DataGrid part 7 and kitchen-sink refresh implemented; checks pass)_
 
 ## Resume here (2026-10-12)
 
-DataGrid parts 1 to 6 are committed on `phase3/focus` (fast-forward into `main` and push
-when requested). Part 7's agreed spec is `docs/specs/examples/data-grid-stress.md`: a standalone
-1M × 20 text-cell workload, automatic scrolling, optional two frozen columns, bounded
-redraw-tick cadence statistics and a manual native presentation measurement protocol.
-The user accepted its four proposals with "continue" and requested a kitchen-sink update
-and commit/push when done. Kitchen-sink GALLERY-18 composes existing grid features
-(resize/reorder, range selection, editors, errors and the stress command); details marked review.
-Compiling test stubs are committed next: seven stress tests and two GALLERY-18 tests
-fail on absent source/workload/cadence behavior. Next: implementation, checks and push. The existing ~0.804 ms
-headless CPU benchmark does not establish 60 fps delivery; that hardware criterion remains
-unverified. No code changed for part 7 yet.
+DataGrid parts 1 to 7 are complete. The user accepted the stress-example proposals with
+"continue", requested a kitchen-sink update, and authorized commit/push when done.
+The checked implementation is committed on `phase3/focus` and fast-forwarded into `main`
+for the authorized push, following decision 14. Inspect the new CI run on this tip.
+
+`cargo run --release -p data-grid-stress` opens the 1M × 20 text-cell workload with Start/Stop,
+beginning/middle/end jumps, optional two frozen columns and bounded redraw-tick cadence stats.
+`cargo run -p gallery` → Kitchen sink shows the updated grid: resize/reorder, range selection,
+editable Name/Score, validation feedback and the stress command. Native GPU/compositor
+60 fps on recorded mid-range hardware remains **unverified**; no native desktop display is
+exported to this command environment. Software goldens were rendered and visually inspected.
+Next feature: the overlay-inheritance amendment before Phase 4 menus/dialogs, then PLAN order.
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 **Where things stand:**
 
 - **Phases 0, 1 and 2 are done** (Phase 2 on 2026-10-10, checked on Linux by the agent and on
   Windows and macOS by the user).
-- **Phase 3 is in progress.** Done: focus, keyboard navigation and shortcuts; the overlay and
+- **Phase 3 is done.** Included: focus, keyboard navigation and shortcuts; the overlay and
   anchored positioning; the whole widget item (`Text`, `Button`, `Tooltip`, `Divider`, `Slider`,
   `Checkbox`/`Radio`/`Switch`, `Icon`/`IconButton`, `Image`, `RichText`, `TextField` with undo
   and IME); `ScrollView` with wheel, scrollbar and keyboard scrolling; fixed-extent
@@ -47,11 +48,10 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 76 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
-  warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
-  (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** the two
-  pushes before this one were red on macOS only (the text field's chord test pressed Control
-  where macOS binds Command); fixed in this push, so check the run on `main` is green.
+- Workspace: 77 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+  warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and the touched examples' rustdoc
+  (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** inspect the
+  new run on `main` after this push; the prior macOS Control/Command chord issue is fixed.
 
 **Working pattern:** the agent writes each spec as a Draft with open questions and proposals and
 stops; the user says "continue" to accept the proposals; the agent then does
@@ -113,9 +113,25 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    GridScroll estimate **0.804 ms** (0.795–0.814 ms), no measured performance regression.
    Existing WIDGETS-GRID-06 behavior is preserved: a custom builder refreshes on revision
    even if its CellValue is unchanged. No architecture edges or pipeline stages changed.
-   Next: implement the agreed part 7 spec (`docs/specs/examples/data-grid-stress.md`), then failing
-   tests and implementation. Recommended scope uses the existing ticker and facade, with
-   no new profiler API or dependency edges. Native frame delivery is a separate manual check.
+6. **`DataGrid` part 7 is done** (decision 77, 2026-10-12, spec
+   `docs/specs/examples/data-grid-stress.md`). A standalone 1M × 20 generated text-cell app
+   scrolls one row per scoped ticker callback, with Start/Stop, three jumps and optional
+   two frozen columns. Cadence collection uses a fixed 600-interval ring, two-second warmup,
+   nearest-rank p95, exact 60 Hz budget comparison and status refreshes at most twice per
+   second. Seven tests cover generation, viewport dimensions, lifecycle, jumps, freezing,
+   manual two-axis scrolling, statistics, bounded cell reads/live cells and a software golden.
+   The kitchen-sink GALLERY-18 amendment (review) adds resize/reorder, range selection,
+   sparse Name/Score edits, Score validation, echoes and the stress command; two new behavior
+   tests and a grid golden pass, and the top/end scrollbar goldens are refreshed.
+   **Validation:** workspace tests, strict workspace Clippy, formatting, coverage (77, no
+   drafts/problems), no-default-feature facade tests and touched-example rustdoc pass.
+   Latest CPU GridScroll estimate **1.593 ms** (1.540–1.651 ms), below the 8 ms target;
+   this is slower than the prior 0.804 ms host measurement despite unchanged framework and
+   benchmark code. It is not evidence of native presentation. No new library API/edge;
+   architecture docs/diagram now identify the new facade-only example.
+   **Integration detail:** Expanded cannot attach flex data to a Dyn region; a concrete
+   SizedBox::expand holds the grid region's flex so the viewport stays bounded. Initial
+   testing exposed the unbounded configuration; the dimensions/bounded-work tests now pass.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -140,7 +156,7 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
   (decision 28), `tantu-render-wgpu` (decision 29), the `scene-window` demo (decision 30) and
   `tantu-render-conformance` (decision 31).
   `tantu-theme` is implemented (decision 62) and so is `tantu-a11y` (decision 67).
-- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `phase3/focus`; merge/push when requested.
+- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main` for the authorized push; feature work was on `phase3/focus`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
   - `CLAUDE.md`: Claude Code notes (imports AGENTS.md and PLAN.md)
@@ -887,6 +903,14 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     stores only edited overrides and validates Score; its editor and selection goldens
     show the existing 32 px rows. Benchmark: 0.804 ms, no measured regression.
 
+77. **DataGrid stress example and kitchen-sink refresh** (2026-10-12; four stress proposals
+    accepted by the user's "continue"; kitchen sink and commit/push explicitly requested).
+    Match the existing CPU workload, keep source generation constant-space, and use the
+    existing owner-scoped ticker rather than add a Phase 5 profiler. Report UI tick cadence
+    honestly and document a repeatable native measurement procedure. The example is complete;
+    the project-wide native hardware criterion stays open. The kitchen sink composes the
+    completed grid APIs and shares sparse editable-source logic with the Data grid section.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1341,21 +1365,23 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `aa2574f` | impl: typed cell editors, BuildCx::focus, local refresh, cancellation and errors; sparse editable gallery and goldens; all checks pass, PLAN.md ticked and HANDOFF.md current |
 | `2649063` | spec: DataGrid part 7 stress example agreed; kitchen-sink GALLERY-18 composition amendment, PLAN.md and HANDOFF.md |
 | `46b7c41` | test: seven stress tests and two kitchen-sink GALLERY-18 tests with compiling stubs; missing source/workload/cadence/status behavior confirmed |
-| _this commit_ | test: measure header/body cell centers correctly (text is centered in 36/32 px cells) |
+| `2900d3c` | test: measure header/body cell centers correctly (text is centered in 36/32 px cells) |
+| _this commit_ | impl: bounded stress app/cadence stats, kitchen-sink grid refresh, goldens, README and architecture diagram; all checks pass, PLAN.md ticked and HANDOFF.md current |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: implement `DataGrid` part 7's agreed spec (`examples/data-grid-stress`),
-then its test/implementation commits and checks, followed by the rest of Phase 4 in PLAN.md order.
+Inspect CI for the authorized `main` push (decision 14).
+Next feature: overlay-inheritance amendment before menus/dialogs; otherwise PLAN.md order.
+Run the native 60 fps protocol on recorded mid-range hardware when a desktop/profiler is available.
 
 ## Open questions
 
-- **DataGrid native 60 fps remains unverified.** Part 7's draft proposes repeatable scrolling
+- **DataGrid native 60 fps remains unverified.** Part 7 implements repeatable scrolling
   and redraw-tick cadence statistics, with GPU/compositor delivery checked on recorded hardware.
-  Headless CPU timing is separate evidence. Its four proposals were agreed by the user on 2026-10-12; native presentation remains a manual check.
+  Headless CPU timing is separate evidence. The example is complete; native presentation remains a manual check.
 - **Accessibility is unchecked with a real screen reader.** The tree and the adapter are
   tested through `FakePlatform` and the opt-in window test only. The user should run the
   gallery under Orca (Linux), Narrator (Windows) and VoiceOver (macOS) and note what each
@@ -1395,7 +1421,7 @@ then its test/implementation commits and checks, followed by the rest of Phase 4
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
   lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3), 73 (the
-  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation); decision 76's BuildCx::focus integration amendment is also marked for review.
+  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation); decision 76's BuildCx::focus and decision 77's kitchen-sink composition amendments are also marked for review.
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec

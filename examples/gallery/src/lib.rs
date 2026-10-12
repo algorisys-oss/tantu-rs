@@ -413,6 +413,8 @@ struct EditableGridSource {
     generated: FnSource,
     edits: RefCell<HashMap<(usize, usize), CellValue>>,
     error: Signal<String>,
+    columns: usize,
+    score_column: usize,
 }
 impl DataSource for EditableGridSource {
     fn row_count(&self) -> usize {
@@ -431,10 +433,10 @@ impl DataSource for EditableGridSource {
         column: usize,
         value: CellValue,
     ) -> std::result::Result<(), GridEditError> {
-        if row >= self.row_count() || column == 0 || column >= 6 {
+        if row >= self.row_count() || column == 0 || column >= self.columns {
             return Err(GridEditError::ReadOnly);
         }
-        if column == 5 && !matches!(value, CellValue::Int(0..=100)) {
+        if column == self.score_column && !matches!(value, CellValue::Int(0..=100)) {
             return Err(GridEditError::Rejected(
                 "Score must be between 0 and 100".to_owned(),
             ));
@@ -489,6 +491,8 @@ fn grid_section() -> impl View {
     let edit_error = signal("none".to_owned());
     let source = Rc::new(EditableGridSource {
         error: edit_error,
+        columns: 6,
+        score_column: 5,
         edits: RefCell::default(),
         generated: FnSource::new(1_000_000, |row, column| match column {
             0 => CellValue::Int(row as i64),
@@ -952,11 +956,22 @@ fn sink_grid() -> impl View {
         signal(None::<RowFilter>),
         signal(false),
     );
-    let source = Rc::new(FnSource::new(1000, |row, column| match column {
-        0 => CellValue::Int(row as i64),
-        1 => CellValue::Text(format!("Item {row}")),
-        _ => CellValue::Int((row * 37 % 101) as i64),
-    }));
+    let edit_error = signal("none".to_owned());
+    let selection = GridSelectionController::new();
+    let grid_selection = selection.clone();
+    let widths = signal(vec![80.0f32, 200.0, 120.0]);
+    let order = signal(vec![0usize, 1, 2]);
+    let source = Rc::new(EditableGridSource {
+        error: edit_error,
+        columns: 3,
+        score_column: 2,
+        edits: RefCell::default(),
+        generated: FnSource::new(1000, |row, column| match column {
+            0 => CellValue::Int(row as i64),
+            1 => CellValue::Text(format!("Item {row}")),
+            _ => CellValue::Int((row * 37 % 101) as i64),
+        }),
+    });
     card(
         "grid",
         "Data grid",
@@ -987,17 +1002,34 @@ fn sink_grid() -> impl View {
                     DataGrid::new(
                         [
                             GridColumn::new("Id").width(80.0),
-                            GridColumn::new("Name").width(200.0),
-                            GridColumn::new("Score").width(120.0),
+                            GridColumn::new("Name").width(200.0).editable(true),
+                            GridColumn::new("Score").width(120.0).editable(true),
                         ],
                         source,
                     )
                     .frozen_columns(1)
+                    .column_widths(widths)
+                    .column_order(order)
+                    .reorderable(true)
+                    .selection_mode(GridSelectionMode::Range)
+                    .selection_controller(grid_selection)
+                    .on_edit_error(move |_, error| edit_error.set(error.to_string()))
                     .client_sort(true)
                     .sort_state(sort)
                     .filter(filter),
                 )),
-            ),
+            )
+            .child(Text::new("Resize/drag headers; Shift+arrows selects a range. Double-click or F2 edits; Enter commits, Escape cancels.").style(TextStyle::label()))
+            .child(Keyed::new("sink-grid-selection", Text::new(move || match selection.selection() {
+                None => "Selection: none".to_owned(),
+                Some(s) => format!("Selection: ({}, {})..({}, {})", s.anchor.row, s.anchor.column, s.active.row, s.active.column),
+            })))
+            .child(Keyed::new("sink-grid-edit-error", Text::new(move || format!("Edit error: {}", edit_error.get()))))
+            .child(Row::new().spacing(24.0)
+                .child(Keyed::new("sink-grid-name-width", Text::new(move || format!("Name width: {}", widths.with(|w| w.get(1).copied().unwrap_or(200.0)).round() as i64))))
+                .child(Keyed::new("sink-grid-order", Text::new(move || format!("Order: {}", order.with(|o| o.iter().map(|&c| TITLES.get(c).copied().unwrap_or("?")).collect::<Vec<_>>().join(", ")))))))
+            .child(Text::new("Million-row scrolling and cadence trial:").style(TextStyle::label()))
+            .child(Keyed::new("sink-grid-stress-command", Text::new("cargo run --release -p data-grid-stress").style(TextStyle::label()))),
         echo(move || {
             let sort = match sort.get() {
                 None => "none".to_owned(),

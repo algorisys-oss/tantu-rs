@@ -106,6 +106,13 @@ window with a dark-mode switch; `examples/counter` and `examples/layout-demo` ar
 Things still to come are listed in [PLAN.md](PLAN.md): the data grid's selection and cell
 editors, and the other enterprise widgets (trees, tabs, docking, menus, dialogs, forms).
 
+`cargo run --release -p data-grid-stress` opens the standalone 1,000,000 × 20 DataGrid
+workload, with Start/Stop, beginning/middle/end jumps, optional frozen columns and redraw
+cadence statistics. The kitchen sink's grid also demonstrates resize/reorder, range
+selection and editable Name/Score cells with validation feedback. See the
+[stress measurement procedure](examples/data-grid-stress/README.md) for repeatable trials;
+UI tick cadence and the headless CPU benchmark do not certify GPU/compositor delivery.
+
 ## The counter, in full
 
 ```rust
