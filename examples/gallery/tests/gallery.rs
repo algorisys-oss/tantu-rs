@@ -2,9 +2,10 @@
 //! `docs/specs/examples/kitchen-sink.md`, GALLERY-12..14.
 
 use gallery::{SECTIONS, SINK_CARDS, gallery};
-use tantu::core::{Rect, Vec2};
+use tantu::core::{Point, Rect, Vec2};
 use tantu::scene::Command;
 use tantu::theme::Theme;
+use tantu::view::{PointerButton, PointerEvent, PointerKind};
 use tantu_test::{Finder, WidgetTester};
 
 fn rect(tester: &WidgetTester, key: &str) -> Rect {
@@ -266,6 +267,50 @@ fn gallery_11_sortable_headers() {
     tester.tap(&Finder::text("City"));
     assert_eq!(text_of(&tester, "sort"), "Sort: City descending");
     tester.tap(&Finder::text("City"));
+    assert_eq!(text_of(&tester, "sort"), "Sort: none");
+}
+
+#[test]
+fn gallery_15_resize_and_reorder() {
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    tester.tap(&Finder::key(nav("Data grid")));
+    tester.pump();
+    assert_eq!(text_of(&tester, "name-width"), "Name width: 200");
+    assert_eq!(
+        text_of(&tester, "order"),
+        "Order: Id, Name, City, Amount, Active, Score"
+    );
+    let grid = rect(&tester, "grid");
+    let header_y = grid.top + 18.0;
+    let mut drag = |tester: &mut WidgetTester, from: f32, to: f32| {
+        for (kind, x) in [
+            (PointerKind::Down(PointerButton::Primary), from),
+            (PointerKind::Move, to),
+            (PointerKind::Up(PointerButton::Primary), to),
+        ] {
+            tester.pointer(PointerEvent {
+                kind,
+                position: Point::new(grid.left + x, header_y),
+            });
+            tester.pump();
+        }
+    };
+    // City (180 px from 280) dragged 200 px left, past the middle of Name: its nearest
+    // boundary is the one before Name.
+    let city = rect(&tester, "grid").left;
+    drag(&mut tester, 280.0 + 90.0, 280.0 + 90.0 - 200.0);
+    assert_eq!(
+        text_of(&tester, "order"),
+        "Order: Id, City, Name, Amount, Active, Score"
+    );
+    let city_header = tester.rect(tester.find(&Finder::text("City")));
+    assert!(
+        city_header.left >= city + 80.0 && city_header.left < city + 260.0,
+        "City where Name was: {city_header:?}"
+    );
+    // Name now spans 260..460: its right edge dragged 40 px.
+    drag(&mut tester, 457.0, 497.0);
+    assert_eq!(text_of(&tester, "name-width"), "Name width: 240");
     assert_eq!(text_of(&tester, "sort"), "Sort: none");
 }
 

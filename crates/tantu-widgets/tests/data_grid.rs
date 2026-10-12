@@ -1,5 +1,6 @@
 //! Tests for `docs/specs/widgets/data-grid.md`, rules WIDGETS-GRID-01..07 and 09 (08 is in
-//! `bench_scenarios.rs`), and `docs/specs/widgets/data-grid-sort.md`, WIDGETS-GRID-10..12.
+//! `bench_scenarios.rs`), `docs/specs/widgets/data-grid-sort.md`, WIDGETS-GRID-10..12, and
+//! `docs/specs/widgets/data-grid-columns.md`, WIDGETS-GRID-13..15.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -795,4 +796,338 @@ fn widgets_grid_12_filter() {
     tester.pump();
     assert_eq!(tester.enter(|| vertical.max_scroll_extent()), 640.0 - 364.0);
     assert!(has(&tester, "n1"));
+}
+
+// Column resize and reorder (`docs/specs/widgets/data-grid-columns.md`).
+
+const HEADER_Y: f32 = 18.0;
+
+/// A primary drag from `from` to `to`, one frame per step.
+fn drag_at(tester: &mut WidgetTester, from: Point, to: Point) {
+    for (kind, position) in [
+        (PointerKind::Down(PointerButton::Primary), from),
+        (PointerKind::Move, to),
+        (PointerKind::Up(PointerButton::Primary), to),
+    ] {
+        tester.pointer(PointerEvent { kind, position });
+        tester.pump();
+    }
+}
+
+/// The header cells' left edges in display order, found through their titles.
+fn header_lefts(tester: &WidgetTester, titles: &[&str]) -> Vec<f32> {
+    titles.iter().map(|t| rect(tester, t).left).collect()
+}
+
+#[test]
+fn widgets_grid_13_column_widths_and_resize() {
+    let shared: Rc<Cell<Option<(Signal<Vec<f32>>, Signal<Option<SortState>>)>>> = Rc::default();
+    let (mut tester, _, _) = grid(600.0, 400.0, {
+        let shared = shared.clone();
+        move || {
+            let (widths, sort) = (signal(Vec::<f32>::new()), signal(None::<SortState>));
+            shared.set(Some((widths, sort)));
+            DataGrid::new(
+                [
+                    GridColumn::new("Col 0").sortable(true),
+                    GridColumn::new("Col 1").min_width(60.0),
+                    GridColumn::new("Col 2").resizable(false).sortable(true),
+                ],
+                source(3),
+            )
+            .column_widths(widths)
+            .sort_state(sort)
+        }
+    });
+    let (widths, sort) = shared.get().expect("built");
+    // An empty vector leaves every column at its `GridColumn::width`.
+    let starts = |t: &WidgetTester| {
+        let lefts = header_lefts(t, &["Col 0", "Col 1", "Col 2"]);
+        lefts
+            .iter()
+            .map(|l| (l / 10.0).floor() * 10.0)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(starts(&tester), [0.0, 120.0, 240.0]);
+    // The signal drives the extents: header and body re-lay at the next frame.
+    tester.enter(|| widths.set(vec![100.0, 150.0, 120.0]));
+    tester.pump();
+    assert_eq!(starts(&tester), [0.0, 100.0, 250.0]);
+    assert!(rect(&tester, "r0c1").left >= 100.0 && rect(&tester, "r0c2").left >= 250.0);
+    // Below the minimum counts as the minimum; NaN as 0 then the minimum; a short vector
+    // leaves the missing columns at their widths.
+    tester.enter(|| widths.set(vec![f32::NAN, 10.0]));
+    tester.pump();
+    assert_eq!(starts(&tester), [0.0, 40.0, 100.0]);
+    // A drag of Col 0's right edge (3 px inside it) by 40 px: 80 px wide, live.
+    tester.enter(|| widths.set(vec![100.0, 150.0, 120.0]));
+    tester.pump();
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(97.0, HEADER_Y),
+    });
+    tester.pump();
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Move,
+        position: Point::new(117.0, HEADER_Y),
+    });
+    tester.pump();
+    assert_eq!(tester.enter(|| widths.get()), [120.0, 150.0, 120.0]);
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Move,
+        position: Point::new(137.0, HEADER_Y),
+    });
+    tester.pump();
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Up(PointerButton::Primary),
+        position: Point::new(137.0, HEADER_Y),
+    });
+    tester.pump();
+    assert_eq!(tester.enter(|| widths.get()), [140.0, 150.0, 120.0]);
+    assert_eq!(starts(&tester), [0.0, 140.0, 290.0]);
+    // Neither the press nor the release sorted the sortable Col 0.
+    assert_eq!(tester.enter(|| sort.get()), None);
+    // Dragging past the minimum floors at it (Col 1's 60 px).
+    drag_at(
+        &mut tester,
+        Point::new(287.0, HEADER_Y),
+        Point::new(100.0, HEADER_Y),
+    );
+    assert_eq!(tester.enter(|| widths.get()), [140.0, 60.0, 120.0]);
+    // Col 2 isn't resizable: a press at its edge is an ordinary header press, so a tap
+    // there sorts it and its width stays.
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(317.0, HEADER_Y),
+    });
+    tester.pump();
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Up(PointerButton::Primary),
+        position: Point::new(317.0, HEADER_Y),
+    });
+    tester.pump();
+    assert_eq!(tester.enter(|| widths.get()), [140.0, 60.0, 120.0]);
+    assert_eq!(
+        tester.enter(|| sort.get()),
+        Some(SortState {
+            column: 2,
+            ascending: true
+        })
+    );
+    // A column's first pixels are not a handle: a press 3 px into Col 1 then a move
+    // resizes nothing (not reorderable, so nothing at all).
+    drag_at(
+        &mut tester,
+        Point::new(143.0, HEADER_Y),
+        Point::new(183.0, HEADER_Y),
+    );
+    assert_eq!(tester.enter(|| widths.get()), [140.0, 60.0, 120.0]);
+    // The grid owns the widths when none are shared, seeded from the columns.
+    let (tester2, _, _) = grid(600.0, 400.0, || {
+        DataGrid::new(
+            [GridColumn::new("A").width(50.0), GridColumn::new("B")],
+            source(1),
+        )
+    });
+    assert_eq!(
+        rect(&tester2, "B").left.floor(),
+        50.0 + CELL_PADDING_IN_TEST
+    );
+}
+
+/// The cell padding (the paragraph's left is the cell's left plus it).
+const CELL_PADDING_IN_TEST: f32 = 8.0;
+
+#[test]
+fn widgets_grid_14_reorder() {
+    type Shared = Rc<Cell<Option<(Signal<Vec<usize>>, Signal<Option<SortState>>)>>>;
+    let shared: Shared = Rc::default();
+    let (mut tester, _, horizontal) = grid(300.0, 400.0, {
+        let shared = shared.clone();
+        move || {
+            let (order, sort) = (signal(Vec::<usize>::new()), signal(None::<SortState>));
+            shared.set(Some((order, sort)));
+            DataGrid::new(columns(4).into_iter().map(|c| c.sortable(true)), source(3))
+                .reorderable(true)
+                .column_order(order)
+                .sort_state(sort)
+        }
+    });
+    let (order, sort) = shared.get().expect("built");
+    let theme = tester.enter(|| tester.theme().get()).colors;
+    let titles = ["Col 0", "Col 1", "Col 2", "Col 3"];
+    let starts = |t: &WidgetTester| {
+        header_lefts(t, &titles)
+            .iter()
+            .map(|l| (l / 10.0).floor() * 10.0)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(starts(&tester), [0.0, 120.0, 240.0, 360.0]);
+    // Pick Col 2 up and hold it over the first half of Col 0: the drop line sits at the
+    // boundary before Col 0 and Col 2's header is highlighted.
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(300.0, HEADER_Y),
+    });
+    tester.pump();
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Move,
+        position: Point::new(40.0, HEADER_Y),
+    });
+    tester.pump();
+    let lines = fills(&tester, theme.primary);
+    assert!(
+        lines
+            .iter()
+            .any(|r| r.width() == 2.0 && r.left >= -1.0 && r.left <= 0.0 && r.height() >= 35.0),
+        "drop line at 0: {lines:?}"
+    );
+    let held = fills(&tester, theme.surface_container_highest);
+    assert!(
+        held.iter()
+            .any(|r| r.width() == 120.0 && r.height() == 36.0),
+        "held header: {held:?}"
+    );
+    // The release moves Col 2 to the front, writing the order; nothing was sorted.
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Up(PointerButton::Primary),
+        position: Point::new(40.0, HEADER_Y),
+    });
+    tester.pump();
+    assert_eq!(tester.enter(|| order.get()), [2, 0, 1, 3]);
+    assert_eq!(tester.enter(|| sort.get()), None);
+    assert!(fills(&tester, theme.primary).is_empty());
+    assert_eq!(starts(&tester), [120.0, 240.0, 0.0, 360.0]);
+    // Cells follow their source column: the first cell of row 0 shows "r0c2".
+    assert!(
+        rect(&tester, "r0c2").left < 120.0,
+        "{:?}",
+        rect(&tester, "r0c2")
+    );
+    // Sorting refers to source columns: a click on Col 0 (now second) sorts column 0.
+    tester.tap(&Finder::text("Col 0"));
+    assert_eq!(
+        tester.enter(|| sort.get()),
+        Some(SortState {
+            column: 0,
+            ascending: true
+        })
+    );
+    // A drop at the column's own boundary or the next changes nothing.
+    drag_at(
+        &mut tester,
+        Point::new(180.0, HEADER_Y),
+        Point::new(250.0, HEADER_Y),
+    );
+    assert_eq!(tester.enter(|| order.get()), [2, 0, 1, 3]);
+    // The app's order is normalized: duplicates and out-of-range entries dropped, missing
+    // columns following in source order.
+    tester.enter(|| order.set(vec![3, 3, 9, 1]));
+    tester.pump();
+    assert_eq!(starts(&tester), [240.0, 120.0, 360.0, 0.0]);
+    // Frozen columns are display positions: with one frozen, Col 3 (first) stays put when
+    // the grid scrolls sideways.
+    let (mut frozen, _, h2) = grid(300.0, 400.0, || {
+        DataGrid::new(columns(4), source(3))
+            .reorderable(true)
+            .column_order(signal(vec![3]))
+            .frozen_columns(1)
+    });
+    frozen.enter(|| h2.jump_to(100.0));
+    frozen.pump();
+    assert_eq!(rect(&frozen, "Col 3").left.floor(), CELL_PADDING_IN_TEST);
+    assert!(rect(&frozen, "Col 0").left < 120.0 + CELL_PADDING_IN_TEST);
+    // Without `reorderable`, a header drag does nothing.
+    let plain: Shared = Rc::default();
+    let (mut tester3, _, _) = grid(600.0, 400.0, {
+        let plain = plain.clone();
+        move || {
+            let (order, sort) = (signal(Vec::<usize>::new()), signal(None::<SortState>));
+            plain.set(Some((order, sort)));
+            DataGrid::new(columns(3), source(3))
+                .column_order(order)
+                .sort_state(sort)
+        }
+    });
+    let (order3, _) = plain.get().expect("built");
+    drag_at(
+        &mut tester3,
+        Point::new(300.0, HEADER_Y),
+        Point::new(40.0, HEADER_Y),
+    );
+    assert_eq!(tester3.enter(|| order3.get()), Vec::<usize>::new());
+    assert_eq!(
+        header_lefts(&tester3, &["Col 0"])[0].floor(),
+        CELL_PADDING_IN_TEST
+    );
+    let _ = horizontal;
+}
+
+#[test]
+fn widgets_grid_15_click_sorts() {
+    let state: Rc<Cell<Option<Signal<Option<SortState>>>>> = Rc::default();
+    let (mut tester, _, _) = grid(600.0, 400.0, {
+        let state = state.clone();
+        move || {
+            let sort = signal(None::<SortState>);
+            state.set(Some(sort));
+            DataGrid::new(columns(3).into_iter().map(|c| c.sortable(true)), source(3))
+                .reorderable(true)
+                .sort_state(sort)
+        }
+    });
+    let sort = state.get().expect("built");
+    let read = |t: &WidgetTester| t.enter(|| sort.get());
+    // A press alone sorts nothing; the release completes the click.
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(180.0, HEADER_Y),
+    });
+    tester.pump();
+    assert_eq!(read(&tester), None);
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Move,
+        position: Point::new(183.0, HEADER_Y),
+    });
+    tester.pump();
+    tester.pointer(PointerEvent {
+        kind: PointerKind::Up(PointerButton::Primary),
+        position: Point::new(183.0, HEADER_Y),
+    });
+    tester.pump();
+    assert_eq!(
+        read(&tester),
+        Some(SortState {
+            column: 1,
+            ascending: true
+        })
+    );
+    // A press that became a reorder drag (over 4 px) leaves the sort state alone, even
+    // when the drop changes nothing.
+    drag_at(
+        &mut tester,
+        Point::new(180.0, HEADER_Y),
+        Point::new(190.0, HEADER_Y),
+    );
+    assert_eq!(
+        read(&tester),
+        Some(SortState {
+            column: 1,
+            ascending: true
+        })
+    );
+    // And so does a resize.
+    drag_at(
+        &mut tester,
+        Point::new(237.0, HEADER_Y),
+        Point::new(257.0, HEADER_Y),
+    );
+    assert_eq!(
+        read(&tester),
+        Some(SortState {
+            column: 1,
+            ascending: true
+        })
+    );
+    assert!(rect(&tester, "Col 2").left >= 260.0);
 }

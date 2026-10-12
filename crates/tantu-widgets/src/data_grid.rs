@@ -28,6 +28,8 @@ use crate::{Align, Column, Expanded, Padding, ScrollController, Text};
 const CELL_PADDING: f32 = 8.0;
 /// The default column width.
 const COLUMN_WIDTH: f32 = 120.0;
+/// The narrowest a column can be dragged by default (WIDGETS-GRID-13).
+const MIN_COLUMN_WIDTH: f32 = 40.0;
 /// The header's bold weight.
 const HEADER_WEIGHT: f32 = 700.0;
 /// The sort chevron's width and bar thickness (WIDGETS-GRID-10).
@@ -157,6 +159,10 @@ pub struct GridColumn {
     builder: Option<CellBuilder>,
     /// Whether a header click sorts by this column; `None` follows `client_sort`.
     sortable: Option<bool>,
+    /// Whether the user can drag the column's right edge (WIDGETS-GRID-13).
+    resizable: bool,
+    /// The narrowest the user can drag the column (WIDGETS-GRID-13).
+    min_width: f32,
 }
 
 impl GridColumn {
@@ -167,7 +173,22 @@ impl GridColumn {
             width: COLUMN_WIDTH,
             builder: None,
             sortable: None,
+            resizable: true,
+            min_width: MIN_COLUMN_WIDTH,
         }
+    }
+
+    /// Whether the user can drag the column's right edge (default true) (WIDGETS-GRID-13).
+    pub fn resizable(mut self, resizable: bool) -> Self {
+        self.resizable = resizable;
+        self
+    }
+
+    /// The narrowest the user can drag the column (default 40 px; negative or NaN counts
+    /// as 0) (WIDGETS-GRID-13).
+    pub fn min_width(mut self, width: f32) -> Self {
+        self.min_width = width;
+        self
     }
 
     /// Whether a header click sorts by this column (default: only with `client_sort`)
@@ -205,6 +226,9 @@ pub struct DataGrid {
     sort: Option<Signal<Option<SortState>>>,
     client_sort: bool,
     filter: Option<Signal<Option<RowFilter>>>,
+    widths: Option<Signal<Vec<f32>>>,
+    reorderable: bool,
+    order: Option<Signal<Vec<usize>>>,
 }
 
 impl DataGrid {
@@ -222,7 +246,30 @@ impl DataGrid {
             sort: None,
             client_sort: false,
             filter: None,
+            widths: None,
+            reorderable: false,
+            order: None,
         }
+    }
+
+    /// Shares the column widths, indexed by source column (the grid owns one, seeded from
+    /// each `GridColumn::width`, otherwise) (WIDGETS-GRID-13).
+    pub fn column_widths(mut self, widths: Signal<Vec<f32>>) -> Self {
+        self.widths = Some(widths);
+        self
+    }
+
+    /// Lets the user drag headers to reorder columns (default false) (WIDGETS-GRID-14).
+    pub fn reorderable(mut self, enabled: bool) -> Self {
+        self.reorderable = enabled;
+        self
+    }
+
+    /// Shares the display order: source column indices in display order (the grid owns one,
+    /// the identity, otherwise) (WIDGETS-GRID-14).
+    pub fn column_order(mut self, order: Signal<Vec<usize>>) -> Self {
+        self.order = Some(order);
+        self
     }
 
     /// Every row's height (default 32; negative or NaN counts as 0).
