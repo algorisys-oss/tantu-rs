@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 3 drafted for review)_
+_Last updated: 2026-10-12 (DataGrid part 3, sorting and filtering)_
 
 ## Resume here (2026-10-12)
 
@@ -37,7 +37,7 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 71 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 72 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** the two
   pushes before this one were red on macOS only (the text field's chord test pressed Control
@@ -64,13 +64,11 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 
 **Next (PLAN.md order): Phase 4, enterprise features.**
 
-1. **`DataGrid` part 3, sorting and filtering, is drafted and waits for review:**
-   `docs/specs/widgets/data-grid-sort.md` (WIDGETS-GRID-10..12, GALLERY-11: a shared
-   `Signal<Option<SortState>>` the header click cycles, a painted chevron, `client_sort`
-   ordering rows by `CellValue::compare`, a `RowFilter` predicate signal applied before
-   sorting, builders seeing source rows, the gallery echoing the state), with seven
-   proposals. Say "continue" to accept them; the agent then does the `spec:`/`test:`/`impl:`
-   commits. Then parts 4 to 7.
+1. **`DataGrid` part 3, sorting and filtering, is done** (decision 72, 2026-10-12; the user
+   said "continue" on the draft's seven proposals). Next: part 4, column resize and reorder
+   (a header edge drag changes a column's width, a header drag moves a column; widths and
+   order as shared signals so apps can persist them). Draft the spec for review, then parts
+   5 to 7.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -758,6 +756,23 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     wider columns (its golden regenerated). Found while testing: a cell one buffer row below
     the window is culled (no commands), and the gallery's grid scrolls horizontally by only
     its overflow, so the tests count painted rows and check direction, not distance.
+72. **DataGrid sorting and filtering** (2026-10-12, spec
+    `docs/specs/widgets/data-grid-sort.md`, its own file because the coverage check reads a
+    file's status and draft rules can't sit in an Implemented spec; the user said
+    "continue" on the draft's seven proposals): the sort state is a `Signal<Option<SortState>>`
+    the grid owns or shares (`sort_state`), cycled by a primary press on a sortable header
+    (ascending, descending, none; sortable = `GridColumn::sortable(true)` or `client_sort`),
+    shown as a painted two-bar chevron in `on_surface_variant` (no font); ordering is the
+    app's job by default (read the state, reorder the source, bump `revision`), and
+    `client_sort(true)` makes the grid order a row map by `CellValue::compare` (Empty <
+    Bool < numbers as f64 with NaN lowest < Text in byte order; a stable sort, descending
+    reversing the comparison); `filter(signal)` holds an `Rc<dyn Fn(&dyn DataSource, usize)
+    -> bool>` applied before sorting, in its own memo so a sort change doesn't re-run it;
+    display rows map to source rows through `Rc<[usize]>` memos (none without a filter or
+    client sort), the default text re-reading in place and builders seeing source rows; the
+    gallery's columns are sortable with a "Sort: …" echo and no client sort. Found while
+    testing: the gallery's Score header sits mostly past the grid's edge (its test taps
+    City), and one-letter column titles collided with one-letter cell texts in a test.
 
 ## Commit log
 
@@ -1167,15 +1182,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `9b9bb52` | impl: DataGrid frozen columns; the gallery freezes its Id column; PLAN.md part 2 ticked |
 | `cb28bed` | docs: HANDOFF.md for DataGrid part 2 |
 | `0da4197` | docs: draft DataGrid part 3 (sorting and filtering) for review |
-| _this commit_ | docs: the part 3 draft as its own Draft spec (the coverage check reads a file's status) |
+| `99bfded` | docs: the part 3 draft as its own Draft spec (the coverage check reads a file's status) |
+| `634165e` | spec: DataGrid part 3, sorting and filtering (WIDGETS-GRID-10..12, GALLERY-11) |
+| `fdd69aa` | test: DataGrid sorting and filtering, stubs + 4 failing tests |
+| `bec8fdb` | spec: GALLERY-11's example taps the City header |
+| `6d40e59` | test: WIDGETS-GRID-11 names its columns Key and Value; GALLERY-11 taps City |
+| `82cb7e3` | impl: DataGrid sorting and filtering: sort state and header presses, the chevron, client_sort over a row map, RowFilter, source rows for builders; the gallery's sortable headers; PLAN.md part 3 ticked |
+| _this commit_ | docs: HANDOFF.md for DataGrid part 3 |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: `DataGrid` part 3 (sorting and filtering) next, then parts 4 to 7,
-then the rest of Phase 4 in PLAN.md order.
+See "Resume here" above: `DataGrid` part 4 (column resize and reorder) next, then parts 5 to
+7, then the rest of Phase 4 in PLAN.md order.
 
 ## Open questions
 
@@ -1217,7 +1238,7 @@ then the rest of Phase 4 in PLAN.md order.
   handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
-  lists, accessibility and focus scopes), 70 and 71 (DataGrid parts 1 and 2).
+  lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
