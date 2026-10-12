@@ -1,6 +1,7 @@
 # Kitchen sink: every widget on one scrolling page
 
-- **Status:** Draft (2026-10-12; proposals under Open questions wait for review)
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its six
+  proposals)
 - **Crate:** `examples/gallery` (a new section; no library changes)
 - **Plan item:** Phase 4, "Kitchen sink"
 - **Related:** [gallery](gallery.md) (the sections and keys this adds to),
@@ -84,7 +85,7 @@ that build lazily; not needed for a demo.
 
 ## Open questions
 
-Proposals (for review):
+Resolved (2026-10-12; the user said "continue" on the draft, taking these proposals):
 
 1. **A section of the gallery, not a new example crate.** The gallery already has the shell,
    the theme switch, the tests and the README entry; a `kitchen-sink` crate would duplicate
