@@ -99,6 +99,11 @@ impl GridSelectionController {
     pub fn source_cell(&self, display: GridCell) -> Option<GridCell>;
 }
 
+/// Default creates the same empty, detached controller as new().
+impl Default for GridSelectionController {
+    fn default() -> Self;
+}
+
 impl DataGrid {
     /// Enables a selection model (default None).
     pub fn selection_mode(self, mode: GridSelectionMode) -> Self;
