@@ -81,7 +81,7 @@ impl Fixture {
         let initial: BTreeSet<_> = expanded.iter().map(|n| Id(*n)).collect();
         let activations = Rc::new(RefCell::new(Vec::new()));
         let calls = activations.clone();
-        let t = WidgetTester::with_size(240.0, 128.0, move || {
+        let mut t = WidgetTester::with_size(240.0, 128.0, move || {
             let h = Handles {
                 expanded: signal(initial.clone()),
                 selected: signal(None),
@@ -118,6 +118,7 @@ impl Fixture {
                 },
             )
         });
+        t.pump();
         let h = out.borrow_mut().take().unwrap();
         Self { t, h, activations }
     }
@@ -249,6 +250,11 @@ fn widgets_tree_03_disclosure_selection_focus_and_empty_space() {
     });
     f.pump();
     assert_eq!(f.selected(), Some(Id(9)));
+    f.t.pointer(PointerEvent {
+        kind: PointerKind::Up(PointerButton::Secondary),
+        position: Point::new(100.0, 10.0),
+        modifiers: Default::default(),
+    });
     f.t.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(100.0, 100.0),
@@ -562,7 +568,14 @@ fn widgets_tree_05_repeat_and_key_release_do_not_activate_or_toggle() {
         TreeView::new(model()).on_activate(move |_| capture.set(capture.get() + 1))
     });
     raw_frame(&mut t);
-    let tree = t.children(t.root())[0];
+    let mut stack = vec![t.root()];
+    let tree = loop {
+        let id = stack.pop().unwrap();
+        if t.semantics(id).is_some_and(|s| s.role == Role::Tree) {
+            break id;
+        }
+        stack.extend(t.children(id));
+    };
     assert!(t.focus(tree));
     t.dispatch_key(KeyEvent::press(
         LogicalKey::Named(NamedKey::ArrowDown),
