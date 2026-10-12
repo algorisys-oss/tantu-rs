@@ -660,8 +660,9 @@ fn widgets_grid_11_client_sort() {
             rev.set(Some(revision));
             DataGrid::new(
                 [
-                    GridColumn::new("K"),
-                    GridColumn::new("V").builder(|row, value| Text::new(format!("B{row}:{value}"))),
+                    GridColumn::new("Key"),
+                    GridColumn::new("Value")
+                        .builder(|row, value| Text::new(format!("B{row}:{value}"))),
                 ],
                 Rc::new(VecSource(data)),
             )
@@ -673,7 +674,7 @@ fn widgets_grid_11_client_sort() {
     let (sort, revision) = (state.get().expect("built"), rev.get().expect("built"));
     let keys = |t: &WidgetTester| column_texts(t, "");
     // Ascending: a (source 1), a (source 3), b, c; stable, and builders see source rows.
-    tester.tap(&Finder::text("K"));
+    tester.tap(&Finder::text("Key"));
     let texts = keys(&tester);
     let col0: Vec<&str> = texts
         .iter()
@@ -688,7 +689,7 @@ fn widgets_grid_11_client_sort() {
         .collect();
     assert_eq!(col1, ["B1:x1", "B3:x3", "B0:x0", "B2:x2"]);
     // Descending reverses the comparison, not the stable order.
-    tester.tap(&Finder::text("K"));
+    tester.tap(&Finder::text("Key"));
     let texts = keys(&tester);
     let col0: Vec<&str> = texts
         .iter()
@@ -703,7 +704,7 @@ fn widgets_grid_11_client_sort() {
         .collect();
     assert_eq!(col1, ["B2:x2", "B0:x0", "B1:x1", "B3:x3"]);
     // None: the source order.
-    tester.tap(&Finder::text("K"));
+    tester.tap(&Finder::text("Key"));
     let texts = keys(&tester);
     let col0: Vec<&str> = texts
         .iter()

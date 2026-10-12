@@ -260,10 +260,10 @@ fn gallery_11_sortable_headers() {
     tester.tap(&Finder::key(nav("Data grid")));
     tester.pump();
     assert_eq!(text_of(&tester, "sort"), "Sort: none");
-    tester.tap(&Finder::text("Score"));
-    assert_eq!(text_of(&tester, "sort"), "Sort: Score ascending");
-    tester.tap(&Finder::text("Score"));
-    assert_eq!(text_of(&tester, "sort"), "Sort: Score descending");
-    tester.tap(&Finder::text("Score"));
+    tester.tap(&Finder::text("City"));
+    assert_eq!(text_of(&tester, "sort"), "Sort: City ascending");
+    tester.tap(&Finder::text("City"));
+    assert_eq!(text_of(&tester, "sort"), "Sort: City descending");
+    tester.tap(&Finder::text("City"));
     assert_eq!(text_of(&tester, "sort"), "Sort: none");
 }
