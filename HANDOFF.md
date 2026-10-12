@@ -1374,7 +1374,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `9d78f30` | impl: bounded stress app/cadence stats, kitchen-sink grid refresh, goldens, README and architecture diagram; all checks pass, PLAN.md ticked and HANDOFF.md current |
 | `3c7da2f` | docs: record the user's local-only performance testing preference; GitHub CI has no benchmark or native stress-app run |
 | `714e70d` | spec: overlay portal inheritance agreed, ADR 0014, tooltip target-theme and GALLERY-19 amendments; architecture and PLAN.md current |
-| _this commit_ | test: VIEW-OVERLAY-08..10, tooltip target-theme and GALLERY-19; all five new tests compile and fail for missing context/demo behavior |
+| `2592da3` | test: VIEW-OVERLAY-08..10, tooltip target-theme and GALLERY-19; all five new tests compile and fail for missing context/demo behavior |
+| _this commit_ | spec: place the kitchen-sink popup beside compact controls so feedback stays readable |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

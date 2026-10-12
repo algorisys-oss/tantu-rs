@@ -97,7 +97,8 @@ equal a sample key (`sliders`, `typography`).
 - **GALLERY-19:** The Buttons card demonstrates inherited overlay themes. A `Local dark`
   switch (`sink-popup-dark`, initially on) controls a local ThemeProvider around an
   OverlayPortal; `Open popup` (`sink-overlay_portal`) opens a `Close themed popup` button
-  (`sink-popup-close`) below the target, using the local theme's primary color. The switch
+  (`sink-popup-close`) beside the compact target controls (12 px gap, centers aligned, usual flip/clamp),
+  using the local theme's primary color. The switch
   updates an open popup's colors without changing its element identity, independently of
   the gallery's global dark switch. Close or a primary press outside target/popup hides it.
   A `sink-popup-state` text shows visible/hidden and light/dark state. A software golden
