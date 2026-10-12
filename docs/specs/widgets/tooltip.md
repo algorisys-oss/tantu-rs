@@ -74,6 +74,12 @@ impl<V: View> Tooltip<V> {
   leaving or pressing before then cancels; focus shows at once. WIDGETS-TOOLTIP-01's hover
   case is read with the delay elapsed. See [timers and tickers](../reactive/timers.md).
 
+- **WIDGETS-TOOLTIP-08:** The tooltip resolves its theme from its overlay build context
+  (VIEW-OVERLAY-08), including a theme provided on the target itself. While visible, changes
+  to that theme signal update inverse surface/text colors without rebuilding the tooltip.
+  Its existing 12 px text and placement behavior are preserved. This removes the earlier
+  manually captured theme workaround; no public API changes.
+
 ## Open questions
 
 Resolved (2026-10-11; the user said "continue" on the draft):

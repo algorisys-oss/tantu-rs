@@ -4,7 +4,8 @@
 - **Crate:** `tantu-view`
 - **Plan item:** Phase 3, "`Overlay` + anchored positioning (target/follower): 9-point anchors,
   offset, z-index, pointer passthrough, flip/clamp to window"
-- **Related:** [ADR 0011](../../adr/0011-view-layer.md), [view tree](tree.md),
+- **Related:** [ADR 0011](../../adr/0011-view-layer.md), [view tree](tree.md), [inherited values](inherited.md),
+  [ADR 0014](../../adr/0014-overlay-inheritance-through-the-portal.md),
   [paint](paint.md), [events](events.md), [focus](focus.md), PLAN.md "What we take from Clay"
   (floating elements), decision 23 (popups escape clips through an overlay at the root)
 
@@ -125,6 +126,30 @@ impl<V: View> OverlayPortal<V> {
   after all content in traversal order, and keys reach a focused element in an overlay as
   usual.
 
+### Portal inheritance amendment (Agreed, 2026-10-12)
+
+The user said "ok, then continue" on the proposal that overlays receive their portal's
+inherited values. No public type or method is added; `BuildCx::inherit<T>` follows the
+context described below. Internal representation and demo details are marked review.
+
+- **VIEW-OVERLAY-08:** Overlay content inherits values from the portal target element and
+  its inherited ancestors, including values provided on the target itself. Lookup during
+  the first visible build and later builds behaves as if the overlay wrapper's inherited
+  parent were the target. The root overlay layer remains its physical parent for layout,
+  painting, event paths, focus traversal and semantics; `ViewTree::parent` and
+  `inherited_on` retain their existing meanings. Values are not copied onto the wrapper.
+- **VIEW-OVERLAY-09:** Providers inside the popup shadow portal-context values by type.
+  Nested portals inherit through the outer popup's context, including such overrides.
+  Sibling portals under different providers remain independent. An unprovided type returns
+  `None`; lookup neither crosses into sibling popup providers nor inspects target descendants.
+- **VIEW-OVERLAY-10:** A provided reactive signal remains the same handle in overlay
+  consumers; changing it updates existing consumers without rebuilding the popup. Content
+  rebuilt through `Dyn` still inherits the portal's context. Hide disposes popup consumers;
+  show builds them again against the live context. Removing the portal/provider subtree
+  removes its popup and nested popups in the same operation, disposes consumers and releases
+  inherited values without retaining stale references. Existing placement, paint, hit-test
+  and focus rules remain valid.
+
 ## Implementation notes
 
 - The overlay layer is a render element added as the root's last child the first time an
@@ -134,6 +159,11 @@ impl<V: View> OverlayPortal<V> {
 - Overlays are placed after each layout pass. When a placement changed, the layer is laid out
   again (its children's layouts are cached).
 
+- Inherited-value lookup may follow one private redirect on an overlay wrapper, while the
+  structural tree remains rooted in the overlay layer (ADR 0014). Ordinary elements use
+  their existing parent. Lookup is linear in inherited depth and allocates nothing; no
+  per-frame provider copying or global lookup table is introduced.
+
 ## Open questions
 
 Resolved (2026-10-10; the user said "continue" on the draft):
@@ -142,3 +172,9 @@ Resolved (2026-10-10; the user said "continue" on the draft):
 2. **`Alignment` for both anchor points.**
 3. **Flip vertically, then horizontally, then clamp.**
 4. **One overlay layer per window.**
+
+
+Portal inheritance integration details (review, 2026-10-12): one private inherited-parent
+redirect on each overlay wrapper, installed before invoking the content builder. Public
+structural ancestry remains unchanged. The agreed proposal covers both generic values and
+signals; no theme-specific capture is required.

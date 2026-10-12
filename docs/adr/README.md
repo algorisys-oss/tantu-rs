@@ -22,6 +22,8 @@ instead.
 | [0012](0012-theme-tokens-through-inherited-signals.md) | Theme tokens reach widgets through inherited signals; `tantu-widgets` depends on `tantu-theme` | Accepted |
 | [0013](0013-accessibility-pipeline.md) | Accessibility: semantics in the view tree, AccessKit trees from `tantu-a11y`, delivered through the platform trait | Accepted |
 
+| [0014](0014-overlay-inheritance-through-the-portal.md) | Overlay inherited-value lookup follows the portal target; structural ancestry stays in the root layer | Accepted (representation marked review) |
+
 ## Writing a new ADR
 
 1. Copy the template below to `NNNN-short-title.md`, using the next free number.

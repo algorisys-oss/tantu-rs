@@ -109,7 +109,7 @@
   <!-- View tree -->
   <rect class="pipe" x="470" y="270" width="460" height="80" rx="10"/>
   <text class="t" x="700" y="298">View tree</text>
-  <text class="b" x="700" y="318">one-shot builders · components run once</text>
+  <text class="b" x="700" y="318">one-shot builders · overlay inheritance through portal (ADR 0014)</text>
   <text class="c" x="700" y="338">tantu-view</text>
 
   <!-- Element tree -->

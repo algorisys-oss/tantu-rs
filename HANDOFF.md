@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 7 and kitchen-sink refresh implemented; checks pass)_
+_Last updated: 2026-10-12 (overlay inheritance amendment agreed; tests next)_
 
 ## Resume here (2026-10-12)
 
@@ -20,7 +20,10 @@ beginning/middle/end jumps, optional two frozen columns and bounded redraw-tick 
 editable Name/Score, validation feedback and the stress command. Native GPU/compositor
 60 fps on recorded mid-range hardware remains **unverified**; no native desktop display is
 exported to this command environment. Software goldens were rendered and visually inspected.
-Next feature: the overlay-inheritance amendment before Phase 4 menus/dialogs, then PLAN order.
+Current feature: overlay inheritance (VIEW-OVERLAY-08..10, ADR 0014), accepted on the user's
+"ok, then continue". Add failing generic-value/signal/nested-popup/lifecycle tests, a tooltip
+target-theme regression, and the GALLERY-19 local-theme popup; then implement and validate.
+Feature branch: `phase4/overlay-inheritance`. CI for `3c7da2f` on main is green.
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 **Where things stand:**
@@ -1369,7 +1372,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `46b7c41` | test: seven stress tests and two kitchen-sink GALLERY-18 tests with compiling stubs; missing source/workload/cadence/status behavior confirmed |
 | `2900d3c` | test: measure header/body cell centers correctly (text is centered in 36/32 px cells) |
 | `9d78f30` | impl: bounded stress app/cadence stats, kitchen-sink grid refresh, goldens, README and architecture diagram; all checks pass, PLAN.md ticked and HANDOFF.md current |
-| _this commit_ | docs: record the user's local-only performance testing preference; GitHub CI has no benchmark or native stress-app run |
+| `3c7da2f` | docs: record the user's local-only performance testing preference; GitHub CI has no benchmark or native stress-app run |
+| _this commit_ | spec: overlay portal inheritance agreed, ADR 0014, tooltip target-theme and GALLERY-19 amendments; architecture and PLAN.md current |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

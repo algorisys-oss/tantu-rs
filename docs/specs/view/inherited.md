@@ -41,7 +41,8 @@ impl<T: 'static, V: View> View for Provide<T, V> {}
 - **VIEW-INHERIT-01:** `inherit::<T>()` returns a clone of the nearest provided `T`, starting
   at the element being built and going up to the root; `None` when no ancestor provides one.
   Values of different types are independent, and a value provided deeper shadows the same
-  type provided higher.
+  type provided higher. Overlay wrappers continue lookup at their portal target rather than
+  the root layer (VIEW-OVERLAY-08..10, [overlay](overlay.md)); structural ancestry stays unchanged.
 - **VIEW-INHERIT-02:** `Provide::new(value, child)` builds a region holding `value`, so
   `child` and everything under it inherit it, siblings of the `Provide` don't, and content a
   `Dyn` under it rebuilds later still inherits it.

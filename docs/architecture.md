@@ -53,6 +53,12 @@ re-run their view closure when their signals change. `For` matches new items to 
 elements by key, so matched elements keep their identity (focus, IME state, scroll position,
 animations and accessibility nodes survive); the rest are built or disposed.
 
+**Overlay inheritance.** Popup wrappers remain under the root overlay layer for structural
+ancestry, layout, paint, events, focus traversal and accessibility. For inherited-value
+lookup only, their parent is the portal target. Popup-local providers shadow that context;
+nested portals follow the same rule. Signal handles remain shared, so theme changes reach
+shown popups without copying providers ([ADR-0014](adr/0014-overlay-inheritance-through-the-portal.md)).
+
 **Layout.** Render objects run Flutter's protocol: a parent passes `BoxConstraints` down, the child
 returns a `Size`, and the parent sets the child's offset. Relayout boundaries stop a change from
 spreading up the tree. Intrinsic-size queries are opt-in. Layout widgets (`Row`, `Column`,
@@ -180,6 +186,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Run-once components, render and region elements, queued updates applied per frame | [ADR-0011](adr/0011-view-layer.md) |
 | Theme tokens reach widgets through an inherited `Signal<Theme>`; `tantu-widgets` depends on `tantu-theme` | [ADR-0012](adr/0012-theme-tokens-through-inherited-signals.md) |
 | Semantics on elements; `tantu-a11y` builds AccessKit trees, delivered through the platform trait | [ADR-0013](adr/0013-accessibility-pipeline.md) |
+| Overlay inherited-value lookup follows the portal target while structural ancestry remains under the root layer | [ADR-0014](adr/0014-overlay-inheritance-through-the-portal.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).

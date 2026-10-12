@@ -94,6 +94,18 @@ equal a sample key (`sliders`, `typography`).
   at 960 × 640 with the grid card scrolled into view records these controls and feedback.
   Existing GALLERY-12..14 remain valid.
 
+- **GALLERY-19:** The Buttons card demonstrates inherited overlay themes. A `Local dark`
+  switch (`sink-popup-dark`, initially on) controls a local ThemeProvider around an
+  OverlayPortal; `Open popup` (`sink-overlay_portal`) opens a `Close themed popup` button
+  (`sink-popup-close`) below the target, using the local theme's primary color. The switch
+  updates an open popup's colors without changing its element identity, independently of
+  the gallery's global dark switch. Close or a primary press outside target/popup hides it.
+  A `sink-popup-state` text shows visible/hidden and light/dark state. A software golden
+  `tests/goldens/gallery-sink-popup.png` at 960 × 640 records the open local-dark popup.
+  `SINK_CARDS` includes `overlay_portal` in the Buttons inventory; existing grid and focus
+  samples remain unchanged. This composition amendment follows the user's request to
+  continue overlay inheritance; presentation details are marked review.
+
 ## Performance and allocation
 
 The page builds every card at once (about a dozen widgets per card, the lists and the grid
