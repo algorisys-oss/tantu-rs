@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (kitchen sink drafted for review)_
+_Last updated: 2026-10-12 (the kitchen sink)_
 
 ## Resume here (2026-10-12)
 
@@ -37,7 +37,7 @@ the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 72 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 73 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** the two
   pushes before this one were red on macOS only (the text field's chord test pressed Control
@@ -66,16 +66,13 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 
 1. **`DataGrid` part 3, sorting and filtering, is done** (decision 72, 2026-10-12; the user
    said "continue" on the draft's seven proposals).
-2. **The kitchen sink is drafted and waits for review** (the user asked for "a kitchen sink
-   like demo to show case all component examples", 2026-10-12):
-   `docs/specs/examples/kitchen-sink.md` (GALLERY-12..14): a last gallery section, one
-   `ScrollView` over twelve labelled cards covering every exported widget and layout widget
-   (listed in a public `SINK_CARDS` constant the test iterates), state echoed as text, two
-   goldens; six proposals. Say "continue" to accept; the agent then does the
-   `spec:`/`test:`/`impl:` commits. PLAN.md has the item under Phase 4.
-3. Then `DataGrid` part 4, column resize and reorder (a header edge drag changes a column's
+2. **The kitchen sink is done** (decision 73, 2026-10-12; the user asked for "a kitchen sink
+   like demo to show case all component examples" and said "continue" on the draft's six
+   proposals): the gallery's last section, "Kitchen sink", is one scrolling page of twelve
+   cards with every exported widget; `cargo run -p gallery` shows it.
+3. Next: `DataGrid` part 4, column resize and reorder (a header edge drag changes a column's
    width, a header drag moves a column; widths and order as shared signals so apps can
-   persist them), and parts 5 to 7.
+   persist them). Draft the spec for review, then parts 5 to 7.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -780,6 +777,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     gallery's columns are sortable with a "Sort: …" echo and no client sort. Found while
     testing: the gallery's Score header sits mostly past the grid's edge (its test taps
     City), and one-letter column titles collided with one-letter cell texts in a test.
+73. **Kitchen sink** (2026-10-12, spec `docs/specs/examples/kitchen-sink.md`; the user said
+    "continue" on the draft's six proposals): a ninth gallery section, "Kitchen sink", rather
+    than a new example crate; one `ScrollView` (key `sink`, inside an `Expanded` so the
+    content column bounds it) over a 720 px column of twelve cards (`sink-<card>`: buttons,
+    toggles, sliders, typography, fields, media, lists, grid, layout, scrolling, animation,
+    focus), each a title, samples keyed `sink-<widget>` and an echo `Text` keyed
+    `sink-<card>-state`; the public `SINK_CARDS` constant lists the card keys and their
+    sample keys and the test iterates it (no reflection over exports); the grid card is the
+    first use of `client_sort` with a filter switch (1 000 rows); the focus card wraps its
+    buttons in a local `FocusEcho` view registering `on_focus_change`; two goldens (top, and
+    the end after a tap near the top focuses the page and End scrolls it). Found while
+    testing: card keys must not equal sample keys (`sliders`, `typography`), a tap or wheel
+    at the center of a card below the window hits nothing (the test taps the "Toggles"
+    title), and buttons don't take focus on press (the test uses `WidgetTester::focus`).
+    Every gallery golden was regenerated for the sidebar's new button.
 
 ## Commit log
 
@@ -1196,7 +1208,19 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `6d40e59` | test: WIDGETS-GRID-11 names its columns Key and Value; GALLERY-11 taps City |
 | `82cb7e3` | impl: DataGrid sorting and filtering: sort state and header presses, the chevron, client_sort over a row map, RowFilter, source rows for builders; the gallery's sortable headers; PLAN.md part 3 ticked |
 | `f54a5cf` | docs: HANDOFF.md for DataGrid part 3 |
-| _this commit_ | docs: draft kitchen-sink spec for review; PLAN.md item |
+| `8ac3175` | docs: draft kitchen-sink spec for review; PLAN.md item |
+| `d14fd15` | spec: kitchen sink (GALLERY-12..14) |
+| `f107208` | spec: GALLERY-14's end golden is reached with the End key |
+| `616a2fa` | test: kitchen sink, the SINK_CARDS inventory + 3 failing tests |
+| `4bdfda5` | spec: GALLERY-13 focuses the focus card's button with WidgetTester::focus |
+| `eadfdfa` | test: GALLERY-13 focuses the focus card's button with the tester |
+| `aa98d04` | spec: kitchen-sink card keys never equal a sample key |
+| `f971964` | test: kitchen-sink inventory key sliders |
+| `b647d47` | impl: the gallery's Kitchen sink section: twelve cards, SINK_CARDS, two goldens; PLAN.md ticked |
+| `37be05d` | test: GALLERY-14 taps the typography card |
+| `3cab8f5` | test: GALLERY-14 checks the page reached its end |
+| `f44b178` | test: GALLERY-14 taps the Toggles title near the top; end golden regenerated |
+| _this commit_ | docs: HANDOFF.md for the kitchen sink |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1246,7 +1270,8 @@ See "Resume here" above: `DataGrid` part 4 (column resize and reorder) next, the
   handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
-  lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3).
+  lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3) and 73 (the
+  kitchen sink).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
