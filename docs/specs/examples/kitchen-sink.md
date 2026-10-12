@@ -42,14 +42,15 @@ pub const SINK_CARDS: [(&str, &[&str]); 12];
 The page: a `ScrollView` (key `sink`) over a `Column` of cards, each a `Column` keyed
 `sink-<card>` with a title `Text` in the title style, the samples, and (where the card has
 state) an echo `Text` keyed `sink-<card>-state`. The samples are keyed `sink-<widget>` in
-snake case (`sink-button`, `sink-icon_button`, …) where a test needs them.
+snake case (`sink-button`, `sink-icon_button`, …) where a test needs them; card keys never
+equal a sample key (`sliders`, `typography`).
 
 | Card key | Shows | Echo |
 |---|---|---|
 | `buttons` | `Button` (enabled, disabled), `IconButton`, `Tooltip` around a button | "Pressed N" |
 | `toggles` | `Checkbox` (on, indeterminate, disabled), three `Radio`s, `Switch` | "Checkbox on, Radio b, Switch off" |
-| `slider` | `Slider` continuous and with 4 divisions | "Slider 50 / 25" |
-| `text` | `Text` body/title/label, `RichText`, `Divider`, a `Row` with `VerticalDivider` | |
+| `sliders` | `Slider` continuous and with 4 divisions | "Slider 50 / 25" |
+| `typography` | `Text` body/title/label, `RichText`, `Divider`, a `Row` with `VerticalDivider` | |
 | `fields` | `TextField` single-line, multi-line, with a placeholder, disabled | "Typed: …" |
 | `media` | `Icon`s, `Image` in `BoxFit::Contain`, `Cover` and `Fill` at 96 × 64 | |
 | `lists` | `ListView::builder` (1 000 rows) and `separated` with a selection | "Selected N" |
