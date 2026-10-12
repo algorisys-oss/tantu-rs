@@ -22,7 +22,7 @@ amendment to sorting, the gallery's echoes.
 
 Out of scope (and where it goes): a resize cursor (`CursorIcon` has no column-resize variant;
 adding one is a view and platform amendment for later); auto-fit on double-click (later);
-keyboard resize and reorder (with the selection part, which brings a focused header); column
+keyboard resize and reorder (specified in [part 5](data-grid-selection.md)); column
 hiding and a column chooser (later, with menus); persisting to disk (the app's job over the
 two signals).
 

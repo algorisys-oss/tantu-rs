@@ -1,6 +1,7 @@
 # DataGrid: selection and keyboard navigation
 
-- **Status:** Draft
+- **Status:** Agreed (2026-10-12; the user authorized all permissions after the draft;
+  the agent takes the nine recommended proposals)
 - **Crates:** `tantu-widgets`, `tantu-view` (semantics and pointer modifiers), `tantu-a11y`
   (property mapping), `tantu` (pointer translation and exports), `tantu-test` (modified taps),
   `examples/gallery`
@@ -293,7 +294,8 @@ Keep WIDGETS-GRID-02's virtualization bounds and the GridScroll benchmark target
 
 ## Open questions
 
-Proposals for review; say "continue" to accept or change any of these:
+Resolved for implementation on 2026-10-12; recommendations accepted under the user's
+authorization to continue autonomously:
 
 1. **Opt-in selection**, default None, preserving existing grids' keyboard behavior.
    The gallery enables Row and offers all four modes.

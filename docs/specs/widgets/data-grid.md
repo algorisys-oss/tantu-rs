@@ -161,7 +161,8 @@ background with a 1 px `outline_variant` line below the strip. Body rows get a 1
   (not the whole grid's); a vertical scrollbar at the body's right edge and a horizontal one
   at the grid's bottom edge are drawn and dragged as WIDGETS-SCROLL-04, each only when its
   axis overflows; the event is stopped when either axis moved, else continues.
-- **WIDGETS-GRID-05:** Keyboard (provisional until the selection part): the grid is focusable
+- **WIDGETS-GRID-05:** Keyboard when selection is disabled (selection-enabled behavior is
+  WIDGETS-GRID-18 in [part 5](data-grid-selection.md)): the grid is focusable
   as a scroll view (a press focuses it, Tab doesn't stop at it); while focused, ArrowDown/Up
   scroll by one row height, ArrowRight/Left by 40 px, PageDown/PageUp by the body height,
   End/Home to the last/first row, each clamped and handled only when it moved.
