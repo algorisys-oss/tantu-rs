@@ -1,6 +1,7 @@
 # DataGrid: sorting and filtering
 
-- **Status:** Draft (2026-10-12; proposals 1 to 7 under Open questions wait for review)
+- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its seven
+  proposals)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`, `SortState`, `RowFilter`,
   `CellValue::compare`), `examples/gallery`
 - **Plan item:** Phase 4, "`DataGrid`" → "sorting and filtering"
@@ -105,7 +106,7 @@ call per source row. Without a filter and without `client_sort` there is no map 
 
 ## Open questions
 
-Proposals (for review):
+Resolved (2026-10-12; the user said "continue" on the draft, taking these proposals):
 
 1. **The sort state is a shared signal the grid cycles; ordering is the app's job unless
     `client_sort` is on.** Enterprise sources sort in the database, so PLAN.md's "the
