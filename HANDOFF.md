@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 2, frozen columns)_
+_Last updated: 2026-10-12 (DataGrid part 3 drafted for review)_
 
 ## Resume here (2026-10-12)
 
@@ -64,11 +64,13 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 
 **Next (PLAN.md order): Phase 4, enterprise features.**
 
-1. `DataGrid` part 3, sorting and filtering: a header click sorts (indicators in the header
-   cell), and the source gets sort and filter hooks (proposal to draft: the grid keeps a
-   `Vec<usize>` row map from a `sort`/`filter` the app applies to its source, or a
-   `SortedSource` adapter, so `DataSource` stays a plain row store). Draft the spec for
-   review, then parts 4 to 7.
+1. **`DataGrid` part 3, sorting and filtering, is drafted and waits for review:**
+   WIDGETS-GRID-10..12 and GALLERY-11 in `docs/specs/widgets/data-grid.md` (a shared
+   `Signal<Option<SortState>>` the header click cycles, a painted chevron, `client_sort`
+   ordering rows by `CellValue::compare`, a `RowFilter` predicate signal applied before
+   sorting, builders seeing source rows, the gallery echoing the state), with proposals 13
+   to 19. Say "continue" to accept them; the agent then does the `spec:`/`test:`/`impl:`
+   commits. Then parts 4 to 7.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -1163,7 +1165,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `875ffe4` | test: DataGrid frozen columns and the gallery's frozen Id column, 2 failing tests |
 | `2d9d899` | test: WIDGETS-GRID-09 counts painted frozen rows; GALLERY-10 checks Name moved left |
 | `9b9bb52` | impl: DataGrid frozen columns; the gallery freezes its Id column; PLAN.md part 2 ticked |
-| _this commit_ | docs: HANDOFF.md for DataGrid part 2 |
+| `cb28bed` | docs: HANDOFF.md for DataGrid part 2 |
+| _this commit_ | docs: draft DataGrid part 3 (sorting and filtering) for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

@@ -159,7 +159,7 @@ faster or more portable without changing how apps are written.
 - [ ] `DataGrid`: virtualized rows **and** columns, frozen columns, sort/filter, resize/reorder, cell editors, selection models, 1M-row data source trait, in parts:
   - [x] data source, columns, header, row and column virtualization, scrolling on both axes, roles, the gallery section and the scrolling benchmark (1.30 ms per scroll step at 1280 × 720) (specs `docs/specs/layout/grid.md`, `docs/specs/widgets/data-grid.md`)
   - [x] frozen columns (pinned at the left, painted over the scrolling ones) (WIDGETS-GRID-09 in `docs/specs/widgets/data-grid.md`)
-  - [ ] sorting and filtering (header click, sort indicators, the source's sort and filter hooks)
+  - [ ] sorting and filtering (header click, sort indicators, the source's sort and filter hooks) (WIDGETS-GRID-10..12 in `docs/specs/widgets/data-grid.md`, drafted)
   - [ ] column resize and reorder (header edge and header drag)
   - [ ] selection models (row, cell, range) with keyboard navigation, and row/column indices in the accessibility tree
   - [ ] cell editors (double-click or F2 opens a `TextField` in the cell, Enter commits, Escape cancels, `DataSource::set_cell`)
