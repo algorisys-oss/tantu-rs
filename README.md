@@ -28,9 +28,10 @@ By Algorisys Technologies.
 - **General purpose.** Everyday desktop apps first: windows, text, input, scrolling, theming,
   and a small, fast-starting binary.
 - **Scales to large apps.** Retained element tree with fine-grained reactive signals, so only what
-  changed is rebuilt, re-laid out or repainted. Virtualized lists today; planned: data grids,
-  docking, multi-window, accessibility (AccessKit), full text shaping with IME and right-to-left
-  support, i18n.
+  changed is rebuilt, re-laid out or repainted. Virtualized lists and a data grid (a million
+  rows, frozen, sortable, resizable and reorderable columns), accessibility (AccessKit) and
+  text shaping with IME and right-to-left support today; planned: docking, multi-window,
+  i18n.
 
 ## Using Tantu in your app
 
@@ -102,8 +103,8 @@ fn main() -> tantu::Result<()> {
 
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
 window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
-Things still to come are listed in [PLAN.md](PLAN.md): accessibility, the data grid and the
-other enterprise widgets.
+Things still to come are listed in [PLAN.md](PLAN.md): the data grid's selection and cell
+editors, and the other enterprise widgets (trees, tabs, docking, menus, dialogs, forms).
 
 ## The counter, in full
 

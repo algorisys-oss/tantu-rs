@@ -410,6 +410,9 @@ fn grid_section() -> impl View {
     let (vertical, horizontal) = (ScrollController::new(), ScrollController::new());
     let sort = signal(None::<SortState>);
     const TITLES: [&str; 6] = ["Id", "Name", "City", "Amount", "Active", "Score"];
+    // The widths and the display order are the app's (GALLERY-15), so it could persist them.
+    let widths = signal(vec![80.0f32, 200.0, 180.0, 140.0, 90.0, 140.0]);
+    let order = signal((0..TITLES.len()).collect::<Vec<_>>());
     const CITIES: [&str; 7] = [
         "Mumbai",
         "Pune",
@@ -432,27 +435,33 @@ fn grid_section() -> impl View {
         .spacing(8.0)
         .child(
             Text::new(
-                "1 000 000 rows and 6 columns; only the visible cells are built. Scroll on both axes.",
+                "1 000 000 rows and 6 columns; only the visible cells are built. Scroll on both \
+                 axes, drag a header's right edge to resize it, drag a header to move it.",
             )
             .style(TextStyle::label()),
         )
-        .child(SizedBox::new(700.0, 400.0).child(Keyed::new(
-            "grid",
-            DataGrid::new(
-                [
-                    GridColumn::new("Id").width(80.0).sortable(true),
-                    GridColumn::new("Name").width(200.0).sortable(true),
-                    GridColumn::new("City").width(180.0).sortable(true),
-                    GridColumn::new("Amount").width(140.0).sortable(true),
-                    GridColumn::new("Active").width(90.0).sortable(true),
-                    GridColumn::new("Score").width(140.0).sortable(true),
-                ],
-                source,
-            )
-            .controllers(vertical, horizontal)
-            .frozen_columns(1)
-            .sort_state(sort),
-        )))
+        .child(
+            SizedBox::new(700.0, 400.0).child(Keyed::new(
+                "grid",
+                DataGrid::new(
+                    [
+                        GridColumn::new("Id").width(80.0).sortable(true),
+                        GridColumn::new("Name").width(200.0).sortable(true),
+                        GridColumn::new("City").width(180.0).sortable(true),
+                        GridColumn::new("Amount").width(140.0).sortable(true),
+                        GridColumn::new("Active").width(90.0).sortable(true),
+                        GridColumn::new("Score").width(140.0).sortable(true),
+                    ],
+                    source,
+                )
+                .controllers(vertical, horizontal)
+                .frozen_columns(1)
+                .sort_state(sort)
+                .column_widths(widths)
+                .reorderable(true)
+                .column_order(order),
+            )),
+        )
         // The sort state echoed (GALLERY-11); the source stays in its own order.
         .child(Keyed::new(
             "sort",
@@ -461,13 +470,37 @@ fn grid_section() -> impl View {
                 Some(state) => format!(
                     "Sort: {} {}",
                     TITLES[state.column],
-                    if state.ascending { "ascending" } else { "descending" }
+                    if state.ascending {
+                        "ascending"
+                    } else {
+                        "descending"
+                    }
                 ),
             }),
         ))
         .child(Keyed::new(
             "first-row",
             Text::new(move || format!("First row: {}", (vertical.offset() / 32.0) as usize)),
+        ))
+        // The Name column's width and the display order echoed (GALLERY-15).
+        .child(Keyed::new(
+            "name-width",
+            Text::new(move || {
+                let width = widths.with(|w| w.get(1).copied().unwrap_or(200.0));
+                format!("Name width: {}", width.round() as i64)
+            }),
+        ))
+        .child(Keyed::new(
+            "order",
+            Text::new(move || {
+                let names = order.with(|o| {
+                    o.iter()
+                        .map(|&c| TITLES.get(c).copied().unwrap_or("?"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                });
+                format!("Order: {names}")
+            }),
         ))
 }
 

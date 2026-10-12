@@ -282,7 +282,7 @@ fn gallery_15_resize_and_reorder() {
     );
     let grid = rect(&tester, "grid");
     let header_y = grid.top + 18.0;
-    let mut drag = |tester: &mut WidgetTester, from: f32, to: f32| {
+    let drag = |tester: &mut WidgetTester, from: f32, to: f32| {
         for (kind, x) in [
             (PointerKind::Down(PointerButton::Primary), from),
             (PointerKind::Move, to),

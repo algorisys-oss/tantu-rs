@@ -821,7 +821,8 @@ fn header_lefts(tester: &WidgetTester, titles: &[&str]) -> Vec<f32> {
 
 #[test]
 fn widgets_grid_13_column_widths_and_resize() {
-    let shared: Rc<Cell<Option<(Signal<Vec<f32>>, Signal<Option<SortState>>)>>> = Rc::default();
+    type Shared = Rc<Cell<Option<(Signal<Vec<f32>>, Signal<Option<SortState>>)>>>;
+    let shared: Shared = Rc::default();
     let (mut tester, _, _) = grid(600.0, 400.0, {
         let shared = shared.clone();
         move || {

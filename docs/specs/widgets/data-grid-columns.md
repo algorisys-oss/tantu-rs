@@ -1,6 +1,6 @@
 # DataGrid: column resize and reorder
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its seven
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its seven
   proposals)
 - **Crates:** `tantu-widgets` (`DataGrid`, `GridColumn`), `examples/gallery`
 - **Plan item:** Phase 4, "`DataGrid`" → "column resize and reorder"

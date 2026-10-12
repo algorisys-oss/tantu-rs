@@ -160,7 +160,7 @@ faster or more portable without changing how apps are written.
   - [x] data source, columns, header, row and column virtualization, scrolling on both axes, roles, the gallery section and the scrolling benchmark (1.30 ms per scroll step at 1280 × 720) (specs `docs/specs/layout/grid.md`, `docs/specs/widgets/data-grid.md`)
   - [x] frozen columns (pinned at the left, painted over the scrolling ones) (WIDGETS-GRID-09 in `docs/specs/widgets/data-grid.md`)
   - [x] sorting and filtering (header click, sort indicators, the source's sort and filter hooks) (spec `docs/specs/widgets/data-grid-sort.md`)
-  - [ ] column resize and reorder (header edge and header drag) (spec `docs/specs/widgets/data-grid-columns.md`)
+  - [x] column resize and reorder (header edge and header drag; widths and order as shared signals) (spec `docs/specs/widgets/data-grid-columns.md`)
   - [ ] selection models (row, cell, range) with keyboard navigation, and row/column indices in the accessibility tree
   - [ ] cell editors (double-click or F2 opens a `TextField` in the cell, Enter commits, Escape cancels, `DataSource::set_cell`)
   - [ ] `examples/data-grid-stress`: the 1M-row stress test against the 60 fps criterion

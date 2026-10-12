@@ -1,5 +1,5 @@
-//! [`DataGrid`], [`DataSource`], [`CellValue`], [`FnSource`] and [`GridColumn`]. Spec:
-//! `docs/specs/widgets/data-grid.md`.
+//! [`DataGrid`], [`DataSource`], [`CellValue`], [`FnSource`] and [`GridColumn`]. Specs:
+//! `docs/specs/widgets/data-grid.md`, `data-grid-sort.md` and `data-grid-columns.md`.
 
 use std::cell::Cell;
 use std::cmp::Ordering;
@@ -32,6 +32,12 @@ const COLUMN_WIDTH: f32 = 120.0;
 const MIN_COLUMN_WIDTH: f32 = 40.0;
 /// The header's bold weight.
 const HEADER_WEIGHT: f32 = 700.0;
+/// The resize handle: this many pixels left of a column's right boundary (WIDGETS-GRID-13).
+const HANDLE_WIDTH: f32 = 6.0;
+/// How far a header press moves before it is a reorder drag, not a click (WIDGETS-GRID-14).
+const DRAG_SLOP: f32 = 4.0;
+/// The drop line's thickness (WIDGETS-GRID-14).
+const DROP_LINE: f32 = 2.0;
 /// The sort chevron's width and bar thickness (WIDGETS-GRID-10).
 const CHEVRON_WIDTH: f32 = 10.0;
 const CHEVRON_STROKE: f32 = 2.0;
@@ -212,8 +218,9 @@ impl GridColumn {
     }
 }
 
-/// A table over a [`DataSource`] that builds only its visible cells and scrolls on both axes
-/// (the first part of the enterprise data grid).
+/// A table over a [`DataSource`] that builds only its visible cells and scrolls on both
+/// axes, with frozen columns, sorting and filtering, and columns the user can resize and
+/// reorder (the enterprise data grid; selection and cell editors are still to come).
 pub struct DataGrid {
     columns: Vec<GridColumn>,
     source: Rc<dyn DataSource>,
@@ -341,6 +348,66 @@ fn clean(length: f32) -> f32 {
     }
 }
 
+/// A display order over `count` columns from the app's: duplicates and out-of-range entries
+/// dropped, missing columns following in source order (WIDGETS-GRID-14).
+fn normalize_order(order: &[usize], count: usize) -> Vec<usize> {
+    let mut seen = vec![false; count];
+    let mut out = Vec::with_capacity(count);
+    for &column in order {
+        if column < count && !seen[column] {
+            seen[column] = true;
+            out.push(column);
+        }
+    }
+    out.extend((0..count).filter(|c| !seen[*c]));
+    out
+}
+
+/// A column's sizing: its `GridColumn::width`, its minimum and whether it is resizable
+/// (WIDGETS-GRID-13).
+#[derive(Clone, Copy)]
+struct ColumnSizing {
+    width: f32,
+    min_width: f32,
+    resizable: bool,
+}
+
+/// The columns as displayed: source indices in display order and their extents in that
+/// order (WIDGETS-GRID-13, -14).
+#[derive(Clone, PartialEq)]
+struct ColumnLayout {
+    order: Rc<[usize]>,
+    extents: ListExtents,
+}
+
+/// A cell to build: its row, the display position of its column and the source column.
+/// The `For` key, so a reordered cell is rebuilt for its new position.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+struct CellKey {
+    row: usize,
+    display: usize,
+    source: usize,
+}
+
+impl CellKey {
+    fn slot(self) -> GridSlot {
+        GridSlot {
+            row: self.row,
+            column: self.display,
+        }
+    }
+}
+
+/// A header held for reordering (WIDGETS-GRID-14): the column, the boundary it would drop
+/// at (a display position, `column_count` for after the last) and that boundary's x in the
+/// header strip.
+#[derive(Clone, Copy, PartialEq)]
+struct Reorder {
+    source: usize,
+    boundary: usize,
+    x: f32,
+}
+
 /// The grid's geometry, shared by the strips, the handlers and the paint.
 #[derive(Clone)]
 struct Geometry {
@@ -349,8 +416,18 @@ struct Geometry {
     /// The row count, re-read when the revision changes (WIDGETS-GRID-06).
     row_count: Memo<usize>,
     column_count: usize,
-    columns: ListExtents,
-    /// The leading columns pinned at the left (WIDGETS-GRID-09), at most `column_count`.
+    /// The display order and extents, following `widths` and `order` (WIDGETS-GRID-13, -14).
+    layout: Memo<ColumnLayout>,
+    sizing: Rc<[ColumnSizing]>,
+    /// The widths by source column, the grid's or the app's (WIDGETS-GRID-13).
+    widths: Signal<Vec<f32>>,
+    /// The display order, the grid's or the app's (WIDGETS-GRID-14).
+    order: Signal<Vec<usize>>,
+    reorderable: bool,
+    /// The header being dragged, for the drop line and the held cell (WIDGETS-GRID-14).
+    drag: Signal<Option<Reorder>>,
+    /// The leading display positions pinned at the left (WIDGETS-GRID-09), at most
+    /// `column_count`.
     frozen_columns: usize,
 }
 
@@ -358,39 +435,92 @@ impl Geometry {
     /// The body's content size, from the current row count (an untracked read).
     fn content_untracked(&self) -> Size {
         Size::new(
-            self.columns.total(self.column_count),
+            self.layout
+                .with_untracked(|l| l.extents.total(self.column_count)),
             self.row_height * self.row_count.get_untracked() as f32,
         )
     }
 
-    /// The columns to build: the scrolling ones between the frozen width and `viewport`
-    /// (one of buffer each side, WIDGETS-GRID-02), then the frozen ones, which paint last
-    /// and so on top (WIDGETS-GRID-09).
-    fn visible_columns(&self, offset: f32, viewport: f32) -> Vec<usize> {
+    /// The columns to build, as (display position, source column): the scrolling ones
+    /// between the frozen width and `viewport` (one of buffer each side, WIDGETS-GRID-02),
+    /// then the frozen ones, which paint last and so on top (WIDGETS-GRID-09). A tracked
+    /// read of the layout.
+    fn visible_columns(&self, offset: f32, viewport: f32) -> Vec<(usize, usize)> {
         let frozen = self.frozen_columns;
-        let frozen_width = self.columns.start(frozen);
-        let scrolling = if viewport > frozen_width {
-            range(
-                &self.columns,
-                self.column_count,
-                offset + frozen_width,
-                viewport - frozen_width,
-            )
-        } else {
-            0..0
-        };
-        scrolling
-            .filter(|column| *column >= frozen)
-            .chain(0..frozen)
-            .collect()
+        self.layout.with(|layout| {
+            let frozen_width = layout.extents.start(frozen);
+            let scrolling = if viewport > frozen_width {
+                range(
+                    &layout.extents,
+                    self.column_count,
+                    offset + frozen_width,
+                    viewport - frozen_width,
+                )
+            } else {
+                0..0
+            };
+            scrolling
+                .filter(|column| *column >= frozen)
+                .chain(0..frozen)
+                .map(|display| (display, layout.order[display]))
+                .collect()
+        })
     }
 
     /// The grid body for the strip: `rows` rows with the grid's columns and frozen columns.
     fn body(&self, rows: ListExtents, row_count: usize) -> RenderGridBody {
-        let mut body =
-            RenderGridBody::new(rows, row_count, self.columns.clone(), self.column_count);
+        let mut body = RenderGridBody::new(
+            rows,
+            row_count,
+            self.layout.with_untracked(|l| l.extents.clone()),
+            self.column_count,
+        );
         body.frozen_columns = self.frozen_columns;
         body
+    }
+
+    /// Keeps a strip's column extents in step with the layout (WIDGETS-GRID-13, -14).
+    fn bind_extents(&self, cx: &mut BuildCx<'_>, id: ElementId) {
+        let layout = self.layout;
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || layout.with(|l| l.extents.clone()))),
+            |e, extents| {
+                e.update_render::<RenderGridBody>(|b| b.columns = extents);
+            },
+        );
+    }
+
+    /// The horizontal offset as the strips apply it.
+    fn offset_untracked(&self, horizontal: ScrollController) -> f32 {
+        let max = horizontal.max_scroll_extent_untracked().max(0.0);
+        horizontal.offset_untracked().clamp(0.0, max)
+    }
+
+    /// The x of display boundary `k` in a strip, given the horizontal offset: frozen
+    /// boundaries don't scroll.
+    fn boundary_x(&self, extents: &ListExtents, k: usize, offset: f32) -> f32 {
+        let start = extents.start(k);
+        if k <= self.frozen_columns {
+            start
+        } else {
+            start - offset
+        }
+    }
+
+    /// The display boundary nearest `x` in the strip (WIDGETS-GRID-14).
+    fn nearest_boundary(&self, x: f32, offset: f32) -> (usize, f32) {
+        self.layout.with_untracked(|layout| {
+            (0..=self.column_count)
+                .map(|k| (k, self.boundary_x(&layout.extents, k, offset)))
+                .min_by(|a, b| {
+                    (a.1 - x)
+                        .abs()
+                        .partial_cmp(&(b.1 - x).abs())
+                        .unwrap_or(Ordering::Equal)
+                })
+                .unwrap_or((0, 0.0))
+        })
     }
 
     /// Whether `column` is frozen, and whether it is the last frozen one (the edge).
@@ -490,13 +620,54 @@ impl View for DataGrid {
                 }
             })
         };
+        // The widths and the display order (WIDGETS-GRID-13, -14): the app's signals or the
+        // grid's own, combined into the display layout.
+        let column_count = self.columns.len();
+        let sizing: Rc<[ColumnSizing]> = self
+            .columns
+            .iter()
+            .map(|c| ColumnSizing {
+                width: clean(c.width),
+                min_width: clean(c.min_width),
+                resizable: c.resizable,
+            })
+            .collect();
+        let widths = self
+            .widths
+            .unwrap_or_else(|| signal(sizing.iter().map(|s| s.width).collect()));
+        let order = self
+            .order
+            .unwrap_or_else(|| signal((0..column_count).collect()));
+        let layout = {
+            let sizing = Rc::clone(&sizing);
+            memo(move || {
+                let widths: Vec<f32> = widths.with(|w| {
+                    sizing
+                        .iter()
+                        .enumerate()
+                        .map(|(c, s)| w.get(c).copied().map_or(s.width, clean).max(s.min_width))
+                        .collect()
+                });
+                let order = order.with(|o| normalize_order(o, column_count));
+                let extents = ListExtents::table(order.iter().map(|&c| widths[c]));
+                ColumnLayout {
+                    order: Rc::from(order),
+                    extents,
+                }
+            })
+        };
         let geometry = Geometry {
             row_height: clean(self.row_height),
             header_height: clean(self.header_height),
             row_count,
-            column_count: self.columns.len(),
-            columns: ListExtents::table(self.columns.iter().map(|c| c.width)),
-            frozen_columns: self.frozen.min(self.columns.len()),
+            column_count,
+            layout,
+            sizing,
+            widths,
+            order,
+            reorderable: self.reorderable,
+            drag: signal(None),
+            frozen_columns: self.frozen.min(column_count),
         };
         let columns: Rc<[ColumnSpec]> = self
             .columns
@@ -773,43 +944,35 @@ impl View for HeaderStrip {
                     geometry
                         .visible_columns(horizontal.offset(), horizontal.viewport_extent())
                         .into_iter()
-                        .map(|column| GridSlot { row: 0, column })
+                        .map(|(display, source)| CellKey {
+                            row: 0,
+                            display,
+                            source,
+                        })
                         .collect()
                 },
-                |slot: &GridSlot| *slot,
+                |key: &CellKey| *key,
                 {
                     let geometry = geometry_cells;
-                    move |slot: GridSlot| {
-                        let (frozen, edge) = geometry.frozen(slot.column);
-                        let column = slot.column;
-                        // A press on a sortable header cycles the sort state
-                        // (WIDGETS-GRID-10): ascending, descending, none.
-                        let on_press: Option<Rc<dyn Fn()>> = columns[column].sortable.then(|| {
-                            Rc::new(move || {
-                                let next = match sort.get_untracked() {
-                                    Some(state) if state.column == column => {
-                                        state.ascending.then_some(SortState {
-                                            column,
-                                            ascending: false,
-                                        })
-                                    }
-                                    _ => Some(SortState {
-                                        column,
-                                        ascending: true,
-                                    }),
-                                };
-                                sort.set(next);
-                            }) as Rc<dyn Fn()>
-                        });
+                    move |key: CellKey| {
+                        let (frozen, edge) = geometry.frozen(key.display);
+                        let column = key.source;
                         CellBox {
-                            slot,
+                            key,
                             role: Role::ColumnHeader,
                             name: Some(columns[column].title.clone()),
                             theme,
                             frozen,
                             edge,
-                            on_press,
-                            chevron: Some((sort, column)),
+                            header: Some(HeaderCx {
+                                column,
+                                display: key.display,
+                                sortable: columns[column].sortable,
+                                frozen,
+                                geometry: geometry.clone(),
+                                horizontal,
+                                sort,
+                            }),
                             child: AnyView::new(cell_content(
                                 Text::new(columns[column].title.clone()).style(style.clone()),
                             )),
@@ -823,20 +986,33 @@ impl View for HeaderStrip {
             geometry.body(ListExtents::Fixed(geometry.header_height), rows),
             [AnyView::new(cells)],
         );
+        geometry.bind_extents(cx, id);
         cx.set_paint(
             id,
             StripPaint {
                 background: Color::TRANSPARENT,
                 line: Color::TRANSPARENT,
                 header: true,
+                drop_line: None,
+                accent: Color::TRANSPARENT,
             },
         );
         cx.bind(id, theme.colors_prop(), |e, colors| {
             e.update_paint::<StripPaint>(|p| {
                 p.background = colors.surface;
                 p.line = colors.outline_variant;
+                p.accent = colors.primary;
             });
         });
+        // The drop line follows the held header (WIDGETS-GRID-14).
+        let drag = geometry.drag;
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || drag.get().map(|d| d.x))),
+            |e, x| {
+                e.update_paint::<StripPaint>(|p| p.drop_line = x);
+            },
+        );
         cx.bind(
             id,
             Prop::Dynamic(Box::new(move || {
@@ -884,13 +1060,23 @@ impl View for Body {
                     );
                     let cols =
                         geometry.visible_columns(horizontal.offset(), horizontal.viewport_extent());
-                    rows.flat_map(|row| cols.iter().map(move |&column| GridSlot { row, column }))
-                        .collect()
+                    rows.flat_map(|row| {
+                        cols.iter().map(move |&(display, source)| CellKey {
+                            row,
+                            display,
+                            source,
+                        })
+                    })
+                    .collect()
                 },
-                |slot: &GridSlot| *slot,
-                move |slot| {
-                    let GridSlot { row, column } = slot;
-                    let (frozen, edge) = geometry_cells.frozen(column);
+                |key: &CellKey| *key,
+                move |key| {
+                    let CellKey {
+                        row,
+                        display,
+                        source: column,
+                    } = key;
+                    let (frozen, edge) = geometry_cells.frozen(display);
                     let source = Rc::clone(&source);
                     let child: AnyView = match &columns[column].builder {
                         // A built cell is rebuilt when the revision changes (WIDGETS-GRID-06).
@@ -917,14 +1103,13 @@ impl View for Body {
                         )),
                     };
                     CellBox {
-                        slot,
+                        key,
                         role: Role::Cell,
                         name: None,
                         theme,
                         frozen,
                         edge,
-                        on_press: None,
-                        chevron: None,
+                        header: None,
                         child,
                     }
                 },
@@ -934,12 +1119,15 @@ impl View for Body {
             geometry.body(ListExtents::Fixed(geometry.row_height), 0),
             [AnyView::new(cells)],
         );
+        geometry.bind_extents(cx, id);
         cx.set_paint(
             id,
             StripPaint {
                 background: Color::TRANSPARENT,
                 line: Color::TRANSPARENT,
                 header: false,
+                drop_line: None,
+                accent: Color::TRANSPARENT,
             },
         );
         // The row count and the offset follow the memo and the controllers.
@@ -976,11 +1164,15 @@ fn cell_content(child: impl View) -> impl View {
         .child(Align::new(Alignment::CENTER_LEFT).child(child))
 }
 
-/// Clips a strip to its bounds; the header also paints its background and bottom line.
+/// Clips a strip to its bounds; the header also paints its background, its bottom line and,
+/// while a header is held, the drop line (WIDGETS-GRID-14).
 struct StripPaint {
     background: Color,
     line: Color,
     header: bool,
+    /// The drop line's x in the strip, while a header is held.
+    drop_line: Option<f32>,
+    accent: Color,
 }
 
 impl Paint for StripPaint {
@@ -998,6 +1190,12 @@ impl Paint for StripPaint {
                 Rect::from_ltwh(0.0, size.height - 1.0, size.width, 1.0),
                 self.line,
             );
+            if let Some(x) = self.drop_line {
+                cx.scene().fill_rect(
+                    Rect::from_ltwh(x - DROP_LINE / 2.0, 0.0, DROP_LINE, size.height),
+                    self.accent,
+                );
+            }
         }
     }
 
@@ -1006,10 +1204,126 @@ impl Paint for StripPaint {
     }
 }
 
+/// What a header cell's pointer handler needs: sorting (WIDGETS-GRID-10, -15), resizing
+/// (WIDGETS-GRID-13) and reordering (WIDGETS-GRID-14).
+struct HeaderCx {
+    /// The source column.
+    column: usize,
+    display: usize,
+    sortable: bool,
+    frozen: bool,
+    geometry: Geometry,
+    horizontal: ScrollController,
+    sort: Signal<Option<SortState>>,
+}
+
+/// A header press in progress.
+#[derive(Clone, Copy)]
+enum Press {
+    /// A resize from the handle: the pointer's x and the column's width at the press.
+    Resize { x: f32, width: f32 },
+    /// A press that may become a click or a reorder drag: the pointer's x at the press and
+    /// whether it moved past the slop without reordering (then it is neither).
+    Pending { x: f32, moved: bool },
+    /// A reorder drag.
+    Reorder,
+}
+
+impl HeaderCx {
+    /// Cycles the sort state (WIDGETS-GRID-10): ascending, descending, none.
+    fn click(&self) {
+        if !self.sortable {
+            return;
+        }
+        let column = self.column;
+        let next = match self.sort.get_untracked() {
+            Some(state) if state.column == column => state.ascending.then_some(SortState {
+                column,
+                ascending: false,
+            }),
+            _ => Some(SortState {
+                column,
+                ascending: true,
+            }),
+        };
+        self.sort.set(next);
+    }
+
+    /// The pointer's x in the header strip from its x in this cell.
+    fn strip_x(&self, local_x: f32) -> f32 {
+        let geometry = &self.geometry;
+        let offset = geometry.offset_untracked(self.horizontal);
+        let start = geometry
+            .layout
+            .with_untracked(|l| l.extents.start(self.display));
+        let left = if self.frozen { start } else { start - offset };
+        left + local_x
+    }
+
+    /// Records the boundary nearest the pointer as the drop target (WIDGETS-GRID-14).
+    fn hold(&self, local_x: f32) {
+        let geometry = &self.geometry;
+        let offset = geometry.offset_untracked(self.horizontal);
+        let (boundary, x) = geometry.nearest_boundary(self.strip_x(local_x), offset);
+        let next = Some(Reorder {
+            source: self.column,
+            boundary,
+            x,
+        });
+        if geometry.drag.get_untracked() != next {
+            geometry.drag.set(next);
+        }
+    }
+
+    /// Moves the column to the recorded boundary and ends the drag (WIDGETS-GRID-14).
+    fn drop(&self) {
+        let geometry = &self.geometry;
+        let Some(Reorder { boundary, .. }) = geometry.drag.get_untracked() else {
+            return;
+        };
+        geometry.drag.set(None);
+        let display = self.display;
+        if boundary == display || boundary == display + 1 {
+            return;
+        }
+        let mut order = geometry.layout.with_untracked(|l| l.order.to_vec());
+        let column = order.remove(display);
+        let at = if boundary > display {
+            boundary - 1
+        } else {
+            boundary
+        };
+        order.insert(at, column);
+        geometry.order.set(order);
+    }
+
+    /// Sets the column's width from a resize drag, floored at its minimum
+    /// (WIDGETS-GRID-13).
+    fn resize(&self, width: f32) {
+        let geometry = &self.geometry;
+        let sizing = &geometry.sizing;
+        let target = width.max(sizing[self.column].min_width);
+        let column = self.column;
+        let current = geometry
+            .widths
+            .with_untracked(|w| w.get(column).copied().map(clean));
+        if current == Some(target) {
+            return;
+        }
+        geometry.widths.update(|w| {
+            if w.len() < sizing.len() {
+                let missing = sizing[w.len()..].iter().map(|s| s.width);
+                w.extend(missing);
+            }
+            w[column] = target;
+        });
+    }
+}
+
 /// One built cell: a box carrying its `GridSlot`, its role, a clip and the grid lines
 /// (WIDGETS-GRID-03, -07).
 struct CellBox {
-    slot: GridSlot,
+    key: CellKey,
     role: Role,
     name: Option<String>,
     theme: ThemeHandle,
@@ -1017,10 +1331,8 @@ struct CellBox {
     frozen: bool,
     /// The last frozen column's cell: its right line is the theme's `outline`.
     edge: bool,
-    /// A header's press handler (sorting, WIDGETS-GRID-10).
-    on_press: Option<Rc<dyn Fn()>>,
-    /// A header's sort state and column, for its chevron.
-    chevron: Option<(Signal<Option<SortState>>, usize)>,
+    /// A header's sorting, resizing and reordering (WIDGETS-GRID-10, -13, -14).
+    header: Option<HeaderCx>,
     child: AnyView,
 }
 
@@ -1030,7 +1342,7 @@ impl View for CellBox {
             RenderConstrainedBox::new(BoxConstraints::UNCONSTRAINED),
             [self.child],
         );
-        cx.set_parent_data(id, self.slot);
+        cx.set_parent_data(id, self.key.slot());
         cx.set_semantics(
             id,
             Semantics {
@@ -1047,6 +1359,8 @@ impl View for CellBox {
                 edge: None,
                 chevron: None,
                 chevron_color: Color::TRANSPARENT,
+                held: false,
+                held_color: Color::TRANSPARENT,
             },
         );
         let (frozen, edge) = (self.frozen, self.edge);
@@ -1056,9 +1370,11 @@ impl View for CellBox {
                 p.background = frozen.then_some(colors.surface);
                 p.edge = edge.then_some(colors.outline);
                 p.chevron_color = colors.on_surface_variant;
+                p.held_color = colors.surface_container_highest;
             });
         });
-        if let Some((sort, column)) = self.chevron {
+        if let Some(header) = self.header {
+            let (sort, column, drag) = (header.sort, header.column, header.geometry.drag);
             cx.bind(
                 id,
                 Prop::Dynamic(Box::new(move || {
@@ -1070,14 +1386,70 @@ impl View for CellBox {
                     e.update_paint::<CellPaint>(|p| p.chevron = chevron);
                 },
             );
-        }
-        if let Some(press) = self.on_press {
+            // The held header's background (WIDGETS-GRID-14).
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || {
+                    drag.get().is_some_and(|d| d.source == column)
+                })),
+                |e, held| {
+                    e.update_paint::<CellPaint>(|p| p.held = held);
+                },
+            );
+            // One press at a time: a resize from the handle (WIDGETS-GRID-13), a reorder
+            // drag (WIDGETS-GRID-14) or a click (WIDGETS-GRID-15).
+            let press: Rc<Cell<Option<Press>>> = Rc::default();
+            let resizable = header.geometry.sizing[column].resizable;
+            let reorderable = header.geometry.reorderable;
             cx.on_pointer(id, Phase::Bubble, move |p| {
-                if p.event.kind == PointerKind::Down(PointerButton::Primary) {
-                    press();
-                    Handled::Stop
-                } else {
-                    Handled::Continue
+                let x = p.event.position.x;
+                match (p.event.kind, press.get()) {
+                    (PointerKind::Down(PointerButton::Primary), _) => {
+                        let on_handle = p.local.x >= p.size.width - HANDLE_WIDTH;
+                        if resizable && on_handle {
+                            press.set(Some(Press::Resize {
+                                x,
+                                width: p.size.width,
+                            }));
+                        } else if reorderable || header.sortable {
+                            press.set(Some(Press::Pending { x, moved: false }));
+                        } else {
+                            return Handled::Continue;
+                        }
+                        Handled::Stop
+                    }
+                    (PointerKind::Move, Some(Press::Resize { x: start, width })) => {
+                        header.resize(width + (x - start));
+                        Handled::Stop
+                    }
+                    (PointerKind::Move, Some(Press::Pending { x: start, moved })) => {
+                        if (x - start).abs() > DRAG_SLOP {
+                            if reorderable {
+                                press.set(Some(Press::Reorder));
+                                header.hold(p.local.x);
+                            } else if !moved {
+                                press.set(Some(Press::Pending {
+                                    x: start,
+                                    moved: true,
+                                }));
+                            }
+                        }
+                        Handled::Stop
+                    }
+                    (PointerKind::Move, Some(Press::Reorder)) => {
+                        header.hold(p.local.x);
+                        Handled::Stop
+                    }
+                    (PointerKind::Up(PointerButton::Primary), Some(current)) => {
+                        press.set(None);
+                        match current {
+                            Press::Pending { moved: false, .. } => header.click(),
+                            Press::Reorder => header.drop(),
+                            Press::Pending { .. } | Press::Resize { .. } => {}
+                        }
+                        Handled::Stop
+                    }
+                    _ => Handled::Continue,
                 }
             });
         }
@@ -1094,6 +1466,9 @@ struct CellPaint {
     /// A header's sort chevron: `Some(true)` points up (ascending) (WIDGETS-GRID-10).
     chevron: Option<bool>,
     chevron_color: Color,
+    /// A header held for reordering is highlighted (WIDGETS-GRID-14).
+    held: bool,
+    held_color: Color,
 }
 
 /// One bar of the chevron: a rect of `CHEVRON_STROKE` from `from` to `to` in a transform
@@ -1117,6 +1492,9 @@ impl Paint for CellPaint {
         let bounds = Rect::from_ltwh(0.0, 0.0, size.width, size.height);
         if let Some(background) = self.background {
             cx.scene().fill_rect(bounds, background);
+        }
+        if self.held {
+            cx.scene().fill_rect(bounds, self.held_color);
         }
         cx.scene().push_clip(Clip::Rect(bounds));
         cx.paint_children();
