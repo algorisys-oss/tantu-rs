@@ -375,7 +375,7 @@ fn gallery_14_kitchen_sink_goldens() {
         "/tests/goldens/gallery-sink-top.png"
     ));
     // A tap on the page's heading area focuses the scroll view; End goes to the bottom.
-    tester.tap(&Finder::key("sink-text"));
+    tester.tap(&Finder::key("sink-typography"));
     tester.press_key(LogicalKey::Named(NamedKey::End), Modifiers::default());
     tester.pump();
     tester.matches_golden(concat!(
