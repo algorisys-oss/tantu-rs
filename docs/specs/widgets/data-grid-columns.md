@@ -64,8 +64,9 @@ it shows, given by `column_order`; `frozen_columns` counts display positions.
   that column when it is `resizable`: each move sets the width to `width at press + dx`
   floored at `min_width` (live, the signal updates and the grid re-lays), the release ends it,
   and neither the press nor the release sorts. A column with `resizable(false)` has no
-  handle: a press there is an ordinary header press. The handle belongs to the column on its
-  left, so the first 6 px of a column resize its predecessor.
+  handle: a press there is an ordinary header press. The handle lies inside the column it
+  resizes, so a column's first pixels are never a handle (and the first column's left edge
+  isn't one).
 - **WIDGETS-GRID-14:** Reorder. With `reorderable(true)`, a primary press on a header (not on
   a handle) followed by a move of more than 4 px horizontally picks the column up: while it is
   held, the header strip paints a 2 px `primary` drop line at the column boundary nearest the
@@ -85,8 +86,9 @@ it shows, given by `column_order`; `frozen_columns` counts display positions.
 - **GALLERY-15:** The Data grid section is `reorderable` with shared widths and order, and
   echoes "Name width: 200" (key `name-width`) and "Order: Id, Name, City, Amount, Active,
   Score" (key `order`); a drag of the Name header's right edge by 40 px gives "Name width:
-  240" and keeps the sort text; a drag of the City header 150 px to the left (over Name) gives
-  "Order: Id, City, Name, Amount, Active, Score" and the City header now sits where Name was.
+  240" and keeps the sort text; a drag of the City header 200 px to the left (past the middle
+  of Name, so the nearest boundary is the one before Name) gives "Order: Id, City, Name,
+  Amount, Active, Score" and the City header now sits where Name was.
 
 ## Performance and allocation
 
