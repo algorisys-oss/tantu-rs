@@ -151,15 +151,18 @@ impl BuildCx<'_> {
         element.inherited.push((id, Rc::new(value)));
     }
 
-    /// The nearest `T` provided on the element being built or one of its ancestors
-    /// (VIEW-INHERIT-01).
+    /// The nearest `T` provided on the element being built or its inherited ancestors.
+    /// Overlay wrappers continue lookup at their portal target (VIEW-OVERLAY-08).
     pub fn inherit<T: Clone + 'static>(&self) -> Option<T> {
         let mut next = Some(self.parent);
         while let Some(id) = next {
             if let Some(value) = self.tree.inherited_on::<T>(id) {
                 return Some(value);
             }
-            next = self.tree.parent(id);
+            next = self
+                .tree
+                .element(id)
+                .and_then(|e| e.inherited_parent.or(e.parent));
         }
         None
     }
@@ -184,6 +187,8 @@ impl BuildCx<'_> {
 /// One element.
 pub(crate) struct Element {
     parent: Option<ElementId>,
+    /// Overlay wrappers inherit through their target without changing structural ancestry.
+    pub(crate) inherited_parent: Option<ElementId>,
     children: Vec<ElementId>,
     scope: Scope,
     pub(crate) kind: Kind,
@@ -275,6 +280,7 @@ impl ViewTree {
             let layout = tree.layout.insert(RootBox);
             let root = ElementId::from(tree.elements.insert(Element {
                 parent: None,
+                inherited_parent: None,
                 children: Vec::new(),
                 scope,
                 kind: Kind::Render(layout, Box::new(NoPaint)),
@@ -532,6 +538,7 @@ impl ViewTree {
         };
         let id = ElementId::from(self.elements.insert(Element {
             parent: Some(parent),
+            inherited_parent: None,
             children: Vec::new(),
             scope,
             kind,

@@ -28,7 +28,7 @@ Existing overlay ownership/removal disposes consumers and prevents redirects out
 ## Consequences
 
 All inherited types work in popups, including reactive theme/form/locale signals. Tooltip
-can resolve its theme where it builds. Lookup allocates nothing and remains linear in
+can resolve its theme where it builds. Traversal adds no allocation beyond the requested value clone and remains linear in
 inherited depth. A private optional element id adds fixed metadata per element; its default
 is absent. The tree inspector must distinguish inheritance from structural ancestry if it
 exposes this detail in future. No generic user-reparenting API is added; the private redirects

@@ -126,7 +126,7 @@ impl<V: View> OverlayPortal<V> {
   after all content in traversal order, and keys reach a focused element in an overlay as
   usual.
 
-### Portal inheritance amendment (Agreed, 2026-10-12)
+### Portal inheritance amendment (Implemented, agreed 2026-10-12)
 
 The user said "ok, then continue" on the proposal that overlays receive their portal's
 inherited values. No public type or method is added; `BuildCx::inherit<T>` follows the
@@ -161,7 +161,7 @@ context described below. Internal representation and demo details are marked rev
 
 - Inherited-value lookup may follow one private redirect on an overlay wrapper, while the
   structural tree remains rooted in the overlay layer (ADR 0014). Ordinary elements use
-  their existing parent. Lookup is linear in inherited depth and allocates nothing; no
+  their existing parent. Traversal is linear in inherited depth and adds no allocation beyond the requested value clone; no
   per-frame provider copying or global lookup table is introduced.
 
 ## Open questions

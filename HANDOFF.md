@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (overlay inheritance failing regressions committed; implementation next)_
+_Last updated: 2026-10-12 (overlay inheritance and themed-popup demo implemented; checks pass)_
 
 ## Resume here (2026-10-12)
 
@@ -20,10 +20,15 @@ beginning/middle/end jumps, optional two frozen columns and bounded redraw-tick 
 editable Name/Score, validation feedback and the stress command. Native GPU/compositor
 60 fps on recorded mid-range hardware remains **unverified**; no native desktop display is
 exported to this command environment. Software goldens were rendered and visually inspected.
-Current feature: overlay inheritance (VIEW-OVERLAY-08..10, ADR 0014), accepted on the user's
-"ok, then continue". Add failing generic-value/signal/nested-popup/lifecycle tests, a tooltip
-target-theme regression, and the GALLERY-19 local-theme popup; then implement and validate.
-Feature branch: `phase4/overlay-inheritance`. CI for `3c7da2f` on main is green.
+Overlay inheritance is implemented (decision 78, VIEW-OVERLAY-08..10, ADR 0014), on the
+user's "ok, then continue". Generic values and signals follow the portal target; structural
+parent/layout/paint/event/focus/a11y paths remain in the root overlay layer. Tooltip resolves
+its theme in its overlay context, including providers on the target itself. The Kitchen sink's
+Buttons card has a local dark/light popup that stays open while its colors update, closes on
+outside press/Close, and leaves its status text readable. All checks pass; this feature branch
+`phase4/overlay-inheritance` is fast-forwarded into `main` for the authorized milestone push
+(decision 14). Inspect CI on the new tip. The preceding `3c7da2f` main run is green.
+Next: draft TreeView's spec, splitting the grouped PLAN item into its individual features.
 When resuming, tell the agent: "Read HANDOFF.md and continue."
 
 **Where things stand:**
@@ -54,7 +59,7 @@ When resuming, tell the agent: "Read HANDOFF.md and continue."
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
 - Workspace: 77 specs, every rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
-  warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and the touched examples' rustdoc
+  warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and full-workspace/all-feature rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** inspect the
   new run on `main` after this push; the prior macOS Control/Command chord issue is fixed.
 
@@ -137,8 +142,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    **Integration detail:** Expanded cannot attach flex data to a Dyn region; a concrete
    SizedBox::expand holds the grid region's flex so the viewport stays bounded. Initial
    testing exposed the unbounded configuration; the dimensions/bounded-work tests now pass.
-2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
-   both will need the theme inside overlays; `FocusScope` is ready for them.
+7. **Overlay inheritance is done** (decision 78, 2026-10-12). One private inherited-parent
+   redirect is installed on a popup wrapper before content builds. `BuildCx::inherit` follows
+   it to the portal target, preserving local shadowing, generic types, signal identity and
+   nested popup context. Structural ancestry and all placement/paint/hit-test/focus behavior
+   remain unchanged. No new public API or dependency edge. Tooltip's manual theme capture
+   is removed. The kitchen-sink Buttons card gains the themed popup (GALLERY-19), with a
+   visually inspected golden; top/end/grid goldens reflect the additional demo content.
+   **Validation:** three new view regressions, one tooltip regression and one gallery
+   regression were confirmed failing before implementation, then pass. All 10 overlay and
+   8 tooltip tests and all 20 gallery tests pass; full workspace tests/all-features, strict
+   workspace Clippy/all-targets/all-features, formatting, coverage (77 checked, no problems),
+   no-default-feature facade tests and full-workspace/all-feature rustdoc (`-D warnings`)
+   pass. ADR 0014 and the architecture doc/SVG/regenerated PNG describe the context path.
+   Internal representation and demo presentation details are marked review. No performance
+   stress runs were added to GitHub; benchmarks/native performance remain local only.
 
 ## Current state
 
@@ -161,7 +179,7 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
   (decision 28), `tantu-render-wgpu` (decision 29), the `scene-window` demo (decision 30) and
   `tantu-render-conformance` (decision 31).
   `tantu-theme` is implemented (decision 62) and so is `tantu-a11y` (decision 67).
-- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main` for the authorized push; feature work was on `phase3/focus`.
+- **Repo:** https://github.com/algorisys-oss/tantu-rs (public). Branch: `main` for the milestone push; latest feature work was on `phase4/overlay-inheritance`.
 - **Files:**
   - `AGENTS.md`: architecture, crate layout, dependency rules, conventions, workflow
   - `CLAUDE.md`: Claude Code notes (imports AGENTS.md and PLAN.md)
@@ -916,6 +934,15 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     the project-wide native hardware criterion stays open. The kitchen sink composes the
     completed grid APIs and shares sparse editable-source logic with the Data grid section.
 
+78. **Overlay inherited context** (2026-10-12; the user said "ok, then continue"). Keep the
+    root layer's structural tree intact and redirect only inherited-value lookup from each
+    popup wrapper to its target (ADR 0014). Target providers, popup-local shadows, nested
+    portals, independent siblings and shared signals all follow nearest-provider semantics.
+    Owner removal and hiding dispose popup consumers without retaining provider values.
+    Tooltip uses the same context; the gallery demonstrates local themes in a popup.
+    This removes the overlay-inheritance open question before menus/dialogs. Representation
+    and demo details are marked review; public APIs remain unchanged.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1376,17 +1403,18 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `714e70d` | spec: overlay portal inheritance agreed, ADR 0014, tooltip target-theme and GALLERY-19 amendments; architecture and PLAN.md current |
 | `2592da3` | test: VIEW-OVERLAY-08..10, tooltip target-theme and GALLERY-19; all five new tests compile and fail for missing context/demo behavior |
 | `e6244e8` | spec: place the kitchen-sink popup beside compact controls so feedback stays readable |
-| _this commit_ | test: popup-demo placement assertion fails for the old below-target placement |
+| `0cb8cff` | test: popup-demo placement assertion fails for the old below-target placement |
+| _this commit_ | impl: overlay inheritance, tooltip context lookup and local-theme popup demo; goldens/docs/PLAN.md/HANDOFF.md current; all checks pass |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Inspect CI for the authorized `main` push (decision 14).
-Next feature: overlay-inheritance amendment before menus/dialogs; otherwise PLAN.md order.
-Run benchmarks and the native 60 fps protocol **locally only**, on recorded mid-range hardware
-when a desktop/profiler is available. Do not add performance stress runs to GitHub Actions.
+Inspect CI for the milestone `main` push (decision 14). Draft TreeView's spec next, splitting
+PLAN.md's grouped TreeView/TabView/SplitView/docking item into separate specs as they begin.
+Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
+Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
 ## Open questions
 
@@ -1410,11 +1438,6 @@ when a desktop/profiler is available. Do not add performance stress runs to GitH
   concept rather than changing scopes.
 - **`FocusScope` has no gallery entry or golden** (decision 69): it paints nothing. Decide
   whether AGENTS.md's "golden and gallery entry" rule should say "visible widgets".
-- **Overlays don't inherit from the app.** The overlay layer is the root's last child, so
-  content shown through `OverlayPortal` (tooltips, later menus and dialogs) sees no value
-  provided inside the app, including the theme; the tooltip captures the theme at the portal.
-  Proposal: make overlay content inherit from the portal's element (build it with the portal
-  as its inherited-value parent), as a `view/overlay.md` amendment before menus.
 - **Reactive text presets:** a theme's `text` is read at build time; changing font sizes live
   would need paragraphs re-keyed (decision 62). Revisit with the theme's second user (Fluent)
   or an accessibility font-scale setting.
@@ -1432,7 +1455,7 @@ when a desktop/profiler is available. Do not add performance stress runs to GitH
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
   lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3), 73 (the
-  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation); decision 76's BuildCx::focus and decision 77's kitchen-sink composition amendments are also marked for review.
+  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation); decision 76's BuildCx::focus, decision 77's kitchen-sink composition, and decision 78's overlay representation/demo details are also marked for review.
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec

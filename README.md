@@ -109,7 +109,8 @@ editors, and the other enterprise widgets (trees, tabs, docking, menus, dialogs,
 `cargo run --release -p data-grid-stress` opens the standalone 1,000,000 × 20 DataGrid
 workload, with Start/Stop, beginning/middle/end jumps, optional frozen columns and redraw
 cadence statistics. The kitchen sink's grid also demonstrates resize/reorder, range
-selection and editable Name/Score cells with validation feedback. See the
+selection and editable Name/Score cells with validation feedback. Its Buttons card includes
+a popup with an independently switchable local theme inherited through its portal. See the
 [stress measurement procedure](examples/data-grid-stress/README.md) for repeatable trials;
 UI tick cadence and the headless CPU benchmark do not certify GPU/compositor delivery.
 

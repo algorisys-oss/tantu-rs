@@ -319,6 +319,11 @@ impl ViewTree {
             .layout
             .insert(RenderConstrainedBox::new(BoxConstraints::default()));
         let wrapper = self.add_element(layer, Kind::Render(wrapper_layout, Box::new(NoPaint)));
+        // Install the context path before invoking the builder (VIEW-OVERLAY-08).
+        // The wrapper stays under the layer for every structural operation.
+        if let Some(element) = self.element_mut(wrapper) {
+            element.inherited_parent = Some(target);
+        }
         scope.run(|| {
             let view = content();
             view.build(&mut BuildCx {

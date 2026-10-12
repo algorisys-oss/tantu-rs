@@ -10,7 +10,7 @@ use tantu::core::Rect;
 use tantu::layout::{BoxConstraints, RenderConstrainedBox};
 use tantu::prelude::*;
 use tantu::scene::{BorderRadius, ImageData, RoundedRect};
-use tantu::view::{BuildCx, ElementId, Keyed, Paint, PaintCx, Prop};
+use tantu::view::{Anchor, BuildCx, ElementId, Keyed, OverlayPortal, Paint, PaintCx, Prop};
 
 /// The section names, in sidebar order.
 pub const SECTIONS: [&str; 9] = [
@@ -28,7 +28,10 @@ pub const SECTIONS: [&str; 9] = [
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
 pub const SINK_CARDS: [(&str, &[&str]); 12] = [
-    ("buttons", &["button", "icon_button", "tooltip"]),
+    (
+        "buttons",
+        &["button", "icon_button", "tooltip", "overlay_portal"],
+    ),
     ("toggles", &["checkbox", "radio", "switch"]),
     ("sliders", &["slider"]),
     (
@@ -743,24 +746,87 @@ fn sink_buttons() -> impl View {
     card(
         "buttons",
         "Buttons",
-        Row::new()
-            .cross_axis_alignment(CrossAxisAlignment::Center)
-            .spacing(12.0)
-            .child(Keyed::new(
-                "sink-button",
-                Button::new("Press").on_press(move || presses.update(|n| *n += 1)),
-            ))
-            .child(Button::new("Disabled").enabled(false))
-            .child(Keyed::new(
-                "sink-icon_button",
-                IconButton::new(Icons::FAVORITE).on_press(|| {}),
-            ))
-            .child(Keyed::new(
-                "sink-tooltip",
-                Tooltip::new("A tooltip", Button::new("Hover me")),
-            )),
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .spacing(8.0)
+            .child(
+                Row::new()
+                    .cross_axis_alignment(CrossAxisAlignment::Center)
+                    .spacing(12.0)
+                    .child(Keyed::new(
+                        "sink-button",
+                        Button::new("Press").on_press(move || presses.update(|n| *n += 1)),
+                    ))
+                    .child(Button::new("Disabled").enabled(false))
+                    .child(Keyed::new(
+                        "sink-icon_button",
+                        IconButton::new(Icons::FAVORITE).on_press(|| {}),
+                    ))
+                    .child(Keyed::new(
+                        "sink-tooltip",
+                        Tooltip::new("A tooltip", Button::new("Hover me")),
+                    )),
+            )
+            .child(sink_popup()),
         echo(move || format!("Pressed {}", presses.get())),
     )
+}
+
+/// An overlay inheriting an independently controlled local theme (GALLERY-19).
+fn sink_popup() -> impl View {
+    let (shown, dark) = (signal(false), signal(true));
+    let local_theme = signal(Theme::dark());
+    Builder::new(move |cx| {
+        let label_theme = Theme::signal(cx).unwrap_or_else(|| signal(Theme::light()));
+        let target = Keyed::new(
+            "sink-popup-target",
+            Row::new()
+                .main_axis_size(MainAxisSize::Min)
+                .cross_axis_alignment(CrossAxisAlignment::Center)
+                .spacing(12.0)
+                .child(Keyed::new(
+                    "sink-overlay_portal",
+                    Button::new("Open popup").on_press(move || shown.set(true)),
+                ))
+                .child(Keyed::new(
+                    "sink-popup-dark",
+                    Switch::new(dark).on_change(move |value| {
+                        dark.set(value);
+                        local_theme.set(if value { Theme::dark() } else { Theme::light() });
+                    }),
+                ))
+                .child(ThemeProvider::new(label_theme, Text::new("Local dark"))),
+        );
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .spacing(8.0)
+            .child(ThemeProvider::new(
+                local_theme,
+                OverlayPortal::new(target)
+                    .visible(shown)
+                    .anchor(
+                        Anchor::new(Alignment::CENTER_RIGHT, Alignment::CENTER_LEFT)
+                            .offset(12.0, 0.0),
+                    )
+                    .on_outside_press(move || shown.set(false))
+                    .overlay(move || {
+                        SizedBox::width(220.0).child(Keyed::new(
+                            "sink-popup-close",
+                            Button::new("Close themed popup").on_press(move || shown.set(false)),
+                        ))
+                    }),
+            ))
+            .child(Keyed::new(
+                "sink-popup-state",
+                Text::new(move || {
+                    format!(
+                        "Popup: {}, theme: {}",
+                        if shown.get() { "visible" } else { "hidden" },
+                        if dark.get() { "dark" } else { "light" }
+                    )
+                }),
+            ))
+    })
 }
 
 fn sink_toggles() -> impl View {

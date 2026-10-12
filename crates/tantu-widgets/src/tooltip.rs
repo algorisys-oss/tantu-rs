@@ -67,16 +67,12 @@ impl<V: View> View for Tooltip<V> {
         } else {
             Anchor::new(Alignment::BOTTOM_CENTER, Alignment::TOP_CENTER).offset(0.0, GAP)
         };
-        // The overlay layer hangs off the root, so the theme is captured here, where the
-        // portal is, and passed to the box (WIDGETS-THEME-01).
-        let theme = ThemeHandle::of(cx);
         let portal = OverlayPortal::new(self.child)
             .visible(move || hovered.get() || focused.get())
             .anchor(anchor)
             .pointer(OverlayPointer::Passthrough)
             .overlay(move || TooltipBox {
                 message: Rc::clone(&message),
-                theme,
             });
         let id = portal.build(cx);
         if cx.tree().kind(id) == Some(ElementKind::Region) {
@@ -120,12 +116,12 @@ impl<V: View> View for Tooltip<V> {
 /// The tooltip's box: at least 24 px tall, 8 × 4 px padding, the message centered in 12 px.
 struct TooltipBox {
     message: Rc<dyn Fn() -> String>,
-    theme: ThemeHandle,
 }
 
 impl View for TooltipBox {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let (message, theme) = (self.message, self.theme);
+        let message = self.message;
+        let theme = ThemeHandle::of(cx);
         let message: Rc<dyn Fn() -> String> = message;
         let style = TextStyle {
             size: 12.0,
