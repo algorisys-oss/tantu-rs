@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (the kitchen sink)_
+_Last updated: 2026-10-12 (DataGrid part 4 drafted for review)_
 
 ## Resume here (2026-10-12)
 
@@ -70,9 +70,12 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    like demo to show case all component examples" and said "continue" on the draft's six
    proposals): the gallery's last section, "Kitchen sink", is one scrolling page of twelve
    cards with every exported widget; `cargo run -p gallery` shows it.
-3. Next: `DataGrid` part 4, column resize and reorder (a header edge drag changes a column's
-   width, a header drag moves a column; widths and order as shared signals so apps can
-   persist them). Draft the spec for review, then parts 5 to 7.
+3. **`DataGrid` part 4, column resize and reorder, is drafted and waits for review:**
+   `docs/specs/widgets/data-grid-columns.md` (WIDGETS-GRID-13..15, GALLERY-15: widths and
+   display order as shared signals indexed by source column, a 6 px resize handle at each
+   column's right edge with a minimum width, an opt-in reorder drag with a drop line, sorting
+   moved from the header press to the click), with seven proposals. Say "continue" to accept;
+   the agent then does the `spec:`/`test:`/`impl:` commits. Then parts 5 to 7.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -1220,7 +1223,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `37be05d` | test: GALLERY-14 taps the typography card |
 | `3cab8f5` | test: GALLERY-14 checks the page reached its end |
 | `f44b178` | test: GALLERY-14 taps the Toggles title near the top; end golden regenerated |
-| _this commit_ | docs: HANDOFF.md for the kitchen sink |
+| `495bf94` | docs: HANDOFF.md for the kitchen sink |
+| _this commit_ | docs: draft DataGrid part 4 (column resize and reorder) for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
