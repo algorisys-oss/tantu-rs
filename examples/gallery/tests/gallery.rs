@@ -659,6 +659,13 @@ fn gallery_19_kitchen_sink_popup_inherits_local_theme() {
     t.tap(&Finder::key("sink-overlay_portal"));
     t.pump();
     let popup = t.find(&Finder::key("sink-popup-close"));
+    let target = rect(&t, "sink-popup-target");
+    let bounds = t.rect(popup);
+    assert!(
+        (bounds.left - target.right - 12.0).abs() < 0.01,
+        "popup beside target: {target:?} {bounds:?}"
+    );
+    assert!((bounds.center().y - target.center().y).abs() < 0.01);
     let fills = |t: &WidgetTester, color| {
         t.frame()
             .entries_for(popup)
