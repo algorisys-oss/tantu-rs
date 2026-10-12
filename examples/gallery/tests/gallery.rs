@@ -358,7 +358,8 @@ fn gallery_13_kitchen_sink_echoes() {
     // Focus: a tap focuses a button in the scope, Tab wraps inside it.
     tester.ensure_visible(&Finder::key("sink-focus"));
     tester.pump();
-    tester.tap(&Finder::key("sink-focus-two"));
+    tester.focus(&Finder::key("sink-focus-two"));
+    assert_eq!(state(&tester, "focus"), "Focus: Two");
     tester.press_key(LogicalKey::Named(NamedKey::Tab), Modifiers::default());
     assert_eq!(state(&tester, "focus"), "Focus: Three");
     tester.press_key(LogicalKey::Named(NamedKey::Tab), Modifiers::default());
