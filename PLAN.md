@@ -161,7 +161,7 @@ faster or more portable without changing how apps are written.
   - [x] frozen columns (pinned at the left, painted over the scrolling ones) (WIDGETS-GRID-09 in `docs/specs/widgets/data-grid.md`)
   - [x] sorting and filtering (header click, sort indicators, the source's sort and filter hooks) (spec `docs/specs/widgets/data-grid-sort.md`)
   - [x] column resize and reorder (header edge and header drag; widths and order as shared signals) (spec `docs/specs/widgets/data-grid-columns.md`)
-  - [ ] selection models (row, cell, range) with keyboard navigation, and row/column indices in the accessibility tree
+  - [ ] selection models (row, cell, range) with keyboard navigation, and row/column indices in the accessibility tree (Draft spec `docs/specs/widgets/data-grid-selection.md`)
   - [ ] cell editors (double-click or F2 opens a `TextField` in the cell, Enter commits, Escape cancels, `DataSource::set_cell`)
   - [ ] `examples/data-grid-stress`: the 1M-row stress test against the 60 fps criterion
 - [ ] `TreeView`, `TabView`, `SplitView`, docking layout manager (drag panels, persist layout)

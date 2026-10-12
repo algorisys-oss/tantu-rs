@@ -3,12 +3,13 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 4, column resize and reorder)_
+_Last updated: 2026-10-12 (DataGrid part 5 selection spec drafted for review)_
 
 ## Resume here (2026-10-12)
 
-Everything is committed on branch `phase3/focus` (fast-forward it into `main` and push when
-the user asks). When resuming, tell the agent: "Read HANDOFF.md and continue."
+DataGrid part 4 is committed. Part 5 now has a Draft spec for review (see below); no part 5
+tests or implementation have started. When resuming, tell the agent: "Read HANDOFF.md and
+continue."
 
 **Where things stand:**
 
@@ -74,9 +75,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    user said "continue" on the draft's seven proposals): widths and display order as shared
    signals, a 6 px resize handle, an opt-in reorder drag with a drop line, sorting on the
    click. The gallery's Data grid section echoes "Name width: …" and "Order: …".
-4. Next: `DataGrid` part 5, selection models (row, cell, range) with keyboard navigation and
-   row/column indices in the accessibility tree. Draft the spec for review, then parts 6
-   (cell editors) and 7 (`examples/data-grid-stress`).
+4. **`DataGrid` part 5 is drafted for review** in
+   `docs/specs/widgets/data-grid-selection.md` (2026-10-12, the user asked "lets continue
+   datagrid part 5"). Nine proposals: opt-in None/Row/Cell/Range; display-coordinate
+   anchor/active selection with a controller exposing source-cell mapping; contiguous
+   Shift ranges; clear on model changes; one Tab stop and F6 body/header navigation;
+   keyboard sort/resize/reorder; immediate reveal and selection paint; accessibility
+   dimensions/indices/values/sort/active descendant; pointer modifier snapshots (the
+   current PointerEvent has none, so Shift-click needs a view/runner/tester amendment).
+   **Next: user reviews the draft**, then Agreed spec commit, failing tests and
+   implementation. Parts 6 (cell editors) and 7 (`examples/data-grid-stress`) follow.
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -1255,14 +1263,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `93e7eb3` | test: DataGrid column resize and reorder, stubs + 4 failing tests |
 | `2966a07` | test: WIDGETS-GRID-14's main grid gets a 600 px window |
 | `4ef964f` | impl: DataGrid column resize and reorder; the gallery's echoes; PLAN.md part 4 ticked |
-| _this commit_ | docs: HANDOFF.md for DataGrid part 4 (decision 74) |
+| `8c9c477` | docs: HANDOFF.md for DataGrid part 4 (decision 74) |
+| _this commit_ | docs: draft DataGrid part 5 selection and keyboard navigation spec for review; PLAN.md link and HANDOFF.md resume point |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: `DataGrid` part 5 (selection models) next, then parts 6 and 7,
+See "Resume here" above: review the Draft `DataGrid` part 5 spec, then its failing tests
+and implementation, then parts 6 and 7,
 then the rest of Phase 4 in PLAN.md order.
 
 ## Open questions
