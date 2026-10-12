@@ -244,3 +244,57 @@ fn widgets_tooltip_07_show_delay() {
     tester.hover(&Finder::key("target"));
     assert!(tooltip_box(&tester).is_some());
 }
+
+#[test]
+fn widgets_tooltip_08_theme_provided_on_target_is_live_in_overlay() {
+    use tantu_theme::Theme;
+    use tantu_view::Builder;
+    let output = Rc::new(Cell::new(None));
+    let mut tester = {
+        let output = output.clone();
+        WidgetTester::with_size(300.0, 300.0, move || {
+            let mut theme = Theme::dark();
+            theme.colors.inverse_surface = Color::from_rgb8(10, 90, 30);
+            theme.colors.inverse_on_surface = Color::WHITE;
+            let theme = signal(theme);
+            output.set(Some(theme));
+            Padding::all(40.0).child(Column::new().child(Tooltip::new(
+                "Local tip",
+                Keyed::new(
+                    "target",
+                    SizedBox::new(100.0, 20.0).child(Builder::new(move |cx| {
+                        cx.provide(theme);
+                        SizedBox::shrink()
+                    })),
+                ),
+            )))
+        })
+    };
+    hover_and_wait(&mut tester, "target");
+    let green = Color::from_rgb8(10, 90, 30);
+    let popup = tester
+        .frame()
+        .scene
+        .entries()
+        .iter()
+        .find_map(|e| match e.command {
+            Command::Fill { color, .. } if color == green => e.element,
+            _ => None,
+        })
+        .expect("tooltip inherits target's inverse surface");
+    let text = tester.find(&Finder::text("Local tip"));
+    let mut next = Theme::light();
+    next.colors.inverse_surface = Color::from_rgb8(120, 20, 40);
+    next.colors.inverse_on_surface = Color::BLACK;
+    let expected = next.colors.inverse_surface;
+    tester.enter(|| output.get().expect("theme").set(next));
+    tester.pump();
+    assert_eq!(tester.find(&Finder::text("Local tip")), text);
+    assert!(
+        tester
+            .frame()
+            .entries_for(popup)
+            .any(|e| matches!(e.command, Command::Fill { color, .. } if color == expected))
+    );
+    assert!(tester.frame().entries_for(text).any(|e| matches!(&e.command, Command::GlyphRun(run) if run.color == Color::BLACK && run.font_size == 12.0)));
+}

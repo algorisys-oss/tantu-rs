@@ -648,3 +648,42 @@ fn gallery_18_kitchen_sink_grid_header_controls_and_golden() {
     );
     assert_eq!(text_of(&t, "sink-grid-order"), "Order: Id, Score, Name");
 }
+
+#[test]
+fn gallery_19_kitchen_sink_popup_inherits_local_theme() {
+    let mut t = open_sink();
+    assert_eq!(
+        text_of(&t, "sink-popup-state"),
+        "Popup: hidden, theme: dark"
+    );
+    t.tap(&Finder::key("sink-overlay_portal"));
+    t.pump();
+    let popup = t.find(&Finder::key("sink-popup-close"));
+    let fills = |t: &WidgetTester, color| {
+        t.frame()
+            .entries_for(popup)
+            .any(|e| matches!(e.command, Command::Fill { color: c, .. } if c == color))
+    };
+    assert!(fills(&t, Theme::dark().colors.primary));
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-sink-popup.png"
+    ));
+    t.tap(&Finder::key("sink-popup-dark"));
+    t.pump();
+    assert_eq!(t.find(&Finder::key("sink-popup-close")), popup);
+    assert!(fills(&t, Theme::light().colors.primary));
+    assert_eq!(
+        text_of(&t, "sink-popup-state"),
+        "Popup: visible, theme: light"
+    );
+    // The global gallery switch is outside the target and closes the popup on press.
+    t.tap(&Finder::key("dark"));
+    assert!(t.find_all(&Finder::key("sink-popup-close")).is_empty());
+    t.tap(&Finder::key("sink-overlay_portal"));
+    t.pump();
+    let close = t.find(&Finder::key("sink-popup-close"));
+    assert!(t.frame().entries_for(close).any(|e| matches!(e.command, Command::Fill { color, .. } if color == Theme::light().colors.primary)), "local light theme overrides global dark");
+    t.tap(&Finder::key("sink-popup-close"));
+    assert!(t.find_all(&Finder::key("sink-popup-close")).is_empty());
+}

@@ -488,3 +488,249 @@ impl<V: View> View for KeyLogged<V> {
         id
     }
 }
+
+// Portal inheritance amendment: VIEW-OVERLAY-08..10.
+#[derive(Clone)]
+struct ContextName(&'static str);
+#[derive(Clone)]
+struct ContextDensity(u8);
+
+struct ContextReader(&'static str, Rc<RefCell<Vec<String>>>);
+impl View for ContextReader {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let name = cx.inherit::<ContextName>().map_or("none", |v| v.0);
+        let density = cx.inherit::<ContextDensity>().map_or(0, |v| v.0);
+        assert!(cx.inherit::<bool>().is_none());
+        self.1
+            .borrow_mut()
+            .push(format!("{}: {name}/{density}", self.0));
+        boxed(80.0, 30.0).build(cx)
+    }
+}
+
+/// Provides on the actual target element, with a further descendant override.
+struct ProvidingTarget;
+impl View for ProvidingTarget {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        cx.render(
+            RenderConstrainedBox::sized(Some(100.0), Some(40.0)),
+            [AnyView::new(tantu_view::Builder::new(|cx| {
+                cx.provide(ContextName("target"));
+                tantu_view::Provide::new(ContextName("descendant"), boxed(100.0, 40.0))
+            }))],
+        )
+    }
+}
+
+#[test]
+fn view_overlay_08_inherits_target_context_without_structural_reparenting() {
+    use tantu_view::Provide;
+    let log: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut tree = {
+        let log = log.clone();
+        ViewTree::new(move || {
+            Provide::new(
+                ContextName("ancestor"),
+                Provide::new(
+                    ContextDensity(4),
+                    OverlayPortal::new(Keyed::new("context-target", ProvidingTarget))
+                        .visible(true)
+                        .overlay(move || {
+                            Keyed::new("context-popup", ContextReader("popup", log.clone()))
+                        }),
+                ),
+            )
+        })
+    };
+    frame(&mut tree);
+    assert_eq!(&*log.borrow(), &["popup: target/4"]);
+    let popup = find(&tree, "context-popup").expect("popup");
+    let target = find(&tree, "context-target").expect("target");
+    let wrapper = tree.parent(popup).expect("wrapper");
+    let layer = tree.parent(wrapper).expect("layer");
+    assert_eq!(tree.parent(layer), Some(tree.root()));
+    assert_ne!(layer, target);
+    assert!(
+        tree.inherited_on::<ContextName>(wrapper).is_none(),
+        "values are not copied"
+    );
+    assert_eq!(rect(&tree, popup).size(), Size::new(80.0, 30.0));
+}
+
+#[test]
+fn view_overlay_09_local_nested_and_sibling_providers() {
+    use tantu_view::Provide;
+    let log: Rc<RefCell<Vec<String>>> = Rc::default();
+    let visible = Rc::new(Cell::new(None));
+    let mut tree = {
+        let log = log.clone();
+        let visible = visible.clone();
+        ViewTree::new(move || {
+            let shown = signal(true);
+            visible.set(Some(shown));
+            let nested_log = log.clone();
+            let sibling_log = log.clone();
+            ClippedStack(vec![
+                AnyView::new(Provide::new(
+                    ContextName("outer"),
+                    Provide::new(
+                        ContextDensity(2),
+                        OverlayPortal::new(Keyed::new("outer-target", boxed(100.0, 40.0)))
+                            .visible(shown)
+                            .overlay(move || {
+                                let nested_log = nested_log.clone();
+                                Provide::new(
+                                    ContextName("popup-local"),
+                                    OverlayPortal::new(Keyed::new(
+                                        "nested-target",
+                                        ContextReader("local", nested_log.clone()),
+                                    ))
+                                    .visible(true)
+                                    .overlay(move || {
+                                        Keyed::new(
+                                            "nested-popup",
+                                            ContextReader("nested", nested_log.clone()),
+                                        )
+                                    }),
+                                )
+                            }),
+                    ),
+                )),
+                AnyView::new(Provide::new(
+                    ContextName("sibling"),
+                    Provide::new(
+                        ContextDensity(7),
+                        OverlayPortal::new(boxed(100.0, 40.0))
+                            .visible(true)
+                            .overlay(move || {
+                                Keyed::new(
+                                    "sibling-popup",
+                                    ContextReader("sibling", sibling_log.clone()),
+                                )
+                            }),
+                    ),
+                )),
+            ])
+        })
+    };
+    frame(&mut tree);
+    assert_eq!(
+        &*log.borrow(),
+        &[
+            "local: popup-local/2",
+            "nested: popup-local/2",
+            "sibling: sibling/7"
+        ]
+    );
+    tree.enter(|| visible.get().expect("shown").set(false));
+    frame(&mut tree);
+    assert!(find(&tree, "nested-target").is_none());
+    assert!(find(&tree, "nested-popup").is_none());
+    assert!(find(&tree, "sibling-popup").is_some());
+}
+
+struct ContextOwner;
+#[derive(Clone)]
+struct OwnerValue(Rc<ContextOwner>);
+struct ReactiveContextReader(Rc<RefCell<Vec<ElementId>>>);
+impl View for ReactiveContextReader {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let color = cx.inherit::<Signal<Color>>();
+        let owner = cx.inherit::<OwnerValue>();
+        assert!(owner.is_some(), "owner context reaches dynamic content");
+        // Cloned ownership is temporary; no provider snapshot is retained.
+        let _ = owner.map(|v| v.0);
+        let id = boxed(80.0, 30.0).build(cx);
+        if let Some(color) = color {
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || color.get())),
+                |e, color| {
+                    e.update_paint::<Fill>(|p| p.0 = color);
+                },
+            );
+        }
+        self.0.borrow_mut().push(id);
+        id
+    }
+}
+
+#[test]
+fn view_overlay_10_reactive_rebuild_hide_show_and_provider_removal() {
+    use tantu_view::{Dyn, Provide};
+    type Handles = (Signal<bool>, Signal<bool>, Signal<Color>, Signal<u32>);
+    let handles: Rc<Cell<Option<Handles>>> = Rc::default();
+    let weak: Rc<RefCell<Option<std::rc::Weak<ContextOwner>>>> = Rc::default();
+    let ids: Rc<RefCell<Vec<ElementId>>> = Rc::default();
+    let disposed = Rc::new(Cell::new(0));
+    let mut tree = {
+        let (handles, weak, ids, disposed) =
+            (handles.clone(), weak.clone(), ids.clone(), disposed.clone());
+        ViewTree::new(move || {
+            let (present, visible, version) = (signal(true), signal(false), signal(0u32));
+            Show::new(
+                move || present.get(),
+                move || {
+                    let color = signal(Color::BLACK);
+                    handles.set(Some((present, visible, color, version)));
+                    let owner = Rc::new(ContextOwner);
+                    *weak.borrow_mut() = Some(Rc::downgrade(&owner));
+                    let (ids, disposed) = (ids.clone(), disposed.clone());
+                    Provide::new(
+                        OwnerValue(owner),
+                        Provide::new(
+                            color,
+                            OverlayPortal::new(Keyed::new("reactive-target", boxed(100.0, 40.0)))
+                                .visible(visible)
+                                .overlay(move || {
+                                    let disposed = disposed.clone();
+                                    on_cleanup(move || disposed.set(disposed.get() + 1));
+                                    let ids = ids.clone();
+                                    Dyn::new(move || {
+                                        let _ = version.get();
+                                        Keyed::new(
+                                            "reactive-popup",
+                                            ReactiveContextReader(ids.clone()),
+                                        )
+                                    })
+                                }),
+                        ),
+                    )
+                },
+            )
+        })
+    };
+    frame(&mut tree);
+    let (present, visible, color, version) = handles.get().expect("handles");
+    tree.enter(|| visible.set(true));
+    frame(&mut tree);
+    let first = find(&tree, "reactive-popup").expect("shown");
+    tree.enter(|| color.set(Color::WHITE));
+    let scene = frame(&mut tree);
+    assert_eq!(find(&tree, "reactive-popup"), Some(first));
+    assert!(scene.entries().iter().any(|e| e.element == Some(first)
+        && matches!(e.command, Command::Fill { color, .. } if color == Color::WHITE)));
+    tree.enter(|| version.set(1));
+    frame(&mut tree);
+    let rebuilt = find(&tree, "reactive-popup").expect("rebuilt");
+    assert_ne!(rebuilt, first);
+    assert_eq!(ids.borrow().len(), 2);
+    tree.enter(|| visible.set(false));
+    frame(&mut tree);
+    assert_eq!(disposed.get(), 1);
+    assert!(find(&tree, "reactive-popup").is_none());
+    assert!(weak.borrow().as_ref().expect("owner").upgrade().is_some());
+    tree.enter(|| visible.set(true));
+    let scene = frame(&mut tree);
+    let again = find(&tree, "reactive-popup").expect("shown again");
+    assert_ne!(again, rebuilt);
+    assert!(scene.entries().iter().any(|e| e.element == Some(again)
+        && matches!(e.command, Command::Fill { color, .. } if color == Color::WHITE)));
+    tree.enter(|| present.set(false));
+    frame(&mut tree);
+    assert_eq!(disposed.get(), 2);
+    assert!(find(&tree, "reactive-target").is_none());
+    assert!(find(&tree, "reactive-popup").is_none());
+    assert!(weak.borrow().as_ref().expect("owner").upgrade().is_none());
+    assert_eq!(tree.enter(|| color.try_get()), None);
+}

@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (overlay inheritance amendment agreed; tests next)_
+_Last updated: 2026-10-12 (overlay inheritance failing regressions committed; implementation next)_
 
 ## Resume here (2026-10-12)
 
@@ -1373,7 +1373,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `2900d3c` | test: measure header/body cell centers correctly (text is centered in 36/32 px cells) |
 | `9d78f30` | impl: bounded stress app/cadence stats, kitchen-sink grid refresh, goldens, README and architecture diagram; all checks pass, PLAN.md ticked and HANDOFF.md current |
 | `3c7da2f` | docs: record the user's local-only performance testing preference; GitHub CI has no benchmark or native stress-app run |
-| _this commit_ | spec: overlay portal inheritance agreed, ADR 0014, tooltip target-theme and GALLERY-19 amendments; architecture and PLAN.md current |
+| `714e70d` | spec: overlay portal inheritance agreed, ADR 0014, tooltip target-theme and GALLERY-19 amendments; architecture and PLAN.md current |
+| _this commit_ | test: VIEW-OVERLAY-08..10, tooltip target-theme and GALLERY-19; all five new tests compile and fail for missing context/demo behavior |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
