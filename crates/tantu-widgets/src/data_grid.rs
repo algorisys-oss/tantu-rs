@@ -124,6 +124,25 @@ pub struct SortState {
 /// A predicate over a source's rows (WIDGETS-GRID-12).
 pub type RowFilter = Rc<dyn Fn(&dyn DataSource, usize) -> bool>;
 
+/// Why a cell edit could not be committed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GridEditError {
+    /// The source does not support writing this cell.
+    ReadOnly,
+    /// The draft cannot be converted to the original value's type.
+    InvalidValue,
+    /// The source rejected the value, with a message for the user.
+    Rejected(String),
+}
+
+impl fmt::Display for GridEditError {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!("WIDGETS-GRID-23: edit errors")
+    }
+}
+
+impl std::error::Error for GridEditError {}
+
 /// Where a grid's rows come from. Indices are 0-based; the grid asks only for the cells it
 /// shows, each time it builds or refreshes them, so `cell` should be cheap or cached.
 pub trait DataSource: 'static {
@@ -131,6 +150,16 @@ pub trait DataSource: 'static {
     fn row_count(&self) -> usize;
     /// The value of a cell; `Empty` for one that doesn't exist (yet).
     fn cell(&self, row: usize, column: usize) -> CellValue;
+    /// Writes source indices synchronously; success exposes the accepted value through
+    /// `cell`, and rejection leaves the data unchanged. Default: read-only.
+    fn set_cell(
+        &self,
+        _row: usize,
+        _column: usize,
+        _value: CellValue,
+    ) -> Result<(), GridEditError> {
+        todo!("WIDGETS-GRID-23: default read-only setter")
+    }
 }
 
 /// A source computed from a closure, for generated or lazily loaded data.
@@ -176,6 +205,10 @@ pub struct GridColumn {
 }
 
 impl GridColumn {
+    /// Allows a text editor in this column (default false), replacing any custom builder.
+    pub fn editable(self, _editable: bool) -> Self {
+        self // WIDGETS-GRID-23..28: compiling stub
+    }
     /// A column titled `title`, 120 px wide, showing values as text.
     pub fn new(title: impl Into<String>) -> Self {
         GridColumn {
@@ -245,6 +278,10 @@ pub struct DataGrid {
 }
 
 impl DataGrid {
+    /// Reports a failed commit with source coordinates; the editor retains its draft.
+    pub fn on_edit_error(self, _handler: impl Fn(GridCell, GridEditError) + 'static) -> Self {
+        self // WIDGETS-GRID-26..27: compiling stub
+    }
     /// Enables row, cell or rectangular selection (default disabled).
     pub fn selection_mode(mut self, mode: GridSelectionMode) -> Self {
         self.selection_mode = mode;

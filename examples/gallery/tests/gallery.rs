@@ -22,6 +22,65 @@ fn nav(section: &str) -> String {
 }
 
 #[test]
+fn gallery_17_grid_editors() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.tap(&Finder::key(nav("Data grid")));
+    t.pump();
+    assert_eq!(text_of(&t, "grid-edit-error"), "Edit error: none");
+    t.tap(&Finder::text("Person 2"));
+    t.press_key(LogicalKey::Named(NamedKey::F(2)), Modifiers::default());
+    t.pump();
+    assert!(
+        t.a11y_tree()
+            .nodes
+            .iter()
+            .any(|(_, n)| n.role() == tantu_test::accesskit::Role::TextInput)
+    );
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-grid-editor.png"
+    ));
+    for c in "Edited".chars() {
+        t.press_key(
+            LogicalKey::Character(c.to_string().into()),
+            Modifiers::default(),
+        );
+    }
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    t.pump();
+    t.find(&Finder::text("Edited"));
+    t.tap(&Finder::text("Person 3"));
+    t.tap(&Finder::text("Person 3"));
+    t.pump();
+    t.press_key(LogicalKey::Named(NamedKey::Escape), Modifiers::default());
+    t.pump();
+    t.find(&Finder::text("Person 3"));
+    t.press_key(LogicalKey::Named(NamedKey::End), Modifiers::default());
+    t.pump();
+    t.press_key(LogicalKey::Named(NamedKey::F(2)), Modifiers::default());
+    t.pump();
+    for c in "101".chars() {
+        t.press_key(
+            LogicalKey::Character(c.to_string().into()),
+            Modifiers::default(),
+        );
+    }
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    t.pump();
+    assert_eq!(
+        text_of(&t, "grid-edit-error"),
+        "Edit error: Score must be between 0 and 100"
+    );
+    assert!(
+        t.a11y_tree()
+            .nodes
+            .iter()
+            .any(|(_, n)| n.role() == tantu_test::accesskit::Role::TextInput)
+    );
+}
+
+#[test]
 fn gallery_16_grid_selection() {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
     tester.tap(&Finder::key(nav("Data grid")));

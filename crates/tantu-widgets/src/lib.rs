@@ -49,7 +49,9 @@ mod tooltip;
 mod util;
 
 pub use basic::{Button, Text};
-pub use data_grid::{CellValue, DataGrid, DataSource, FnSource, GridColumn, RowFilter, SortState};
+pub use data_grid::{
+    CellValue, DataGrid, DataSource, FnSource, GridColumn, GridEditError, RowFilter, SortState,
+};
 pub use divider::{Divider, VerticalDivider};
 pub use focus_scope::FocusScope;
 pub use grid_selection::{GridCell, GridSelection, GridSelectionController, GridSelectionMode};
