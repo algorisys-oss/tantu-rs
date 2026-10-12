@@ -12,6 +12,29 @@ use tantu_view::{
 
 type Log = Rc<RefCell<Vec<String>>>;
 
+#[test]
+fn view_focus_10_build_context_focus_and_invalid_targets() {
+    struct FocusOnBuild(Log);
+    impl View for FocusOnBuild {
+        fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+            let id = cx.render(RenderConstrainedBox::shrink(), []);
+            assert!(!cx.focus(id));
+            cx.focusable(id, FocusOptions::default());
+            let log = self.0;
+            cx.on_focus_change(id, move |on| log.borrow_mut().push(on.to_string()));
+            assert!(cx.focus(id));
+            assert_eq!(cx.tree().focused(), Some(id));
+            let invalid = ElementId::from_raw(u64::MAX).expect("nonzero id");
+            assert!(!cx.focus(invalid));
+            assert_eq!(cx.tree().focused(), Some(id));
+            id
+        }
+    }
+    let log = Rc::new(RefCell::new(Vec::new()));
+    let _tree = ViewTree::new(|| FocusOnBuild(log.clone()));
+    assert_eq!(&*log.borrow(), &["true"]);
+}
+
 /// A box (100 × 20, or sized by its children) that can be focusable and logs focus changes,
 /// key events and pointer presses.
 struct Node {

@@ -211,6 +211,10 @@ pub struct KeyCx<'a> {
 }
 
 impl BuildCx<'_> {
+    /// Focuses a live focusable element during building, without scrolling it into view.
+    pub fn focus(&mut self, _element: ElementId) -> bool {
+        false // VIEW-FOCUS-10: compiling stub
+    }
     /// Makes `element` focusable.
     pub fn focusable(&mut self, element: ElementId, options: FocusOptions) {
         if self.tree.contains(element) {
