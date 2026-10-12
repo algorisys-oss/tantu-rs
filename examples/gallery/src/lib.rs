@@ -22,6 +22,43 @@ pub const SECTIONS: [&str; 8] = [
     "Data grid",
 ];
 
+/// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
+/// `sink-<widget>`) (GALLERY-12).
+pub const SINK_CARDS: [(&str, &[&str]); 12] = [
+    ("buttons", &["button", "icon_button", "tooltip"]),
+    ("toggles", &["checkbox", "radio", "switch"]),
+    ("slider", &["slider"]),
+    (
+        "text",
+        &["text", "rich_text", "divider", "vertical_divider"],
+    ),
+    ("fields", &["text_field"]),
+    ("media", &["icon", "image"]),
+    ("lists", &["list_view"]),
+    ("grid", &["data_grid"]),
+    (
+        "layout",
+        &[
+            "row",
+            "column",
+            "expanded",
+            "flexible",
+            "spacer",
+            "stack",
+            "positioned",
+            "center",
+            "align",
+            "padding",
+            "sized_box",
+            "constrained_box",
+            "limited_box",
+        ],
+    ),
+    ("scrolling", &["scroll_view"]),
+    ("animation", &["opacity", "animated_switcher"]),
+    ("focus", &["focus_scope"]),
+];
+
 const PRIMARY: Color = Color::from_argb32(0xFF67_50A4);
 const RED: Color = Color::from_argb32(0xFFB3_261E);
 

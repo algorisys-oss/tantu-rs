@@ -1,6 +1,7 @@
-//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..11.
+//! Tests for `docs/specs/examples/gallery.md`, rules GALLERY-01..11, and
+//! `docs/specs/examples/kitchen-sink.md`, GALLERY-12..14.
 
-use gallery::{SECTIONS, gallery};
+use gallery::{SECTIONS, SINK_CARDS, gallery};
 use tantu::core::{Rect, Vec2};
 use tantu::scene::Command;
 use tantu::theme::Theme;
@@ -266,4 +267,118 @@ fn gallery_11_sortable_headers() {
     assert_eq!(text_of(&tester, "sort"), "Sort: City descending");
     tester.tap(&Finder::text("City"));
     assert_eq!(text_of(&tester, "sort"), "Sort: none");
+}
+
+/// Opens the Kitchen sink section and lets its first frames settle.
+fn open_sink() -> WidgetTester {
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    tester.tap(&Finder::key(nav("Kitchen sink")));
+    tester.pump();
+    tester.pump();
+    tester
+}
+
+fn sink_rect(tester: &WidgetTester, key: &str) -> Rect {
+    rect(tester, &format!("sink-{key}"))
+}
+
+#[test]
+fn gallery_12_kitchen_sink_cards() {
+    assert_eq!(SECTIONS.last(), Some(&"Kitchen sink"));
+    let mut tester = open_sink();
+    tester.find(&Finder::key("kitchen-sink"));
+    let page = rect(&tester, "sink");
+    let first = sink_rect(&tester, SINK_CARDS[0].0);
+    assert!(
+        (first.top - page.top).abs() < 1.0,
+        "first card at the top: {first:?} in {page:?}"
+    );
+    // Every card and every widget it lists, scrolled into view in turn.
+    for (card, widgets) in SINK_CARDS {
+        tester.ensure_visible(&Finder::key(format!("sink-{card}")));
+        tester.pump();
+        for widget in widgets.iter() {
+            assert!(
+                !tester
+                    .find_all(&Finder::key(format!("sink-{widget}")))
+                    .is_empty(),
+                "card {card} lacks {widget}"
+            );
+        }
+    }
+    // Taller than the window: a wheel step moves the page.
+    tester.scroll(&Finder::key("sink"), Vec2::new(-1e6, -1e6));
+    tester.advance(std::time::Duration::from_millis(200));
+    let before = sink_rect(&tester, "buttons").top;
+    tester.scroll(&Finder::key("sink"), Vec2::new(0.0, 300.0));
+    tester.advance(std::time::Duration::from_millis(200));
+    assert_eq!(sink_rect(&tester, "buttons").top, before - 300.0);
+}
+
+#[test]
+fn gallery_13_kitchen_sink_echoes() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    let mut tester = open_sink();
+    let state = |t: &WidgetTester, card: &str| text_of(t, &format!("sink-{card}-state"));
+    // Buttons.
+    assert_eq!(state(&tester, "buttons"), "Pressed 0");
+    tester.tap(&Finder::key("sink-button"));
+    assert_eq!(state(&tester, "buttons"), "Pressed 1");
+    // Toggles.
+    tester.ensure_visible(&Finder::key("sink-toggles"));
+    tester.pump();
+    assert_eq!(
+        state(&tester, "toggles"),
+        "Checkbox on, Radio b, Switch off"
+    );
+    tester.tap(&Finder::key("sink-checkbox"));
+    tester.tap(&Finder::key("sink-radio-c"));
+    tester.tap(&Finder::key("sink-switch"));
+    assert_eq!(
+        state(&tester, "toggles"),
+        "Checkbox off, Radio c, Switch on"
+    );
+    // Fields.
+    tester.ensure_visible(&Finder::key("sink-fields"));
+    tester.pump();
+    assert_eq!(state(&tester, "fields"), "Typed: ");
+    tester.enter_text(&Finder::key("sink-text_field"), "hi");
+    assert_eq!(state(&tester, "fields"), "Typed: hi");
+    // Grid: the filter switch and a header sort.
+    tester.ensure_visible(&Finder::key("sink-grid"));
+    tester.pump();
+    assert_eq!(state(&tester, "grid"), "Sort: none, rows 1000");
+    tester.tap(&Finder::key("sink-grid-filter"));
+    assert_eq!(state(&tester, "grid"), "Sort: none, rows 500");
+    tester.tap(&Finder::text("Id"));
+    assert_eq!(state(&tester, "grid"), "Sort: Id ascending, rows 500");
+    tester.tap(&Finder::text("Id"));
+    assert_eq!(state(&tester, "grid"), "Sort: Id descending, rows 500");
+    tester.find(&Finder::text("998"));
+    // Focus: a tap focuses a button in the scope, Tab wraps inside it.
+    tester.ensure_visible(&Finder::key("sink-focus"));
+    tester.pump();
+    tester.tap(&Finder::key("sink-focus-two"));
+    tester.press_key(LogicalKey::Named(NamedKey::Tab), Modifiers::default());
+    assert_eq!(state(&tester, "focus"), "Focus: Three");
+    tester.press_key(LogicalKey::Named(NamedKey::Tab), Modifiers::default());
+    assert_eq!(state(&tester, "focus"), "Focus: One");
+}
+
+#[test]
+fn gallery_14_kitchen_sink_goldens() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    let mut tester = open_sink();
+    tester.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-sink-top.png"
+    ));
+    // A tap on the page's heading area focuses the scroll view; End goes to the bottom.
+    tester.tap(&Finder::key("sink-text"));
+    tester.press_key(LogicalKey::Named(NamedKey::End), Modifiers::default());
+    tester.pump();
+    tester.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-sink-end.png"
+    ));
 }
