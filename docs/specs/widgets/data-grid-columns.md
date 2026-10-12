@@ -71,7 +71,8 @@ it shows, given by `column_order`; `frozen_columns` counts display positions.
   a handle) followed by a move of more than 4 px horizontally picks the column up: while it is
   held, the header strip paints a 2 px `primary` drop line at the column boundary nearest the
   pointer's x (between two display positions, or after the last) and the held header's cell
-  a `surface_variant` background; the release moves the column to that boundary by rewriting
+  a `surface_container_highest` background (the scheme's raised surface; it has no
+  `surface_variant`); the release moves the column to that boundary by rewriting
   `column_order` (source indices in display order; a drop at the column's own position or
   the one after it changes nothing) and ends the drag without sorting. Without `reorderable`
   a header press never starts a drag. `column_order` shorter than the columns, or with
