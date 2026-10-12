@@ -606,14 +606,56 @@ fn widgets_tree_05_repeat_and_key_release_do_not_activate_or_toggle() {
 #[test]
 fn widgets_tree_10_hover_and_theme_colors_update_without_state_reset() {
     use tantu_view::scene::Command;
-    let mut f=Fixture::with(model(),&[0]);let id=f.item(0);
-    f.t.hover(&Finder::text("Node 0"));f.pump();
-    let hover=Theme::light().colors.on_surface.with_alpha(0.08);
-    assert!(f.t.frame().scene.entries().iter().any(|e|e.element==Some(id) && matches!(e.command,Command::Fill{color,..} if color==hover)));
-    f.t.enter(||f.t.theme().set(Theme::dark()));f.pump();
-    let hover=Theme::dark().colors.on_surface.with_alpha(0.08);
-    assert!(f.t.frame().scene.entries().iter().any(|e|e.element==Some(id) && matches!(e.command,Command::Fill{color,..} if color==hover)));
-    assert!(f.t.enter(||f.h.expanded.get()).contains(&Id(0)));
-    f.t.pointer(PointerEvent{kind:PointerKind::Leave,position:Point::ZERO,modifiers:Default::default()});f.pump();
-    assert!(!f.t.frame().scene.entries().iter().any(|e|e.element==Some(id) && matches!(e.command,Command::Fill{color,..} if color==hover)));
+    let mut f = Fixture::with(model(), &[0]);
+    let id = f.item(0);
+    f.t.hover(&Finder::text("Node 0"));
+    f.pump();
+    let hover = Theme::light().colors.on_surface.with_alpha(0.08);
+    assert!(
+        f.t.frame()
+            .scene
+            .entries()
+            .iter()
+            .any(|e| e.element == Some(id)
+                && matches!(e.command,Command::Fill{color,..} if color==hover))
+    );
+    f.t.enter(|| f.t.theme().set(Theme::dark()));
+    f.pump();
+    let hover = Theme::dark().colors.on_surface.with_alpha(0.08);
+    assert!(
+        f.t.frame()
+            .scene
+            .entries()
+            .iter()
+            .any(|e| e.element == Some(id)
+                && matches!(e.command,Command::Fill{color,..} if color==hover))
+    );
+    assert!(f.t.enter(|| f.h.expanded.get()).contains(&Id(0)));
+    f.t.pointer(PointerEvent {
+        kind: PointerKind::Leave,
+        position: Point::ZERO,
+        modifiers: Default::default(),
+    });
+    f.pump();
+    assert!(
+        !f.t.frame()
+            .scene
+            .entries()
+            .iter()
+            .any(|e| e.element == Some(id)
+                && matches!(e.command,Command::Fill{color,..} if color==hover))
+    );
+}
+
+#[test]
+fn widgets_tree_07_unchanged_revision_and_expansion_do_not_enumerate() {
+    let m=model();let mut f=Fixture::with(m.clone(),&[0]);let queries=m.queries.get();
+    f.t.enter(|| {f.h.revision.set(0);f.h.expanded.set(BTreeSet::from([Id(0)]));});f.pump();
+    assert_eq!(m.queries.get(),queries);
+}
+
+#[test]
+fn widgets_tree_10_closed_branch_golden() {
+    let mut f=Fixture::with(model(),&[]);
+    f.t.matches_golden(concat!(env!("CARGO_MANIFEST_DIR"),"/tests/goldens/tree-closed.png"));
 }
