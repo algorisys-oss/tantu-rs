@@ -150,6 +150,7 @@ fn test_wt_04_tap_and_hover() {
         assert!(tester.pointer(PointerEvent {
             kind,
             position: center,
+            modifiers: Default::default(),
         }));
     }
     tester.find(&Finder::text("Count: 0"));

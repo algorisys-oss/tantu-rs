@@ -198,9 +198,15 @@ impl WidgetTester {
             self.pointer(PointerEvent {
                 kind,
                 position: center,
+                modifiers: Default::default(),
             });
         }
         self.pump();
+    }
+
+    /// Primary press and release with `modifiers`, then a pump.
+    pub fn tap_with_modifiers(&mut self, _finder: &Finder, _modifiers: Modifiers) {
+        todo!("TEST-WT-16")
     }
 
     /// A pointer move to the center of the single element `finder` matches, then a pump.
@@ -209,6 +215,7 @@ impl WidgetTester {
         self.pointer(PointerEvent {
             kind: PointerKind::Move,
             position: center,
+            modifiers: Default::default(),
         });
         self.pump();
     }
@@ -224,7 +231,11 @@ impl WidgetTester {
             (PointerKind::Move, end),
             (PointerKind::Up(PointerButton::Primary), end),
         ] {
-            self.pointer(PointerEvent { kind, position });
+            self.pointer(PointerEvent {
+                kind,
+                position,
+                modifiers: Default::default(),
+            });
             self.pump();
         }
     }
@@ -253,6 +264,7 @@ impl WidgetTester {
         self.pointer(PointerEvent {
             kind: PointerKind::Scroll(delta),
             position: center,
+            modifiers: Default::default(),
         });
         self.pump();
     }

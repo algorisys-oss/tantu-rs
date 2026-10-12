@@ -99,6 +99,20 @@ pub struct SemanticsActions {
 /// What assistive technology is told about an element (VIEW-SEM-01).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Semantics {
+    /// Total displayed body rows, excluding headers.
+    pub row_count: Option<usize>,
+    /// Total displayed columns.
+    pub column_count: Option<usize>,
+    /// Zero-based body row index.
+    pub row_index: Option<usize>,
+    /// Zero-based display column index.
+    pub column_index: Option<usize>,
+    /// A column header's sort direction.
+    pub sort_direction: Option<SortDirection>,
+    /// Whether multiple items may be selected.
+    pub multiselectable: bool,
+    /// A composite widget's current semantic descendant.
+    pub active_descendant: Option<ElementId>,
     /// What the element is.
     pub role: Role,
     /// The accessible name (a label, a button's text).
@@ -117,6 +131,15 @@ pub struct Semantics {
     pub focusable: bool,
     /// The supported actions.
     pub actions: SemanticsActions,
+}
+
+/// A column header's sorting direction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SortDirection {
+    /// Ascending order.
+    Ascending,
+    /// Descending order.
+    Descending,
 }
 
 /// What assistive technology asked for (VIEW-SEM-03).
@@ -270,10 +293,12 @@ impl ViewTree {
                 let down = self.dispatch_pointer(PointerEvent {
                     kind: PointerKind::Down(PointerButton::Primary),
                     position: center,
+                    modifiers: Default::default(),
                 });
                 let up = self.dispatch_pointer(PointerEvent {
                     kind: PointerKind::Up(PointerButton::Primary),
                     position: center,
+                    modifiers: Default::default(),
                 });
                 down || up
             }

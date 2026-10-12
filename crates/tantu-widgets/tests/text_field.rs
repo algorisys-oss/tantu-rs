@@ -359,6 +359,7 @@ fn widgets_textfield_06_pointer() {
         tester.pointer(PointerEvent {
             kind: PointerKind::Down(PointerButton::Primary),
             position: Point::new(x, y),
+            modifiers: Default::default(),
         });
         tester.pump();
     };
@@ -366,6 +367,7 @@ fn widgets_textfield_06_pointer() {
         tester.pointer(PointerEvent {
             kind: PointerKind::Up(PointerButton::Primary),
             position: Point::new(x, y),
+            modifiers: Default::default(),
         });
         tester.pump();
     };
@@ -381,6 +383,7 @@ fn widgets_textfield_06_pointer() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(editor.right + 50.0, y),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(sel(&tester, c), TextSelection::new(0, 11));
@@ -398,6 +401,7 @@ fn widgets_textfield_06_pointer() {
     tree.dispatch_pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(20.0, 20.0),
+        modifiers: Default::default(),
     });
     assert_eq!(tree.cursor(), CursorIcon::Text);
 }
@@ -519,10 +523,12 @@ fn widgets_textfield_09_caret_following() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(x, editor.center().y),
+        modifiers: Default::default(),
     });
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(x, editor.center().y),
+        modifiers: Default::default(),
     });
     tester.pump();
     let offset = sel(&tester, c).extent;
@@ -588,6 +594,7 @@ fn widgets_textfield_11_double_click_selects_a_word() {
             tester.pointer(PointerEvent {
                 kind,
                 position: Point::new(x, y),
+                modifiers: Default::default(),
             });
         }
         tester.pump();
@@ -620,12 +627,14 @@ fn widgets_textfield_11_double_click_selects_a_word() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(in_world, y),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(sel(&tester, c), TextSelection::new(6, 11));
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(in_hello, y),
+        modifiers: Default::default(),
     });
     tester.pump();
     let dragged = sel(&tester, c);
@@ -633,6 +642,7 @@ fn widgets_textfield_11_double_click_selects_a_word() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(in_hello, y),
+        modifiers: Default::default(),
     });
     tester.pump();
     // Too far apart: not a double-click.
@@ -654,6 +664,7 @@ fn widgets_textfield_11_double_click_selects_a_word() {
             tester.pointer(PointerEvent {
                 kind,
                 position: Point::new(x, y),
+                modifiers: Default::default(),
             });
         }
         tester.advance(ms(50));

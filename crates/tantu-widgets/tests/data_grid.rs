@@ -270,14 +270,17 @@ fn widgets_grid_04_scrolling() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: start,
+        modifiers: Default::default(),
     });
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(start.x, start.y + 50.0),
+        modifiers: Default::default(),
     });
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(start.x, start.y + 50.0),
+        modifiers: Default::default(),
     });
     tester.pump();
     // track 360, thumb 24 (the minimum): 50 px of track are 50 · max / 336 of content.
@@ -809,7 +812,11 @@ fn drag_at(tester: &mut WidgetTester, from: Point, to: Point) {
         (PointerKind::Move, to),
         (PointerKind::Up(PointerButton::Primary), to),
     ] {
-        tester.pointer(PointerEvent { kind, position });
+        tester.pointer(PointerEvent {
+            kind,
+            position,
+            modifiers: Default::default(),
+        });
         tester.pump();
     }
 }
@@ -866,22 +873,26 @@ fn widgets_grid_13_column_widths_and_resize() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(97.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(117.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(tester.enter(|| widths.get()), [120.0, 150.0, 120.0]);
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(137.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(137.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(tester.enter(|| widths.get()), [140.0, 150.0, 120.0]);
@@ -900,11 +911,13 @@ fn widgets_grid_13_column_widths_and_resize() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(317.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(317.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(tester.enter(|| widths.get()), [140.0, 60.0, 120.0]);
@@ -969,11 +982,13 @@ fn widgets_grid_14_reorder() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(300.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(40.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     let lines = fills(&tester, theme.primary);
@@ -993,6 +1008,7 @@ fn widgets_grid_14_reorder() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(40.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(tester.enter(|| order.get()), [2, 0, 1, 3]);
@@ -1082,17 +1098,20 @@ fn widgets_grid_15_click_sorts() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(180.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(read(&tester), None);
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(183.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(183.0, HEADER_Y),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(

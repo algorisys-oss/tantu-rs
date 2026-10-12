@@ -72,6 +72,8 @@ pub enum PointerKind {
 /// A pointer event in window coordinates (logical pixels).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PointerEvent {
+    /// The modifiers held when this event occurred.
+    pub modifiers: crate::Modifiers,
     /// What happened.
     pub kind: PointerKind,
     /// Where, in window coordinates.
@@ -322,7 +324,11 @@ impl ViewTree {
         let old = std::mem::replace(&mut self.events.hovered, under);
         let mut ran = false;
         let send = |id: ElementId, kind: PointerKind, ran: &mut bool| {
-            let event = PointerEvent { kind, position };
+            let event = PointerEvent {
+                kind,
+                position,
+                modifiers: Default::default(),
+            };
             self.enter(|| self.call(id, Phase::Bubble, &event, ran));
         };
         let new = &self.events.hovered;

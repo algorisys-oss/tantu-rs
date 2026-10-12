@@ -232,6 +232,7 @@ fn widgets_button_07_focus_indicator() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: center,
+        modifiers: Default::default(),
     });
     tester.pump();
     assert!(close(fill(&tester, "a"), over_white(PRIMARY, 0.12)));

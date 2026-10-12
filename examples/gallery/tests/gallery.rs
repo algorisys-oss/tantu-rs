@@ -22,6 +22,45 @@ fn nav(section: &str) -> String {
 }
 
 #[test]
+fn gallery_16_grid_selection() {
+    let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
+    tester.tap(&Finder::key(nav("Data grid")));
+    tester.pump();
+    assert_eq!(text_of(&tester, "grid-selection"), "Selection: none");
+    tester.tap(&Finder::text("Person 2"));
+    assert_eq!(text_of(&tester, "grid-selection"), "Selection: rows 2..2");
+    tester.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-grid-row-selection.png"
+    ));
+    tester.tap(&Finder::key("grid-mode-range"));
+    tester.pump();
+    tester.tap(&Finder::text("Person 2"));
+    tester.press_key(
+        tantu::view::LogicalKey::Named(tantu::view::NamedKey::ArrowDown),
+        tantu::view::Modifiers {
+            shift: true,
+            ..Default::default()
+        },
+    );
+    tester.press_key(
+        tantu::view::LogicalKey::Named(tantu::view::NamedKey::ArrowRight),
+        tantu::view::Modifiers {
+            shift: true,
+            ..Default::default()
+        },
+    );
+    assert_eq!(
+        text_of(&tester, "grid-selection"),
+        "Selection: (2, 1)..(3, 2)"
+    );
+    tester.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-grid-range-selection.png"
+    ));
+}
+
+#[test]
 fn gallery_01_structure_and_sections() {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
     assert_eq!(rect(&tester, "header").width(), 960.0);
@@ -291,6 +330,7 @@ fn gallery_15_resize_and_reorder() {
             tester.pointer(PointerEvent {
                 kind,
                 position: Point::new(grid.left + x, header_y),
+                modifiers: Default::default(),
             });
             tester.pump();
         }

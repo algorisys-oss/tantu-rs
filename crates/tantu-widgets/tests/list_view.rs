@@ -327,6 +327,7 @@ fn widgets_list_06_selection_and_keys() {
             tester.pointer(PointerEvent {
                 kind,
                 position: center,
+                modifiers: Default::default(),
             });
         }
         tester.advance(std::time::Duration::from_millis(50));

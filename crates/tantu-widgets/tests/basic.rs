@@ -175,6 +175,7 @@ fn press(tree: &mut ViewTree, kind: PointerKind, x: f32, y: f32) {
     tree.dispatch_pointer(PointerEvent {
         kind,
         position: Point::new(x, y),
+        modifiers: Default::default(),
     });
 }
 

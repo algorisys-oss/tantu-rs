@@ -197,12 +197,14 @@ fn widgets_scroll_04_scrollbar() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: start,
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(offset(&tester, c), 0.0);
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(start.x, start.y + 49.0),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert!(
@@ -213,10 +215,12 @@ fn widgets_scroll_04_scrollbar() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(start.x, start.y + 1000.0),
+        modifiers: Default::default(),
     });
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(start.x, start.y + 1000.0),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(offset(&tester, c), 800.0);
@@ -249,10 +253,12 @@ fn widgets_scroll_05_hit_testing_follows_the_scroll() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(150.0, 520.0),
+        modifiers: Default::default(),
     });
     tester.pointer(PointerEvent {
         kind: PointerKind::Up(PointerButton::Primary),
         position: Point::new(150.0, 520.0),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(presses.get(), 0);

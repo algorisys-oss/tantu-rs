@@ -74,6 +74,7 @@ impl GridScroll {
         self.tester.pointer(PointerEvent {
             kind: PointerKind::Scroll(Vec2::new(0.0, ROW_HEIGHT)),
             position: self.center,
+            modifiers: Default::default(),
         });
         self.tester.pump();
     }

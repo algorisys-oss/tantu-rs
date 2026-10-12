@@ -156,6 +156,7 @@ impl Fixture {
         self.tree.dispatch_pointer(PointerEvent {
             kind,
             position: Point::new(x, y),
+            modifiers: Default::default(),
         })
     }
 
@@ -322,6 +323,7 @@ fn view_event_02_handlers_write_signals() {
         tree.dispatch_pointer(PointerEvent {
             kind: PointerKind::Down(PointerButton::Primary),
             position: Point::new(10.0, 10.0),
+            modifiers: Default::default(),
         });
     }
     assert_eq!(tree.enter(|| count.get()), 3);
@@ -443,6 +445,7 @@ fn view_event_07_handler_sees_the_size() {
     tree.dispatch_pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: Point::new(10.0, 10.0),
+        modifiers: Default::default(),
     });
     assert_eq!(*sizes.borrow(), [Size::new(100.0, 50.0)]);
 }

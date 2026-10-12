@@ -474,7 +474,11 @@ fn pointer_event(event: &WindowEvent) -> Option<PointerEvent> {
         WindowEvent::PointerLeft { .. } => (PointerKind::Leave, Point::ZERO),
         _ => return None,
     };
-    Some(PointerEvent { kind, position })
+    Some(PointerEvent {
+        kind,
+        position,
+        modifiers: Default::default(),
+    })
 }
 
 /// The view layer's key for a platform key; `None` for modifier, lock and unidentified keys,

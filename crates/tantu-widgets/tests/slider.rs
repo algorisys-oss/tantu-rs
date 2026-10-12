@@ -116,6 +116,7 @@ fn pointer(tester: &mut WidgetTester, kind: PointerKind, x: f32) -> bool {
     let handled = tester.pointer(PointerEvent {
         kind,
         position: Point::new(x, 24.0),
+        modifiers: Default::default(),
     });
     tester.pump();
     handled
@@ -420,6 +421,7 @@ fn widgets_slider_07_state_layer() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: Point::new(150.0, 150.0),
+        modifiers: Default::default(),
     });
     tester.pump();
     assert_eq!(layer_alpha(&tester), Some(0.10));

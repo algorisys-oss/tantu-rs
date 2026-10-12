@@ -111,7 +111,11 @@ fn recorder<T: 'static>() -> (Calls<T>, impl Fn(T) + 'static) {
 }
 
 fn at(tester: &mut WidgetTester, kind: PointerKind, p: Point) {
-    tester.pointer(PointerEvent { kind, position: p });
+    tester.pointer(PointerEvent {
+        kind,
+        position: p,
+        modifiers: Default::default(),
+    });
     tester.pump();
 }
 

@@ -239,6 +239,16 @@ pub struct DataGrid {
 }
 
 impl DataGrid {
+    /// Enables row, cell or rectangular selection (default disabled).
+    pub fn selection_mode(self, _mode: crate::GridSelectionMode) -> Self {
+        todo!("WIDGETS-GRID-16")
+    }
+
+    /// Shares selection and source-cell mapping with the application.
+    pub fn selection_controller(self, _controller: crate::GridSelectionController) -> Self {
+        todo!("WIDGETS-GRID-16")
+    }
+
     /// A grid with `columns` over `source`.
     pub fn new(columns: impl IntoIterator<Item = GridColumn>, source: Rc<dyn DataSource>) -> Self {
         DataGrid {

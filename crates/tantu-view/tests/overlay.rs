@@ -340,6 +340,7 @@ fn press(tree: &mut ViewTree, x: f32, y: f32) {
         tree.dispatch_pointer(PointerEvent {
             kind,
             position: Point::new(x, y),
+            modifiers: Default::default(),
         });
     }
 }

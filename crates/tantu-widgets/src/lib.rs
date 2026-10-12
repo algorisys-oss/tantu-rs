@@ -29,6 +29,7 @@ mod basic;
 mod data_grid;
 mod divider;
 mod focus_scope;
+mod grid_selection;
 mod icon;
 #[cfg(feature = "material-icons")]
 mod icons;
@@ -51,6 +52,7 @@ pub use basic::{Button, Text};
 pub use data_grid::{CellValue, DataGrid, DataSource, FnSource, GridColumn, RowFilter, SortState};
 pub use divider::{Divider, VerticalDivider};
 pub use focus_scope::FocusScope;
+pub use grid_selection::{GridCell, GridSelection, GridSelectionController, GridSelectionMode};
 pub use icon::{Icon, IconButton, IconData};
 #[cfg(feature = "material-icons")]
 pub use icon::{MATERIAL_ICONS_FAMILY, MATERIAL_ICONS_FONT};

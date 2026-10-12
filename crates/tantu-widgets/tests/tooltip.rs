@@ -37,6 +37,7 @@ fn move_to(tester: &mut WidgetTester, p: Point) {
     tester.pointer(PointerEvent {
         kind: PointerKind::Move,
         position: p,
+        modifiers: Default::default(),
     });
     tester.pump();
 }
@@ -79,6 +80,7 @@ fn widgets_tooltip_01_hover_shows_leave_and_press_hide() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: center,
+        modifiers: Default::default(),
     });
     tester.pump();
     assert!(tooltip_box(&tester).is_none());
@@ -142,6 +144,7 @@ fn widgets_tooltip_03_pointer_passes_through() {
         tester.pointer(PointerEvent {
             kind,
             position: spot,
+            modifiers: Default::default(),
         });
     }
     assert_eq!(pressed.get(), 1);
@@ -227,6 +230,7 @@ fn widgets_tooltip_07_show_delay() {
     tester.pointer(PointerEvent {
         kind: PointerKind::Down(PointerButton::Primary),
         position: center,
+        modifiers: Default::default(),
     });
     tester.advance(Duration::from_millis(500));
     assert!(tooltip_box(&tester).is_none());
