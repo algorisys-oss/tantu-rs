@@ -602,3 +602,18 @@ fn widgets_tree_05_repeat_and_key_release_do_not_activate_or_toggle() {
     let root = raw_item(&t, "Node 0");
     assert_eq!(t.semantics(root).unwrap().expanded, Some(false));
 }
+
+#[test]
+fn widgets_tree_10_hover_and_theme_colors_update_without_state_reset() {
+    use tantu_view::scene::Command;
+    let mut f=Fixture::with(model(),&[0]);let id=f.item(0);
+    f.t.hover(&Finder::text("Node 0"));f.pump();
+    let hover=Theme::light().colors.on_surface.with_alpha(0.08);
+    assert!(f.t.frame().scene.entries().iter().any(|e|e.element==Some(id) && matches!(e.command,Command::Fill{color,..} if color==hover)));
+    f.t.enter(||f.t.theme().set(Theme::dark()));f.pump();
+    let hover=Theme::dark().colors.on_surface.with_alpha(0.08);
+    assert!(f.t.frame().scene.entries().iter().any(|e|e.element==Some(id) && matches!(e.command,Command::Fill{color,..} if color==hover)));
+    assert!(f.t.enter(||f.h.expanded.get()).contains(&Id(0)));
+    f.t.pointer(PointerEvent{kind:PointerKind::Leave,position:Point::ZERO,modifiers:Default::default()});f.pump();
+    assert!(!f.t.frame().scene.entries().iter().any(|e|e.element==Some(id) && matches!(e.command,Command::Fill{color,..} if color==hover)));
+}
