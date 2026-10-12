@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (DataGrid part 4 drafted for review)_
+_Last updated: 2026-10-12 (DataGrid part 4, column resize and reorder)_
 
 ## Resume here (2026-10-12)
 
@@ -70,12 +70,13 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
    like demo to show case all component examples" and said "continue" on the draft's six
    proposals): the gallery's last section, "Kitchen sink", is one scrolling page of twelve
    cards with every exported widget; `cargo run -p gallery` shows it.
-3. **`DataGrid` part 4, column resize and reorder, is drafted and waits for review:**
-   `docs/specs/widgets/data-grid-columns.md` (WIDGETS-GRID-13..15, GALLERY-15: widths and
-   display order as shared signals indexed by source column, a 6 px resize handle at each
-   column's right edge with a minimum width, an opt-in reorder drag with a drop line, sorting
-   moved from the header press to the click), with seven proposals. Say "continue" to accept;
-   the agent then does the `spec:`/`test:`/`impl:` commits. Then parts 5 to 7.
+3. **`DataGrid` part 4, column resize and reorder, is done** (decision 74, 2026-10-12; the
+   user said "continue" on the draft's seven proposals): widths and display order as shared
+   signals, a 6 px resize handle, an opt-in reorder drag with a drop line, sorting on the
+   click. The gallery's Data grid section echoes "Name width: …" and "Order: …".
+4. Next: `DataGrid` part 5, selection models (row, cell, range) with keyboard navigation and
+   row/column indices in the accessibility tree. Draft the spec for review, then parts 6
+   (cell editors) and 7 (`examples/data-grid-stress`).
 2. Before menus and dialogs: the overlay-inheritance amendment (open question below), since
    both will need the theme inside overlays; `FocusScope` is ready for them.
 
@@ -795,6 +796,29 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     at the center of a card below the window hits nothing (the test taps the "Toggles"
     title), and buttons don't take focus on press (the test uses `WidgetTester::focus`).
     Every gallery golden was regenerated for the sidebar's new button.
+74. **DataGrid column resize and reorder** (2026-10-12, spec
+    `docs/specs/widgets/data-grid-columns.md`; the user said "continue" on the draft's seven
+    proposals): column widths (`column_widths`) and the display order (`column_order`) are
+    `Signal<Vec<f32>>` / `Signal<Vec<usize>>` indexed by source column, the grid's own
+    unless the app shares them, so sort state, builders, filters and widths keep addressing
+    columns by their stable source index; the grid's geometry holds a memo of the display
+    layout (normalized order plus an extent table in display order; a short widths vector
+    falls back to `GridColumn::width`, entries are cleaned then floored at `min_width`,
+    default 40 px), both strips bind their `RenderGridBody` extents to it, and cells are
+    keyed by (row, display, source) so a moved column's cells are rebuilt at their new
+    position; a header cell's one pointer handler tells apart a resize (a press in the 6 px
+    handle inside the column's right edge, live width updates, `resizable(false)` has no
+    handle), a reorder drag (over 4 px with `reorderable(true)`: a 2 px `primary` drop line
+    at the display boundary nearest the pointer, painted by the header strip, and the held
+    header filled `surface_container_highest`; a drop at the column's own boundary or the
+    next changes nothing) and a click (press and release within the slop, which is what
+    sorts now, WIDGETS-GRID-15 amending -10); frozen columns count display positions. No
+    resize cursor (`CursorIcon` has no such variant; a later view/platform amendment).
+    Three slips fixed while agreeing: the handle lies inside the column it resizes, the
+    scheme has no `surface_variant`, and the gallery's City drag needs 200 px to pass the
+    middle of Name. Found while testing: a press at x = 300 in a 300 px window hits
+    nothing (WIDGETS-GRID-14's grid got 600 px). The README's "today/planned" lines were
+    stale since Phase 3 and now mention the grid and accessibility.
 
 ## Commit log
 
@@ -1224,15 +1248,22 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `3cab8f5` | test: GALLERY-14 checks the page reached its end |
 | `f44b178` | test: GALLERY-14 taps the Toggles title near the top; end golden regenerated |
 | `495bf94` | docs: HANDOFF.md for the kitchen sink |
-| _this commit_ | docs: draft DataGrid part 4 (column resize and reorder) for review |
+| `452f0f7` | docs: draft DataGrid part 4 (column resize and reorder) for review |
+| `066d5e6` | spec: DataGrid part 4, column resize and reorder (WIDGETS-GRID-13..15, GALLERY-15); WIDGETS-GRID-10 sorts on the click |
+| `56286c9` | spec: WIDGETS-GRID-13's handle lies inside the column it resizes; GALLERY-15 drags City 200 px |
+| `9c0a401` | spec: WIDGETS-GRID-14's held header uses surface_container_highest |
+| `93e7eb3` | test: DataGrid column resize and reorder, stubs + 4 failing tests |
+| `2966a07` | test: WIDGETS-GRID-14's main grid gets a 600 px window |
+| `4ef964f` | impl: DataGrid column resize and reorder; the gallery's echoes; PLAN.md part 4 ticked |
+| _this commit_ | docs: HANDOFF.md for DataGrid part 4 (decision 74) |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-See "Resume here" above: `DataGrid` part 4 (column resize and reorder) next, then parts 5 to
-7, then the rest of Phase 4 in PLAN.md order.
+See "Resume here" above: `DataGrid` part 5 (selection models) next, then parts 6 and 7,
+then the rest of Phase 4 in PLAN.md order.
 
 ## Open questions
 
@@ -1274,8 +1305,8 @@ See "Resume here" above: `DataGrid` part 4 (column resize and reorder) next, the
   handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
-  lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3) and 73 (the
-  kitchen sink).
+  lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3), 73 (the
+  kitchen sink) and 74 (column resize and reorder).
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
@@ -1285,6 +1316,10 @@ See "Resume here" above: `DataGrid` part 4 (column resize and reorder) next, the
   reference Scene yet; check when shadows get a closer look.
 - **A debug build printed an ICU4X "No segmentation model" message** to stderr for Japanese
   text (decision 43); find where it comes from with Phase 4 i18n.
+- **No resize cursor on the grid's column handles** (decision 74): `CursorIcon` has
+  `Default`, `Pointer`, `Text`, `Grab`, `Grabbing` and `NotAllowed` only. Proposal: add
+  `ColResize`/`RowResize` (winit has them) as a `view/events.md` + `platform-winit` amendment
+  when the split view needs them too.
 - **`.agents/` is untracked** in the working tree (a `skills` folder, not project code); decide
   whether to gitignore or commit it.
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the
