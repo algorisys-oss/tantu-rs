@@ -1,6 +1,6 @@
 # Kitchen sink: every widget on one scrolling page
 
-- **Status:** Agreed (the user said "continue" on the draft, 2026-10-12, taking its six
+- **Status:** Implemented (the user said "continue" on the draft, 2026-10-12, taking its six
   proposals)
 - **Crate:** `examples/gallery` (a new section; no library changes)
 - **Plan item:** Phase 4, "Kitchen sink"

@@ -30,7 +30,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 12] = [
     ("toggles", &["checkbox", "radio", "switch"]),
     ("sliders", &["slider"]),
     (
-        "text",
+        "typography",
         &["text", "rich_text", "divider", "vertical_divider"],
     ),
     ("fields", &["text_field"]),
@@ -672,7 +672,7 @@ fn sink_toggles() -> impl View {
 fn sink_slider() -> impl View {
     let (a, b) = (signal(50.0f64), signal(25.0f64));
     card(
-        "slider",
+        "sliders",
         "Slider",
         Column::new()
             .cross_axis_alignment(CrossAxisAlignment::Start)
@@ -699,7 +699,7 @@ fn sink_slider() -> impl View {
 
 fn sink_text() -> impl View {
     card(
-        "text",
+        "typography",
         "Text",
         Column::new()
             .cross_axis_alignment(CrossAxisAlignment::Start)

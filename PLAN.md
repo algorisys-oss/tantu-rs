@@ -171,7 +171,7 @@ faster or more portable without changing how apps are written.
 - [ ] Forms: validation, field binding, masked input, date/time pickers, combo box with search
 - [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting
 - [ ] `Grid` layout (possibly via taffy) for dashboard-style screens
-- [ ] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)
+- [x] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)
 - [ ] **Milestone:** `examples/enterprise-dashboard` (docking + grid + forms + charts area)
 
 ### Phase 5 — Polish, performance and tooling (weeks 27+)
