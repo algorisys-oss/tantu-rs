@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/events.md`, rules VIEW-EVENT-01..06 and -09.
+//! Tests for `docs/specs/view/events.md`, rules VIEW-EVENT-01..06, -09 and -10.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -499,4 +499,73 @@ fn view_event_07_handler_sees_the_size() {
         modifiers: Default::default(),
     });
     assert_eq!(*sizes.borrow(), [Size::new(100.0, 50.0)]);
+}
+
+#[test]
+fn view_event_10_handlers_follow_their_scope() {
+    use tantu_view::{KeyEvent, LogicalKey, Modifiers, NamedKey, Show};
+
+    /// A component that registers pointer and key handlers on the root, then builds nothing.
+    struct OnRoot {
+        log: Log,
+    }
+    impl View for OnRoot {
+        fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+            let root = cx.tree().root();
+            let log = self.log.clone();
+            cx.on_pointer(root, Phase::Bubble, move |_| {
+                log.borrow_mut().push("pointer".to_owned());
+                Handled::Continue
+            });
+            let log = self.log;
+            cx.on_key(root, Phase::Bubble, move |_| {
+                log.borrow_mut().push("key".to_owned());
+                Handled::Continue
+            });
+            cx.region(|_| {})
+        }
+    }
+
+    let log: Log = Rc::default();
+    let out: Rc<Cell<Option<Signal<bool>>>> = Rc::default();
+    let mut tree = {
+        let (log, out) = (log.clone(), out.clone());
+        ViewTree::new(move || {
+            let shown = signal(true);
+            out.set(Some(shown));
+            let log = log.clone();
+            Show::new(move || shown.get(), move || OnRoot { log: log.clone() })
+        })
+    };
+    let frame = |tree: &mut ViewTree| {
+        let mut scene = tantu_scene::Scene::new();
+        tree.frame(
+            BoxConstraints::tight(Size::new(200.0, 100.0)),
+            &mut NoTextMeasure,
+            &mut scene,
+        );
+    };
+    frame(&mut tree);
+    let press = PointerEvent {
+        kind: PointerKind::Down(PointerButton::Primary),
+        position: Point::new(10.0, 10.0),
+        modifiers: Default::default(),
+    };
+    let key = KeyEvent::press(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    assert!(tree.dispatch_pointer(press));
+    tree.dispatch_pointer(PointerEvent {
+        kind: PointerKind::Up(PointerButton::Primary),
+        ..press
+    });
+    tree.dispatch_key(key.clone());
+    assert!(log.borrow().contains(&"pointer".to_owned()));
+    assert_eq!(log.borrow().last().map(String::as_str), Some("key"));
+    // Removing the component drops its handlers, though the root stays.
+    let shown = out.get().expect("built");
+    tree.enter(|| shown.set(false));
+    frame(&mut tree);
+    log.borrow_mut().clear();
+    assert!(!tree.dispatch_pointer(press), "no handler ran");
+    assert!(!tree.dispatch_key(key));
+    assert!(log.borrow().is_empty());
 }
