@@ -322,10 +322,8 @@ fn view_offstage_02_hidden_content_takes_no_layout() {
     );
     let col = f.tree.parent(f.id("a")).expect("column");
     let layout = f.tree.layout_id(col).expect("render");
-    assert_eq!(
-        f.tree.layout_tree().size(layout).map(|s| s.height),
-        Some(40.0)
-    );
+    // The column (MainAxisSize::Max) keeps its height; only a and c are its layout children.
+    assert_eq!(f.tree.layout_tree().children(layout).len(), 2);
     f.hide(false);
     assert_eq!(f.top("c"), Some(80.0), "re-attached in tree order");
     assert_eq!(f.top("b"), Some(20.0));
