@@ -3,14 +3,17 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-15 (TreeView implemented; inspect CI on main after this push)_
+_Last updated: 2026-10-15 (TabView drafts for review; TreeView on main)_
 
 ## Resume here (2026-10-15)
 
-**TreeView is done** (decision 79): spec `docs/specs/widgets/tree-view.md` is Implemented,
-the gallery has a "Tree view" section and the kitchen sink a tree card. The next PLAN.md
-items are `TabView` and then `SplitView`; each starts as a Draft spec for review. Commit/push
-authorization persists; performance stress runs stay local. Check CI on `main` after this push.
+**TreeView is done** (decision 79). **TabView is drafted for review** on `phase4/tab-view`,
+split in two PLAN.md parts: `docs/specs/view/offstage.md` (a view-tree flag that keeps a
+subtree alive but out of layout, paint, hit-testing, focus and semantics; three proposals)
+and `docs/specs/widgets/tab-view.md` (`TabBar`/`TabBarView` over a shared
+`Signal<usize>`, a composed `TabView`, kept lazy pages, WAI-ARIA keys, Material 3 look,
+gallery and kitchen-sink samples; six proposals). Waiting for the user's review; then
+spec/test/impl for Offstage first. Commit/push authorization persists.
 
 DataGrid parts 1–7 and overlay inheritance are complete. Main `c37b814` passed CI:
 https://github.com/algorisys-oss/tantu-rs/actions/runs/38234613244 (checked this session).
@@ -1419,16 +1422,17 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `3c05408` | test: tree hover paint follows pointer and theme changes |
 | `5a49e27` | test: unchanged tree model notifications do not enumerate |
 | `6f54435` | docs: gallery, kitchen-sink and a11y specs point at TreeView's GALLERY-20/21, VIEW-SEM-04, A11Y-TREE-05 |
-| _this commit_ | impl: TreeView (source, expanded preorder index, virtualized rows, selection/expansion/activation, keys, tree semantics with Expand/Collapse), ScrollView ignores modified keys; gallery section, kitchen-sink card, goldens; PLAN.md ticked |
+| `255b203` | impl: TreeView (source, expanded preorder index, virtualized rows, selection/expansion/activation, keys, tree semantics with Expand/Collapse), ScrollView ignores modified keys; gallery section, kitchen-sink card, goldens; PLAN.md ticked |
+| _this commit_ | docs: draft Offstage and TabView specs for review; PLAN.md TabView item split in two |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-TreeView is done. Next in PLAN.md order: draft `docs/specs/widgets/tab-view.md` for review,
-then `SplitView` (which may bring the `ColResize`/`RowResize` cursor amendment), then docking.
-Check the CI run on `main` for the TreeView push.
+Review the two TabView drafts (Offstage, then the widgets). After agreement: Offstage
+spec/test/impl, then TabView spec/test/impl. Then `SplitView` (which may bring the
+`ColResize`/`RowResize` cursor amendment), then docking.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
