@@ -373,7 +373,13 @@ fn widgets_rtl_06_combo_arrow_and_calendar_chevrons() {
     };
     assert!(arrow(&t).right < field.left + 40.0, "{:?}", arrow(&t));
     set(&mut t, direction, TextDirection::Ltr);
-    assert!(arrow(&t).left > field.right - 40.0);
+    // The column moved the field too.
+    let field = t.rect(t.find(&Finder::key("combo")));
+    assert!(
+        arrow(&t).left > field.right - 40.0,
+        "{:?} {field:?}",
+        arrow(&t)
+    );
 
     // The calendar's chevrons swap.
     let date = Date::new(2026, 10, 16).expect("exists");
