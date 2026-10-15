@@ -169,7 +169,9 @@ faster or more portable without changing how apps are written.
 - [x] `TabView`, in parts:
   - [x] `Offstage`: retained but hidden subtrees (no layout, paint, hit-test, focus or semantics) (spec `docs/specs/view/offstage.md`)
   - [x] `TabBar`, `TabBarView` and `TabView`: fixed/scrollable bars, kept lazy pages, keyboard and tab semantics, gallery and kitchen-sink samples (spec `docs/specs/widgets/tab-view.md`)
-- [ ] `SplitView` (separate spec)
+- [ ] `SplitView`, in parts:
+  - [ ] cursor icons through the platform: `PlatformContext::set_cursor`, the runner syncing `ViewTree::cursor`, capture keeps the cursor (spec `docs/specs/platform/cursor.md`)
+  - [ ] `RenderSplit` and `SplitView`: N panes, shared fractions, minimums, collapsing, drag and keyboard resizing, splitter semantics, gallery and kitchen-sink samples (spec `docs/specs/widgets/split-view.md`)
 - [ ] Docking layout manager (drag panels, persist layout; separate spec)
 - [ ] Menus (native + custom), context menus, toolbars, status bar
 - [ ] Dialogs, native file dialogs, notifications, system tray

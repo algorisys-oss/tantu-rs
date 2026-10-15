@@ -3,15 +3,18 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-15 (TabView done; SplitView next)_
+_Last updated: 2026-10-15 (SplitView drafts for review)_
 
 ## Resume here (2026-10-15)
 
 **TabView is done** (decisions 80 and 81): `Offstage` keeps retained pages hidden, and
 `TabBar`, `TabBarView` and `TabView` share one `Signal<usize>`, with fixed and scrollable bars,
 visited pages kept alive and built lazily, the WAI-ARIA keyboard model, AccessKit tab roles,
-a gallery "Tabs" section and a kitchen-sink card. **Next:** draft `SplitView`
-(`docs/specs/widgets/split-view.md`). Commit/push authorization persists.
+a gallery "Tabs" section and a kitchen-sink card. **SplitView is drafted for review** in two parts:
+`docs/specs/platform/cursor.md` (cursor icons never reached the window: `ViewTree::cursor`
+existed but the `Platform` trait had no `set_cursor`; four proposals) and
+`docs/specs/widgets/split-view.md` (`RenderSplit` + `SplitView`; seven proposals). **Next:**
+the user reviews both drafts, then spec/test/impl per part. Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1456,15 +1459,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `bd1169d` | spec: TabBar, TabBarView and TabView agreed (WIDGETS-TAB-01..10, A11Y-TREE-07, GALLERY-22..23) |
 | `cba4a13` | test: TabBar, TabBarView and TabView, stubs + 14 failing tests |
 | `e3b02dd` | test: TabView tests copy the Copy text controller (clippy) |
-| _this commit_ | impl: TabBar, TabBarView and TabView (fixed/scrollable bars, lazy kept pages, keys, tab semantics); gallery Tabs section and kitchen-sink card, goldens; PLAN.md TabView ticked |
+| `0e17195` | impl: TabBar, TabBarView and TabView (fixed/scrollable bars, lazy kept pages, keys, tab semantics); gallery Tabs section and kitchen-sink card, goldens; PLAN.md TabView ticked |
+| _this commit_ | docs: draft SplitView specs for review (cursor icons through the platform; RenderSplit and SplitView); PLAN.md item split in two |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Draft the `SplitView` spec (which may bring the
-`ColResize`/`RowResize` cursor amendment), then docking.
+Review the two `SplitView` drafts (cursor icons, then the split view), implement both
+parts, then docking.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
@@ -1517,10 +1521,10 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
   reference Scene yet; check when shadows get a closer look.
 - **A debug build printed an ICU4X "No segmentation model" message** to stderr for Japanese
   text (decision 43); find where it comes from with Phase 4 i18n.
-- **No resize cursor on the grid's column handles** (decision 74): `CursorIcon` has
-  `Default`, `Pointer`, `Text`, `Grab`, `Grabbing` and `NotAllowed` only. Proposal: add
-  `ColResize`/`RowResize` (winit has them) as a `view/events.md` + `platform-winit` amendment
-  when the split view needs them too.
+- **No cursor reaches the window** (corrects decision 74's note): `tantu_view::CursorIcon`
+  already has `ResizeHorizontal`/`ResizeVertical`, but the platform has no `set_cursor`, so
+  every window shows the arrow. Drafted as SplitView part 1 (`docs/specs/platform/cursor.md`);
+  the grid's column handles should set `ResizeHorizontal` once it lands.
 - **`.agents/` is untracked** in the working tree (a `skills` folder, not project code); decide
   whether to gitignore or commit it.
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the
