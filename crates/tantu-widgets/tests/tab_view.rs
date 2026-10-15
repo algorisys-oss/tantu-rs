@@ -133,7 +133,7 @@ fn fixture(keep_alive: bool) -> Fx {
     let mut t = WidgetTester::with_size(W, H, move || {
         let selected = signal(0usize);
         let controller = TextEditingController::new("");
-        *store.borrow_mut() = Some((selected, controller.clone()));
+        *store.borrow_mut() = Some((selected, controller));
         let (b, l) = (b.clone(), l.clone());
         Column::new()
             .child(Expanded::new(Keyed::new(
@@ -142,7 +142,7 @@ fn fixture(keep_alive: bool) -> Fx {
                     .selected(selected)
                     .keep_alive(keep_alive)
                     .tab(Tab::new("General"), move || {
-                        Keyed::new("field", TextField::new(controller.clone()))
+                        Keyed::new("field", TextField::new(controller))
                     })
                     .tab(Tab::new("Advanced"), move || {
                         b.set(b.get() + 1);
@@ -573,7 +573,7 @@ fn widgets_tab_09_focus_leaving_page() {
         let controller = TextEditingController::new("");
         SizedBox::new(W, H).child(
             TabBarView::new(selected)
-                .page(move || Keyed::new("field", TextField::new(controller.clone())))
+                .page(move || Keyed::new("field", TextField::new(controller)))
                 .page(|| Text::new("Other")),
         )
     });
