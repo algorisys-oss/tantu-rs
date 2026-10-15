@@ -1,10 +1,9 @@
 //! [`RenderFlex`]: Flutter's flex layout, behind `Row` and `Column`, with [`FlexParentData`]
 //! for `Expanded`, `Flexible` and `Spacer`. Spec: `docs/specs/layout/flex.md`.
 
-use crate::TextDirection;
 use tantu_core::{Size, Vec2};
 
-use crate::{BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox};
+use crate::{BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox, TextDirection};
 
 /// A direction: the main axis of a flex.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -269,6 +268,19 @@ fn flex_factor(data: Option<&FlexParentData>) -> u32 {
     data.map_or(0, |d| d.flex)
 }
 
+/// `offset` mirrored horizontally within `width` for `Rtl` (LAYOUT-FLEX-15, LAYOUT-WRAP-10).
+pub(crate) fn mirrored(
+    direction: TextDirection,
+    offset: Vec2,
+    width: f32,
+    child_width: f32,
+) -> Vec2 {
+    match direction {
+        TextDirection::Ltr => offset,
+        TextDirection::Rtl => Vec2::new(width - offset.x - child_width, offset.y),
+    }
+}
+
 /// Compares the properties only (not the last overflow), so `LayoutTree::set` with unchanged
 /// properties doesn't re-lay out.
 impl PartialEq for RenderFlex {
@@ -386,7 +398,11 @@ impl RenderBox for RenderFlex {
                 CrossAxisAlignment::End => cross_size - child_cross,
                 CrossAxisAlignment::Center => (cross_size - child_cross) / 2.0,
             };
-            children.set_offset(i, axis.offset(position, cross_offset));
+            let offset = axis.offset(position, cross_offset);
+            children.set_offset(
+                i,
+                mirrored(self.text_direction, offset, size.width, child.width),
+            );
             position += axis.of(child) + between;
         }
         size

@@ -74,8 +74,10 @@ impl ElementMut<'_> {
     /// Replaces the element's parent data and marks its layout parent for layout; false for a
     /// region (VIEW-FRAME-09).
     pub fn set_parent_data<T: std::any::Any>(&mut self, data: T) -> bool {
-        let _ = data;
-        todo!("VIEW-FRAME-09")
+        match self.tree.layout_id(self.id) {
+            Some(layout) => self.tree.layout.set_parent_data(layout, Some(data)),
+            None => false,
+        }
     }
 
     /// The element's paint behavior, if it is a `P`.

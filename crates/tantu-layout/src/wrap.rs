@@ -1,10 +1,9 @@
 //! [`RenderWrap`]: Flutter's wrap layout, which starts a new run when the next child doesn't
 //! fit. Spec: `docs/specs/layout/wrap.md`.
 
-use crate::TextDirection;
 use tantu_core::{Size, Vec2};
 
-use crate::{Axis, BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox};
+use crate::{Axis, BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox, TextDirection};
 
 /// How children are distributed within a run, or runs within the wrap (Flutter's
 /// `WrapAlignment`; the same meanings as `MainAxisAlignment`).
@@ -267,9 +266,11 @@ impl RenderBox for RenderWrap {
                     WrapCrossAlignment::End => run_cross - c,
                     WrapCrossAlignment::Center => (run_cross - c) / 2.0,
                 };
+                let offset = offset_of(axis, main_position, cross_position + cross_offset);
+                let child_width = children.size(i).width;
                 children.set_offset(
                     i,
-                    offset_of(axis, main_position, cross_position + cross_offset),
+                    crate::flex::mirrored(self.text_direction, offset, size.width, child_width),
                 );
                 main_position += m + between + spacing;
             }

@@ -10,6 +10,8 @@ use tantu_view::layout::{
 };
 use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Prop, View};
 
+use crate::directionality::{direction_prop, resolved};
+
 /// Binds `prop` to the element's `R`, applying each value with `set` (WIDGETS-LAYOUT-03).
 fn bind_render<R: RenderBox + Clone + PartialEq, T: 'static>(
     cx: &mut BuildCx<'_>,
@@ -25,6 +27,7 @@ fn bind_render<R: RenderBox + Clone + PartialEq, T: 'static>(
 /// Insets its child (Flutter's `Padding`).
 pub struct Padding {
     padding: Prop<EdgeInsets>,
+    directional: Option<Prop<EdgeInsetsDirectional>>,
     child: Option<AnyView>,
 }
 
@@ -33,6 +36,7 @@ impl Padding {
     pub fn new(padding: impl IntoProp<EdgeInsets>) -> Self {
         Padding {
             padding: padding.into_prop(),
+            directional: None,
             child: None,
         }
     }
@@ -40,8 +44,11 @@ impl Padding {
     /// Padding with start and end sides, resolved against the nearest
     /// [`Directionality`](crate::Directionality) (WIDGETS-DIR-03).
     pub fn directional(padding: impl IntoProp<EdgeInsetsDirectional>) -> Self {
-        let _ = padding;
-        todo!("WIDGETS-DIR-03")
+        Padding {
+            padding: Prop::Value(EdgeInsets::ZERO),
+            directional: Some(padding.into_prop()),
+            child: None,
+        }
     }
 
     /// `Padding::new(EdgeInsets::all(value))`.
@@ -58,10 +65,12 @@ impl Padding {
 
 impl View for Padding {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let padding = match self.directional {
+            Some(directional) => resolved(cx, directional, EdgeInsetsDirectional::resolve),
+            None => self.padding,
+        };
         let id = cx.render(RenderPadding::new(EdgeInsets::ZERO), self.child);
-        bind_render(cx, id, self.padding, |r: &mut RenderPadding, v| {
-            r.padding = v
-        });
+        bind_render(cx, id, padding, |r: &mut RenderPadding, v| r.padding = v);
         id
     }
 }
@@ -69,6 +78,7 @@ impl View for Padding {
 /// Positions its child by `alignment` (Flutter's `Align`).
 pub struct Align {
     alignment: Prop<Alignment>,
+    directional: Option<Prop<AlignmentDirectional>>,
     width_factor: Option<f32>,
     height_factor: Option<f32>,
     child: Option<AnyView>,
@@ -79,6 +89,7 @@ impl Align {
     pub fn new(alignment: impl IntoProp<Alignment>) -> Self {
         Align {
             alignment: alignment.into_prop(),
+            directional: None,
             width_factor: None,
             height_factor: None,
             child: None,
@@ -88,8 +99,10 @@ impl Align {
     /// Aligns the child at a directional alignment, resolved against the nearest
     /// [`Directionality`](crate::Directionality) (WIDGETS-DIR-03).
     pub fn directional(alignment: impl IntoProp<AlignmentDirectional>) -> Self {
-        let _ = alignment;
-        todo!("WIDGETS-DIR-03")
+        Align {
+            directional: Some(alignment.into_prop()),
+            ..Align::new(Alignment::CENTER)
+        }
     }
 
     /// Width as a multiple of the child's width, instead of filling.
@@ -118,8 +131,12 @@ impl View for Align {
             width_factor: self.width_factor,
             height_factor: self.height_factor,
         };
+        let alignment = match self.directional {
+            Some(directional) => resolved(cx, directional, AlignmentDirectional::resolve),
+            None => self.alignment,
+        };
         let id = cx.render(render, self.child);
-        bind_render(cx, id, self.alignment, |r: &mut RenderPositionedBox, v| {
+        bind_render(cx, id, alignment, |r: &mut RenderPositionedBox, v| {
             r.alignment = v
         });
         id
@@ -286,7 +303,12 @@ impl Flex {
         } else {
             RenderFlex::row()
         };
+        let direction = direction_prop(cx);
         let id = cx.render(render, self.children);
+        // Rows and columns follow the nearest direction (WIDGETS-DIR-02).
+        bind_render(cx, id, direction, |r: &mut RenderFlex, v| {
+            r.text_direction = v
+        });
         bind_render(cx, id, self.main_axis_alignment, |r: &mut RenderFlex, v| {
             r.main_axis_alignment = v
         });

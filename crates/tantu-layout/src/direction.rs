@@ -52,8 +52,10 @@ impl AlignmentDirectional {
 
     /// The alignment for `direction`: start is left for `Ltr`, right for `Rtl`.
     pub fn resolve(self, direction: TextDirection) -> Alignment {
-        let _ = direction;
-        todo!("LAYOUT-DIR-01")
+        match direction {
+            TextDirection::Ltr => Alignment::new(self.start, self.y),
+            TextDirection::Rtl => Alignment::new(-self.start, self.y),
+        }
     }
 }
 
@@ -84,7 +86,13 @@ impl EdgeInsetsDirectional {
 
     /// The insets for `direction`: start on the left for `Ltr`, on the right for `Rtl`.
     pub fn resolve(self, direction: TextDirection) -> EdgeInsets {
-        let _ = direction;
-        todo!("LAYOUT-DIR-01")
+        match direction {
+            TextDirection::Ltr => {
+                EdgeInsets::from_ltrb(self.start, self.top, self.end, self.bottom)
+            }
+            TextDirection::Rtl => {
+                EdgeInsets::from_ltrb(self.end, self.top, self.start, self.bottom)
+            }
+        }
     }
 }

@@ -195,7 +195,7 @@ faster or more portable without changing how apps are written.
   - [x] date picker: `Date`, `CalendarDatePicker`, `DatePickerField` (spec `docs/specs/widgets/date-picker.md`)
   - [x] time picker: `Time`, `TimePickerField` (spec `docs/specs/widgets/time-picker.md`)
 - [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting, in parts:
-  - [ ] RTL layout mirroring: `TextDirection`, `Directionality`, directional alignment, insets and positions, `Row`/`Column`/`Wrap` mirroring (spec `docs/specs/widgets/directionality.md`)
+  - [x] RTL layout mirroring: `TextDirection`, `Directionality`, directional alignment, insets and positions, `Row`/`Column`/`Wrap` mirroring (spec `docs/specs/widgets/directionality.md`)
   - [ ] Fluent-based localisation (separate spec)
   - [ ] locale-aware formatting of numbers and dates (separate spec)
 - [ ] `Grid` layout (possibly via taffy) for dashboard-style screens

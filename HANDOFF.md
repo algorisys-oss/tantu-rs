@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (forms done: the time picker was the last part; the user is away until morning)_
+_Last updated: 2026-10-16 (i18n part 1, RTL layout mirroring, done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1204,6 +1204,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     (VIEW-SEM-05), and the field exposes both actions. No popup list (desktop spin
     convention; a list can come later). **The Forms item is complete.** Gallery: a
     "Start" field in Selection and a "time" kitchen-sink card. No new crate or edge.
+96. **i18n part 1: RTL layout mirroring** (2026-10-16, spec
+    `docs/specs/widgets/directionality.md`; decided by the agent while the user was away,
+    review). The i18n item is split (RTL mirroring; Fluent localisation; locale formats).
+    Flutter's model: `TextDirection`, `AlignmentDirectional` and `EdgeInsetsDirectional`
+    in `tantu-layout`; `RenderFlex`/`RenderWrap` gain `text_direction` and, for `Rtl`,
+    mirror each child's x within their own width after the left-to-right placement (which
+    reproduces Flutter's results for every alignment). `Directionality` provides the
+    direction (value, closure or signal, memoized) as an inherited value; `Row`/`Column`
+    bind it; `Padding::directional`, `Align::directional` and `PositionedDirectional`
+    resolve against it reactively (new `ElementMut::set_parent_data`, VIEW-FRAME-09). The
+    prelude exports the direction types. Not yet mirrored: widgets' own painted geometry
+    (switch thumbs, slider tracks, caret keys, chevrons, scrollbar side) and paragraph
+    alignment. Gallery: an "RTL" header switch mirroring everything between the bars
+    (every gallery golden regenerated for the header's new switch). No new crate or edge.
 
 ## Commit log
 
@@ -1766,15 +1780,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `7069fb9` | test: forms part 4b, stubs + 9 failing tests |
 | `210393d` | test: WIDGETS-TIME-04 acts on the spin button by its name |
 | `91e321d` | test: GALLERY-45 focuses the Reminder spin button by its name |
-| _this commit_ | impl: Time, TimePickerField, Role::SpinButton (Increment as Up, AccessKit mapping); gallery Start field and time card, goldens; PLAN.md Forms ticked |
+| `3b9da1f` | impl: Time, TimePickerField, Role::SpinButton (Increment as Up, AccessKit mapping); gallery Start field and time card, goldens; PLAN.md Forms ticked (CI green, run 38811817902) |
+| `d0dffdd` | spec: i18n part 1, RTL layout mirroring (LAYOUT-DIR-01, LAYOUT-FLEX-15, LAYOUT-WRAP-10, VIEW-FRAME-09, WIDGETS-DIR-01..03, GALLERY-46); PLAN.md i18n split |
+| `e2b0d07` | test: i18n part 1, stubs + 8 failing tests |
+| _this commit_ | impl: TextDirection and directional types, mirrored flex/wrap, ElementMut::set_parent_data, Directionality, directional Padding/Align/Positioned, prelude exports; gallery RTL switch, goldens; PLAN.md part 1 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order (Forms is done): i18n, `Grid` layout; the remaining
-clipboard/multi-window/drag-and-drop parts. Native OS menus and native file dialogs/notifications/tray wait for the user.
+Continue Phase 4 in PLAN.md order (Forms is done): i18n parts 2–3 (Fluent localisation,
+locale formats; both need dependency choices), `Grid` layout; the remaining
+clipboard/multi-window/drag-and-drop parts. Mirroring widgets' own painted geometry under
+RTL (switch, slider, caret keys, chevrons, scrollbar side) is a follow-up. Native OS menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 

@@ -1,8 +1,39 @@
 //! [`Directionality`] and [`PositionedDirectional`]: right-to-left layout. Spec:
 //! `docs/specs/widgets/directionality.md`.
 
-use tantu_view::layout::TextDirection;
-use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Prop, View};
+use std::rc::Rc;
+
+use tantu_view::layout::{StackParentData, TextDirection};
+use tantu_view::reactive::memo;
+use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Prop, Provide, View};
+
+/// The direction a [`Directionality`] provides: a tracked read.
+#[derive(Clone)]
+struct Direction(Rc<dyn Fn() -> TextDirection>);
+
+/// The nearest direction as a prop: dynamic under a [`Directionality`], `Ltr` otherwise
+/// (WIDGETS-DIR-02, -03).
+pub(crate) fn direction_prop(cx: &BuildCx<'_>) -> Prop<TextDirection> {
+    match cx.inherit::<Direction>() {
+        Some(Direction(read)) => Prop::Dynamic(Box::new(move || read())),
+        None => Prop::Value(TextDirection::Ltr),
+    }
+}
+
+/// `value` resolved against the nearest direction, as a prop following both.
+pub(crate) fn resolved<T: Copy + 'static, R: 'static>(
+    cx: &BuildCx<'_>,
+    value: Prop<T>,
+    resolve: fn(T, TextDirection) -> R,
+) -> Prop<R> {
+    match (value, direction_prop(cx)) {
+        (Prop::Value(v), Prop::Value(d)) => Prop::Value(resolve(v, d)),
+        (value, direction) => {
+            let (value, direction) = (crate::util::dynamic(value), crate::util::dynamic(direction));
+            Prop::Dynamic(Box::new(move || resolve(value(), direction())))
+        }
+    }
+}
 
 /// Gives its subtree a text direction (Flutter's `Directionality`, WIDGETS-DIR-01).
 pub struct Directionality {
@@ -22,15 +53,22 @@ impl Directionality {
     /// The nearest direction above the element being built (`Ltr` without one); a tracked
     /// read.
     pub fn of(cx: &BuildCx<'_>) -> TextDirection {
-        let _ = cx;
-        todo!("WIDGETS-DIR-01")
+        cx.inherit::<Direction>()
+            .map_or(TextDirection::Ltr, |Direction(read)| read())
     }
 }
 
 impl View for Directionality {
-    fn build(self, _cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.direction, self.child);
-        todo!("WIDGETS-DIR-01")
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let read: Rc<dyn Fn() -> TextDirection> = match self.direction {
+            Prop::Value(direction) => Rc::new(move || direction),
+            // A memo, so readers rerun only when the direction actually changes.
+            Prop::Dynamic(f) => {
+                let direction = memo(f);
+                Rc::new(move || direction.get())
+            }
+        };
+        Provide::new(Direction(read), self.child).build(cx)
     }
 }
 
@@ -98,9 +136,10 @@ impl PositionedDirectional {
 }
 
 impl View for PositionedDirectional {
-    fn build(self, _cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            self.child,
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let direction = direction_prop(cx);
+        let id = self.child.build(cx);
+        let (start, top, end, bottom, width, height) = (
             self.start,
             self.top,
             self.end,
@@ -108,6 +147,30 @@ impl View for PositionedDirectional {
             self.width,
             self.height,
         );
-        todo!("WIDGETS-DIR-03")
+        let data = move |direction| {
+            let (left, right) = match direction {
+                TextDirection::Ltr => (start, end),
+                TextDirection::Rtl => (end, start),
+            };
+            StackParentData {
+                left,
+                top,
+                right,
+                bottom,
+                width,
+                height,
+            }
+        };
+        if !cx.set_parent_data(id, data(TextDirection::Ltr)) {
+            tracing::warn!(
+                "PositionedDirectional around a dynamic region has no element to hold its \
+                 position; the child is laid out as non-positioned"
+            );
+            return id;
+        }
+        cx.bind(id, direction, move |e, direction| {
+            e.set_parent_data(data(direction));
+        });
+        id
     }
 }

@@ -1,6 +1,6 @@
 # i18n, part 1: right-to-left layout mirroring
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-layout` (`TextDirection`, `AlignmentDirectional`, `EdgeInsetsDirectional`,
   `RenderFlex`/`RenderWrap` direction), `tantu-view` (`ElementMut::set_parent_data`),
   `tantu-widgets` (`Directionality`, directional `Padding`/`Align`/`Positioned`, `Row` and

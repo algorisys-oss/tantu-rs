@@ -105,6 +105,7 @@ pub fn gallery() -> impl View {
         let theme = Theme::signal(cx).unwrap_or_else(|| signal(Theme::light()));
         let section = signal(SECTIONS[0]);
         let dark = signal(false);
+        let rtl = signal(false);
         // A message shown in the status bar until the next navigation (Help → About).
         let note: Signal<Option<String>> = signal(None);
         effect(move || {
@@ -125,12 +126,26 @@ pub fn gallery() -> impl View {
         Column::new()
             .cross_axis_alignment(CrossAxisAlignment::Stretch)
             .child(Keyed::new("menubar", menu_bar(section, dark, note)))
-            .child(Keyed::new("header", header(section, dark)))
+            // Everything between the bars follows the RTL switch (GALLERY-46).
             .child(Expanded::new(
-                Row::new()
-                    .cross_axis_alignment(CrossAxisAlignment::Stretch)
-                    .child(Keyed::new("sidebar", sidebar(section)))
-                    .child(Expanded::new(Keyed::new("content", content(section)))),
+                SizedBox::expand().child(Directionality::new(
+                    move || {
+                        if rtl.get() {
+                            TextDirection::Rtl
+                        } else {
+                            TextDirection::Ltr
+                        }
+                    },
+                    Column::new()
+                        .cross_axis_alignment(CrossAxisAlignment::Stretch)
+                        .child(Keyed::new("header", header(section, dark, rtl)))
+                        .child(Expanded::new(
+                            Row::new()
+                                .cross_axis_alignment(CrossAxisAlignment::Stretch)
+                                .child(Keyed::new("sidebar", sidebar(section)))
+                                .child(Expanded::new(Keyed::new("content", content(section)))),
+                        )),
+                )),
             ))
             .child(Keyed::new("statusbar", status_bar(section, dark, note)))
     })
@@ -185,7 +200,7 @@ fn status_bar(
         ))
 }
 
-fn header(section: Signal<&'static str>, dark: Signal<bool>) -> impl View {
+fn header(section: Signal<&'static str>, dark: Signal<bool>, rtl: Signal<bool>) -> impl View {
     Padding::new(EdgeInsets::symmetric(16.0, 12.0)).child(
         Row::new()
             .cross_axis_alignment(CrossAxisAlignment::Center)
@@ -196,8 +211,21 @@ fn header(section: Signal<&'static str>, dark: Signal<bool>) -> impl View {
                 "current",
                 Text::new(move || section.get().to_string()).style(TextStyle::label()),
             ))
+            .child(labeled_switch("RTL", "rtl", rtl))
             .child(dark_mode_switch(dark)),
     )
+}
+
+/// `label` and a switch keyed `key` over `value` (the RTL switch, GALLERY-46).
+fn labeled_switch(label: &'static str, key: &'static str, value: Signal<bool>) -> impl View {
+    Row::new()
+        .cross_axis_alignment(CrossAxisAlignment::Center)
+        .spacing(4.0)
+        .child(Text::new(label).style(TextStyle::label()))
+        .child(Keyed::new(
+            key,
+            Switch::new(value).on_change(move |v| value.set(v)),
+        ))
 }
 
 /// "Dark" and a switch that sets the window's theme to dark or light (GALLERY-05). The theme
