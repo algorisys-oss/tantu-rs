@@ -51,11 +51,16 @@ pub struct RenderSplit {
     pub collapsible: Arc<[bool]>,
     /// The gap between neighbouring panes, in which the divider's line is drawn.
     pub gap: f32,
-    /// The divider handles' thickness along the axis, centred on each gap (≥ `gap`).
+    /// The divider handles' thickness along the axis, centred on each gap; a value below
+    /// `gap` counts as `gap`, and a negative or non-finite gap or handle as 0.
     pub handle: f32,
+    // private: the pane count and the last layout's sizes (not part of equality)
 }
 impl RenderSplit {
+    /// `panes` panes at equal shares, no minimums, a 1 px gap and 8 px handles.
     pub fn new(axis: Axis, panes: usize) -> Self;
+    /// The pane count given to `new` (children beyond `2 × panes - 1` get zero size).
+    pub fn panes(&self) -> usize;
     /// The pane sizes from the last layout, in order (empty before the first).
     pub fn sizes(&self) -> &[f32];
 }
