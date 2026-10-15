@@ -175,7 +175,9 @@ fn node(semantics: &Semantics) -> Node {
         R::Cell => Role::Cell,
         R::Tree => Role::Tree,
         R::TreeItem => Role::TreeItem,
-        R::TabList | R::Tab | R::TabPanel => todo!("A11Y-TREE-07"),
+        R::TabList => Role::TabList,
+        R::Tab => Role::Tab,
+        R::TabPanel => Role::TabPanel,
     };
     let mut node = Node::new(role);
     if let Some(v) = semantics.expanded {

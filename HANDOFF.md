@@ -3,15 +3,15 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-15 (Offstage done; TabView widgets next)_
+_Last updated: 2026-10-15 (TabView done; SplitView next)_
 
 ## Resume here (2026-10-15)
 
-**Offstage is done** (decision 80): `BuildCx::set_offstage`, `ElementMut::set_offstage`,
-`ViewTree::is_offstage` and the `Offstage` widget keep a subtree alive but out of layout,
-paint, hit-testing, focus, actions, overlays and the accessibility tree. **Next:** agree and
-implement `docs/specs/widgets/tab-view.md` (still Draft, six proposals). Commit/push
-authorization persists.
+**TabView is done** (decisions 80 and 81): `Offstage` keeps retained pages hidden, and
+`TabBar`, `TabBarView` and `TabView` share one `Signal<usize>`, with fixed and scrollable bars,
+visited pages kept alive and built lazily, the WAI-ARIA keyboard model, AccessKit tab roles,
+a gallery "Tabs" section and a kitchen-sink card. **Next:** draft `SplitView`
+(`docs/specs/widgets/split-view.md`). Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -51,7 +51,7 @@ native GPU/compositor 60 fps remains unverified. See decisions 77–78 and open 
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 78 implemented specs, every agreed rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 80 implemented specs, every agreed rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and full-workspace/all-feature rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** inspect the
   new run on `main` after this push; the prior macOS Control/Command chord issue is fixed.
@@ -959,6 +959,18 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     binding its prop; no golden or gallery entry since it paints nothing (as `FocusScope`).
     No new crate, edge or pipeline stage.
 
+81. **TabBar, TabBarView and TabView** (2026-10-15, spec `docs/specs/widgets/tab-view.md`;
+    the user said "continue" on the six proposals): Flutter's split over one shared
+    `Signal<usize>` plus a composed `TabView`; visited pages are built lazily and kept
+    offstage (`keep_alive(false)` drops them); static tab sets; one Tab stop, arrows with
+    automatic activation that wrap and skip disabled tabs, Control+Tab / Control+PageDown
+    cycling from anywhere inside; Material 3 primary tabs with a sliding 3 px indicator.
+    Scrollable bars use a `ScrollView` without its scrollbar (a crate-private
+    `without_scrollbar`, no public API change). `Role::TabList`/`Tab`/`TabPanel` map to
+    AccessKit's roles (A11Y-TREE-07). The gallery gained a "Tabs" section and a kitchen-sink
+    card (every gallery golden regenerated for the sidebar's new button). No new crate,
+    edge or pipeline stage.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1440,15 +1452,18 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `8cab82e` | spec: Offstage, retained but hidden subtrees (VIEW-OFFSTAGE-01..06, A11Y-TREE-06, WIDGETS-OFFSTAGE-01) |
 | `d909ae9` | test: Offstage, stubs + 8 failing tests |
 | `698f747` | test: VIEW-OFFSTAGE-02 counts the column's layout children |
-| _this commit_ | impl: Offstage flag through layout, paint, hit-test, focus, actions, overlays and a11y; `Offstage` widget; PLAN.md ticked |
+| `7685e63` | impl: Offstage flag through layout, paint, hit-test, focus, actions, overlays and a11y; `Offstage` widget; PLAN.md ticked |
+| `bd1169d` | spec: TabBar, TabBarView and TabView agreed (WIDGETS-TAB-01..10, A11Y-TREE-07, GALLERY-22..23) |
+| `cba4a13` | test: TabBar, TabBarView and TabView, stubs + 14 failing tests |
+| `e3b02dd` | test: TabView tests copy the Copy text controller (clippy) |
+| _this commit_ | impl: TabBar, TabBarView and TabView (fixed/scrollable bars, lazy kept pages, keys, tab semantics); gallery Tabs section and kitchen-sink card, goldens; PLAN.md TabView ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Review the TabView widgets draft (`docs/specs/widgets/tab-view.md`); after agreement,
-TabView spec/test/impl on top of `Offstage`. Then `SplitView` (which may bring the
+Draft the `SplitView` spec (which may bring the
 `ColResize`/`RowResize` cursor amendment), then docking.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.

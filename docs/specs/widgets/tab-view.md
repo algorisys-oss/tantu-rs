@@ -1,6 +1,6 @@
 # TabView: tab bars and kept tab panels
 
-- **Status:** Agreed (2026-10-15, the user said "continue" on the six proposals)
+- **Status:** Implemented (2026-10-15; agreed the same day, the user said "continue" on the six proposals)
 - **Crates:** `tantu-widgets` (widgets), `tantu-view` and `tantu-a11y` (tab roles),
   `examples/gallery`
 - **Plan item:** Phase 4, "`TabView`", part 2 (the widgets)

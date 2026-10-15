@@ -200,6 +200,7 @@ pub struct ScrollView {
     horizontal: bool,
     controller: Option<ScrollController>,
     wheel: Duration,
+    scrollbar: bool,
 }
 
 impl ScrollView {
@@ -210,6 +211,7 @@ impl ScrollView {
             horizontal: false,
             controller: None,
             wheel: Duration::from_millis(150),
+            scrollbar: true,
         }
     }
 
@@ -229,6 +231,13 @@ impl ScrollView {
     /// Shares `controller` with the app.
     pub fn controller(mut self, controller: ScrollController) -> Self {
         self.controller = Some(controller);
+        self
+    }
+
+    /// Hides the scrollbar (no thumb to paint or drag), for widgets such as scrollable tab
+    /// bars whose design has none.
+    pub(crate) fn without_scrollbar(mut self) -> Self {
+        self.scrollbar = false;
         self
     }
 }
@@ -308,6 +317,7 @@ impl View for ScrollView {
         };
         let theme = ThemeHandle::of(cx);
         let wheel = self.wheel;
+        let scrollbar = self.scrollbar;
         let id = cx.render(RenderViewport::new(axis), [self.child]);
         let shared: Shared = Rc::default();
         // Semantics: a scroll view that scrolls a descendant into view on request
@@ -374,6 +384,7 @@ impl View for ScrollView {
                 controller,
                 shared: Rc::clone(&shared),
                 thumb: Color::TRANSPARENT,
+                scrollbar,
             },
         );
         cx.bind(
@@ -454,7 +465,7 @@ impl View for ScrollView {
                 }
                 PointerKind::Down(PointerButton::Primary) => {
                     let offset = controller.offset.get_untracked();
-                    match bar.thumb_rect(offset) {
+                    match bar.thumb_rect(offset).filter(|_| scrollbar) {
                         Some(thumb) if thumb.contains(p.local) => {
                             drag.set(Some((along(p.local), offset)));
                             Handled::Stop
@@ -491,6 +502,8 @@ struct ViewportPaint {
     shared: Shared,
     /// The thumb's color (the theme's `on_surface` at 40 %).
     thumb: Color,
+    /// Whether the thumb is shown.
+    scrollbar: bool,
 }
 
 impl Paint for ViewportPaint {
@@ -506,7 +519,10 @@ impl Paint for ViewportPaint {
         cx.scene().push_clip(Clip::Rect(bounds));
         cx.paint_children();
         cx.scene().pop();
-        if let Some(thumb) = bar.thumb_rect(self.controller.offset.get_untracked()) {
+        if let Some(thumb) = bar
+            .thumb_rect(self.controller.offset.get_untracked())
+            .filter(|_| self.scrollbar)
+        {
             cx.scene().fill(
                 RoundedRect::new(thumb, BorderRadius::circular(THUMB_WIDTH / 2.0)),
                 self.thumb,
