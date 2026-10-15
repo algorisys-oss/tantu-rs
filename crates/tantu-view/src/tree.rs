@@ -233,6 +233,10 @@ impl RenderBox for RootBox {
 /// How many rebuild rounds one `ViewTree::layout` call allows for `LayoutBuilder`s.
 const LAYOUT_BUILDER_ROUNDS: usize = 16;
 
+/// How many overlay placement rounds a layout runs at most (a nested overlay settles one
+/// round after its popup; VIEW-OVERLAY-06).
+const OVERLAY_ROUNDS: usize = 8;
+
 /// The arena id behind an element id.
 pub(crate) fn arena_id(id: ElementId) -> Option<Id> {
     Id::from_bits(id.to_raw())
@@ -418,8 +422,12 @@ impl ViewTree {
     pub fn layout(&mut self, constraints: BoxConstraints, text: &mut dyn TextMeasure) -> Size {
         let size = self.layout_with_builders(constraints, &mut *text);
         // Overlays are placed for this layout; a changed placement lays the layer out again
-        // (VIEW-OVERLAY-06).
-        if self.place_overlays(size) {
+        // (VIEW-OVERLAY-06). A nested overlay is placed against its popup's new position in
+        // the next round, so this repeats until nothing moves (bounded).
+        for _ in 0..OVERLAY_ROUNDS {
+            if !self.place_overlays(size) {
+                break;
+            }
             self.layout_pass(constraints, &mut *text);
         }
         size
