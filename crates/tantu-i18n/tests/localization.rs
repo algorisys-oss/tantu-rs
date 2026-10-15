@@ -109,7 +109,7 @@ fn i18n_msg_04_reactive_locale() {
         }
         loc.set_locale(locale("de-AT"));
         assert_eq!(loc.locale(), locale("de"), "negotiated");
-        loc.set_locale(locale("fr-CA"));
+        loc.set_locale(locale("ja"));
         assert_eq!(loc.locale(), locale("en"), "the fallback");
         assert_eq!(
             *seen.borrow(),
@@ -127,7 +127,7 @@ fn i18n_msg_05_negotiation() {
     let t = translations();
     let mut locales: Vec<String> = t.locales().iter().map(ToString::to_string).collect();
     locales.sort();
-    assert_eq!(locales, ["de", "de-CH", "en"]);
+    assert_eq!(locales, ["de", "de-CH", "en", "fr", "hi"]);
     assert_eq!(
         t.negotiate(&[locale("fr"), locale("de-AT"), locale("en")]),
         locale("de")

@@ -41,12 +41,15 @@ inbox = { $count ->
 
 pub const DE_CH: &str = "hello = Grüezi, { $name }!\n";
 
-/// English (the fallback), German and Swiss German.
+/// English (the fallback), German, Swiss German, and French and Hindi without messages.
 pub fn translations() -> Translations {
     let mut t = Translations::new(locale("en"));
     t.add(locale("en"), EN).expect("valid");
     t.add(locale("de"), DE).expect("valid");
     t.add(locale("de-CH"), DE_CH).expect("valid");
+    // Formats only: their messages fall back to English.
+    t.add(locale("fr"), "").expect("valid");
+    t.add(locale("hi"), "").expect("valid");
     t
 }
 
