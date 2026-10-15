@@ -35,6 +35,7 @@ mod dialog;
 mod directionality;
 mod divider;
 mod dock;
+mod drag_and_drop;
 mod focus_scope;
 mod form;
 mod formatter;
@@ -80,6 +81,7 @@ pub use dock::{
     DockArea, DockError, DockGroupId, DockLayout, DockLoadError, DockNode, DockSide, DockSplitId,
     DockTarget, DockView, PanelId,
 };
+pub use drag_and_drop::{DragTarget, Draggable};
 pub use focus_scope::FocusScope;
 pub use form::{AutovalidateMode, Form, FormController, TextFormField, Validator, validators};
 pub use formatter::{
