@@ -178,8 +178,8 @@ impl Finder {
   cell's resize handle sets `ResizeHorizontal` as its cursor, so the column handles show
   the resize cursor now that cursors reach the window ([cursor icons](../platform/cursor.md)).
 - **TEST-WT-18:** (amends [WidgetTester](../test/widget-tester.md), review)
-  `Finder::semantics_label(label)` matches the elements whose `Semantics::label` equals
-  `label`, so tests can find elements that have a label but no key or text, such as a
+  `Finder::semantics_label(label)` matches the elements whose `Semantics::name` (the
+  accessible label) equals `label`, so tests can find elements that have a label but no key or text, such as a
   split view's dividers ("Resize Folders").
 - **GALLERY-24:** A "Split view" section before Tabs (twelve sections): a horizontal split
   (key `split`) of a 200 px-minimum collapsible "Folders" list, a "Messages" list and a
