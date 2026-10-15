@@ -143,7 +143,9 @@ fn widgets_mask_01_formatters_run_on_user_edits() {
         .a11y_tree()
         .nodes
         .into_iter()
-        .find(|(_, n)| n.label() == Some("Code"))
+        .find(|(_, n)| {
+            n.role() == tantu_test::accesskit::Role::TextInput && n.label() == Some("Code")
+        })
         .map(|(id, _)| tantu_view::ElementId::from_raw(id.0).expect("element"))
         .expect("the field");
     let center = t.rect(input).center();
