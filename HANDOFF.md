@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (forms part 3, masked input, done; the user is away until morning)_
+_Last updated: 2026-10-16 (forms part 4a, the date picker, done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1177,6 +1177,23 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     validator. Cut and paste now go through the same edit path as typing. Gallery: a
     masked Phone field in the Text field section's form and a "mask" kitchen-sink card
     (a date). No new crate or edge.
+94. **Forms part 4a: date picker** (2026-10-16, spec `docs/specs/widgets/date-picker.md`;
+    decided by the agent while the user was away, review). The date/time item is split
+    (dates; times). An in-house `Date` (proleptic Gregorian, years 1–9999, Hinnant's
+    civil-day arithmetic, `add_days`/`add_months`, ISO text) and `Weekday`, so no `chrono`
+    or `time` dependency. `CalendarDatePicker`: 280 × 320 month grid (header with
+    previous/next buttons, weekday row, six week rows of 40 px cells), Monday first by
+    default, a selectable range, an app-supplied "today", a keyboard cursor (arrows,
+    PageUp/Down, Shift for years, Home/End, Enter/Space), and `Grid`/`ColumnHeader`/`Cell`
+    semantics with the cursor as active descendant. `DatePickerField`: a `####-##-##`
+    masked field and a calendar button; typing a valid in-range date selects it, an
+    invalid complete one shows the error outline; Alt+Down or the button opens the
+    calendar popup while the focus stays in the field (WAI-ARIA combobox with a grid
+    popup). Amendment found while implementing (review): the popup's target is the field
+    and its button together (so the button toggles), and A11Y-TREE-13 now also accepts a
+    popup whose target encloses the element. English month and weekday names until the
+    i18n item. Gallery: a "Due date" field in Selection and a "date" kitchen-sink card.
+    No new crate or edge.
 
 ## Commit log
 
@@ -1728,14 +1745,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `3edd991` | test: forms part 3, stubs + 8 failing tests |
 | `c275e7d` | test: WIDGETS-MASK-01 finds the Code field by its TextInput role |
 | `34cade0` | test: GALLERY-40..41 type further keys without a second click; Phone by its role |
-| _this commit_ | impl: formatters (filtering, length, mask) on TextField/TextFormField; gallery Phone field and mask card, goldens; PLAN.md part 3 ticked |
+| `a9cb7ab` | impl: formatters (filtering, length, mask) on TextField/TextFormField; gallery Phone field and mask card, goldens; PLAN.md part 3 ticked (CI green, run 38808826969) |
+| `1490433` | spec: forms part 4a, date picker (WIDGETS-DATE-01..08, GALLERY-42..43); PLAN.md part 4 split |
+| `16b138b` | test: forms part 4a, stubs + 10 failing tests |
+| `944e500` | spec: A11Y-TREE-13 accepts a popup whose target encloses the element; WIDGETS-DATE-09 |
+| `b9a47db` | test: A11Y-TREE-13 enclosing target, failing; WIDGETS-DATE-09 button toggle |
+| `07f024c` | test: WIDGETS-DATE-03 out-of-range days in a range starting mid-month |
+| _this commit_ | impl: Date, Weekday, CalendarDatePicker, DatePickerField, enclosing popup targets in tantu-a11y; gallery date field and card, goldens; PLAN.md part 4a ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: forms part 4 (date/time pickers), i18n, `Grid` layout; the remaining clipboard/multi-window/drag-and-drop
+Continue Phase 4 in PLAN.md order: forms part 4b (time picker), i18n, `Grid` layout; the remaining clipboard/multi-window/drag-and-drop
 parts. Native OS menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.

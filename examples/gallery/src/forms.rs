@@ -1,4 +1,4 @@
-//! Gallery and kitchen-sink form examples (GALLERY-36..41).
+//! Gallery and kitchen-sink form examples (GALLERY-36..43).
 use tantu::prelude::*;
 use tantu::view::Keyed;
 
@@ -223,6 +223,51 @@ pub(super) fn combo_sink() -> impl View {
                 .and_then(|i| CURRENCIES.get(i))
                 .map_or("none", |c| &c[..3]);
             format!("Currency: {code}")
+        }),
+    )
+}
+
+/// A date the gallery's calendars treat as today (fixed, so goldens don't change).
+fn gallery_today() -> Date {
+    Date::new(2026, 10, 16).expect("2026-10-16 exists")
+}
+
+/// The Selection section's date field and its echo (GALLERY-42).
+pub(super) fn date_sample() -> impl View {
+    let due = signal(None::<Date>);
+    Row::new()
+        .cross_axis_alignment(CrossAxisAlignment::Center)
+        .spacing(12.0)
+        .child(
+            DatePickerField::new(due)
+                .label("Due date")
+                .first_date(Date::new(2026, 1, 1).expect("exists"))
+                .last_date(Date::new(2027, 12, 31).expect("exists"))
+                .today(gallery_today()),
+        )
+        .child(Keyed::new(
+            "date-echo",
+            Text::new(move || match due.get() {
+                Some(date) => format!("Due: {date}"),
+                None => "Due: none".to_owned(),
+            }),
+        ))
+}
+
+/// The date card: a standalone calendar (GALLERY-43).
+pub(super) fn date_sink() -> impl View {
+    let picked = signal(Some(gallery_today()));
+    let body = Keyed::new(
+        "sink-calendar_date_picker",
+        CalendarDatePicker::new(picked).today(gallery_today()),
+    );
+    super::card(
+        "date",
+        "Date picker",
+        body,
+        super::echo(move || match picked.get() {
+            Some(date) => format!("Picked: {date}"),
+            None => "Picked: none".to_owned(),
         }),
     )
 }

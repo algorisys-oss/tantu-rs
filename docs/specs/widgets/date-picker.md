@@ -1,6 +1,6 @@
 # Forms, part 4a: date picker
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-widgets` (`Date`, `Weekday`, `CalendarDatePicker`, `DatePickerField`),
   `examples/gallery`
 - **Plan item:** Phase 4, "Forms: …, date/time pickers", part 4a (dates; times are part 4b)

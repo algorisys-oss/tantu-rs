@@ -561,9 +561,9 @@ impl Paint for RowPaint {
     }
 }
 
-/// The popup's surface and shadow.
-struct PopupPaint {
-    colors: tantu_theme::ColorScheme,
+/// The popup's surface and shadow (shared with the date picker's popup).
+pub(crate) struct PopupPaint {
+    pub(crate) colors: tantu_theme::ColorScheme,
 }
 
 impl Paint for PopupPaint {

@@ -192,7 +192,7 @@ faster or more portable without changing how apps are written.
   - [x] validation and field binding: `Form`, `FormController`, `TextFormField`, validators, error semantics (spec `docs/specs/widgets/form.md`)
   - [x] combo box with search: `ComboBox` (spec `docs/specs/widgets/combo-box.md`)
   - [x] input formatters and masked input: `TextInputFormatter`, `MaskFormatter` (spec `docs/specs/widgets/masked-input.md`)
-  - [ ] date picker: `Date`, `CalendarDatePicker`, `DatePickerField` (spec `docs/specs/widgets/date-picker.md`)
+  - [x] date picker: `Date`, `CalendarDatePicker`, `DatePickerField` (spec `docs/specs/widgets/date-picker.md`)
   - [ ] time picker (separate spec)
 - [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting
 - [ ] `Grid` layout (possibly via taffy) for dashboard-style screens

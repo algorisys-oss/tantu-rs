@@ -130,7 +130,12 @@ fn visit(
                     if id == element {
                         return true;
                     }
-                    parent = tree.popup_owner(id).or_else(|| tree.parent(id));
+                    let owner = tree.popup_owner(id);
+                    // A popup whose target encloses the element is its popup too.
+                    if owner.is_some_and(|owner| encloses(tree, owner, element)) {
+                        return true;
+                    }
+                    parent = owner.or_else(|| tree.parent(id));
                 }
                 false
             }) {
@@ -150,6 +155,18 @@ fn visit(
             }
         }
     }
+}
+
+/// Whether `element` is `ancestor` or lies inside it.
+fn encloses(tree: &ViewTree, ancestor: ElementId, element: ElementId) -> bool {
+    let mut current = Some(element);
+    while let Some(id) = current {
+        if id == ancestor {
+            return true;
+        }
+        current = tree.parent(id);
+    }
+    false
 }
 
 /// An AccessKit node with the semantics' properties (A11Y-TREE-02).
