@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..11.
+//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..12.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -670,4 +670,62 @@ fn widgets_textfield_11_double_click_selects_a_word() {
         tester.advance(ms(50));
     }
     assert_eq!(sel(&tester, c), TextSelection::new(1, 4));
+}
+
+#[test]
+fn widgets_textfield_12_copy_cut_paste() {
+    let changes: Rc<RefCell<Vec<String>>> = Rc::default();
+    let (mut tester, c) = {
+        let changes = changes.clone();
+        field("hello world", move |f| {
+            f.on_change(move |text| changes.borrow_mut().push(text))
+        })
+    };
+    tester.focus(&Finder::key("f"));
+    let chord = |tester: &mut WidgetTester, ch: &str| {
+        tester.press_key(LogicalKey::Character(ch.into()), primary());
+        tester.pump();
+    };
+    // Copy with a collapsed selection writes nothing.
+    tester.set_clipboard_text("untouched");
+    tester.enter(|| c.select(TextSelection::collapsed(0)));
+    chord(&mut tester, "c");
+    assert_eq!(tester.clipboard_text().as_deref(), Some("untouched"));
+    // Copy the selection.
+    tester.enter(|| c.select(TextSelection::new(0, 5)));
+    chord(&mut tester, "c");
+    assert_eq!(tester.clipboard_text().as_deref(), Some("hello"));
+    assert_eq!(tester.enter(|| c.text()), "hello world");
+    // Cut: copied and deleted, one undo step.
+    tester.enter(|| c.select(TextSelection::new(5, 11)));
+    chord(&mut tester, "x");
+    assert_eq!(tester.clipboard_text().as_deref(), Some(" world"));
+    assert_eq!(tester.enter(|| c.text()), "hello");
+    // Paste over the selection; line breaks become spaces in a single-line field.
+    tester.set_clipboard_text("big\nwide");
+    tester.enter(|| c.select(TextSelection::new(0, 5)));
+    chord(&mut tester, "v");
+    assert_eq!(tester.enter(|| c.text()), "big wide");
+    assert_eq!(*changes.borrow(), ["hello", "big wide"]);
+    // Each is one undo step.
+    tester.press_key(LogicalKey::Character("z".into()), primary());
+    assert_eq!(tester.enter(|| c.text()), "hello");
+    tester.press_key(LogicalKey::Character("z".into()), primary());
+    assert_eq!(tester.enter(|| c.text()), "hello world");
+    // An empty clipboard pastes nothing.
+    tester.set_clipboard_text("");
+    chord(&mut tester, "v");
+    assert_eq!(tester.enter(|| c.text()), "hello world");
+    // A multi-line field keeps line breaks.
+    let (mut tester, c) = field("", |f| f.max_lines(None));
+    tester.focus(&Finder::key("f"));
+    tester.set_clipboard_text("a\nb");
+    chord(&mut tester, "v");
+    assert_eq!(tester.enter(|| c.text()), "a\nb");
+    // A disabled field ignores the chords.
+    let (mut tester, c) = field("text", |f| f.enabled(false));
+    tester.set_clipboard_text("pasted");
+    tester.enter(|| c.select(TextSelection::new(0, 4)));
+    tester.press_key(LogicalKey::Character("v".into()), primary());
+    assert_eq!(tester.enter(|| c.text()), "text");
 }

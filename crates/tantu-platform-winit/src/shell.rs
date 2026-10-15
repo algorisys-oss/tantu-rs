@@ -249,6 +249,10 @@ impl PlatformContext for Context<'_> {
         }
     }
 
+    fn clipboard(&mut self) -> Option<std::rc::Rc<dyn tantu_platform::Clipboard>> {
+        todo!("PLATFORM-WINIT-17")
+    }
+
     fn set_cursor(&mut self, window: WindowId, cursor: tantu_platform::CursorIcon) {
         if let Some(entry) = self.windows.entries.get(&window) {
             entry.window.set_cursor(conv::cursor(cursor));

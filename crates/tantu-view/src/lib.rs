@@ -41,6 +41,7 @@
 
 mod animation;
 mod builder;
+mod clipboard;
 mod dynamic;
 mod events;
 mod focus;
@@ -61,6 +62,7 @@ pub use animation::{
     Animated, Animation, AnimationController, AnimationStatus, Curve, Lerp, Tween, animated,
 };
 pub use builder::Builder;
+pub use clipboard::{Clipboard, MemoryClipboard};
 pub use dynamic::{Dyn, For, Show};
 pub use events::{CursorIcon, Handled, Phase, PointerButton, PointerCx, PointerEvent, PointerKind};
 pub use focus::{FocusOptions, ImeCx, ImeEvent, KeyCx, KeyEvent, LogicalKey, Modifiers, NamedKey};

@@ -1,4 +1,4 @@
-//! Rules PLATFORM-WINIT-01..04 and -14..16 against a real window (spec `docs/specs/platform-winit/shell.md`,
+//! Rules PLATFORM-WINIT-01..04 and -14..17 against a real window (spec `docs/specs/platform-winit/shell.md`,
 //! "Testing"). winit needs the main thread, so this target runs without the test harness. It runs
 //! only with `TANTU_WINDOW_TESTS=1`; otherwise it reports that it was skipped.
 
@@ -34,6 +34,8 @@ struct Run {
     a11y_update_sent: bool,
     /// Whether cursors could be set, on the window and on an unknown one (PLATFORM-WINIT-16).
     cursor_set: bool,
+    /// The clipboard round trip, if a clipboard opened (PLATFORM-WINIT-17).
+    clipboard: Option<(bool, Option<String>)>,
 }
 
 impl PlatformHandler for Run {
@@ -70,6 +72,10 @@ impl PlatformHandler for Run {
         cx.set_cursor(w, tantu_platform::CursorIcon::ResizeHorizontal);
         cx.set_cursor(WindowId::from_raw(99), tantu_platform::CursorIcon::Text);
         self.cursor_set = true;
+        if let Some(clipboard) = cx.clipboard() {
+            let written = clipboard.write_text("tantu clipboard test");
+            self.clipboard = Some((written, clipboard.read_text()));
+        }
     }
 
     fn window_event(&mut self, cx: &mut dyn PlatformContext, window: WindowId, event: WindowEvent) {
@@ -111,6 +117,14 @@ impl PlatformHandler for Run {
                 cx.request_redraw(window);
             }
         }
+    }
+}
+
+fn platform_winit_17_clipboard(run: &Run) {
+    // A display may have no clipboard owner available; when writing worked, reading
+    // returns the text.
+    if let Some((true, read)) = &run.clipboard {
+        assert_eq!(read.as_deref(), Some("tantu clipboard test"));
     }
 }
 
@@ -192,6 +206,7 @@ fn main() -> ExitCode {
     platform_winit_14_wake_at(&run);
     platform_winit_15_adapter(&run);
     platform_winit_16_set_cursor(&run);
+    platform_winit_17_clipboard(&run);
     println!("window tests passed");
     ExitCode::SUCCESS
 }

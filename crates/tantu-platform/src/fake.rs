@@ -33,6 +33,8 @@ pub struct FakeLog {
     /// Every `wake_at` call, as offsets from the run's start (`None` for a cancel)
     /// (PLATFORM-FAKE-12).
     pub wakes: Vec<Option<std::time::Duration>>,
+    /// The clipboard's text when the run ended (PLATFORM-FAKE-15).
+    pub clipboard_text: Option<String>,
 }
 
 /// A window of a [`FakePlatform`], as last seen.
@@ -79,6 +81,12 @@ impl FakePlatform {
             scale_factor: 1.0,
             steps: Vec::new(),
         }
+    }
+
+    /// The clipboard's text when the run starts (PLATFORM-FAKE-15).
+    pub fn clipboard_text(self, text: impl Into<String>) -> Self {
+        let _ = text.into();
+        todo!("PLATFORM-FAKE-15")
     }
 
     /// The scale factor new windows get.
@@ -273,6 +281,10 @@ impl PlatformContext for FakeContext {
         if let Some(index) = self.open_index(window) {
             self.log.windows[index].ime_area = Some((origin, size));
         }
+    }
+
+    fn clipboard(&mut self) -> Option<std::rc::Rc<dyn crate::Clipboard>> {
+        todo!("PLATFORM-FAKE-15")
     }
 
     fn set_cursor(&mut self, window: WindowId, cursor: CursorIcon) {

@@ -32,6 +32,18 @@ use crate::{Padding, TextEditingController};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SelectAllIntent;
 
+/// Copy the selection to the clipboard (primary + C; WIDGETS-TEXTFIELD-12).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CopyIntent;
+
+/// Cut the selection to the clipboard (primary + X).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CutIntent;
+
+/// Paste the clipboard's text over the selection (primary + V).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PasteIntent;
+
 /// Undo the last edit (primary + Z).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct UndoIntent;

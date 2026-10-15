@@ -474,3 +474,16 @@ fn over(image: &ImageData, background: Color) -> ImageData {
     ImageData::rgba8(image.width(), image.height(), pixels)
         .expect("the composited image has the source's dimensions and pixel count")
 }
+
+impl WidgetTester {
+    /// The tester's clipboard text (TEST-WT-19).
+    pub fn clipboard_text(&self) -> Option<String> {
+        todo!("TEST-WT-19")
+    }
+
+    /// Writes the tester's clipboard (TEST-WT-19).
+    pub fn set_clipboard_text(&mut self, text: &str) {
+        let _ = text;
+        todo!("TEST-WT-19")
+    }
+}

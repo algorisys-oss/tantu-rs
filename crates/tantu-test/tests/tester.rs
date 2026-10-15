@@ -527,3 +527,25 @@ fn test_wt_18_semantics_label() {
     // Usable like any finder.
     tester.tap(&Finder::semantics_label("Other"));
 }
+
+#[test]
+fn test_wt_19_clipboard() {
+    use tantu_view::Clipboard;
+    type Out = Rc<RefCell<Option<Rc<dyn Clipboard>>>>;
+    let out: Out = Rc::default();
+    let mut tester = {
+        let out = out.clone();
+        WidgetTester::with_size(100.0, 100.0, move || {
+            Builder::new(move |cx| {
+                *out.borrow_mut() = Some(cx.clipboard());
+                SizedBox::new(10.0, 10.0)
+            })
+        })
+    };
+    let clipboard = out.borrow_mut().take().expect("built");
+    assert_eq!(tester.clipboard_text(), None);
+    tester.set_clipboard_text("from the test");
+    assert_eq!(clipboard.read_text().as_deref(), Some("from the test"));
+    clipboard.write_text("from a view");
+    assert_eq!(tester.clipboard_text().as_deref(), Some("from a view"));
+}

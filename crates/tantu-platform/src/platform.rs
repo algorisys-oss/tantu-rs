@@ -49,6 +49,14 @@ impl<T> WindowHandles for T where
 /// A shared handle to a window's handles. Keeps the native window alive while held.
 pub type SurfaceTarget = Arc<dyn WindowHandles>;
 
+/// The OS clipboard (plain text) (PLATFORM-CLIP-01).
+pub trait Clipboard {
+    /// The clipboard's text, or `None` when it is empty, holds no text or can't be read.
+    fn read_text(&self) -> Option<String>;
+    /// Replaces the clipboard's content with `text`; false when it couldn't be written.
+    fn write_text(&self, text: &str) -> bool;
+}
+
 /// What a handler can ask the platform to do while it is called.
 pub trait PlatformContext {
     /// Creates a window. A `RedrawRequested` for it follows; read its initial size and scale
@@ -85,6 +93,10 @@ pub trait PlatformContext {
     /// Shows `cursor` while the pointer is over `window`, until the next call. A new window
     /// starts with [`CursorIcon::Default`]; unknown windows are ignored (PLATFORM-CURSOR-01).
     fn set_cursor(&mut self, window: WindowId, cursor: CursorIcon);
+
+    /// The clipboard, or `None` on a platform without one; the same handle for every call
+    /// (PLATFORM-CLIP-01).
+    fn clipboard(&mut self) -> Option<std::rc::Rc<dyn Clipboard>>;
 
     /// Ends the event loop after the current callback returns. [`Platform::run`] then returns.
     fn exit(&mut self);

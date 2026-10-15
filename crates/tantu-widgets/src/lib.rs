@@ -88,7 +88,9 @@ pub use tab_view::{Tab, TabBar, TabBarView, TabView};
 pub use text_editing::{
     Direction, EditingValue, Movement, TextEditingController, TextRange, TextSelection,
 };
-pub use text_field::{RedoIntent, SelectAllIntent, TextField, UndoIntent};
+pub use text_field::{
+    CopyIntent, CutIntent, PasteIntent, RedoIntent, SelectAllIntent, TextField, UndoIntent,
+};
 pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;
 pub use tree_view::{TreeDataSource, TreeNodeId, TreeRowState, TreeView};

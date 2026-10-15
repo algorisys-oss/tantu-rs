@@ -1367,3 +1367,35 @@ fn gallery_34_kitchen_sink_dialogs_card() {
     assert_eq!(text_of(&t, "sink-dialogs-state"), "Name: draft");
     assert!(t.find_all(&Finder::key("sink-rename-field")).is_empty());
 }
+
+#[test]
+fn gallery_35_copy_and_paste_in_a_text_field() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    let primary = if cfg!(target_os = "macos") {
+        Modifiers {
+            super_key: true,
+            ..Default::default()
+        }
+    } else {
+        Modifiers {
+            control: true,
+            ..Default::default()
+        }
+    };
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    go(&mut t, "Text field");
+    t.enter_text(&Finder::key("field"), "copy me");
+    t.pump();
+    t.focus(&Finder::key("field"));
+    for (key, modifiers) in [
+        (LogicalKey::Character("a".into()), primary),
+        (LogicalKey::Character("c".into()), primary),
+        (LogicalKey::Named(NamedKey::End), Modifiers::default()),
+        (LogicalKey::Character("v".into()), primary),
+    ] {
+        t.press_key(key, modifiers);
+        t.pump();
+    }
+    assert_eq!(t.clipboard_text().as_deref(), Some("copy me"));
+    assert_eq!(text_of(&t, "echo"), "You typed: copy mecopy me");
+}

@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15 and -17.
+//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15, -17 and -18.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -869,4 +869,39 @@ fn facade_app_17_cursor_follows_the_tree() {
         [CursorIcon::Text, CursorIcon::ResizeVertical],
         "only changes are sent, after pointer events and after frames; leaving sends nothing"
     );
+}
+
+/// Writes "from the app" to the clipboard on a press, after recording what it held.
+struct ClipboardUser(Rc<RefCell<Vec<Option<String>>>>);
+
+impl View for ClipboardUser {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::expand(), []);
+        let clipboard = cx.clipboard();
+        let seen = self.0;
+        cx.on_pointer(id, Phase::Bubble, move |p| {
+            if let PointerKind::Down(_) = p.event.kind {
+                seen.borrow_mut().push(clipboard.read_text());
+                clipboard.write_text("from the app");
+            }
+            Handled::Continue
+        });
+        id
+    }
+}
+
+#[test]
+fn facade_app_18_runner_installs_the_platform_clipboard() {
+    let seen: Rc<RefCell<Vec<Option<String>>>> = Rc::default();
+    let s = seen.clone();
+    let app = App::new().window(Window::new("A").size(200.0, 100.0), move || {
+        ClipboardUser(s.clone())
+    });
+    let platform = FakePlatform::new()
+        .clipboard_text("from the platform")
+        .event(0, button(ButtonState::Pressed, 5.0, 5.0))
+        .event(0, button(ButtonState::Released, 5.0, 5.0));
+    let (log, _) = run(app, platform, &Recorders::default());
+    assert_eq!(*seen.borrow(), [Some("from the platform".to_owned())]);
+    assert_eq!(log.clipboard_text.as_deref(), Some("from the app"));
 }

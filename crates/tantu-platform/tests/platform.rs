@@ -840,3 +840,47 @@ fn platform_fake_14_records_cursors() {
     );
     assert_eq!(log.windows[1].cursors, [CursorIcon::Pointer]);
 }
+
+#[test]
+fn platform_clip_01_clipboard() {
+    let seen: Rc<RefCell<Vec<Option<String>>>> = Rc::default();
+    let s = seen.clone();
+    let mut handler = Recorder::with(move |cx, event| {
+        if let Seen::Started = event {
+            let clipboard = cx.clipboard().expect("the fake platform has a clipboard");
+            s.borrow_mut().push(clipboard.read_text());
+            assert!(clipboard.write_text("hello"));
+            // The same handle for every call.
+            let again = cx.clipboard().expect("a clipboard");
+            s.borrow_mut().push(again.read_text());
+            assert!(again.write_text(""));
+            s.borrow_mut().push(clipboard.read_text());
+        }
+    });
+    FakePlatform::new().run_logged(&mut handler);
+    assert_eq!(*seen.borrow(), [None, Some("hello".to_owned()), None]);
+}
+
+#[test]
+fn platform_fake_15_initial_and_final_clipboard() {
+    let seen: Rc<RefCell<Option<String>>> = Rc::default();
+    let s = seen.clone();
+    let mut handler = Recorder::with(move |cx, event| {
+        if let Seen::Started = event {
+            let clipboard = cx.clipboard().expect("a clipboard");
+            *s.borrow_mut() = clipboard.read_text();
+            clipboard.write_text("after");
+        }
+    });
+    let log = FakePlatform::new()
+        .clipboard_text("before")
+        .run_logged(&mut handler);
+    assert_eq!(seen.borrow().as_deref(), Some("before"));
+    assert_eq!(log.clipboard_text.as_deref(), Some("after"));
+    // Without an initial text the log shows what was last written, or nothing.
+    let mut quiet = Recorder::with(|_, _| {});
+    assert_eq!(
+        FakePlatform::new().run_logged(&mut quiet).clipboard_text,
+        None
+    );
+}
