@@ -1,6 +1,7 @@
 //! The Tantu widget gallery (spec `docs/specs/examples/gallery.md`): a header, a sidebar of
 //! sections and the selected section's samples.
 
+mod dock;
 mod split;
 mod tabs;
 mod tree;
@@ -17,7 +18,7 @@ use tantu::scene::{BorderRadius, ImageData, RoundedRect};
 use tantu::view::{Anchor, BuildCx, ElementId, Keyed, OverlayPortal, Paint, PaintCx, Prop};
 
 /// The section names, in sidebar order.
-pub const SECTIONS: [&str; 12] = [
+pub const SECTIONS: [&str; 13] = [
     "Buttons",
     "Text",
     "Selection",
@@ -27,6 +28,7 @@ pub const SECTIONS: [&str; 12] = [
     "Animation",
     "Data grid",
     "Tree view",
+    "Docking",
     "Split view",
     "Tabs",
     "Kitchen sink",
@@ -34,7 +36,7 @@ pub const SECTIONS: [&str; 12] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 15] = [
+pub const SINK_CARDS: [(&str, &[&str]); 16] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -51,6 +53,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 15] = [
     ("tree", &["tree_view"]),
     ("tabs", &["tab_bar", "tab_view"]),
     ("split", &["split_view"]),
+    ("dock", &["dock_area"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -140,7 +143,8 @@ fn sidebar(section: Signal<&'static str>) -> impl View {
         Padding::all(8.0).child(
             Column::new()
                 .cross_axis_alignment(CrossAxisAlignment::Stretch)
-                .spacing(8.0)
+                // 4 px keeps all thirteen buttons inside a 640 px window.
+                .spacing(4.0)
                 .children(SECTIONS.iter().map(|name| {
                     Keyed::new(
                         nav_key(name),
@@ -166,6 +170,7 @@ fn content(section: Signal<&'static str>) -> impl View {
             "Tree view" => AnyView::new(tree::section()),
             "Tabs" => AnyView::new(tabs::section()),
             "Split view" => AnyView::new(split::section()),
+            "Docking" => AnyView::new(dock::section()),
             _ => AnyView::new(buttons_section()),
         };
         Column::new()
@@ -714,6 +719,7 @@ fn kitchen_sink_section() -> impl View {
             .child(tree::sink())
             .child(tabs::sink())
             .child(split::sink())
+            .child(dock::sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

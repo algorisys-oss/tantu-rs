@@ -201,6 +201,7 @@ pub struct ScrollView {
     controller: Option<ScrollController>,
     wheel: Duration,
     scrollbar: bool,
+    focusable: bool,
 }
 
 impl ScrollView {
@@ -212,6 +213,7 @@ impl ScrollView {
             controller: None,
             wheel: Duration::from_millis(150),
             scrollbar: true,
+            focusable: true,
         }
     }
 
@@ -238,6 +240,13 @@ impl ScrollView {
     /// bars whose design has none.
     pub(crate) fn without_scrollbar(mut self) -> Self {
         self.scrollbar = false;
+        self
+    }
+
+    /// Leaves focus to an enclosing element: a press doesn't focus the view (a dock's tab
+    /// strip, which is the focus stop around it).
+    pub(crate) fn unfocusable(mut self) -> Self {
+        self.focusable = false;
         self
     }
 }
@@ -406,13 +415,15 @@ impl View for ScrollView {
             },
         );
         // Keys (WIDGETS-SCROLL-06): a press focuses the view, Tab doesn't stop at it.
-        cx.focusable(
-            id,
-            FocusOptions {
-                traversable: false,
-                focus_on_press: true,
-            },
-        );
+        if self.focusable {
+            cx.focusable(
+                id,
+                FocusOptions {
+                    traversable: false,
+                    focus_on_press: true,
+                },
+            );
+        }
         {
             let shared = Rc::clone(&shared);
             cx.on_key(id, Phase::Bubble, move |k| {

@@ -71,7 +71,7 @@ impl PartialEq for RenderSplit {
 }
 
 /// A value as a length: negative and non-finite values count as 0.
-fn length(value: f32) -> f32 {
+pub(crate) fn length(value: f32) -> f32 {
     if value.is_finite() && value > 0.0 {
         value
     } else {
@@ -103,76 +103,80 @@ impl RenderSplit {
 
     /// Fills `sizes` with the cleaned, normalized fractions (LAYOUT-SPLIT-01).
     fn clean_fractions(&mut self) {
-        let n = self.panes;
-        self.sizes.clear();
-        for i in 0..n {
-            let fraction = self.fractions.get(i).map_or(1.0 / n as f32, |f| length(*f));
-            self.sizes.push(fraction);
-        }
-        let sum: f32 = self.sizes.iter().sum();
-        for fraction in &mut self.sizes {
-            *fraction = if sum > 0.0 {
-                *fraction / sum
-            } else {
-                1.0 / n as f32
-            };
-        }
-    }
-
-    /// Whether pane `i` is collapsed: collapsible with a cleaned fraction of 0.
-    fn collapsed(&self, i: usize, fractions: &[f32]) -> bool {
-        self.collapsible.get(i) == Some(&true) && fractions[i] == 0.0
+        clean_fractions(&self.fractions, self.panes, &mut self.sizes);
     }
 
     /// Turns the cleaned fractions in `sizes` into pane sizes for `space` (LAYOUT-SPLIT-02),
-    /// or into the minimums when `space` is unbounded (LAYOUT-SPLIT-05). Collapsed panes
-    /// keep a fraction of 0 throughout, so they can be told apart while sizes are written.
+    /// or into the minimums when `space` is unbounded (LAYOUT-SPLIT-05).
     fn resolve(&mut self, space: Option<f32>) {
         let mut sizes = std::mem::take(&mut self.sizes);
-        let n = sizes.len();
-        // The effective minimum: 0 for a collapsed pane.
-        let min = |this: &Self, sizes: &[f32], i: usize| {
-            if this.collapsed(i, sizes) {
+        resolve_sizes(&mut sizes, space, |i, fraction| {
+            if self.collapsible.get(i) == Some(&true) && fraction == 0.0 {
                 0.0
             } else {
-                this.min_size(i)
+                self.min_size(i)
             }
-        };
-        match space {
-            None => {
-                for i in 0..n {
-                    sizes[i] = min(self, &sizes, i);
-                }
-            }
-            Some(space) => {
-                let total_min: f32 = (0..n).map(|i| min(self, &sizes, i)).sum();
-                if total_min > space {
-                    // The minimums don't fit: scale them down together.
-                    let scale = space / total_min;
-                    for i in 0..n {
-                        sizes[i] = min(self, &sizes, i) * scale;
-                    }
-                } else {
-                    let (mut deficit, mut excess) = (0.0f32, 0.0f32);
-                    for i in 0..n {
-                        let (share, m) = (sizes[i] * space, min(self, &sizes, i));
-                        deficit += (m - share).max(0.0);
-                        excess += (share - m).max(0.0);
-                    }
-                    for i in 0..n {
-                        let (share, m) = (sizes[i] * space, min(self, &sizes, i));
-                        sizes[i] = if share < m {
-                            m
-                        } else if excess > 0.0 {
-                            share - deficit * (share - m) / excess
-                        } else {
-                            share
-                        };
-                    }
-                }
-            }
-        }
+        });
         self.sizes = sizes;
+    }
+}
+
+/// Fills `out` with `fractions` cleaned for `n` panes: a missing entry counts as `1 / n`, a
+/// negative or non-finite one as 0, normalized to sum to 1 (all zero: equal shares)
+/// (LAYOUT-SPLIT-01).
+pub(crate) fn clean_fractions(fractions: &[f32], n: usize, out: &mut Vec<f32>) {
+    out.clear();
+    let share = 1.0 / n.max(1) as f32;
+    for i in 0..n {
+        out.push(fractions.get(i).map_or(share, |f| length(*f)));
+    }
+    let sum: f32 = out.iter().sum();
+    for fraction in out.iter_mut() {
+        *fraction = if sum > 0.0 { *fraction / sum } else { share };
+    }
+}
+
+/// Turns cleaned fractions into pane sizes for `space` (LAYOUT-SPLIT-02), or into the
+/// minimums when `space` is unbounded (LAYOUT-SPLIT-05). `min(i, fraction)` is pane `i`'s
+/// minimum given its cleaned fraction (0 for a collapsed pane).
+pub(crate) fn resolve_sizes(
+    sizes: &mut [f32],
+    space: Option<f32>,
+    min: impl Fn(usize, f32) -> f32,
+) {
+    let n = sizes.len();
+    let Some(space) = space else {
+        for (i, size) in sizes.iter_mut().enumerate() {
+            *size = min(i, *size);
+        }
+        return;
+    };
+    let total_min: f32 = (0..n).map(|i| min(i, sizes[i])).sum();
+    if total_min > space {
+        // The minimums don't fit: scale them down together.
+        let scale = space / total_min;
+        for (i, size) in sizes.iter_mut().enumerate() {
+            *size = min(i, *size) * scale;
+        }
+        return;
+    }
+    let (mut deficit, mut excess) = (0.0f32, 0.0f32);
+    for (i, fraction) in sizes.iter().enumerate() {
+        let (share, m) = (fraction * space, min(i, *fraction));
+        deficit += (m - share).max(0.0);
+        excess += (share - m).max(0.0);
+    }
+    // Each pane reads its own fraction before writing its size, so collapsed panes (which
+    // keep a fraction of 0) stay recognizable throughout.
+    for (i, size) in sizes.iter_mut().enumerate() {
+        let (share, m) = (*size * space, min(i, *size));
+        *size = if share < m {
+            m
+        } else if excess > 0.0 {
+            share - deficit * (share - m) / excess
+        } else {
+            share
+        };
     }
 }
 

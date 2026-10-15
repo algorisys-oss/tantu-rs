@@ -108,7 +108,7 @@ impl SplitView {
 }
 
 /// How far one arrow key moves a divider (WIDGETS-SPLIT-06).
-const KEY_STEP: f32 = 10.0;
+pub(crate) const KEY_STEP: f32 = 10.0;
 /// The focus outline's width (WIDGETS-SPLIT-02).
 const FOCUS_WIDTH: f32 = 2.0;
 /// A hovered or dragged divider's line thickness.
@@ -295,13 +295,13 @@ impl Paint for SplitPaint {
     }
 }
 
-/// A divider's line and focus outline (WIDGETS-SPLIT-02).
-struct DividerPaint {
-    axis: Axis,
-    thickness: f32,
-    hovered: bool,
-    focused: bool,
-    colors: ColorScheme,
+/// A divider's line and focus outline (WIDGETS-SPLIT-02; dock dividers share it).
+pub(crate) struct DividerPaint {
+    pub(crate) axis: Axis,
+    pub(crate) thickness: f32,
+    pub(crate) hovered: bool,
+    pub(crate) focused: bool,
+    pub(crate) colors: ColorScheme,
 }
 
 impl Paint for DividerPaint {

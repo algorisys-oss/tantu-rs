@@ -87,8 +87,10 @@ fn main() -> tantu::Result<()> {
   (PNG), `Checkbox`, `Radio`, `Switch`, `Slider`, `Divider`, `TextField` (with undo and IME),
   `Tooltip`.
 - **Enterprise widgets:** `DataGrid` (a million rows, frozen columns, sorting, resizing,
-  selection, cell editors), `TreeView`, `TabView` (with `TabBar` and `TabBarView`) and
-  `SplitView` (resizable, collapsible panes; nest them for IDE-style layouts).
+  selection, cell editors), `TreeView`, `TabView` (with `TabBar` and `TabBarView`),
+  `SplitView` (resizable, collapsible panes) and `DockArea` (IDE-style docking: tab groups
+  in resizable splits, closable tabs, panels that keep their state, a `DockLayout` you can
+  save and restore).
 - **State:** `signal`, `memo`, `effect`; every widget prop takes a value, a closure or a signal.
 - **Input:** pointer events with cursor shapes, keyboard focus and Tab traversal, `Shortcuts`
   and `Actions`, overlays anchored to widgets.
@@ -106,7 +108,7 @@ fn main() -> tantu::Result<()> {
 
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
 window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
-Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (docking,
+Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (drag-to-dock,
 menus, dialogs, forms), multi-window, clipboard and i18n.
 
 The **Tree view** section demonstrates a project explorer and a generated branch with 5,000

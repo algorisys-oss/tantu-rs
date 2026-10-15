@@ -42,11 +42,11 @@ impl From<String> for PanelId {
 
 /// A tab group's identity within one layout. Not persisted; layout equality ignores it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct DockGroupId(u64);
+pub struct DockGroupId(pub(crate) u64);
 
 /// A split's identity within one layout. Not persisted; layout equality ignores it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct DockSplitId(u64);
+pub struct DockSplitId(pub(crate) u64);
 
 /// A description of a layout, for building one in code.
 #[derive(Clone, Debug, PartialEq)]

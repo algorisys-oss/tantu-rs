@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (docking part 2 drafted for review)_
+_Last updated: 2026-10-16 (docking part 2 done; part 3 next)_
 
 ## Resume here (2026-10-15)
 
@@ -21,10 +21,11 @@ Linux, Windows and macOS for `fda6c46` (run 38785174844).
 
 **Docking part 1 is done** (decision 84): `DockLayout` in `tantu-widgets`, a normalized tree
 of splits and tab groups of app-named panels, with activate/close/add/move/set_fractions
-and a versioned text format (`save`/`load`). **Part 2 is drafted for review**:
-`docs/specs/widgets/dock-area.md`, the `DockArea` widget (one flat `RenderDock` so panels
-keep state across moves, compact document tabs, active group, keyboard, dividers), with
-seven proposals. **Next:** the user reviews it; then part 3 (drag-to-dock). Commit/push
+and a versioned text format (`save`/`load`). **Part 2 is done** (decision 85): `DockArea`
+draws a layout through one flat `RenderDock` (panels keep their state across tab switches
+and moves), with compact closable tabs, an active group, keyboard shortcuts, dividers,
+semantics, a gallery "Docking" section (Reset/Save/Restore) and a kitchen-sink card.
+**Next:** draft part 3, drag-to-dock (`docs/specs/widgets/dock-drag.md`). Commit/push
 authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
@@ -1024,6 +1025,26 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     can repair, with byte-offset syntax errors and a 256-level nesting bound. Added while
     agreeing (review): equality compares fractions within 1e-5. No new crate or dependency.
 
+85. **DockArea** (2026-10-16, spec `docs/specs/widgets/dock-area.md`; the user said
+    "continue" on the seven proposals): `RenderDock` in `tantu-layout` lays out a
+    `DockPlan` (groups sized as split panes with the shared, now crate-level
+    `clean_fractions`/`resolve_sizes` from `RenderSplit`, a strip on top of each group,
+    dividers centred on the gaps) and records node rects. `DockSlot` parent data names
+    stable group, panel and split keys rather than node indices, because parent data is set
+    once at build and panels move between groups (spec amended while implementing, review).
+    `DockArea` keeps every strip, panel host and divider as children of that one element
+    through keyed `For`s, so a panel moving between groups keeps its elements; inactive
+    panels are offstage. Compact 36 px tabs (closable ones with a close icon on the active
+    or hovered tab), middle-click and `on_close_request` veto, an active group (presses and
+    focus, falling back to the first group), strip arrows, Control+Tab/PageUp/PageDown
+    cycling and Control+W/F4 closing from anywhere, dividers reusing the split view's paint
+    with an 80 px group minimum, and focus moving to the strip when a focused panel hides
+    or closes. The strip's inner `ScrollView` uses a crate-private `unfocusable()` so a tab
+    press focuses the strip; the tab row publishes its tab places at paint so the strip
+    reveals the active tab. Gallery: a "Docking" section before Split view and a "dock"
+    kitchen-sink card; the sidebar spacing went from 8 to 4 px so thirteen buttons fit the
+    640 px test window (every gallery golden regenerated). No new crate or edge.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1526,15 +1547,22 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `9312ac6` | spec: dock layout equality compares fractions within 1e-5; exact load error strings; save's line ending |
 | `a855c96` | test: dock layout model, stubs + 12 failing tests |
 | `95fb454` | impl: dock layout model (normalized tree, ids, operations, text format); PLAN.md part 1 ticked |
-| _this commit_ | docs: draft the DockArea spec (docking part 2) for review |
+| `ac9ecd7` | docs: draft the DockArea spec (docking part 2) for review |
+| `402dcce` | spec: DockArea agreed (LAYOUT-DOCK-01..05, WIDGETS-DOCKAREA-01..09, GALLERY-26..27) |
+| `1992215` | spec: DockSlot names stable group, panel and split keys, and a Placeholder slot |
+| `41c2f2a` | spec: GALLERY-26's editor group has a Readme tab; section and card counts follow GALLERY-26/27 |
+| `eb6c6a3` | test: RenderDock and DockArea, stubs + 16 failing tests |
+| `263bcd9` | test: dock tests find tabs by their Tab node (a panel and its label share the tab's title) |
+| _this commit_ | impl: RenderDock and DockArea (plan, keyed strips/panels/dividers, tabs, active group, keys, focus, semantics); gallery Docking section and kitchen-sink card, goldens; README; PLAN.md part 2 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Review the `DockArea` draft (docking part 2); implement it; then draft part 3
-(drag-to-dock).
+Draft docking part 3 (drag-to-dock: dragging tabs to reorder them or dock them into
+another group, beside a group or at an edge, with drop indicators), then continue Phase 4
+(menus, dialogs, forms).
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
@@ -1587,6 +1615,9 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
   reference Scene yet; check when shadows get a closer look.
 - **A debug build printed an ICU4X "No segmentation model" message** to stderr for Japanese
   text (decision 43); find where it comes from with Phase 4 i18n.
+- **The gallery sidebar is full** (decision 85): thirteen buttons with 4 px spacing fill
+  the 640 px test window. The next section needs a scrolling sidebar (and the tests'
+  `nav` taps an `ensure_visible` first) or a two-level navigation.
 - **`.agents/` is untracked** in the working tree (a `skills` folder, not project code); decide
   whether to gitignore or commit it.
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the

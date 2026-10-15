@@ -1,6 +1,6 @@
 # Docking, part 2: the DockArea widget
 
-- **Status:** Agreed (2026-10-16, the user said "continue" on the seven proposals)
+- **Status:** Implemented (2026-10-16; agreed the same day, the user said "continue" on the seven proposals)
 - **Crates:** `tantu-layout` (`RenderDock`), `tantu-widgets` (`DockArea`), `examples/gallery`
 - **Plan item:** Phase 4, "Docking layout manager", part 2 (`DockArea`)
 - **Related:** [dock layout model](dock-layout.md) (part 1), [SplitView](split-view.md),
