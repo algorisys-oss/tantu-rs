@@ -63,6 +63,8 @@ pub enum Role {
     Tab,
     /// The page a tab shows.
     TabPanel,
+    /// A divider between resizable panes (WIDGETS-SPLIT-08).
+    Splitter,
 }
 
 /// A checkable element's state.

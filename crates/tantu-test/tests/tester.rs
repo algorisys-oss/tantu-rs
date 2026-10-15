@@ -491,3 +491,39 @@ fn test_wt_17_cursor() {
     tester.tap(&Finder::key("resize"));
     assert_eq!(tester.cursor(), CursorIcon::ResizeHorizontal);
 }
+
+/// A box with a semantics label.
+struct Labelled(&'static str);
+
+impl View for Labelled {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(Sized100::sized(Some(50.0), Some(50.0)), []);
+        cx.set_semantics(
+            id,
+            tantu_view::Semantics {
+                name: Some(self.0.to_owned()),
+                ..Default::default()
+            },
+        );
+        id
+    }
+}
+
+#[test]
+fn test_wt_18_semantics_label() {
+    let mut tester = WidgetTester::with_size(200.0, 200.0, || {
+        Column::new()
+            .child(Keyed::new("first", Labelled("Resize Folders")))
+            .child(Labelled("Other"))
+    });
+    let found = tester.find(&Finder::semantics_label("Resize Folders"));
+    assert_eq!(found, tester.find(&Finder::key("first")));
+    assert!(
+        tester
+            .find_all(&Finder::semantics_label("Resize"))
+            .is_empty(),
+        "exact matches only"
+    );
+    // Usable like any finder.
+    tester.tap(&Finder::semantics_label("Other"));
+}

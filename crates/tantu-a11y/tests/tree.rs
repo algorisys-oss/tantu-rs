@@ -429,3 +429,21 @@ fn a11y_tree_07_tab_roles() {
         );
     }
 }
+
+#[test]
+fn a11y_tree_08_splitter_role() {
+    let tree = ViewTree::new(move || {
+        leaf(Some(Semantics {
+            role: tantu_view::Role::Splitter,
+            ..Default::default()
+        }))
+    });
+    let update = AccessibilityTree::new("split").update(&tree);
+    assert!(
+        update
+            .nodes
+            .iter()
+            .any(|(_, n)| n.role() == AkRole::Splitter),
+        "Splitter is mapped"
+    );
+}

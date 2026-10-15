@@ -41,6 +41,7 @@ mod opacity;
 mod rich_text;
 mod scroll;
 mod slider;
+mod split_view;
 mod switcher;
 mod tab_view;
 mod text_editing;
@@ -70,6 +71,7 @@ pub use opacity::Opacity;
 pub use rich_text::{RichText, TextSpan};
 pub use scroll::{ScrollController, ScrollView};
 pub use slider::Slider;
+pub use split_view::{SplitPane, SplitView};
 pub use switcher::AnimatedSwitcher;
 pub use tab_view::{Tab, TabBar, TabBarView, TabView};
 pub use text_editing::{

@@ -45,6 +45,7 @@ mod grid;
 mod image;
 mod list;
 mod single_child;
+mod split;
 mod stack;
 mod text;
 mod tree;
@@ -63,6 +64,7 @@ pub use single_child::{
     RenderAspectRatio, RenderConstrainedBox, RenderFractionallySizedBox, RenderLimitedBox,
     RenderPadding, RenderPositionedBox,
 };
+pub use split::RenderSplit;
 pub use stack::{RenderStack, StackFit, StackParentData};
 pub use text::{
     ClusterGeometry, LineGeometry, MeasureCache, NoTextMeasure, RenderParagraph, StyleSpan,

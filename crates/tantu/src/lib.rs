@@ -62,7 +62,7 @@ pub mod prelude {
     pub use crate::{App, Result, Window};
     pub use tantu_core::{Color, EdgeInsets, Point, Size};
     pub use tantu_layout::{
-        Alignment, CrossAxisAlignment, MainAxisAlignment, MainAxisSize, StackFit,
+        Alignment, Axis, CrossAxisAlignment, MainAxisAlignment, MainAxisSize, StackFit,
     };
     pub use tantu_reactive::{Memo, Signal, batch, effect, memo, signal};
     pub use tantu_text::TextStyle;

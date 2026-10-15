@@ -52,6 +52,12 @@ impl Finder {
         }
     }
 
+    /// Elements whose semantics label is exactly `label` (TEST-WT-18).
+    pub fn semantics_label(label: impl Into<String>) -> Self {
+        let _ = label.into();
+        todo!("TEST-WT-18")
+    }
+
     /// Render elements whose render object is an `R`.
     pub fn render<R: RenderBox>() -> Self {
         Finder {

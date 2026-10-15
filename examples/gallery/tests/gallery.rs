@@ -780,7 +780,7 @@ fn gallery_21_kitchen_sink_tree_selection_collapse_and_golden() {
 #[test]
 fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
     use tantu::view::{LogicalKey, Modifiers, NamedKey};
-    assert_eq!(SECTIONS.len(), 11);
+    assert_eq!(SECTIONS.len(), 12);
     assert_eq!(
         SECTIONS.iter().position(|s| *s == "Tabs"),
         SECTIONS
@@ -833,7 +833,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
 #[test]
 fn gallery_23_kitchen_sink_tabs_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 14);
+    assert_eq!(SINK_CARDS.len(), 15);
     assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -856,4 +856,77 @@ fn gallery_23_kitchen_sink_tabs_card() {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/goldens/gallery-sink-tabs.png"
     ));
+}
+
+#[test]
+fn gallery_24_split_view_section() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    assert_eq!(SECTIONS.len(), 12);
+    let position = |name: &str| SECTIONS.iter().position(|s| *s == name);
+    assert_eq!(position("Split view"), position("Tabs").map(|i| i - 1));
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.tap(&Finder::key(nav("Split view")));
+    t.pump();
+    t.pump();
+    for key in [
+        "split",
+        "split-folders",
+        "split-messages",
+        "split-preview",
+        "split-output",
+    ] {
+        t.find(&Finder::key(key));
+    }
+    let initial = "Sizes: 25 % · 35 % · 40 %";
+    assert_eq!(text_of(&t, "split-echo"), initial);
+    // Dragging the first divider changes the sizes.
+    t.drag(
+        &Finder::semantics_label("Resize Folders"),
+        Vec2::new(60.0, 0.0),
+    );
+    t.pump();
+    let dragged = text_of(&t, "split-echo");
+    assert_ne!(dragged, initial);
+    // Enter collapses Folders and restores it.
+    t.focus(&Finder::semantics_label("Resize Folders"));
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    t.pump();
+    t.pump();
+    assert!(text_of(&t, "split-echo").starts_with("Sizes: 0 % · "));
+    t.press_key(LogicalKey::Named(NamedKey::Enter), Modifiers::default());
+    t.pump();
+    t.pump();
+    assert_eq!(text_of(&t, "split-echo"), dragged);
+    // Reset restores the initial sizes.
+    t.tap(&Finder::text("Reset"));
+    t.pump();
+    t.pump();
+    assert_eq!(text_of(&t, "split-echo"), initial);
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-split.png"
+    ));
+}
+
+#[test]
+fn gallery_25_kitchen_sink_split_card() {
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 15);
+    assert_eq!(index("split"), index("tabs").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "split" && widgets == &["split_view"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-split"));
+    t.pump();
+    assert_eq!(sink_rect(&t, "split_view").height(), 160.0);
+    assert_eq!(text_of(&t, "sink-split-state"), "Sizes: 50 % · 50 %");
+    t.drag(
+        &Finder::semantics_label("Resize Left"),
+        Vec2::new(40.0, 0.0),
+    );
+    t.pump();
+    assert_ne!(text_of(&t, "sink-split-state"), "Sizes: 50 % · 50 %");
 }
