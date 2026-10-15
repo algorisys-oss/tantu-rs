@@ -59,8 +59,8 @@ pub use data_grid::{
 };
 pub use divider::{Divider, VerticalDivider};
 pub use dock::{
-    DockError, DockGroupId, DockLayout, DockLoadError, DockNode, DockSide, DockSplitId, DockTarget,
-    DockView, PanelId,
+    DockArea, DockError, DockGroupId, DockLayout, DockLoadError, DockNode, DockSide, DockSplitId,
+    DockTarget, DockView, PanelId,
 };
 pub use focus_scope::FocusScope;
 pub use grid_selection::{GridCell, GridSelection, GridSelectionController, GridSelectionMode};

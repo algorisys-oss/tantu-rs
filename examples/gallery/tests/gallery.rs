@@ -780,7 +780,7 @@ fn gallery_21_kitchen_sink_tree_selection_collapse_and_golden() {
 #[test]
 fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
     use tantu::view::{LogicalKey, Modifiers, NamedKey};
-    assert_eq!(SECTIONS.len(), 12);
+    assert_eq!(SECTIONS.len(), 13);
     assert_eq!(
         SECTIONS.iter().position(|s| *s == "Tabs"),
         SECTIONS
@@ -833,7 +833,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
 #[test]
 fn gallery_23_kitchen_sink_tabs_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 15);
+    assert_eq!(SINK_CARDS.len(), 16);
     assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -861,7 +861,7 @@ fn gallery_23_kitchen_sink_tabs_card() {
 #[test]
 fn gallery_24_split_view_section() {
     use tantu::view::{LogicalKey, Modifiers, NamedKey};
-    assert_eq!(SECTIONS.len(), 12);
+    assert_eq!(SECTIONS.len(), 13);
     let position = |name: &str| SECTIONS.iter().position(|s| *s == name);
     assert_eq!(position("Split view"), position("Tabs").map(|i| i - 1));
     let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
@@ -911,7 +911,7 @@ fn gallery_24_split_view_section() {
 #[test]
 fn gallery_25_kitchen_sink_split_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 15);
+    assert_eq!(SINK_CARDS.len(), 16);
     assert_eq!(index("split"), index("tabs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -929,4 +929,67 @@ fn gallery_25_kitchen_sink_split_card() {
     );
     t.pump();
     assert_ne!(text_of(&t, "sink-split-state"), "Sizes: 50 % · 50 %");
+}
+
+#[test]
+fn gallery_26_docking_section() {
+    assert_eq!(SECTIONS.len(), 13);
+    let position = |name: &str| SECTIONS.iter().position(|s| *s == name);
+    assert_eq!(position("Docking"), position("Split view").map(|i| i - 1));
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.tap(&Finder::key(nav("Docking")));
+    t.pump();
+    t.pump();
+    t.find(&Finder::key("dock"));
+    assert_eq!(text_of(&t, "dock-echo"), "Active: Explorer · Panels: 6");
+    t.tap(&Finder::semantics_label("Search"));
+    t.pump();
+    assert_eq!(text_of(&t, "dock-echo"), "Active: Search · Panels: 6");
+    // Text typed in the editor survives switching to Readme and back.
+    t.enter_text(&Finder::key("dock-editor"), "hello");
+    t.tap(&Finder::semantics_label("Readme"));
+    t.pump();
+    t.tap(&Finder::semantics_label("Editor"));
+    t.pump();
+    t.find(&Finder::text("hello"));
+    // Closing updates the echo; Save, close, Restore brings a panel back.
+    t.tap(&Finder::semantics_label("Close Problems"));
+    t.pump();
+    assert!(text_of(&t, "dock-echo").ends_with("Panels: 5"));
+    t.tap(&Finder::text("Save"));
+    t.pump();
+    t.tap(&Finder::semantics_label("Close Terminal"));
+    t.pump();
+    assert!(t.find_all(&Finder::semantics_label("Terminal")).is_empty());
+    t.tap(&Finder::text("Restore"));
+    t.pump();
+    t.pump();
+    t.find(&Finder::semantics_label("Terminal"));
+    assert!(text_of(&t, "dock-echo").ends_with("Panels: 5"));
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-docking.png"
+    ));
+}
+
+#[test]
+fn gallery_27_kitchen_sink_dock_card() {
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 16);
+    assert_eq!(index("dock"), index("split").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "dock" && widgets == &["dock_area"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-dock"));
+    t.pump();
+    let rect = sink_rect(&t, "dock_area");
+    assert_eq!((rect.width(), rect.height()), (600.0, 220.0));
+    assert_eq!(text_of(&t, "sink-dock-state"), "Active: Notes · Panels: 3");
+    t.tap(&Finder::semantics_label("Log"));
+    t.pump();
+    t.pump();
+    assert_eq!(text_of(&t, "sink-dock-state"), "Active: Log · Panels: 3");
 }

@@ -2,10 +2,14 @@
 //! app-named panels, with operations and a text format. Spec:
 //! `docs/specs/widgets/dock-layout.md`.
 
+mod area;
+
 use std::collections::HashSet;
 use std::sync::Arc;
 
 use tantu_view::layout::Axis;
+
+pub use area::DockArea;
 
 /// A panel's identity, chosen by the app (`"explorer"`, `"editor:src/main.rs"`). Stable
 /// across runs: it is what the text format stores.

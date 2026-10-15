@@ -40,6 +40,7 @@
 
 mod alignment;
 mod constraints;
+mod dock;
 mod flex;
 mod grid;
 mod image;
@@ -54,6 +55,7 @@ mod wrap;
 
 pub use alignment::Alignment;
 pub use constraints::BoxConstraints;
+pub use dock::{DockPlan, DockPlanNode, DockSlot, RenderDock};
 pub use flex::{
     Axis, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment, MainAxisSize, RenderFlex,
 };
