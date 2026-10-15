@@ -32,6 +32,7 @@ mod dialog;
 mod divider;
 mod dock;
 mod focus_scope;
+mod form;
 mod grid_selection;
 mod icon;
 #[cfg(feature = "material-icons")]
@@ -68,6 +69,7 @@ pub use dock::{
     DockTarget, DockView, PanelId,
 };
 pub use focus_scope::FocusScope;
+pub use form::{AutovalidateMode, Form, FormController, TextFormField, Validator, validators};
 pub use grid_selection::{GridCell, GridSelection, GridSelectionController, GridSelectionMode};
 pub use icon::{Icon, IconButton, IconData};
 #[cfg(feature = "material-icons")]

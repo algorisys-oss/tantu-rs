@@ -839,7 +839,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
 #[test]
 fn gallery_23_kitchen_sink_tabs_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 19);
+    assert_eq!(SINK_CARDS.len(), 20);
     assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -917,7 +917,7 @@ fn gallery_24_split_view_section() {
 #[test]
 fn gallery_25_kitchen_sink_split_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 19);
+    assert_eq!(SINK_CARDS.len(), 20);
     assert_eq!(index("split"), index("tabs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1012,7 +1012,7 @@ fn gallery_26_docking_section() {
 #[test]
 fn gallery_27_kitchen_sink_dock_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 19);
+    assert_eq!(SINK_CARDS.len(), 20);
     assert_eq!(index("dock"), index("split").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1206,7 +1206,7 @@ fn gallery_29_menus_in_the_buttons_section() {
 #[test]
 fn gallery_30_kitchen_sink_menus_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 19);
+    assert_eq!(SINK_CARDS.len(), 20);
     assert_eq!(index("menus"), index("dock").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1275,7 +1275,7 @@ fn gallery_31_menu_bar_and_status_bar() {
 #[test]
 fn gallery_32_kitchen_sink_bars_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 19);
+    assert_eq!(SINK_CARDS.len(), 20);
     assert_eq!(index("bars"), index("menus").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1345,7 +1345,7 @@ fn gallery_33_dialog_in_the_buttons_section() {
 fn gallery_34_kitchen_sink_dialogs_card() {
     use tantu::view::NamedKey;
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 19);
+    assert_eq!(SINK_CARDS.len(), 20);
     assert_eq!(index("dialogs"), index("bars").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1398,4 +1398,81 @@ fn gallery_35_copy_and_paste_in_a_text_field() {
     }
     assert_eq!(t.clipboard_text().as_deref(), Some("copy me"));
     assert_eq!(text_of(&t, "echo"), "You typed: copy mecopy me");
+}
+
+/// Clicks the text input named `label` and types `text` into it.
+fn type_into(t: &mut WidgetTester, label: &str, text: &str) {
+    use tantu_test::accesskit::Role;
+    let id = t
+        .a11y_tree()
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == Role::TextInput && n.label() == Some(label))
+        .map(|(id, _)| tantu::view::ElementId::from_raw(id.0).expect("element id"))
+        .unwrap_or_else(|| panic!("no input {label}"));
+    let at = t.rect(id).center();
+    click(t, at, PointerButton::Primary);
+    for ch in text.chars() {
+        t.press_key(
+            tantu::view::LogicalKey::Character(ch.to_string().into()),
+            tantu::view::Modifiers::default(),
+        );
+    }
+    t.pump();
+}
+
+fn input_focused(t: &mut WidgetTester, label: &str) -> bool {
+    let tree = t.a11y_tree();
+    tree.nodes
+        .iter()
+        .any(|(id, n)| *id == tree.focus && n.label() == Some(label))
+}
+
+#[test]
+fn gallery_36_form_in_the_text_field_section() {
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    go(&mut t, "Text field");
+    t.find(&Finder::key("form"));
+    // Submitting empty shows both errors and focuses Name.
+    t.tap(&Finder::text("Submit"));
+    t.pump();
+    assert_eq!(text_of(&t, "form-echo"), "Form: fix 2 fields");
+    t.find(&Finder::text("Enter your name"));
+    t.find(&Finder::text("Enter an email"));
+    assert!(input_focused(&mut t, "Name"));
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-form.png"
+    ));
+    // Reset clears the errors.
+    t.tap(&Finder::text("Reset"));
+    t.pump();
+    assert!(t.find_all(&Finder::text("Enter your name")).is_empty());
+    // Fixing the fields submits.
+    type_into(&mut t, "Name", "Ada");
+    type_into(&mut t, "Email", "ada@example.com");
+    t.tap(&Finder::text("Submit"));
+    t.pump();
+    assert_eq!(
+        text_of(&t, "form-echo"),
+        "Form: submitted Ada <ada@example.com>"
+    );
+}
+
+#[test]
+fn gallery_37_kitchen_sink_form_card() {
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 20);
+    assert_eq!(index("form"), index("dialogs").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "form" && widgets == &["text_form_field"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-form"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-form-state"), "Invalid");
+    type_into(&mut t, "Code", "abc");
+    assert_eq!(text_of(&t, "sink-form-state"), "Valid");
 }

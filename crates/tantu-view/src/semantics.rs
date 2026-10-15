@@ -173,6 +173,10 @@ pub struct Semantics {
     pub actions: SemanticsActions,
     /// A dialog that blocks the rest of the window (WIDGETS-DIALOG-05).
     pub modal: bool,
+    /// The value breaks a rule (a form field showing an error; WIDGETS-FORM-06).
+    pub invalid: bool,
+    /// Extra text read after the name (an error or helper message).
+    pub description: Option<String>,
 }
 
 /// A column header's sorting direction.

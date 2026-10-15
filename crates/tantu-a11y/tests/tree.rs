@@ -530,3 +530,42 @@ fn a11y_tree_11_dialog_roles_and_modal() {
         .expect("AlertDialog is mapped");
     assert!(!alert.1.is_modal());
 }
+
+#[test]
+fn a11y_tree_12_invalid_and_description() {
+    let tree = ViewTree::new(move || {
+        column(
+            None,
+            vec![
+                AnyView::new(leaf(Some(Semantics {
+                    role: tantu_view::Role::TextInput,
+                    name: Some("Name".to_owned()),
+                    invalid: true,
+                    description: Some("Enter a name".to_owned()),
+                    ..Default::default()
+                }))),
+                AnyView::new(leaf(Some(Semantics {
+                    role: tantu_view::Role::TextInput,
+                    name: Some("Email".to_owned()),
+                    description: Some("We never share it".to_owned()),
+                    ..Default::default()
+                }))),
+            ],
+        )
+    });
+    let update = AccessibilityTree::new("form").update(&tree);
+    let node = |name: &str| {
+        update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.label() == Some(name))
+            .map(|(_, n)| n.clone())
+            .expect("a node")
+    };
+    let name = node("Name");
+    assert_eq!(name.invalid(), Some(tantu_a11y::accesskit::Invalid::True));
+    assert_eq!(name.description(), Some("Enter a name"));
+    let email = node("Email");
+    assert_eq!(email.invalid(), None);
+    assert_eq!(email.description(), Some("We never share it"));
+}
