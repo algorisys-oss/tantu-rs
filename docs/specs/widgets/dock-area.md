@@ -175,7 +175,7 @@ impl DockArea {
 ### Gallery
 
 - **GALLERY-26:** A "Docking" section before Split view (thirteen sections): a `DockArea` (key `dock`, 720 ×
-  400) on the IDE layout (Explorer, Search | Editor, Readme / Terminal, Problems) with
+  400, 340 since GALLERY-31's menu and status bars) on the IDE layout (Explorer, Search | Editor, Readme / Terminal, Problems) with
   simple per-panel content (the editor a `TextField` keyed `dock-editor`), Explorer not
   closable, "Reset layout",
   "Save" and "Restore" buttons (Restore loads the last saved text), and an echo
