@@ -1803,7 +1803,8 @@ fn gallery_50_language_switch() {
     t.pump();
     t.find(&Finder::text("Tantu gallery"));
     choose_language(&mut t, "Deutsch");
-    t.find(&Finder::text("Schaltflächen"));
+    // The sidebar button and the header's current-section label.
+    assert!(!t.find_all(&Finder::text("Schaltflächen")).is_empty());
     assert!(
         t.find_all(&Finder::text("Tantu gallery")).is_empty(),
         "the title is translated"
