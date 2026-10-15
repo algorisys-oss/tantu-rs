@@ -189,7 +189,7 @@ faster or more portable without changing how apps are written.
   - [ ] multi-window (separate spec)
   - [ ] drag and drop, intra-app and with the OS (separate spec)
 - [ ] Forms: validation, field binding, masked input, date/time pickers, combo box with search, in parts:
-  - [ ] validation and field binding: `Form`, `FormController`, `TextFormField`, validators, error semantics (spec `docs/specs/widgets/form.md`)
+  - [x] validation and field binding: `Form`, `FormController`, `TextFormField`, validators, error semantics (spec `docs/specs/widgets/form.md`)
   - [ ] combo box with search (separate spec)
   - [ ] masked input (separate spec)
   - [ ] date and time pickers (separate spec)

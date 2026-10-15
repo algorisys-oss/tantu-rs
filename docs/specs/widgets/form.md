@@ -1,6 +1,6 @@
 # Forms, part 1: validation and field binding
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-widgets` (`Form`, `FormController`, `TextFormField`, `Validator`),
   `tantu-view` (`Semantics::invalid`, `description`), `tantu-a11y` (mapping),
   `examples/gallery`

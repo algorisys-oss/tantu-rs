@@ -77,6 +77,16 @@ pub struct TextField {
     on_change: Option<Rc<dyn Fn(String)>>,
     on_submit: Option<Rc<dyn Fn(String)>>,
     style: Option<TextStyle>,
+    decoration: Option<FieldDecoration>,
+}
+
+/// What a form field adds to its text field: its name, its error and helper text
+/// (WIDGETS-FORM-01, -06).
+#[derive(Clone)]
+pub(crate) struct FieldDecoration {
+    pub(crate) name: Option<String>,
+    pub(crate) error: Rc<dyn Fn() -> Option<String>>,
+    pub(crate) helper: Option<String>,
 }
 
 impl TextField {
@@ -90,7 +100,14 @@ impl TextField {
             on_change: None,
             on_submit: None,
             style: None,
+            decoration: None,
         }
+    }
+
+    /// A form field's name, error and helper (WIDGETS-FORM-01, -06).
+    pub(crate) fn decoration(mut self, decoration: FieldDecoration) -> Self {
+        self.decoration = Some(decoration);
+        self
     }
 
     /// Shown in the field (dimmed) while the text is empty.
@@ -218,6 +235,7 @@ impl View for TextField {
             dragging: Rc::new(dragging),
             anchor: Rc::new(anchor),
             placeholder,
+            decoration: self.decoration,
         }
         .build(cx)
     }
@@ -264,6 +282,7 @@ struct FieldBox {
     anchor: Rc<Cell<usize>>,
     /// The accessible name (WIDGETS-SEM-02).
     placeholder: Option<String>,
+    decoration: Option<FieldDecoration>,
 }
 
 impl View for FieldBox {
@@ -284,7 +303,11 @@ impl View for FieldBox {
                 } else {
                     Role::MultilineTextInput
                 },
-                name: self.placeholder.clone(),
+                name: self
+                    .decoration
+                    .as_ref()
+                    .and_then(|d| d.name.clone())
+                    .or_else(|| self.placeholder.clone()),
                 focusable: true,
                 actions: SemanticsActions {
                     set_value: true,
@@ -326,10 +349,28 @@ impl View for FieldBox {
             FieldPaint {
                 enabled: true,
                 focused: false,
+                error: false,
                 colors: theme.colors(),
                 radius: theme.shape().extra_small,
             },
         );
+        // A form field's error: the outline, `invalid` and the description (WIDGETS-FORM-01, -06).
+        if let Some(decoration) = self.decoration.clone() {
+            let helper = decoration.helper.clone();
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || (decoration.error)())),
+                move |e, error: Option<String>| {
+                    let invalid = error.is_some();
+                    let description = error.or_else(|| helper.clone());
+                    e.update_semantics(|s| {
+                        s.invalid = invalid;
+                        s.description = description;
+                    });
+                    e.update_paint::<FieldPaint>(|p| p.error = invalid);
+                },
+            );
+        }
         cx.bind(
             id,
             Prop::Dynamic(Box::new(move || {
@@ -748,6 +789,8 @@ fn move_vertically(
 struct FieldPaint {
     enabled: bool,
     focused: bool,
+    /// Showing a form error (WIDGETS-FORM-01).
+    error: bool,
     colors: ColorScheme,
     radius: f32,
 }
@@ -760,6 +803,8 @@ impl Paint for FieldPaint {
         let colors = &self.colors;
         let (width, color) = match (self.enabled, self.focused) {
             (false, _) => (1.0, at(colors.on_surface, ALPHA_12)),
+            (true, true) if self.error => (2.0, colors.error),
+            (true, false) if self.error => (1.0, colors.error),
             (true, true) => (2.0, colors.primary),
             (true, false) => (1.0, colors.outline),
         };

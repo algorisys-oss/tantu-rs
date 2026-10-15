@@ -3,6 +3,7 @@
 
 mod dialogs;
 mod dock;
+mod forms;
 mod menus;
 mod split;
 mod tabs;
@@ -39,7 +40,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 19] = [
+pub const SINK_CARDS: [(&str, &[&str]); 20] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -60,6 +61,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 19] = [
     ("menus", &["menu_anchor", "context_menu"]),
     ("bars", &["tool_bar", "status_bar"]),
     ("dialogs", &["dialog"]),
+    ("form", &["text_form_field"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -379,7 +381,7 @@ fn text_field_section() -> impl View {
         TextEditingController::new(""),
         TextEditingController::new(""),
     );
-    Column::new()
+    let fields = Column::new()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .spacing(12.0)
         .child(SizedBox::width(320.0).child(Keyed::new(
@@ -397,7 +399,13 @@ fn text_field_section() -> impl View {
                     .placeholder("Notes (multi-line)")
                     .max_lines(None),
             )),
-        )
+        );
+    // The fields on the left, a validated form on the right (GALLERY-36).
+    Row::new()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .spacing(32.0)
+        .child(fields)
+        .child(forms::sample())
 }
 
 fn lists_section() -> impl View {
@@ -794,6 +802,7 @@ fn kitchen_sink_section() -> impl View {
             .child(menus::sink())
             .child(menus::bars_sink())
             .child(dialogs::sink())
+            .child(forms::sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

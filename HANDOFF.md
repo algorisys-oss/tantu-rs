@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (plain-text clipboard done; the user is away until morning)_
+_Last updated: 2026-10-16 (forms part 1 done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -36,9 +36,9 @@ bar and a scrolling sidebar. Native OS menus (part 3) wait for the user. **Dialo
 is done** (decision 89): modal `Dialog`s and `AlertDialog`; native file dialogs,
 notifications and the tray wait for the user (platform dependencies, ADR). **Clipboard
 part 1 is done** (decision 90): plain text through the platform (`arboard`), the view layer
-and the tester, with `TextField` copy/cut/paste. **Next:** forms (PLAN.md order; rich/image
-clipboard, multi-window and drag and drop are later parts of the same item). Commit/push
-authorization persists.
+and the tester, with `TextField` copy/cut/paste. **Forms part 1 is done** (decision 91):
+`Form`, `FormController`, `TextFormField`, validators, error semantics. **Next:** forms
+part 2, a combo box with search. Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1135,6 +1135,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     single-line fields). The opt-in window test round-trips the real clipboard (it passed
     here; note it overwrites the desktop clipboard).
 
+91. **Forms part 1: validation and field binding** (2026-10-16, spec
+    `docs/specs/widgets/form.md`; decided by the agent while the user was away, review).
+    The forms item is split (validation; combo box with search; masked input; date/time
+    pickers). Flutter's model: `Form` provides a `Copy` `FormController` as an inherited
+    value; `TextFormField`s register (validate/reset/focus target) when they build and
+    leave on cleanup. `validate` shows every field's first validator message and focuses
+    the first invalid field (through a `Dyn` focus mover in the form); `reset` restores
+    the initial text and clears errors; `is_valid` checks silently and reactively.
+    `AutovalidateMode` `Disabled`/`OnUserInteraction`/`Always`, per form or per field.
+    `validators::{required, min_length, max_length, custom}` return `Rc` closures.
+    `TextField` gained a crate-private decoration (name, reactive error, helper) that
+    sets the error outline and the new `Semantics::invalid`/`description`, mapped to
+    AccessKit's `Invalid::True` and description. Gallery: a form beside the Text field
+    section's fields and a "form" kitchen-sink card. No new crate or edge.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1669,17 +1684,19 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `e2572e5` | spec: plain-text clipboard and TextField copy/paste; PLAN.md item split |
 | `6c9c648` | spec: VIEW-CLIP-01 handles follow the tree's current clipboard |
 | `fd6f049` | test: plain-text clipboard and TextField copy/paste, stubs + 8 failing tests |
-| _this commit_ | impl: platform/fake/winit (arboard)/view/runner/tester clipboards, TextField copy/cut/paste; PLAN.md part 1 ticked |
+| `1387a19` | impl: platform/fake/winit (arboard)/view/runner/tester clipboards, TextField copy/cut/paste; PLAN.md part 1 ticked |
+| `b98401f` | spec: forms part 1, validation and field binding; PLAN.md forms item split |
+| `e34bb13` | test: forms part 1, stubs + 10 failing tests |
+| _this commit_ | impl: Form, FormController, TextFormField, validators, error semantics; gallery form and card, goldens; PLAN.md part 1 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: forms (validation, field binding, masked input, date/time
-pickers, combo box with search), i18n, `Grid` layout; the remaining clipboard/multi-window/
-drag-and-drop parts. Native OS menus and native file dialogs/notifications/tray wait for
-the user.
+Continue Phase 4 in PLAN.md order: forms parts 2–4 (combo box with search, masked input,
+date/time pickers), i18n, `Grid` layout; the remaining clipboard/multi-window/drag-and-drop
+parts. Native OS menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 

@@ -192,6 +192,12 @@ fn node(semantics: &Semantics) -> Node {
     if semantics.modal {
         node.set_modal();
     }
+    if semantics.invalid {
+        node.set_invalid(accesskit::Invalid::True);
+    }
+    if let Some(description) = &semantics.description {
+        node.set_description(description.clone());
+    }
     if let Some(v) = semantics.expanded {
         node.set_expanded(v);
     }
