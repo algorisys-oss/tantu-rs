@@ -185,10 +185,13 @@ fn node(semantics: &Semantics) -> Node {
         R::MenuBar => Role::MenuBar,
         R::Toolbar => Role::Toolbar,
         R::Status => Role::Status,
-        // Stubs until A11Y-TREE-11.
-        R::Dialog | R::AlertDialog => Role::Group,
+        R::Dialog => Role::Dialog,
+        R::AlertDialog => Role::AlertDialog,
     };
     let mut node = Node::new(role);
+    if semantics.modal {
+        node.set_modal();
+    }
     if let Some(v) = semantics.expanded {
         node.set_expanded(v);
     }

@@ -1,6 +1,7 @@
 //! The Tantu widget gallery (spec `docs/specs/examples/gallery.md`): a header, a sidebar of
 //! sections and the selected section's samples.
 
+mod dialogs;
 mod dock;
 mod menus;
 mod split;
@@ -38,7 +39,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 18] = [
+pub const SINK_CARDS: [(&str, &[&str]); 19] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -58,6 +59,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 18] = [
     ("dock", &["dock_area"]),
     ("menus", &["menu_anchor", "context_menu"]),
     ("bars", &["tool_bar", "status_bar"]),
+    ("dialogs", &["dialog"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -284,6 +286,7 @@ fn buttons_section() -> impl View {
                 )),
         )
         .child(menus::samples())
+        .child(dialogs::samples())
 }
 
 fn text_section() -> impl View {
@@ -790,6 +793,7 @@ fn kitchen_sink_section() -> impl View {
             .child(dock::sink())
             .child(menus::sink())
             .child(menus::bars_sink())
+            .child(dialogs::sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

@@ -181,7 +181,7 @@ faster or more portable without changing how apps are written.
   - [x] `MenuBar`, toolbars and the status bar; the gallery window uses them (spec `docs/specs/widgets/menu-bar.md`)
   - [ ] native OS menus (macOS app menu, native menu bars and context menus): needs an ADR and a platform dependency; deferred for the user
 - [ ] Dialogs, native file dialogs, notifications, system tray, in parts:
-  - [ ] modal dialogs: `Dialog`, `DialogController`, `AlertDialog`, barrier, focus trap and restore (spec `docs/specs/widgets/dialog.md`)
+  - [x] modal dialogs: `Dialog`, `DialogController`, `AlertDialog`, barrier, focus trap and restore (spec `docs/specs/widgets/dialog.md`)
   - [ ] native file dialogs, notifications and the system tray: need platform dependencies and an ADR; deferred for the user
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images)
 - [ ] Forms: validation, field binding, masked input, date/time pickers, combo box with search

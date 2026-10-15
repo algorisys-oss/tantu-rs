@@ -95,7 +95,7 @@ fn main() -> tantu::Result<()> {
 - **Input:** pointer events with cursor shapes, keyboard focus and Tab traversal, `Shortcuts`
   and `Actions`, overlays anchored to widgets, popup and context menus (`MenuAnchor`,
   `ContextMenuRegion`) with submenus, check marks and shortcut hints, a `MenuBar`, `Toolbar`
-  and `StatusBar`.
+  and `StatusBar`; modal `Dialog`s with an `AlertDialog` layout.
 - **Scrolling:** `ScrollView` with a scrollbar, and `ListView::builder` that builds only the
   rows in view (100 000 rows cost what a dozen do).
 - **Theming:** `Theme::light()` and `Theme::dark()` (Material 3 colors, text presets, shape,
@@ -110,8 +110,8 @@ fn main() -> tantu::Result<()> {
 
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
 window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
-Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (dialogs,
-forms), multi-window, clipboard and i18n.
+Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (forms,
+native file dialogs), multi-window, clipboard and i18n.
 
 The **Tree view** section demonstrates a project explorer and a generated branch with 5,000
 children; the **Kitchen sink** includes the same expandable tree with selection/activation

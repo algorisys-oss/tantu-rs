@@ -153,7 +153,8 @@ context described below. Internal representation and demo details are marked rev
 ### Menu amendments (Implemented 2026-10-16, review)
 
 VIEW-OVERLAY-11 (a reactive `OverlayPortal::anchor`) and VIEW-OVERLAY-12 (a press inside a
-nested overlay is inside its outer overlay) are specified in [menus](../widgets/menu.md).
+nested overlay is inside its outer overlay) are specified in [menus](../widgets/menu.md),
+and VIEW-OVERLAY-13 (`cover_window`, for dialog barriers) in [dialogs](../widgets/dialog.md).
 Nested overlays are placed in repeated rounds after a layout (at most 8) until nothing
 moves, so a popup inside a popup follows it in the same frame (VIEW-OVERLAY-06).
 

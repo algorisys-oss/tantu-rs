@@ -1,6 +1,6 @@
 # Dialogs, part 1: modal dialogs
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-view` (window-covering overlays, dialog roles, `Semantics::modal`),
   `tantu-a11y` (mapping), `tantu-widgets` (`Dialog`, `DialogController`, `AlertDialog`),
   `examples/gallery`

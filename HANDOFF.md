@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (menu bar, toolbars and status bar done; the user is away until morning)_
+_Last updated: 2026-10-16 (modal dialogs done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -32,9 +32,10 @@ features, committing and pushing (autonomy rules apply: recommended options, mar
 review). **Next (PLAN.md order):** menus (native + custom), context menus, toolbars, status
 bar. **Menus part 1 is done** (decision 87): popup and context menus, and **part 2** (decision
 88): `MenuBar`, `Toolbar`, `StatusBar`, with the gallery window using a menu bar, a status
-bar and a scrolling sidebar. Native OS menus (part 3) wait for the user. **Next:** dialogs,
-native file dialogs, notifications, system tray (PLAN.md order). Commit/push authorization
-persists.
+bar and a scrolling sidebar. Native OS menus (part 3) wait for the user. **Dialogs part 1
+is done** (decision 89): modal `Dialog`s and `AlertDialog`; native file dialogs,
+notifications and the tray wait for the user (platform dependencies, ADR). **Next:**
+multi-window, drag and drop, clipboard (PLAN.md order). Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1101,6 +1102,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     question); tests open sections through `go`, which reveals the button first; the
     Docking demo is 340 px tall to fit. Kitchen-sink "bars" card. No new crate or edge.
 
+89. **Modal dialogs** (2026-10-16, spec `docs/specs/widgets/dialog.md`; decided by the agent
+    while the user was away, review). The dialogs item is split: modal dialogs (this) and
+    native file dialogs, notifications and the tray (deferred: `rfd`, `notify-rust`,
+    `tray-icon`-style dependencies and an ADR). A declarative `Dialog` with a `Copy`
+    `DialogController` (no async `show_dialog`); a window-covering overlay mode
+    (VIEW-OVERLAY-13, `cover_window`) holds a 32 % black barrier that absorbs every
+    pointer event and dismisses on a press when dismissible, and the content centred within
+    24 px margins. The content root (or an `AlertDialog`) takes the focus, is a focus scope,
+    closes on Escape when dismissible, and the focus returns on close if nothing else took
+    it. `AlertDialog` (Material 3 basic dialog: 28 px radius, 24 px padding, 280–560 px,
+    title/content/actions). `Role::Dialog`/`AlertDialog` and a new `Semantics::modal`
+    mapped to AccessKit's modal flag. Window shortcuts still reach the root while a dialog
+    is open (review). Gallery "Delete…" sample and a "dialogs" kitchen-sink card.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1628,16 +1643,19 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `2406f28` | spec: menu bar, toolbars and status bar (WIDGETS-MENUBAR-01..04, WIDGETS-TOOLBAR-01..03, WIDGETS-STATUSBAR-01..02, A11Y-TREE-10, GALLERY-31..32) |
 | `5373111` | test: menu bar, toolbars and status bar, stubs + 12 failing tests; gallery tests open sections through `go` |
 | `62300c4` | spec: GALLERY-26's dock is 340 px tall |
-| _this commit_ | impl: MenuBar, Toolbar, StatusBar, sticky keyboard flag for menus; gallery menu bar, status bar, scrolling sidebar, bars card, goldens; PLAN.md part 2 ticked |
+| `71e41b4` | impl: MenuBar, Toolbar, StatusBar, sticky keyboard flag for menus; gallery menu bar, status bar, scrolling sidebar, bars card, goldens; PLAN.md part 2 ticked |
+| `aaac859` | spec: modal dialogs (VIEW-OVERLAY-13, WIDGETS-DIALOG-01..05, A11Y-TREE-11, GALLERY-33..34); PLAN.md dialogs item split |
+| `be47e82` | test: modal dialogs, stubs + 13 failing tests |
+| _this commit_ | impl: window-covering overlays, Dialog/DialogController/AlertDialog, modal semantics; gallery dialog sample and card, goldens; PLAN.md part 1 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: dialogs (modal dialogs first; native file dialogs,
-notifications and the tray need platform work and probably ADRs), multi-window and
-clipboard, forms, i18n, `Grid` layout. Native OS menus (menus part 3) wait for the user.
+Continue Phase 4 in PLAN.md order: multi-window, drag and drop and clipboard (platform
+work: plan the clipboard first, it unblocks TextField copy/paste), forms, i18n, `Grid`
+layout. Native OS menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
@@ -1690,6 +1708,9 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
   reference Scene yet; check when shadows get a closer look.
 - **A debug build printed an ICU4X "No segmentation model" message** to stderr for Japanese
   text (decision 43); find where it comes from with Phase 4 i18n.
+- **Native file dialogs, notifications and the tray** (dialogs part 2, decision 89):
+  platform crates (`rfd`, `notify-rust`, `tray-icon` or similar) behind `Platform` trait
+  additions; an ADR for the user.
 - **Native OS menus** (menus part 3, decision 87): a macOS app menu and native menu bars
   and context menus need a platform-crate dependency (e.g. `muda`, which winit-based
   toolkits use) and `Platform` trait additions; that wants an ADR the user should agree.

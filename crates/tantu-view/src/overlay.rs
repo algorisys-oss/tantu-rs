@@ -97,6 +97,7 @@ pub struct OverlayPortal<V> {
     z_index: i32,
     pointer: OverlayPointer,
     on_outside_press: Option<Rc<dyn Fn()>>,
+    cover: bool,
 }
 
 impl<V: View> OverlayPortal<V> {
@@ -110,6 +111,7 @@ impl<V: View> OverlayPortal<V> {
             z_index: 0,
             pointer: OverlayPointer::Capture,
             on_outside_press: None,
+            cover: false,
         }
     }
 
@@ -146,8 +148,8 @@ impl<V: View> OverlayPortal<V> {
 
     /// The overlay covers the window: laid out tight to the window at its top-left,
     /// ignoring the anchor (VIEW-OVERLAY-13).
-    pub fn cover_window(self, cover: bool) -> Self {
-        let _ = cover; // Stub until VIEW-OVERLAY-13.
+    pub fn cover_window(mut self, cover: bool) -> Self {
+        self.cover = cover;
         self
     }
 
@@ -176,6 +178,7 @@ impl<V: View> View for OverlayPortal<V> {
             z_index: self.z_index,
             pointer: self.pointer,
             on_outside_press: self.on_outside_press,
+            cover: self.cover,
         };
         cx.bind(target, self.visible, move |e, visible| {
             if visible {
@@ -195,6 +198,8 @@ struct EntryConfig {
     z_index: i32,
     pointer: OverlayPointer,
     on_outside_press: Option<Rc<dyn Fn()>>,
+    /// Laid out over the whole window (VIEW-OVERLAY-13).
+    cover: bool,
 }
 
 /// One shown overlay.
@@ -222,9 +227,9 @@ pub(crate) struct OverlayState {
 /// constraints at the offsets in their parent data.
 struct OverlayLayer;
 
-/// An overlay's position in the layer (parent data).
+/// An overlay's position in the layer, and whether it covers the window (parent data).
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct OverlayOffset(Vec2);
+struct OverlayOffset(Vec2, bool);
 
 impl RenderBox for OverlayLayer {
     fn perform_layout(
@@ -240,11 +245,18 @@ impl RenderBox for OverlayLayer {
         };
         let loose = BoxConstraints::loose(size);
         for i in 0..children.len() {
-            children.layout(i, loose);
-            let offset = children
+            let placement = children
                 .parent_data::<OverlayOffset>(i)
-                .map_or(Vec2::ZERO, |o| o.0);
-            children.set_offset(i, offset);
+                .copied()
+                .unwrap_or(OverlayOffset(Vec2::ZERO, false));
+            if placement.1 {
+                // A window-covering overlay (VIEW-OVERLAY-13).
+                children.layout(i, BoxConstraints::tight(size));
+                children.set_offset(i, Vec2::ZERO);
+            } else {
+                children.layout(i, loose);
+                children.set_offset(i, placement.0);
+            }
         }
         size
     }
@@ -422,7 +434,7 @@ impl ViewTree {
     /// Places every overlay for the last layout; true if a placement changed (VIEW-OVERLAY-06).
     pub(crate) fn place_overlays(&mut self, window: Size) -> bool {
         let mut changed = false;
-        let placements: Vec<(ElementId, Vec2)> = self
+        let placements: Vec<(ElementId, OverlayOffset)> = self
             .overlays
             .entries
             .iter()
@@ -431,16 +443,20 @@ impl ViewTree {
                 let size = self
                     .layout_id(e.root)
                     .and_then(|l| self.layout_tree().size(l))?;
-                Some((e.root, place(&e.config.anchor.get(), target, size, window)))
+                let placement = if e.config.cover {
+                    OverlayOffset(Vec2::ZERO, true)
+                } else {
+                    OverlayOffset(place(&e.config.anchor.get(), target, size, window), false)
+                };
+                Some((e.root, placement))
             })
             .collect();
-        for (root, offset) in placements {
+        for (root, placement) in placements {
             let Some(layout) = self.layout_id(root) else {
                 continue;
             };
-            if self.layout.parent_data::<OverlayOffset>(layout) != Some(&OverlayOffset(offset)) {
-                self.layout
-                    .set_parent_data(layout, Some(OverlayOffset(offset)));
+            if self.layout.parent_data::<OverlayOffset>(layout) != Some(&placement) {
+                self.layout.set_parent_data(layout, Some(placement));
                 changed = true;
             }
         }
