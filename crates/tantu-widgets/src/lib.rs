@@ -44,6 +44,7 @@ mod icon;
 mod icons;
 mod image;
 mod layout;
+mod layout_grid;
 mod list_view;
 mod menu;
 mod offstage;
@@ -91,6 +92,7 @@ pub use icon::{MATERIAL_ICONS_FAMILY, MATERIAL_ICONS_FONT};
 #[cfg(feature = "material-icons")]
 pub use icons::Icons;
 pub use image::{BoxFit, Image, ImageError, decode_png};
+pub use layout_grid::{GridPlacement, LayoutGrid};
 pub use list_view::ListView;
 pub use menu::{ContextMenuRegion, MenuAnchor, MenuBar, MenuController, MenuItem};
 pub use offstage::Offstage;

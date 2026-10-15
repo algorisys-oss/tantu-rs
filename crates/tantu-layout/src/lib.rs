@@ -45,6 +45,7 @@ mod dock;
 mod flex;
 mod grid;
 mod image;
+mod layout_grid;
 mod list;
 mod single_child;
 mod split;
@@ -63,6 +64,7 @@ pub use flex::{
 };
 pub use grid::{GridSlot, RenderGridBody};
 pub use image::RenderImage;
+pub use layout_grid::{GridPlacementData, RenderLayoutGrid, TrackSize};
 pub use list::{ListExtents, ListIndex, RenderListContent};
 pub use single_child::{
     RenderAspectRatio, RenderConstrainedBox, RenderFractionallySizedBox, RenderLimitedBox,
