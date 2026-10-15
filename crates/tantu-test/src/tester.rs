@@ -234,7 +234,7 @@ impl WidgetTester {
     /// The cursor the window would show for the pointer's last position: `Default` before
     /// any pointer event (TEST-WT-17).
     pub fn cursor(&self) -> tantu_view::CursorIcon {
-        todo!("TEST-WT-17")
+        self.tree.cursor()
     }
 
     /// A primary press at the center of the single element `finder` matches, a move by

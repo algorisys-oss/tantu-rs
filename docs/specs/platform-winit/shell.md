@@ -25,7 +25,7 @@ In scope:
   positions, wheel deltas, keys, key locations, modifiers, sizes.
 
 Out of scope: everything ADR 0004 lists beyond Phase 1 (IME, clipboard, drag and drop, cursor
-icons, touch, menus, dialogs, tray, AccessKit), and presenting pixels (renderers draw through the
+icons (since added: PLATFORM-WINIT-16 in [cursor icons](../platform/cursor.md)), touch, menus, dialogs, tray, AccessKit), and presenting pixels (renderers draw through the
 surface target).
 
 ## Dependencies

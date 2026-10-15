@@ -30,8 +30,7 @@ In scope:
 Out of scope:
 
 - Keyboard input to widgets: Phase 3 focus.
-- Cursor shapes: the platform has no cursor API yet (decision 28). `ViewTree::cursor` exists
-  but isn't applied.
+- Cursor shapes: added later as FACADE-APP-17 in [cursor icons](../platform/cursor.md).
 - Accessibility: `tantu-a11y`, Phase 3.
 - A windowed software renderer (it needs a way to present pixels, e.g. `softbuffer`). Here
   `soft` only serves `run_with`.

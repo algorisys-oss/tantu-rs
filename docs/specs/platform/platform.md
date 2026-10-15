@@ -34,7 +34,7 @@ In scope:
 
 Out of scope (and where it goes):
 
-- IME, clipboard, drag and drop, cursor icons, touch and pen, physical key codes, menus,
+- IME, clipboard, drag and drop, cursor icons (since added: [cursor icons](cursor.md)), touch and pen, physical key codes, menus,
   dialogs, tray, AccessKit adapter: later items (ADR 0004 lists them; Phase 2–4).
 - Frame scheduling and dispatch to widgets: the app runner and `tantu-view` (Phase 2).
 - Presenting software-rendered pixels to a window: decided with the app runner.

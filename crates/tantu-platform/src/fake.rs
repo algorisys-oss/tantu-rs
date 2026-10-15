@@ -276,8 +276,9 @@ impl PlatformContext for FakeContext {
     }
 
     fn set_cursor(&mut self, window: WindowId, cursor: CursorIcon) {
-        let _ = (window, cursor);
-        todo!("PLATFORM-FAKE-14")
+        if let Some(index) = self.open_index(window) {
+            self.log.windows[index].cursors.push(cursor);
+        }
     }
 
     fn exit(&mut self) {

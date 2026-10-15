@@ -296,6 +296,40 @@ struct WindowState {
     ime_area: Option<Rect>,
     /// The accessibility tree builder while assistive technology is active (FACADE-APP-15).
     a11y: Option<AccessibilityTree>,
+    /// The cursor last sent to the platform (FACADE-APP-17).
+    cursor: tantu_platform::CursorIcon,
+    /// Whether the pointer is over the window; nothing is sent while it is outside.
+    pointer_inside: bool,
+}
+
+impl WindowState {
+    /// Sends the tree's cursor when it differs from the last one sent (FACADE-APP-17).
+    fn sync_cursor(&mut self, cx: &mut dyn PlatformContext) {
+        if !self.pointer_inside {
+            return;
+        }
+        let cursor = platform_cursor(self.tree.cursor());
+        if cursor != self.cursor {
+            cx.set_cursor(self.id, cursor);
+            self.cursor = cursor;
+        }
+    }
+}
+
+/// The view's cursor as the platform's.
+fn platform_cursor(cursor: tantu_view::CursorIcon) -> tantu_platform::CursorIcon {
+    use tantu_platform::CursorIcon as P;
+    use tantu_view::CursorIcon as V;
+    match cursor {
+        V::Default => P::Default,
+        V::Pointer => P::Pointer,
+        V::Text => P::Text,
+        V::Grab => P::Grab,
+        V::Grabbing => P::Grabbing,
+        V::NotAllowed => P::NotAllowed,
+        V::ResizeHorizontal => P::ResizeHorizontal,
+        V::ResizeVertical => P::ResizeVertical,
+    }
 }
 
 /// The platform's IME event as the view's (FACADE-APP-12).
@@ -366,6 +400,8 @@ impl AppHandler {
             scene: Scene::new(),
             ime_area: None,
             a11y: None,
+            cursor: tantu_platform::CursorIcon::Default,
+            pointer_inside: false,
         });
     }
 
@@ -401,6 +437,8 @@ impl AppHandler {
             }
             state.ime_area = area;
         }
+        // A frame can move content under a still pointer (FACADE-APP-17).
+        state.sync_cursor(cx);
         match state.renderer.render(&state.scene, &self.resources) {
             Ok(report) => {
                 if !report.is_clean() {
@@ -620,8 +658,11 @@ impl PlatformHandler for AppHandler {
             }
             ref other => {
                 if let Some(mut pointer) = pointer_event(other) {
-                    pointer.modifiers = self.windows[index].modifiers;
-                    self.windows[index].tree.dispatch_pointer(pointer);
+                    let state = &mut self.windows[index];
+                    pointer.modifiers = state.modifiers;
+                    state.pointer_inside = !matches!(other, WindowEvent::PointerLeft { .. });
+                    state.tree.dispatch_pointer(pointer);
+                    state.sync_cursor(cx);
                 }
             }
         }

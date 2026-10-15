@@ -206,8 +206,15 @@ impl ViewTree {
         ran
     }
 
-    /// The cursor for the pointer's last position.
+    /// The cursor for the pointer's last position; while a capture is held, the cursor of
+    /// the captured path wherever the pointer is (VIEW-EVENT-09).
     pub fn cursor(&self) -> CursorIcon {
+        if let Some((path, _)) = &self.events.captured {
+            return path
+                .iter()
+                .find_map(|id| self.events.cursors.get(id).copied())
+                .unwrap_or_default();
+        }
         let Some(position) = self.events.position else {
             return CursorIcon::Default;
         };

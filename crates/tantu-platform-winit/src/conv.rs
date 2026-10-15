@@ -243,10 +243,19 @@ pub(crate) fn ime_event(ime: winit::event::Ime) -> ImeEvent {
 }
 
 /// A Tantu cursor shape as winit's (PLATFORM-WINIT-16).
-#[allow(dead_code)] // used by the shell once implemented
 pub(crate) fn cursor(cursor: CursorIcon) -> winit::window::CursorIcon {
-    let _ = cursor;
-    todo!("PLATFORM-WINIT-16")
+    use winit::window::CursorIcon as W;
+    match cursor {
+        CursorIcon::Default => W::Default,
+        CursorIcon::Pointer => W::Pointer,
+        CursorIcon::Text => W::Text,
+        CursorIcon::Grab => W::Grab,
+        CursorIcon::Grabbing => W::Grabbing,
+        CursorIcon::NotAllowed => W::NotAllowed,
+        // The shapes every platform has, rather than ColResize/RowResize.
+        CursorIcon::ResizeHorizontal => W::EwResize,
+        CursorIcon::ResizeVertical => W::NsResize,
+    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 # Cursor icons through the platform
 
-- **Status:** Agreed (2026-10-15, the user said "continue" on the four proposals)
+- **Status:** Implemented (2026-10-15; agreed the same day, the user said "continue" on the four proposals)
 - **Crates:** `tantu-platform`, `tantu-platform-winit`, `tantu-view`, `tantu` (runner),
   `tantu-test`
 - **Plan item:** Phase 4, "`SplitView`", part 1 (cursor icons)
