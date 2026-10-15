@@ -167,7 +167,7 @@ faster or more portable without changing how apps are written.
 - [x] Overlay content inherits from its portal target (spec `docs/specs/view/overlay.md`, ADR 0014), with a themed-popup kitchen-sink sample
 - [x] `TreeView`: stable node IDs, expansion, single selection, keyboard navigation, virtualized rows, accessibility, gallery and kitchen-sink samples (spec `docs/specs/widgets/tree-view.md`)
 - [ ] `TabView`, in parts:
-  - [ ] `Offstage`: retained but hidden subtrees (no layout, paint, hit-test, focus or semantics) (spec `docs/specs/view/offstage.md`)
+  - [x] `Offstage`: retained but hidden subtrees (no layout, paint, hit-test, focus or semantics) (spec `docs/specs/view/offstage.md`)
   - [ ] `TabBar`, `TabBarView` and `TabView`: fixed/scrollable bars, kept lazy pages, keyboard and tab semantics, gallery and kitchen-sink samples (spec `docs/specs/widgets/tab-view.md`)
 - [ ] `SplitView` (separate spec)
 - [ ] Docking layout manager (drag panels, persist layout; separate spec)

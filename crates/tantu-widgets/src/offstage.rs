@@ -27,7 +27,13 @@ impl Offstage {
 
 impl View for Offstage {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (self.offstage, self.child, cx);
-        todo!("WIDGETS-OFFSTAGE-01")
+        let child = self.child;
+        let id = cx.region(|cx| {
+            if let Some(child) = child {
+                child.build(cx);
+            }
+        });
+        cx.bind(id, self.offstage, |e, offstage| e.set_offstage(offstage));
+        id
     }
 }

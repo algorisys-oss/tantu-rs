@@ -107,6 +107,9 @@ fn visit(
     nodes: &mut Vec<(NodeId, Node)>,
     siblings: &mut Vec<NodeId>,
 ) {
+    if tree.is_offstage(element) {
+        return; // Offstage subtrees have no nodes (A11Y-TREE-06).
+    }
     match tree.semantics(element) {
         Some(semantics) => {
             let mut children = Vec::new();
@@ -115,7 +118,10 @@ fn visit(
             }
             let mut node = node(semantics);
             if let Some(active) = semantics.active_descendant.filter(|active| {
-                if *active == element || tree.semantics(*active).is_none() {
+                if *active == element
+                    || tree.semantics(*active).is_none()
+                    || tree.is_offstage(*active)
+                {
                     return false;
                 }
                 let mut parent = tree.parent(*active);

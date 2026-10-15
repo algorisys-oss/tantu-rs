@@ -296,8 +296,11 @@ impl crate::ElementMut<'_> {
 impl ViewTree {
     /// Focuses `element` if it is focusable; returns whether it did.
     pub fn focus(&mut self, element: ElementId) -> bool {
-        if !self.focus_state.focusables.contains_key(&element) || !self.contains(element) {
-            return false;
+        if !self.focus_state.focusables.contains_key(&element)
+            || !self.contains(element)
+            || self.is_offstage(element)
+        {
+            return false; // Offstage elements take no focus (VIEW-OFFSTAGE-04).
         }
         self.set_focus(Some(element));
         true
@@ -469,13 +472,22 @@ impl ViewTree {
         self.focus_state.focused
     }
 
-    /// `from` and its descendants, depth first with children in order.
+    /// `from` and its descendants, depth first with children in order; offstage subtrees
+    /// are left out (VIEW-OFFSTAGE-04).
     fn preorder_from(&self, from: ElementId) -> Vec<ElementId> {
         let mut order = Vec::new();
+        if self.is_offstage(from) {
+            return order;
+        }
         let mut stack = vec![from];
         while let Some(id) = stack.pop() {
             order.push(id);
-            stack.extend(self.children(id).iter().rev());
+            stack.extend(
+                self.children(id)
+                    .iter()
+                    .rev()
+                    .filter(|c| self.element(**c).is_some_and(|e| !e.offstage)),
+            );
         }
         order
     }
@@ -575,8 +587,8 @@ impl ViewTree {
     /// handles it becomes the target for the containers above it (VIEW-REVEAL-01). True when
     /// any handled it; false for an unknown element.
     pub fn ensure_visible(&mut self, element: ElementId) -> bool {
-        if !self.contains(element) {
-            return false;
+        if !self.contains(element) || self.is_offstage(element) {
+            return false; // VIEW-OFFSTAGE-05
         }
         let action = SemanticsAction::ScrollIntoView;
         let mut target = element;
@@ -632,7 +644,11 @@ impl ViewTree {
             .remembered
             .get(&scope)
             .copied()
-            .filter(|id| self.contains(*id) && self.focus_state.focusables.contains_key(id));
+            .filter(|id| {
+                self.contains(*id)
+                    && !self.is_offstage(*id)
+                    && self.focus_state.focusables.contains_key(id)
+            });
         let first = || {
             self.preorder_from(scope).into_iter().find(|id| {
                 self.focus_state

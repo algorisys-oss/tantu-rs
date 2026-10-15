@@ -226,6 +226,9 @@ impl ViewTree {
         parent_origin: Vec2,
         path: &mut Vec<ElementId>,
     ) -> bool {
+        if self.element(id).is_none_or(|e| e.offstage) {
+            return false; // Offstage subtrees aren't hit (VIEW-OFFSTAGE-03).
+        }
         let children = self.children(id);
         let layout = match self.element_kind(id) {
             Some(Kind::Region) => {
@@ -316,6 +319,28 @@ impl ViewTree {
             }
         }
         Handled::Continue
+    }
+
+    /// After a subtree went offstage: hovered elements in it get `Leave` and a capture whose
+    /// target is in it is released without an `Up` (VIEW-OFFSTAGE-03).
+    pub(crate) fn release_pointer_offstage(&mut self) {
+        if let Some((path, _)) = &self.events.captured {
+            if path.first().is_some_and(|target| self.is_offstage(*target)) {
+                self.events.captured = None;
+            }
+        }
+        if !self.events.hovered.iter().any(|id| self.is_offstage(*id)) {
+            return;
+        }
+        let position = self.events.position.unwrap_or(Point::ZERO);
+        let kept = self
+            .events
+            .hovered
+            .iter()
+            .copied()
+            .filter(|id| !self.is_offstage(*id))
+            .collect();
+        self.update_hover(kept, position);
     }
 
     /// Sends `Leave` to elements no longer under the pointer (innermost first) and `Enter` to

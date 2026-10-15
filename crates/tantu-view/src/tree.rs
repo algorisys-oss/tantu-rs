@@ -196,6 +196,8 @@ pub(crate) struct Element {
     inherited: Vec<(TypeId, Rc<dyn Any>)>,
     /// What assistive technology is told (VIEW-SEM-01).
     pub(crate) semantics: Option<Box<crate::Semantics>>,
+    /// Kept but hidden: no layout, paint, hit-testing, focus or semantics (VIEW-OFFSTAGE-01).
+    pub(crate) offstage: bool,
 }
 
 /// The element kind, with a render element's layout node and paint behavior.
@@ -286,6 +288,7 @@ impl ViewTree {
                 kind: Kind::Render(layout, Box::new(NoPaint)),
                 inherited: Vec::new(),
                 semantics: None,
+                offstage: false,
             }));
             tree.root = Some(root);
             scope.run(|| {
@@ -468,7 +471,8 @@ impl ViewTree {
         scene: &mut SceneBuilder<'_>,
         text: &mut dyn TextPainter,
     ) {
-        let Some(element) = self.element(id) else {
+        // Offstage subtrees paint nothing (VIEW-OFFSTAGE-03).
+        let Some(element) = self.element(id).filter(|e| !e.offstage) else {
             return;
         };
         let (layout, paint) = match &element.kind {
@@ -544,6 +548,7 @@ impl ViewTree {
             kind,
             inherited: Vec::new(),
             semantics: None,
+            offstage: false,
         }));
         if let Some(p) = arena_id(parent).and_then(|a| self.elements.get_mut(a)) {
             p.children.push(id);
@@ -589,7 +594,12 @@ impl ViewTree {
     /// The layout nodes of `id`'s children, with regions replaced by their own children.
     fn collect_layout_children(&self, id: ElementId, out: &mut Vec<LayoutId>) {
         for child in self.children(id) {
-            match self.element(*child).map(|e| &e.kind) {
+            // Offstage subtrees take no part in layout (VIEW-OFFSTAGE-02).
+            match self
+                .element(*child)
+                .filter(|e| !e.offstage)
+                .map(|e| &e.kind)
+            {
                 Some(Kind::Render(layout, _)) => out.push(*layout),
                 Some(Kind::Region) => self.collect_layout_children(*child, out),
                 None => {}

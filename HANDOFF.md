@@ -3,17 +3,20 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-15 (TabView drafts for review; TreeView on main)_
+_Last updated: 2026-10-15 (Offstage done; TabView widgets next)_
 
 ## Resume here (2026-10-15)
 
-**TreeView is done** (decision 79). **TabView is drafted for review** on `phase4/tab-view`,
-split in two PLAN.md parts: `docs/specs/view/offstage.md` (a view-tree flag that keeps a
-subtree alive but out of layout, paint, hit-testing, focus and semantics; three proposals)
-and `docs/specs/widgets/tab-view.md` (`TabBar`/`TabBarView` over a shared
-`Signal<usize>`, a composed `TabView`, kept lazy pages, WAI-ARIA keys, Material 3 look,
-gallery and kitchen-sink samples; six proposals). Waiting for the user's review; then
-spec/test/impl for Offstage first. Commit/push authorization persists.
+**Offstage is done** (decision 80): `BuildCx::set_offstage`, `ElementMut::set_offstage`,
+`ViewTree::is_offstage` and the `Offstage` widget keep a subtree alive but out of layout,
+paint, hit-testing, focus, actions, overlays and the accessibility tree. **Next:** agree and
+implement `docs/specs/widgets/tab-view.md` (still Draft, six proposals). Commit/push
+authorization persists.
+
+**Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
+over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
+workspace build took the editor down with it. `~/.cargo/config.toml` now caps `build.jobs`
+at 6 (machine-local, not in the repo). Prefer running agents from a standalone terminal.
 
 DataGrid parts 1–7 and overlay inheritance are complete. Main `c37b814` passed CI:
 https://github.com/algorisys-oss/tantu-rs/actions/runs/38234613244 (checked this session).
@@ -946,6 +949,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     amendment: `ScrollView` leaves modified keys to app shortcuts. No new crate, edge or
     pipeline stage, so the architecture doc is unchanged.
 
+80. **Offstage** (2026-10-15, spec `docs/specs/view/offstage.md`; the user said "continue" on
+    the three proposals): one `offstage` flag on elements honored by every walk (layout
+    children collection, paint, hit-testing, focus preorder, `focus`, `ensure_visible`,
+    `perform_action`, overlay outside-press, the AccessKit walk). Toggling re-syncs the
+    parent's layout children, clears focus inside, releases capture/hover and hides overlays
+    whose target is offstage (their root gets the flag, so content isn't rebuilt). Hidden
+    content is not laid out (a deviation from Flutter, review). `Offstage` is a region
+    binding its prop; no golden or gallery entry since it paints nothing (as `FocusScope`).
+    No new crate, edge or pipeline stage.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1423,15 +1436,19 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `5a49e27` | test: unchanged tree model notifications do not enumerate |
 | `6f54435` | docs: gallery, kitchen-sink and a11y specs point at TreeView's GALLERY-20/21, VIEW-SEM-04, A11Y-TREE-05 |
 | `255b203` | impl: TreeView (source, expanded preorder index, virtualized rows, selection/expansion/activation, keys, tree semantics with Expand/Collapse), ScrollView ignores modified keys; gallery section, kitchen-sink card, goldens; PLAN.md ticked |
-| _this commit_ | docs: draft Offstage and TabView specs for review; PLAN.md TabView item split in two |
+| `92abf26` | docs: draft Offstage and TabView specs for review; PLAN.md TabView item split in two |
+| `8cab82e` | spec: Offstage, retained but hidden subtrees (VIEW-OFFSTAGE-01..06, A11Y-TREE-06, WIDGETS-OFFSTAGE-01) |
+| `d909ae9` | test: Offstage, stubs + 8 failing tests |
+| `698f747` | test: VIEW-OFFSTAGE-02 counts the column's layout children |
+| _this commit_ | impl: Offstage flag through layout, paint, hit-test, focus, actions, overlays and a11y; `Offstage` widget; PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Review the two TabView drafts (Offstage, then the widgets). After agreement: Offstage
-spec/test/impl, then TabView spec/test/impl. Then `SplitView` (which may bring the
+Review the TabView widgets draft (`docs/specs/widgets/tab-view.md`); after agreement,
+TabView spec/test/impl on top of `Offstage`. Then `SplitView` (which may bring the
 `ColResize`/`RowResize` cursor amendment), then docking.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.

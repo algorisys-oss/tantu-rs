@@ -342,6 +342,22 @@ impl ViewTree {
             seq,
         });
         self.order_overlays(layer);
+        self.sync_overlay_offstage();
+    }
+
+    /// Hides each overlay whose target is offstage and shows it again when the target
+    /// returns, without rebuilding it (VIEW-OFFSTAGE-05).
+    pub(crate) fn sync_overlay_offstage(&mut self) {
+        let changes: Vec<(ElementId, bool)> = self
+            .overlays
+            .entries
+            .iter()
+            .map(|e| (e.root, self.is_offstage(e.target)))
+            .filter(|(root, hidden)| self.element(*root).is_some_and(|r| r.offstage != *hidden))
+            .collect();
+        for (root, hidden) in changes {
+            self.set_offstage_flag(root, hidden);
+        }
     }
 
     /// Sorts the layer's children by z-index, then insertion order (VIEW-OVERLAY-02).
@@ -452,6 +468,7 @@ impl ViewTree {
             .entries
             .iter()
             .filter(|e| !path.contains(&e.root) && !path.contains(&e.target))
+            .filter(|e| !self.is_offstage(e.root))
             .filter_map(|e| e.config.on_outside_press.clone())
             .collect();
         if !callbacks.is_empty() {

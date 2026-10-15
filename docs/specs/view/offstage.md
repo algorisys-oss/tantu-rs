@@ -1,6 +1,6 @@
 # Offstage: retained but hidden subtrees
 
-- **Status:** Agreed (2026-10-15, the user said "continue" on the three proposals)
+- **Status:** Implemented (2026-10-15; agreed the same day, the user said "continue" on the three proposals)
 - **Crates:** `tantu-view` (the flag and every tree walk), `tantu-a11y` (the semantics walk),
   `tantu-widgets` (the `Offstage` widget)
 - **Plan item:** Phase 4, "`TabView`", part 1 (`Offstage`)

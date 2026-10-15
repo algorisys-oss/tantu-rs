@@ -288,6 +288,9 @@ impl ViewTree {
     /// Performs `action` on `element` as a user would (VIEW-SEM-03); false if nothing
     /// happened.
     pub fn perform_action(&mut self, element: ElementId, action: SemanticsAction) -> bool {
+        if self.is_offstage(element) {
+            return false; // VIEW-OFFSTAGE-05
+        }
         let Some(semantics) = self.semantics(element) else {
             return false;
         };
