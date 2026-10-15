@@ -175,7 +175,7 @@ faster or more portable without changing how apps are written.
 - [ ] Docking layout manager (drag panels, persist layout), in parts:
   - [x] the dock layout model: splits and tab groups, panel ids, operations in a normal form, a versioned text format for persisting (spec `docs/specs/widgets/dock-layout.md`)
   - [x] `DockArea`: drawing a layout with nested splits and dynamic tab strips (close buttons, activation), panel content kept alive across moves, keyboard and semantics (spec `docs/specs/widgets/dock-area.md`)
-  - [ ] drag-to-dock: dragging tabs, drop indicators for tab, beside and edge targets (separate spec); floating panels wait for multi-window
+  - [ ] drag-to-dock: dragging tabs, drop indicators for tab, beside and edge targets (spec `docs/specs/widgets/dock-drag.md`); floating panels wait for multi-window
 - [ ] Menus (native + custom), context menus, toolbars, status bar
 - [ ] Dialogs, native file dialogs, notifications, system tray
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images)

@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (docking part 2 done; part 3 next)_
+_Last updated: 2026-10-16 (docking part 3 drafted for review)_
 
 ## Resume here (2026-10-15)
 
@@ -25,8 +25,9 @@ and a versioned text format (`save`/`load`). **Part 2 is done** (decision 85): `
 draws a layout through one flat `RenderDock` (panels keep their state across tab switches
 and moves), with compact closable tabs, an active group, keyboard shortcuts, dividers,
 semantics, a gallery "Docking" section (Reset/Save/Restore) and a kitchen-sink card.
-**Next:** draft part 3, drag-to-dock (`docs/specs/widgets/dock-drag.md`). Commit/push
-authorization persists.
+**Part 3 is drafted for review**: `docs/specs/widgets/dock-drag.md` (dragging tabs to
+strips, five zones per group and the dock's edges, indicators, Escape, a keyboard reorder),
+with six proposals. **Next:** the user reviews it. Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1553,15 +1554,15 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `41c2f2a` | spec: GALLERY-26's editor group has a Readme tab; section and card counts follow GALLERY-26/27 |
 | `eb6c6a3` | test: RenderDock and DockArea, stubs + 16 failing tests |
 | `263bcd9` | test: dock tests find tabs by their Tab node (a panel and its label share the tab's title) |
-| _this commit_ | impl: RenderDock and DockArea (plan, keyed strips/panels/dividers, tabs, active group, keys, focus, semantics); gallery Docking section and kitchen-sink card, goldens; README; PLAN.md part 2 ticked |
+| `c398d94` | impl: RenderDock and DockArea (plan, keyed strips/panels/dividers, tabs, active group, keys, focus, semantics); gallery Docking section and kitchen-sink card, goldens; README; PLAN.md part 2 ticked |
+| _this commit_ | docs: draft the drag-to-dock spec (docking part 3) for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Draft docking part 3 (drag-to-dock: dragging tabs to reorder them or dock them into
-another group, beside a group or at an edge, with drop indicators), then continue Phase 4
+Review the drag-to-dock draft (docking part 3) and implement it; then continue Phase 4
 (menus, dialogs, forms).
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
