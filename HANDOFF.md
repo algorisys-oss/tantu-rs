@@ -1875,7 +1875,9 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `10a3a7d` | impl: drag sessions in tantu-view, Draggable and DragTarget; gallery dnd card, goldens; architecture doc; PLAN.md ticked (CI green, run 38817343457) |
 | `2531b76` | spec: VIEW-EVENT-10, handlers are dropped with the scope that registered them |
 | `aed20a6` | test: VIEW-EVENT-10, a removed component's handlers on the root still run, failing |
-| _this commit_ | fix: handlers carry their registering scope's alive flag; dispatch skips dead ones |
+| `7586a4b` | fix: handlers carry their registering scope's alive flag; dispatch skips dead ones |
+| `beba483` | docs: HANDOFF.md resume point for the morning |
+| _this commit_ | docs: HANDOFF.md commit log rows |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
