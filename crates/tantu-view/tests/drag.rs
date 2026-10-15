@@ -267,3 +267,20 @@ fn view_drag_04_removed_target() {
         "no events to the removed target"
     );
 }
+
+#[test]
+fn view_drag_05_position() {
+    let mut fx = fixture();
+    fx.down(25.0);
+    fx.mv(30.0);
+    fx.mv(140.0);
+    let handle = fx.handle.clone();
+    assert_eq!(fx.tree.enter(|| handle.position()), Point::new(140.0, 25.0));
+    // Moves are followed even when nothing captures them.
+    fx.tree.dispatch_pointer(PointerEvent {
+        kind: PointerKind::Move,
+        position: Point::new(400.0, 60.0),
+        modifiers: Modifiers::default(),
+    });
+    assert_eq!(fx.tree.enter(|| handle.position()), Point::new(400.0, 60.0));
+}

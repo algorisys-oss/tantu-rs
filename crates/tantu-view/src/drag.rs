@@ -44,6 +44,11 @@ impl DragHandle {
     pub fn outcome(&self) -> Option<DragOutcome> {
         todo!("VIEW-DRAG-01")
     }
+
+    /// The pointer's last position in the window during a drag (a tracked read).
+    pub fn position(&self) -> Point {
+        todo!("VIEW-DRAG-05")
+    }
 }
 
 /// What a drag handler is told.
