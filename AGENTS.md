@@ -65,8 +65,9 @@ Full write-up and diagram: [`docs/architecture.md`](docs/architecture.md).
 | `tantu-text` | font loading, shaping, bidi, line breaking (parley/swash); implements `TextMeasure` | core, scene, layout |
 | `tantu-layout` | `BoxConstraints` protocol, Flex/Stack/Wrap/Grid/Overlay algorithms, `TextMeasure` trait | core |
 | `tantu-view` | View/Element/RenderObject traits, reconciler, event dispatch, focus | core, reactive, scene, text, layout |
-| `tantu-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …); reads the theme's tokens (ADR 0012) | view, theme |
+| `tantu-widgets` | standard widget set (Text, Button, TextField, ListView, DataGrid, …); reads the theme's tokens (ADR 0012) and the localization (ADR 0015) | view, theme, i18n |
 | `tantu-theme` | design tokens, Material-ish + Fluent-ish default themes, `Theme::of` | view |
+| `tantu-i18n` | locales, Fluent messages, number and date formatting; `Date`/`Time` values (ADR 0015) | view |
 | `tantu-a11y` | AccessKit tree generation from element semantics (ADR 0013); depends on the `accesskit` data crate | view |
 | `tantu-platform` | `Platform` trait: windows, input, clipboard, IME, accessibility events (`accesskit` data crate), dialogs, menus | core |
 | `tantu-platform-winit` | winit implementation | platform |

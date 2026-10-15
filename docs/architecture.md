@@ -37,7 +37,7 @@ inkscape "$PWD/docs/architecture/tantu-architecture.svg" \
 
 | Stage | Crate | What it is |
 |---|---|---|
-| App code | user crate, `tantu-widgets`, `tantu-theme` | Functions returning `impl View`, built with builders; state kept in signals. Widgets read the theme's tokens through an inherited `Signal<Theme>` ([ADR-0012](adr/0012-theme-tokens-through-inherited-signals.md)) |
+| App code | user crate, `tantu-widgets`, `tantu-theme`, `tantu-i18n` | Functions returning `impl View`, built with builders; state kept in signals. Widgets read the theme's tokens through an inherited `Signal<Theme>` ([ADR-0012](adr/0012-theme-tokens-through-inherited-signals.md)) and the locale, messages and formats through an inherited `Localization` ([ADR-0015](adr/0015-internationalization-crate.md)) |
 | View tree | `tantu-view` | Cheap, one-shot descriptions of the UI, consumed when they build their elements; components are functions that run once ([ADR-0011](adr/0011-view-layer.md)) |
 | Element tree | `tantu-view` | Retained nodes in an arena (`ViewTree`, one per window). Render elements own a layout node and a paint behavior; region elements hold dynamic content. Each has a stable identity and a reactive scope |
 | Render tree | `tantu-layout` (layout tree) + `tantu-view` (paint, hit-test) | `RenderBox`-style layout objects in a `LayoutTree` arena owned by `tantu-layout`; `tantu-view` keeps them in step with elements and paints and hit-tests from their geometry ([ADR-0009](adr/0009-layout-tree-in-tantu-layout.md)) |
@@ -165,6 +165,8 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 
 - Nothing below `tantu-view` knows about widgets. `tantu-theme` sits beside the widgets:
   `tantu-widgets` and `tantu-test` depend on it, and it depends only on `tantu-view`.
+  `tantu-i18n` (Fluent messages, ICU4X formatting, `Date`/`Time`) sits beside it the same
+  way: `tantu-widgets` depends on it, and it depends only on `tantu-view`.
 - `tantu-a11y` reads element semantics from `tantu-view` and builds AccessKit trees; the
   runner sends them through the platform trait, and only `tantu-platform-*` touch the
   AccessKit platform adapters ([ADR-0013](adr/0013-accessibility-pipeline.md)).
@@ -189,6 +191,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Theme tokens reach widgets through an inherited `Signal<Theme>`; `tantu-widgets` depends on `tantu-theme` | [ADR-0012](adr/0012-theme-tokens-through-inherited-signals.md) |
 | Semantics on elements; `tantu-a11y` builds AccessKit trees, delivered through the platform trait | [ADR-0013](adr/0013-accessibility-pipeline.md) |
 | Overlay inherited-value lookup follows the portal target while structural ancestry remains under the root layer | [ADR-0014](adr/0014-overlay-inheritance-through-the-portal.md) |
+| Localization in `tantu-i18n` over Fluent and ICU4X; the locale is reactive and inherited; widgets depend on it | [ADR-0015](adr/0015-internationalization-crate.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).
