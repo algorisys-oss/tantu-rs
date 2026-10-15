@@ -38,24 +38,30 @@ menus item); RTL mirroring (i18n).
 
 ```rust
 // tantu-layout
-/// The geometry of a dock layout: node 0 is the root; groups are leaves.
+/// The geometry of a dock layout: node 0 is the root; groups are leaves. Nodes and panels
+/// carry stable keys, so children find their place even after the tree changes.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DockPlan { pub nodes: Vec<DockPlanNode> }
 #[derive(Clone, Debug, PartialEq)]
 pub enum DockPlanNode {
-    Group,
-    Split { axis: Axis, fractions: Vec<f32>, children: Vec<usize> },
+    /// A tab group and the keys of its panels.
+    Group { key: u64, panels: Vec<u64> },
+    /// A split and its children's node indices (each greater than this node's).
+    Split { key: u64, axis: Axis, fractions: Vec<f32>, children: Vec<usize> },
 }
 
-/// Which part of the plan a child of a `RenderDock` is (parent data).
+/// Which part of the plan a child of a `RenderDock` is (parent data, set once when the
+/// child is built: it names keys, not node indices, so it stays right as the tree changes).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DockSlot {
-    /// The tab strip of group node `node`.
-    Strip(usize),
-    /// A panel's content in group node `node` (only the active panel is onstage).
-    Panel(usize),
-    /// The divider between children `index` and `index + 1` of split node `node`.
-    Divider { node: usize, index: usize },
+    /// The tab strip of the group with this key.
+    Strip(u64),
+    /// The content of the panel with this key, in whichever group lists it.
+    Panel(u64),
+    /// The divider between children `index` and `index + 1` of the split with this key.
+    Divider { split: u64, index: usize },
+    /// Fills the whole dock (the empty layout's placeholder).
+    Placeholder,
 }
 
 /// Lays out a dock plan: groups sized as split panes, each with a strip on top.
@@ -105,14 +111,15 @@ impl DockArea {
   neighbours, every child's minimum being `min_group` (no collapsing), and each child gets
   the split's full cross extent. An empty plan lays out nothing.
 - **LAYOUT-DOCK-02:** A group's `Strip` child is laid out tight at the group's width ×
-  `strip_height` (clamped to the group's height) at its top; its `Panel` children tight
-  at the rest of the group below the strip. Children are placed at their rects; offstage
+  `strip_height` (clamped to the group's height) at its top; the `Panel` children of the
+  panels it lists tight at the rest of the group below the strip. A `Placeholder` child
+  fills the whole dock. Children are placed at their rects; offstage
   ones (inactive panels) are absent from layout (VIEW-OFFSTAGE-02).
-- **LAYOUT-DOCK-03:** A `Divider { node, index }` child is laid out tight at `handle` ×
+- **LAYOUT-DOCK-03:** A `Divider { split, index }` child is laid out tight at `handle` ×
   the split's cross extent, centred on the gap after child `index`, oriented along the
   split's axis. Dividers come after the other children so they win the hit test.
-- **LAYOUT-DOCK-04:** A child whose slot names a missing node, a non-group for
-  `Strip`/`Panel`, or a non-split or out-of-range boundary for `Divider` gets zero size at
+- **LAYOUT-DOCK-04:** A child without a slot, or whose slot names a key no group, panel
+  or split in the plan has (or an out-of-range boundary for `Divider`), gets zero size at
   the origin. Nothing panics for malformed plans (cycles are impossible: children indices
   must be greater than their parent's, others are ignored).
 - **LAYOUT-DOCK-05:** `node_rects` returns every node's rect in the dock's coordinates
