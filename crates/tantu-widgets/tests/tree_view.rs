@@ -119,7 +119,10 @@ impl Fixture {
             )
         });
         t.pump();
-        let h = out.borrow_mut().take().unwrap();
+        let h = out
+            .borrow_mut()
+            .take()
+            .expect("the builder stored its handles");
         Self { t, h, activations }
     }
     fn pump(&mut self) {
@@ -152,7 +155,7 @@ impl Fixture {
                 node.role() == accesskit::Role::TreeItem
                     && node.label() == Some(format!("Node {n}").as_str())
             })
-            .map(|(id, _)| ElementId::from_raw(id.0).unwrap())
+            .map(|(id, _)| ElementId::from_raw(id.0).expect("node ids are element ids"))
             .expect("mounted row")
     }
     fn ids(&mut self) -> Vec<String> {
@@ -161,7 +164,7 @@ impl Fixture {
             .nodes
             .iter()
             .filter(|(_, n)| n.role() == accesskit::Role::TreeItem)
-            .map(|(_, n)| n.label().unwrap().to_owned())
+            .map(|(_, n)| n.label().expect("tree items are labelled").to_owned())
             .collect()
     }
     fn press(&mut self, n: u64, x: f32) {
@@ -649,13 +652,22 @@ fn widgets_tree_10_hover_and_theme_colors_update_without_state_reset() {
 
 #[test]
 fn widgets_tree_07_unchanged_revision_and_expansion_do_not_enumerate() {
-    let m=model();let mut f=Fixture::with(m.clone(),&[0]);let queries=m.queries.get();
-    f.t.enter(|| {f.h.revision.set(0);f.h.expanded.set(BTreeSet::from([Id(0)]));});f.pump();
-    assert_eq!(m.queries.get(),queries);
+    let m = model();
+    let mut f = Fixture::with(m.clone(), &[0]);
+    let queries = m.queries.get();
+    f.t.enter(|| {
+        f.h.revision.set(0);
+        f.h.expanded.set(BTreeSet::from([Id(0)]));
+    });
+    f.pump();
+    assert_eq!(m.queries.get(), queries);
 }
 
 #[test]
 fn widgets_tree_10_closed_branch_golden() {
-    let mut f=Fixture::with(model(),&[]);
-    f.t.matches_golden(concat!(env!("CARGO_MANIFEST_DIR"),"/tests/goldens/tree-closed.png"));
+    let mut f = Fixture::with(model(), &[]);
+    f.t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/tree-closed.png"
+    ));
 }

@@ -1,6 +1,6 @@
 # TreeView: expansion, selection and virtualized rows
 
-- **Status:** Agreed (2026-10-12, the user said "implement it and also update kitchen sink with this example")
+- **Status:** Implemented (agreed 2026-10-12, the user said "implement it and also update kitchen sink with this example"; implemented 2026-10-15)
 - **Crates:** `tantu-widgets`, `tantu-view` and `tantu-a11y` (tree semantics),
   `examples/gallery`
 - **Plan item:** Phase 4, "TreeView"

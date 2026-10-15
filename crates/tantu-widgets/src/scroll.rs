@@ -405,7 +405,7 @@ impl View for ScrollView {
         {
             let shared = Rc::clone(&shared);
             cx.on_key(id, Phase::Bubble, move |k| {
-                if !k.event.pressed {
+                if !k.event.pressed || k.event.modifiers != Default::default() {
                     return Handled::Continue;
                 }
                 let (size, _) = shared.get();

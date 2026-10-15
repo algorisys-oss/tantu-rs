@@ -293,7 +293,8 @@ impl ViewTree {
         };
         let (role, actions) = (semantics.role, semantics.actions);
         let supported = match &action {
-            SemanticsAction::Expand | SemanticsAction::Collapse => false,
+            SemanticsAction::Expand => actions.expand,
+            SemanticsAction::Collapse => actions.collapse,
             SemanticsAction::Focus => actions.focus,
             SemanticsAction::Click => actions.click,
             SemanticsAction::Increment => actions.increment,
@@ -306,9 +307,14 @@ impl ViewTree {
             return false;
         }
         match action {
-            SemanticsAction::Expand | SemanticsAction::Collapse => false,
+            SemanticsAction::Expand | SemanticsAction::Collapse => {
+                self.deliver_action(element, &action)
+            }
             SemanticsAction::Focus => self.focus(element),
             SemanticsAction::Click => {
+                if role == Role::TreeItem && self.deliver_action(element, &action) {
+                    return true;
+                }
                 let Some(center) = self.bounds(element).map(|b| b.center()) else {
                     return false;
                 };
@@ -345,29 +351,29 @@ impl ViewTree {
             }
             // Every enclosing container reveals (VIEW-REVEAL-03).
             SemanticsAction::ScrollIntoView => self.ensure_visible(element),
-            SemanticsAction::SetValue(_) => {
-                // Handlers on the element, then its ancestors; the first `true` wins.
-                let mut next = Some(element);
-                while let Some(id) = next {
-                    let handlers: Vec<ActionHandler> =
-                        self.events.actions.get(&id).cloned().unwrap_or_default();
-                    let handled = self.enter(|| {
-                        handlers.iter().any(|handler| {
-                            handler(&ActionCx {
-                                tree: self,
-                                element: id,
-                                target: element,
-                                action: &action,
-                            })
-                        })
-                    });
-                    if handled {
-                        return true;
-                    }
-                    next = self.parent(id);
-                }
-                false
-            }
+            SemanticsAction::SetValue(_) => self.deliver_action(element, &action),
         }
+    }
+    /// Offers a semantic action to handlers from the target toward its ancestors.
+    fn deliver_action(&self, element: ElementId, action: &SemanticsAction) -> bool {
+        let mut next = Some(element);
+        while let Some(id) = next {
+            let handlers: Vec<ActionHandler> =
+                self.events.actions.get(&id).cloned().unwrap_or_default();
+            if self.enter(|| {
+                handlers.iter().any(|handler| {
+                    handler(&ActionCx {
+                        tree: self,
+                        element: id,
+                        target: element,
+                        action,
+                    })
+                })
+            }) {
+                return true;
+            }
+            next = self.parent(id);
+        }
+        false
     }
 }

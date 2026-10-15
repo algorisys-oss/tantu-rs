@@ -1,6 +1,8 @@
 //! The Tantu widget gallery (spec `docs/specs/examples/gallery.md`): a header, a sidebar of
 //! sections and the selected section's samples.
 
+mod tree;
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -13,7 +15,7 @@ use tantu::scene::{BorderRadius, ImageData, RoundedRect};
 use tantu::view::{Anchor, BuildCx, ElementId, Keyed, OverlayPortal, Paint, PaintCx, Prop};
 
 /// The section names, in sidebar order.
-pub const SECTIONS: [&str; 9] = [
+pub const SECTIONS: [&str; 10] = [
     "Buttons",
     "Text",
     "Selection",
@@ -22,12 +24,13 @@ pub const SECTIONS: [&str; 9] = [
     "Media",
     "Animation",
     "Data grid",
+    "Tree view",
     "Kitchen sink",
 ];
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 12] = [
+pub const SINK_CARDS: [(&str, &[&str]); 13] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -41,6 +44,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 12] = [
     ("fields", &["text_field"]),
     ("media", &["icon", "image"]),
     ("lists", &["list_view"]),
+    ("tree", &["tree_view"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -153,6 +157,7 @@ fn content(section: Signal<&'static str>) -> impl View {
             "Animation" => AnyView::new(animation_section()),
             "Data grid" => AnyView::new(grid_section()),
             "Kitchen sink" => AnyView::new(kitchen_sink_section()),
+            "Tree view" => AnyView::new(tree::section()),
             _ => AnyView::new(buttons_section()),
         };
         Column::new()
@@ -698,6 +703,7 @@ fn kitchen_sink_section() -> impl View {
             .child(sink_fields())
             .child(sink_media())
             .child(sink_lists())
+            .child(tree::sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

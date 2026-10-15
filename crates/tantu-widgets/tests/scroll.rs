@@ -509,10 +509,27 @@ fn widgets_scroll_09_tab_reveals_the_focused_button() {
 
 #[test]
 fn widgets_scroll_06_modified_keys_do_not_scroll() {
-    let (mut t,c)=view(tall);
+    let (mut t, c) = view(tall);
     t.focus(&Finder::key("s"));
-    for modifiers in [Modifiers{control:true,..Default::default()},Modifiers{alt:true,..Default::default()},Modifiers{shift:true,..Default::default()},Modifiers{super_key:true,..Default::default()}] {
-        t.press_key(LogicalKey::Named(NamedKey::End),modifiers);
-        assert_eq!(t.enter(||c.offset()),0.0);
+    for modifiers in [
+        Modifiers {
+            control: true,
+            ..Default::default()
+        },
+        Modifiers {
+            alt: true,
+            ..Default::default()
+        },
+        Modifiers {
+            shift: true,
+            ..Default::default()
+        },
+        Modifiers {
+            super_key: true,
+            ..Default::default()
+        },
+    ] {
+        t.press_key(LogicalKey::Named(NamedKey::End), modifiers);
+        assert_eq!(t.enter(|| c.offset()), 0.0);
     }
 }

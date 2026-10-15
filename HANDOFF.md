@@ -3,16 +3,14 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-12 (TreeView spec drafted for review; preceding main CI is green)_
+_Last updated: 2026-10-15 (TreeView implemented; inspect CI on main after this push)_
 
-## Resume here (2026-10-12)
+## Resume here (2026-10-15)
 
-The user accepted the TreeView draft with "implement it and also update kitchen sink with
-this example". The six proposals are now Agreed. Work on `phase4/tree-view` follows
-spec → failing tests → implementation; next add compiling API stubs and regressions for
-source/index, virtualization, pointer/keys, revisions, identity/disposal, themes, tree
-semantics/actions and both demos. Commit/push authorization persists; performance stress
-runs stay local. No new architecture dependency or pipeline change is planned.
+**TreeView is done** (decision 79): spec `docs/specs/widgets/tree-view.md` is Implemented,
+the gallery has a "Tree view" section and the kitchen sink a tree card. The next PLAN.md
+items are `TabView` and then `SplitView`; each starts as a Draft spec for review. Commit/push
+authorization persists; performance stress runs stay local. Check CI on `main` after this push.
 
 DataGrid parts 1–7 and overlay inheritance are complete. Main `c37b814` passed CI:
 https://github.com/algorisys-oss/tantu-rs/actions/runs/38234613244 (checked this session).
@@ -47,7 +45,7 @@ native GPU/compositor 60 fps remains unverified. See decisions 77–78 and open 
 - **The end goal** (the user, 2026-10-11): a general-purpose GUI library for building desktop
   apps, from small utilities to enterprise applications. README, AGENTS.md and the
   architecture doc now say so.
-- Workspace: 77 implemented specs plus one TreeView draft, every agreed rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
+- Workspace: 78 implemented specs, every agreed rule covered (`cargo xtask spec-coverage`); `fmt`, `clippy -D
   warnings`, `cargo test --workspace`, `cargo test -p tantu --no-default-features` and full-workspace/all-feature rustdoc
   (`-D warnings`) are green locally (checked 2026-10-12 before this push). **CI:** inspect the
   new run on `main` after this push; the prior macOS Control/Command chord issue is fixed.
@@ -932,6 +930,19 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     This removes the overlay-inheritance open question before menus/dialogs. Representation
     and demo details are marked review; public APIs remain unchanged.
 
+79. **TreeView** (2026-10-15, spec `docs/specs/widgets/tree-view.md`; the user accepted the
+    six proposals with "implement it and also update kitchen sink with this example").
+    A synchronous `TreeDataSource` with app-assigned stable `TreeNodeId`s; expansion and the
+    single selection are signals the app may share; the widget keeps an expanded preorder
+    index rebuilt on expansion or revision changes only (unchanged notifications don't
+    re-enumerate), and virtualizes fixed-height rows over a `ScrollView`. Collapsing keeps the
+    descendants' expansion state. Arrows navigate/expand/collapse, Space toggles, Enter
+    activates. `Role::Tree`/`TreeItem` now map to AccessKit's tree roles with level, set
+    position/size and expanded state; `SemanticsAction::Expand`/`Collapse` are delivered to
+    `on_action` handlers and a TreeItem's Click goes to its handler first. Integration
+    amendment: `ScrollView` leaves modified keys to app shortcuts. No new crate, edge or
+    pipeline stage, so the architecture doc is unchanged.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1399,23 +1410,30 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 
 | `dce57a4` | spec: agree TreeView on the user's implementation request, including the kitchen-sink example |
 
-| _this commit_ | test: TreeView API/semantic stubs and failing widget/a11y/gallery regressions; no implementation yet |
+| `61e7587` | test: TreeView API/semantic stubs and failing widget/a11y/gallery regressions; no implementation yet |
+| `2c77f10` | spec: modified scrolling keys pass through to app shortcuts (WIDGETS-SCROLL amendment) |
+| `f27437b` | test: modified scrolling keys leave the offset unchanged, failing |
+| `09b3dca` | test: settle tree viewport layout and release secondary pointer capture |
+| `9c1939a` | test: allow both partially visible tree rows in the viewport bound |
+| `d6fe934` | test: collapsing Workspace preserves its descendant expansion state |
+| `3c05408` | test: tree hover paint follows pointer and theme changes |
+| `5a49e27` | test: unchanged tree model notifications do not enumerate |
+| `6f54435` | docs: gallery, kitchen-sink and a11y specs point at TreeView's GALLERY-20/21, VIEW-SEM-04, A11Y-TREE-05 |
+| _this commit_ | impl: TreeView (source, expanded preorder index, virtualized rows, selection/expansion/activation, keys, tree semantics with Expand/Collapse), ScrollView ignores modified keys; gallery section, kitchen-sink card, goldens; PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Implement the agreed `docs/specs/widgets/tree-view.md` using separate
-`spec:` / failing `test:` / green `impl:` commits. PLAN.md now has independent TreeView,
-TabView, SplitView and docking items. The preceding main push passed CI (run 38234613244).
+TreeView is done. Next in PLAN.md order: draft `docs/specs/widgets/tab-view.md` for review,
+then `SplitView` (which may bring the `ColResize`/`RowResize` cursor amendment), then docking.
+Check the CI run on `main` for the TreeView push.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
 ## Open questions
 
-- **TreeView is Agreed.** The six source/state/navigation/semantics/demo proposals were
-  accepted by the user; no unresolved design question blocks implementation.
 - **DataGrid native 60 fps remains unverified.** Part 7 implements repeatable scrolling
   and redraw-tick cadence statistics, with GPU/compositor delivery checked on recorded hardware.
   Headless CPU timing is separate evidence. The example is complete; native presentation remains a manual check.

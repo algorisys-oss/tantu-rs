@@ -78,6 +78,8 @@ impl AccessibilityTree {
         let element = ElementId::from_raw(request.target_node.0)?;
         let action = match request.action {
             Action::Focus => SemanticsAction::Focus,
+            Action::Expand => SemanticsAction::Expand,
+            Action::Collapse => SemanticsAction::Collapse,
             Action::Click => SemanticsAction::Click,
             Action::Increment => SemanticsAction::Increment,
             Action::Decrement => SemanticsAction::Decrement,
@@ -165,9 +167,22 @@ fn node(semantics: &Semantics) -> Node {
         R::Grid => Role::Grid,
         R::ColumnHeader => Role::ColumnHeader,
         R::Cell => Role::Cell,
-        R::Tree | R::TreeItem => Role::Group,
+        R::Tree => Role::Tree,
+        R::TreeItem => Role::TreeItem,
     };
     let mut node = Node::new(role);
+    if let Some(v) = semantics.expanded {
+        node.set_expanded(v);
+    }
+    if let Some(v) = semantics.level {
+        node.set_level(v);
+    }
+    if let Some(v) = semantics.position_in_set {
+        node.set_position_in_set(v);
+    }
+    if let Some(v) = semantics.size_of_set {
+        node.set_size_of_set(v);
+    }
     if let Some(v) = semantics.row_count {
         node.set_row_count(v);
     }
@@ -217,6 +232,8 @@ fn node(semantics: &Semantics) -> Node {
     let actions = semantics.actions;
     for (on, action) in [
         (actions.click, Action::Click),
+        (actions.expand, Action::Expand),
+        (actions.collapse, Action::Collapse),
         (actions.focus || semantics.focusable, Action::Focus),
         (actions.increment, Action::Increment),
         (actions.decrement, Action::Decrement),

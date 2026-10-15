@@ -103,8 +103,12 @@ fn main() -> tantu::Result<()> {
 
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
 window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
-Things still to come are listed in [PLAN.md](PLAN.md): the data grid's selection and cell
-editors, and the other enterprise widgets (trees, tabs, docking, menus, dialogs, forms).
+Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (tabs,
+split views, docking, menus, dialogs, forms), multi-window, clipboard and i18n.
+
+The **Tree view** section demonstrates a project explorer and a generated branch with 5,000
+children; the **Kitchen sink** includes the same expandable tree with selection/activation
+feedback. Arrows navigate, Space toggles a branch, and Enter activates the selection.
 
 `cargo run --release -p data-grid-stress` opens the standalone 1,000,000 × 20 DataGrid
 workload, with Start/Stop, beginning/middle/end jumps, optional frozen columns and redraw
