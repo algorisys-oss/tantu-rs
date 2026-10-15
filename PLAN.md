@@ -198,7 +198,7 @@ faster or more portable without changing how apps are written.
   - [x] RTL layout mirroring: `TextDirection`, `Directionality`, directional alignment, insets and positions, `Row`/`Column`/`Wrap` mirroring (spec `docs/specs/widgets/directionality.md`)
   - [ ] Fluent-based localisation (separate spec)
   - [ ] locale-aware formatting of numbers and dates (separate spec)
-- [ ] `Grid` layout (possibly via taffy) for dashboard-style screens
+- [ ] `Grid` layout (possibly via taffy) for dashboard-style screens: `LayoutGrid` with fixed, flexible and auto tracks, in-house (spec `docs/specs/widgets/layout-grid.md`)
 - [x] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)
 - [ ] **Milestone:** `examples/enterprise-dashboard` (docking + grid + forms + charts area)
 
