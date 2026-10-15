@@ -1,6 +1,6 @@
 # Docking, part 1: the dock layout model and persistence
 
-- **Status:** Agreed (2026-10-16, the user said "continue" on the six proposals)
+- **Status:** Implemented (2026-10-16; agreed the same day, the user said "continue" on the six proposals)
 - **Crate:** `tantu-widgets`
 - **Plan item:** Phase 4, "Docking layout manager", part 1 (the model)
 - **Related:** [SplitView](split-view.md) (fraction cleaning, LAYOUT-SPLIT-01),

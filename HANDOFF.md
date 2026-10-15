@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-15 (docking part 1 drafted for review)_
+_Last updated: 2026-10-16 (docking part 1 done; part 2 next)_
 
 ## Resume here (2026-10-15)
 
@@ -19,11 +19,11 @@ fractions, keyboard resizing, splitter semantics, a gallery "Split view" section
 kitchen-sink card. The grid's column handles show the resize cursor too. CI passed on
 Linux, Windows and macOS for `fda6c46` (run 38785174844).
 
-**Docking is drafted for review**, part 1 of three: `docs/specs/widgets/dock-layout.md`, the
-`DockLayout` model (splits and tab groups of app-named panels, operations in a normal form,
-a versioned text format), with six proposals. Parts 2 (`DockArea` widget) and 3
-(drag-to-dock) follow once it is agreed. **Next:** the user reviews the draft.
-Commit/push authorization persists.
+**Docking part 1 is done** (decision 84): `DockLayout` in `tantu-widgets`, a normalized tree
+of splits and tab groups of app-named panels, with activate/close/add/move/set_fractions
+and a versioned text format (`save`/`load`). **Next:** draft part 2, the `DockArea` widget
+(`docs/specs/widgets/dock-area.md`), then part 3 (drag-to-dock). Commit/push authorization
+persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1009,6 +1009,19 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     (WIDGETS-GRID-29); the gallery's Folders minimum is 160 px. No new crate, edge or
     pipeline stage; the architecture doc notes the cursor path.
 
+84. **Dock layout model** (2026-10-16, spec `docs/specs/widgets/dock-layout.md`; the user
+    said "continue" on the six proposals): docking is three parts (model, `DockArea`,
+    drag-to-dock; floating panels wait for multi-window). `DockLayout` is a plain value an
+    app keeps in a signal; panels are app-chosen string `PanelId`s; groups and splits have
+    layout-local ids that survive operations (for widget keys) and that equality ignores.
+    Every operation leaves a normal form (no empty groups, no one-child splits, same-axis
+    splits flattened, fractions summing to 1) and fails without changes. Beside halves the
+    target group, an edge takes a quarter, closing gives the share back proportionally and
+    activates the right neighbour. Persistence is an in-house versioned text format
+    (`tantu-dock 1`, then `row(0.2 tabs(0 "explorer") 0.8 …)`), lenient where normalizing
+    can repair, with byte-offset syntax errors and a 256-level nesting bound. Added while
+    agreeing (review): equality compares fractions within 1e-5. No new crate or dependency.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1506,15 +1519,19 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `42772c5` | test: RenderSplit, SplitView, splitter role, grid handle cursor and semantics-label finder, stubs + 21 failing tests |
 | `7e02088` | spec: GALLERY-24's Folders minimum is 160 px; GALLERY-25's labels and echo |
 | `fda6c46` | impl: RenderSplit and SplitView (fractions, minimums, collapsing, drag and keys, splitter semantics), grid handle cursor, Finder::semantics_label; gallery Split view section and kitchen-sink card, goldens; README; PLAN.md SplitView ticked |
-| _this commit_ | docs: draft the dock layout model spec (docking part 1) for review; PLAN.md docking item split in three |
+| `2be1a53` | docs: draft the dock layout model spec (docking part 1) for review; PLAN.md docking item split in three |
+| `de7b6d0` | spec: dock layout model agreed (WIDGETS-DOCK-01..12) |
+| `9312ac6` | spec: dock layout equality compares fractions within 1e-5; exact load error strings; save's line ending |
+| `a855c96` | test: dock layout model, stubs + 12 failing tests |
+| _this commit_ | impl: dock layout model (normalized tree, ids, operations, text format); PLAN.md part 1 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Review the dock layout model draft; then implement it, and draft part 2 (`DockArea`, built
-on `RenderSplit` and a dynamic tab strip) and part 3 (drag-to-dock).
+Draft docking part 2 (`DockArea`, built on `RenderSplit` and a dynamic tab strip), then
+part 3 (drag-to-dock).
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
