@@ -29,7 +29,7 @@ arrived with GALLERY-05 (a dark-mode switch).
 /// The gallery's view: a header, a sidebar of sections and the selected section's samples.
 pub fn gallery() -> impl View;
 /// The section names, in sidebar order.
-pub const SECTIONS: [&str; 7] = ["Buttons", "Text", "Selection", "Text field", "Lists", "Media", "Animation"];
+pub const SECTIONS: [&str; 10] = ["Buttons", "Text", "Selection", "Text field", "Lists", "Media", "Animation", "Data grid", "Tree view", "Kitchen sink"];
 ```
 
 Structure: a `Column` with a header `Row` (key `header`: the title "Tantu gallery", after a
@@ -51,7 +51,8 @@ Sections and their samples:
 | Media | a row of `Icon`s, an `Image` of a generated 64 × 64 gradient shown at 128 × 128 (`image`) |
 | Animation | a `Switch` (`grow`) animating a box (`box`) with `animated()`, a dot (`dot`) moved by a repeating controller (GALLERY-06) |
 | Data grid | a `DataGrid` over 1 000 000 generated rows with sparse editable overrides (`grid`) with "First row: N" (`first-row`) (GALLERY-10) and "Sort: …" (`sort`) (GALLERY-11), "Name width: …" (`name-width`) and "Order: …" (`order`) (GALLERY-15), selection controls and echo (GALLERY-16), and an edit-error label (GALLERY-17) |
-| Kitchen sink | every widget on one scrolling page (`sink`), twelve cards (GALLERY-12..14, [kitchen sink](kitchen-sink.md)) |
+| Tree view | virtualized Workspace/Dependencies/Generated forest (`tree`) with selection, expansion and activation echoes (GALLERY-20, [TreeView](../widgets/tree-view.md)) |
+| Kitchen sink | every widget on one scrolling page (`sink`), thirteen cards (GALLERY-12..14, [kitchen sink](kitchen-sink.md)) |
 
 ## Behavior
 
@@ -87,6 +88,9 @@ Sections and their samples:
 - **GALLERY-16:** Selection modes and echo; see [selection and navigation](../widgets/data-grid-selection.md).
 - **GALLERY-17:** Editable generated data, error reporting and the editor golden; see
   [cell editors](../widgets/data-grid-editing.md).
+
+- **GALLERY-20:** TreeView section; see [TreeView](../widgets/tree-view.md).
+- **GALLERY-21:** Kitchen-sink tree card; see [TreeView](../widgets/tree-view.md).
 
 ## Open questions
 

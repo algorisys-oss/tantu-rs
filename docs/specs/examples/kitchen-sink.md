@@ -24,7 +24,9 @@ In scope: a "Kitchen sink" section (the last in the sidebar) built from the exis
 cards for buttons, toggles, slider, text, fields, media, lists, grid, layout, scrolling,
 animation and focus; keys on every card and sample; goldens; a README line.
 
-Out of scope: new widgets or new widget features; a separate example crate (the gallery is
+The TreeView amendment adds a thirteenth card after Lists; see [TreeView](../widgets/tree-view.md), GALLERY-21.
+
+Out of scope in the original kitchen-sink item: new widgets or new widget features; a separate example crate (the gallery is
 the demo, so it gains the page rather than a sibling duplicating its shell); per-platform
 screenshots.
 
@@ -34,10 +36,10 @@ No library API. In `examples/gallery`:
 
 ```rust
 /// The section names, in sidebar order; "Kitchen sink" is the last.
-pub const SECTIONS: [&str; 9];
+pub const SECTIONS: [&str; 10];
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows).
-pub const SINK_CARDS: [(&str, &[&str]); 12];
+pub const SINK_CARDS: [(&str, &[&str]); 13];
 ```
 
 The page: a `ScrollView` (key `sink`) over a `Column` of cards, each a `Column` keyed
@@ -55,6 +57,7 @@ equal a sample key (`sliders`, `typography`).
 | `fields` | `TextField` single-line, multi-line, with a placeholder, disabled | "Typed: …" |
 | `media` | `Icon`s, `Image` in `BoxFit::Contain`, `Cover` and `Fill` at 96 × 64 | |
 | `lists` | `ListView::builder` (1 000 rows) and `separated` with a selection | "Selected N" |
+| `tree` | `TreeView` with Workspace/src/file rows and a 240 px viewport (GALLERY-21) | Selection, expanded count and activation |
 | `grid` | `DataGrid` (1 000 rows, frozen Id, sortable, `client_sort`), resize/reorder headers, range selection, editable Name/Score and a "Even rows" filter | Sort/rows, selection, widths/order and edit errors |
 | `layout` | `Row`/`Column` with `Expanded`, `Flexible` and `Spacer`; `Stack` with `Positioned`; `Center`, `Align`, `Padding`, `SizedBox`, `ConstrainedBox`, `LimitedBox` as colored boxes | |
 | `scrolling` | a 240 px tall `ScrollView` of 30 rows and a horizontal `ScrollView` of 20 boxes | "Offset N" |
@@ -105,6 +108,8 @@ equal a sample key (`sliders`, `typography`).
   `SINK_CARDS` includes `overlay_portal` in the Buttons inventory; existing grid and focus
   samples remain unchanged. This composition amendment follows the user's request to
   continue overlay inheritance; presentation details are marked review.
+
+- **GALLERY-21:** TreeView card, its interaction feedback and golden; see [TreeView](../widgets/tree-view.md).
 
 ## Performance and allocation
 

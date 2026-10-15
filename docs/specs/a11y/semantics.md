@@ -230,6 +230,10 @@ Widget semantics:
   slider a `Slider`, the field a `TextInput`, the list a `List` with `ListItem` children);
   `perform_action(press, Click)` increments the press count.
 
+TreeView's roles, optional hierarchy/expansion properties, explicit Expand/Collapse actions,
+and TreeItem Click routing are specified by VIEW-SEM-04 and A11Y-TREE-05 in
+[TreeView](../widgets/tree-view.md). They extend this existing pipeline without new edges.
+
 ## Performance and allocation
 
 `update` walks the whole element tree once per call and allocates the node list (a few
