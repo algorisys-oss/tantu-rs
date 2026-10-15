@@ -145,6 +145,11 @@ impl Localizations {
   into `tantu-widgets`, read through the nearest `Localization` (English without one), so
   an app overrides them by adding the same ids to its resources; the ids and English texts
   are the table below. Month and weekday names come from the locale's data instead (part 3).
+  The strings follow a locale switch; to make that possible `IconButton::semantics_label`
+  (and `Icon::semantics_label`) accept a reactive label (`impl IntoProp<String>`, so
+  existing `&str` and `String` callers are unchanged). Placeholders and default accessible
+  names of the date and time fields are read when the field is built (found while
+  implementing, review).
 - **GALLERY-50:** The gallery's header gains a "Language" combo box (English, Deutsch,
   Français, עברית); the header title, the sidebar section names and the status bar text
   come from the gallery's own Fluent resources (embedded strings), and choosing Hebrew
