@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/overlay.md`, rules VIEW-OVERLAY-01..07 and -11..13.
+//! Tests for `docs/specs/view/overlay.md`, rules VIEW-OVERLAY-01..07 and -11..14.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -913,4 +913,15 @@ fn view_overlay_13_cover_window() {
         &mut scene,
     );
     assert_eq!(rect(&tree, popup), Rect::from_ltwh(0.0, 0.0, 500.0, 360.0));
+}
+
+#[test]
+fn view_overlay_14_popup_owner() {
+    let f = shown(0.0, 50.0, Anchor::below(), POPUP);
+    let target = find(&f.tree, "target").expect("built");
+    let popup = find(&f.tree, "popup").expect("shown");
+    let wrapper = f.tree.parent(popup).expect("in a wrapper");
+    assert_eq!(f.tree.popup_owner(wrapper), Some(target));
+    assert_eq!(f.tree.popup_owner(popup), None);
+    assert_eq!(f.tree.popup_owner(target), None);
 }

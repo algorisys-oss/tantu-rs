@@ -525,6 +525,12 @@ impl ViewTree {
         false
     }
 
+    /// The element an overlay's wrapper is anchored to (VIEW-OVERLAY-14).
+    pub fn popup_owner(&self, element: ElementId) -> Option<ElementId> {
+        let _ = element;
+        todo!("VIEW-OVERLAY-14")
+    }
+
     pub(crate) fn outside_presses(&self, path: &[ElementId]) {
         let callbacks: Vec<Rc<dyn Fn()>> = self
             .overlays
