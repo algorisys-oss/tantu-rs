@@ -2,6 +2,7 @@
 use crate::{ScrollController, ScrollView, Text};
 use std::collections::BTreeSet;
 use std::rc::Rc;
+use tantu_view::layout::TextDirection;
 use tantu_view::reactive::Signal;
 use tantu_view::{BuildCx, ElementId, IntoProp, View};
 
@@ -479,11 +480,25 @@ impl View for TreeView {
             );
             {
                 let nav = nav.clone();
+                // Left and Right swap under RTL (WIDGETS-RTL-04).
+                let direction = dynamic(crate::directionality::direction_prop(cx));
                 cx.on_key(id, Phase::Capture, move |k| {
+                    let mut event = k.event.clone();
+                    if direction() == TextDirection::Rtl {
+                        event.key = match event.key {
+                            LogicalKey::Named(NamedKey::ArrowLeft) => {
+                                LogicalKey::Named(NamedKey::ArrowRight)
+                            }
+                            LogicalKey::Named(NamedKey::ArrowRight) => {
+                                LogicalKey::Named(NamedKey::ArrowLeft)
+                            }
+                            other => other,
+                        };
+                    }
                     if focused.get_untracked()
-                        && k.event.pressed
-                        && k.event.modifiers == Default::default()
-                        && nav.key(k.event)
+                        && event.pressed
+                        && event.modifiers == Default::default()
+                        && nav.key(&event)
                     {
                         Handled::Stop
                     } else {
@@ -625,7 +640,26 @@ impl View for TreeRow {
                 )
             }
         });
-        let id = cx.render(RowRender { indent: 0.0 }, [AnyView::new(content)]);
+        let id = cx.render(
+            RowRender {
+                indent: 0.0,
+                rtl: false,
+            },
+            [AnyView::new(content)],
+        );
+        // Indented from the right under RTL (WIDGETS-RTL-04).
+        let direction = dynamic(crate::directionality::direction_prop(cx));
+        {
+            let direction = Rc::clone(&direction);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || direction() == TextDirection::Rtl)),
+                |e, rtl| {
+                    e.update_render::<RowRender>(|r| r.rtl = rtl);
+                    e.update_paint::<RowPaint>(|p| p.rtl = rtl);
+                },
+            );
+        }
         let mounted = self.mounted;
         mounted.rows.borrow_mut().insert(node, id);
         mounted.changed();
@@ -655,6 +689,7 @@ impl View for TreeRow {
                 selected: false,
                 hover,
                 theme,
+                rtl: false,
             },
         );
         let indent = self.indent;
@@ -700,10 +735,12 @@ impl View for TreeRow {
                     };
                     nav.select(node);
                     let start = along(m.depth, indent).min(p.size.width);
-                    if m.children > 0
-                        && p.local.x >= start
-                        && p.local.x < (start + 20.0).min(p.size.width)
-                    {
+                    let x = if direction() == TextDirection::Rtl {
+                        p.size.width - p.local.x
+                    } else {
+                        p.local.x
+                    };
+                    if m.children > 0 && x >= start && x < (start + 20.0).min(p.size.width) {
                         nav.set_open(node, !m.expanded);
                         return Handled::Stop;
                     }
@@ -740,6 +777,7 @@ impl View for TreeRow {
 #[derive(Clone, PartialEq)]
 struct RowRender {
     indent: f32,
+    rtl: bool,
 }
 impl RenderBox for RowRender {
     fn perform_layout(&mut self, c: BoxConstraints, children: &mut LayoutChildren<'_>) -> Size {
@@ -749,19 +787,28 @@ impl RenderBox for RowRender {
         for i in 0..children.len() {
             let child = children.layout(i, BoxConstraints::new(0.0, width, 0.0, c.max_height));
             size = size.max(child);
-            children.set_offset(
-                i,
-                Vec2::new(start, ((c.max_height - child.height) / 2.0).max(0.0)),
-            );
         }
-        c.constrain(Size::new(
+        let row = c.constrain(Size::new(
             if c.has_bounded_width() {
                 c.max_width
             } else {
                 start + size.width
             },
             size.height,
-        ))
+        ));
+        for i in 0..children.len() {
+            let child = children.size(i);
+            let x = if self.rtl {
+                row.width - start - child.width
+            } else {
+                start
+            };
+            children.set_offset(
+                i,
+                Vec2::new(x, ((c.max_height - child.height) / 2.0).max(0.0)),
+            );
+        }
+        row
     }
 }
 struct RowPaint {
@@ -770,6 +817,7 @@ struct RowPaint {
     selected: bool,
     hover: Signal<bool>,
     theme: ThemeHandle,
+    rtl: bool,
 }
 fn bar(cx: &mut PaintCx<'_, '_>, from: Point, to: Point, color: Color) {
     let dx = to.x - from.x;
@@ -798,7 +846,13 @@ impl Paint for RowPaint {
                 .fill_rect(bounds, colors.on_surface.with_alpha(0.08));
         }
         if let Some(open) = self.expanded {
-            let x = self.indent.min(size.width) + 10.0;
+            let start = self.indent.min(size.width) + 10.0;
+            // Under RTL the expander sits at the right and a closed one points left.
+            let (x, toward) = if self.rtl {
+                (size.width - start, -1.0)
+            } else {
+                (start, 1.0)
+            };
             let y = size.height / 2.0;
             let (a, b, c) = if open {
                 (
@@ -808,9 +862,9 @@ impl Paint for RowPaint {
                 )
             } else {
                 (
-                    Point::new(x - 2.0, y - 4.0),
-                    Point::new(x + 2.0, y),
-                    Point::new(x - 2.0, y + 4.0),
+                    Point::new(x - 2.0 * toward, y - 4.0),
+                    Point::new(x + 2.0 * toward, y),
+                    Point::new(x - 2.0 * toward, y + 4.0),
                 )
             };
             bar(cx, a, b, colors.on_surface_variant);

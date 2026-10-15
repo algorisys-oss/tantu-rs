@@ -17,6 +17,7 @@ use tantu_view::{
     Role, Semantics, SemanticsActions, Toggled, View,
 };
 
+use crate::directionality::{directional_key, is_rtl};
 use crate::theme::{ALPHA_38, ThemeHandle, at};
 use crate::{Icon, IconData, Icons, SizedBox, Text};
 
@@ -491,6 +492,7 @@ impl Level {
 impl View for MenuView {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let theme = ThemeHandle::of(cx);
+        let rtl = is_rtl(cx);
         let items = self.items;
         let level = Level {
             items: Rc::clone(&items),
@@ -542,13 +544,19 @@ impl View for MenuView {
                         has_leading,
                         ids: Rc::clone(&ids),
                     };
+                    // A submenu opens toward the end edge (WIDGETS-RTL-05).
+                    let rtl = Rc::clone(&rtl);
                     children.push(AnyView::new(
                         OverlayPortal::new(row)
                             .visible(move || keyboard.get().is_some())
-                            .anchor(
-                                Anchor::new(Alignment::TOP_RIGHT, Alignment::TOP_LEFT)
-                                    .offset(0.0, -PAD_V),
-                            )
+                            .anchor(move || {
+                                let (target, follower) = if rtl() {
+                                    (Alignment::TOP_LEFT, Alignment::TOP_RIGHT)
+                                } else {
+                                    (Alignment::TOP_RIGHT, Alignment::TOP_LEFT)
+                                };
+                                Anchor::new(target, follower).offset(0.0, -PAD_V)
+                            })
                             .overlay(move || {
                                 let (sub, chain, link) =
                                     (Rc::clone(&sub), Rc::clone(&chain), link.clone());
@@ -621,18 +629,21 @@ impl View for MenuView {
         {
             let (level, parent, sideways) =
                 (level.clone(), self.parent.clone(), self.sideways.clone());
+            let rtl = Rc::clone(&rtl);
             cx.on_key(id, Phase::Bubble, move |k| {
                 let event = &k.event;
                 if !event.pressed || event.modifiers != Modifiers::default() {
                     return Handled::Continue;
                 }
+                // Left and Right swap under RTL (WIDGETS-RTL-05).
+                let key = directional_key(&event.key, rtl());
                 let current = level.highlighted.get_untracked();
                 let move_to = |i: Option<usize>| {
                     if i.is_some() {
                         level.highlighted.set(i);
                     }
                 };
-                match &event.key {
+                match &key {
                     LogicalKey::Named(NamedKey::ArrowDown) => move_to(level.step(current, true)),
                     LogicalKey::Named(NamedKey::ArrowUp) => move_to(level.step(current, false)),
                     LogicalKey::Named(NamedKey::Home) => move_to(level.step(None, true)),
@@ -833,10 +844,17 @@ impl View for ItemRow {
         let trail: AnyView = match (&item.kind, &item.shortcut) {
             (ItemKind::Submenu(_), _) => {
                 let ink = ink.clone();
+                let rtl = is_rtl(cx);
                 AnyView::new(
-                    Icon::new(Icons::CHEVRON_RIGHT)
-                        .size(20.0)
-                        .color(move || ink(theme.colors().on_surface_variant)),
+                    Icon::new(move || {
+                        if rtl() {
+                            Icons::CHEVRON_LEFT
+                        } else {
+                            Icons::CHEVRON_RIGHT
+                        }
+                    })
+                    .size(20.0)
+                    .color(move || ink(theme.colors().on_surface_variant)),
                 )
             }
             (_, Some(shortcut)) => {
@@ -1157,13 +1175,15 @@ impl View for MenuBar {
                 },
             );
         }
+        let rtl = is_rtl(cx);
         cx.on_key(id, Phase::Bubble, move |k| {
             let event = &k.event;
             if !event.pressed || event.modifiers != Modifiers::default() {
                 return Handled::Continue;
             }
             let i = current.get_untracked();
-            match &event.key {
+            // The bar runs right to left under RTL (WIDGETS-RTL-05).
+            match &directional_key(&event.key, rtl()) {
                 LogicalKey::Named(NamedKey::ArrowLeft) => current.set((i + count - 1) % count),
                 LogicalKey::Named(NamedKey::ArrowRight) => current.set((i + 1) % count),
                 LogicalKey::Named(NamedKey::ArrowDown | NamedKey::Enter) => {

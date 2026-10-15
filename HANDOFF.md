@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (`LayoutGrid` done; the user is away until morning)_
+_Last updated: 2026-10-16 (RTL inside widgets done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1230,6 +1230,17 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     Spanning items don't grow auto tracks (a documented simplification). Widgets
     `LayoutGrid` and `GridPlacement`, following `Directionality`; `TrackSize` is in the
     prelude. Gallery: a "dashboard" kitchen-sink card. No new crate or edge.
+98. **i18n part 1b: RTL inside widgets** (2026-10-16, spec
+    `docs/specs/widgets/directionality-widgets.md`; decided by the agent while the user
+    was away, review). Flutter's per-widget mirroring under the nearest
+    `Directionality`, followed reactively: the switch thumb; the slider's track, ticks,
+    thumb, pointer mapping and Left-increases keys; the vertical scrollbar at the left
+    edge (painted and dragged; `Scrollbar::directed`); the tree view's indentation from
+    the right, mirrored expander and swapped Left/Right; submenus opening to the left
+    with `CHEVRON_LEFT` and swapped keys, and the menu bar's swapped arrows; the combo
+    box arrow at the end edge (`PositionedDirectional`); the calendar's swapped chevrons.
+    Crate-private helpers `is_rtl` and `directional_key`. Not mirrored yet: caret keys in
+    bidirectional text, paragraph alignment, the data grid, split view and dock.
 
 ## Commit log
 
@@ -1800,7 +1811,12 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `d1825ef` | test: LayoutGrid, stubs + 8 failing tests |
 | `4783573` | spec: LAYOUT-LGRID-04, items in content-sized rows fill their rows |
 | `d4b4fdf` | test: LAYOUT-LGRID-04 expects the spanning item to fill its rows, failing |
-| _this commit_ | impl: RenderLayoutGrid (placement, track sizing, stretch, RTL, intrinsics), LayoutGrid and GridPlacement; gallery dashboard card, goldens; PLAN.md ticked |
+| `37e079a` | impl: RenderLayoutGrid (placement, track sizing, stretch, RTL, intrinsics), LayoutGrid and GridPlacement; gallery dashboard card, goldens; PLAN.md ticked (CI green, run 38814550121) |
+| `6a90f3a` | spec: i18n part 1b, RTL inside widgets (WIDGETS-RTL-01..06, GALLERY-48) |
+| `85f0364` | test: RTL inside widgets, 6 failing tests |
+| `b591ea6` | test: WIDGETS-RTL-06 measures the combo field again after flipping |
+| `a7dc32b` | test: GALLERY-48, the RTL switch's thumb mirrored, failing |
+| _this commit_ | impl: RTL in Switch, Slider, ScrollView, TreeView, menus, ComboBox and the calendar; gallery RTL golden; PLAN.md part 1b ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1809,8 +1825,10 @@ that with the real hash from `git log`.
 
 Continue Phase 4 in PLAN.md order (Forms and `LayoutGrid` are done): i18n parts 2–3
 (Fluent localisation, locale formats; both need a new crate and dependencies, so the user
-decides first); the remaining clipboard/multi-window/drag-and-drop parts. Mirroring widgets' own painted geometry under
-RTL (switch, slider, caret keys, chevrons, scrollbar side) is a follow-up. Native OS menus and native file dialogs/notifications/tray wait for the user.
+decides first); the remaining clipboard/multi-window/drag-and-drop parts (intra-app drag
+and drop needs a view-layer drag protocol; a spec is the next step). RTL caret movement in
+bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
+menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 

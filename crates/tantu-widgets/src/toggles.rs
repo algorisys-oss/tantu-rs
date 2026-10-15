@@ -1,6 +1,7 @@
 //! [`Checkbox`], [`Radio`] and [`Switch`]. Spec: `docs/specs/widgets/toggles.md`.
 
 use std::rc::Rc;
+use tantu_view::layout::TextDirection;
 
 use tantu_view::core::{Affine, Color, Point, Rect, Size, Vec2};
 use tantu_view::layout::{BoxConstraints, RenderConstrainedBox};
@@ -472,10 +473,12 @@ impl View for Switch {
                 }
             })
         };
+        let direction = crate::directionality::direction_prop(cx);
         let paint = SwitchPaint {
             state: State::default(),
             colors: ThemeHandle::of(cx).colors(),
             value: false,
+            rtl: false,
         };
         let id = build_toggle(
             cx,
@@ -491,6 +494,10 @@ impl View for Switch {
             e.update_semantics(|s| {
                 s.toggled = Some(if on { Toggled::True } else { Toggled::False })
             });
+        });
+        // The thumb runs toward the end edge (WIDGETS-RTL-01).
+        cx.bind(id, direction, |e, direction| {
+            e.update_paint::<SwitchPaint>(|p| p.rtl = direction == TextDirection::Rtl);
         });
         id
     }
@@ -621,6 +628,7 @@ struct SwitchPaint {
     state: State,
     colors: ColorScheme,
     value: bool,
+    rtl: bool,
 }
 
 impl TogglePaint for SwitchPaint {
@@ -645,7 +653,7 @@ impl Paint for SwitchPaint {
         );
         let track_shape = RoundedRect::new(track, BorderRadius::circular(TRACK.height / 2.0));
         let thumb_center = Point::new(
-            if self.value {
+            if self.value != self.rtl {
                 track.right - THUMB_INSET
             } else {
                 track.left + THUMB_INSET

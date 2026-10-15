@@ -316,6 +316,7 @@ impl View for CalendarView {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let cal = self.calendar;
         let theme = ThemeHandle::of(cx);
+        let rtl = crate::directionality::is_rtl(cx);
         let options = Rc::clone(&cal.options);
         let month_index = |date: Date| i64::from(date.year()) * 12 + i64::from(date.month());
         let shown = {
@@ -344,28 +345,45 @@ impl View for CalendarView {
                     ),
                 ))
                 .child(
-                    IconButton::new(Icons::CHEVRON_LEFT)
-                        .semantics_label("Previous month")
-                        .enabled({
-                            let first = month_index(options.first);
-                            move || shown() > first
-                        })
-                        .on_press({
-                            let cal = cal.clone();
-                            move || cal.step_month(-1)
-                        }),
+                    // The chevrons point backward and forward along the direction
+                    // (WIDGETS-RTL-06).
+                    IconButton::new({
+                        let rtl = Rc::clone(&rtl);
+                        move || {
+                            if rtl() {
+                                Icons::CHEVRON_RIGHT
+                            } else {
+                                Icons::CHEVRON_LEFT
+                            }
+                        }
+                    })
+                    .semantics_label("Previous month")
+                    .enabled({
+                        let first = month_index(options.first);
+                        move || shown() > first
+                    })
+                    .on_press({
+                        let cal = cal.clone();
+                        move || cal.step_month(-1)
+                    }),
                 )
                 .child(
-                    IconButton::new(Icons::CHEVRON_RIGHT)
-                        .semantics_label("Next month")
-                        .enabled({
-                            let last = month_index(options.last);
-                            move || shown() < last
-                        })
-                        .on_press({
-                            let cal = cal.clone();
-                            move || cal.step_month(1)
-                        }),
+                    IconButton::new(move || {
+                        if rtl() {
+                            Icons::CHEVRON_LEFT
+                        } else {
+                            Icons::CHEVRON_RIGHT
+                        }
+                    })
+                    .semantics_label("Next month")
+                    .enabled({
+                        let last = month_index(options.last);
+                        move || shown() < last
+                    })
+                    .on_press({
+                        let cal = cal.clone();
+                        move || cal.step_month(1)
+                    }),
                 ),
         );
         let mut weekdays = Row::new();

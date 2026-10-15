@@ -2,6 +2,7 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
+use tantu_view::layout::TextDirection;
 
 use tantu_view::core::Rect;
 use tantu_view::layout::{BoxConstraints, RenderConstrainedBox, RenderLimitedBox};
@@ -275,8 +276,21 @@ impl View for Slider {
                 focused: false,
                 dragging: false,
                 colors: theme.colors(),
+                rtl: false,
             },
         );
+        // The minimum is at the end edge under RTL (WIDGETS-RTL-02).
+        let direction = dynamic(crate::directionality::direction_prop(cx));
+        let rtl = {
+            let direction = Rc::clone(&direction);
+            move || direction() == TextDirection::Rtl
+        };
+        {
+            let rtl = rtl.clone();
+            cx.bind(id, Prop::Dynamic(Box::new(rtl)), |e, on| {
+                e.update_paint::<SliderPaint>(|p| p.rtl = on);
+            });
+        }
         cx.bind(id, theme.colors_prop(), |e, colors| {
             e.update_paint::<SliderPaint>(|p| p.colors = colors);
         });
@@ -363,10 +377,11 @@ impl View for Slider {
         );
         // Keys (WIDGETS-SLIDER-06).
         {
-            let (model, enabled, on_change) = (
+            let (model, enabled, on_change, rtl) = (
                 Rc::clone(&model),
                 Rc::clone(&enabled),
                 Rc::clone(&on_change),
+                rtl.clone(),
             );
             cx.on_key(id, Phase::Bubble, move |k| {
                 if !k.event.pressed || !enabled() {
@@ -375,9 +390,17 @@ impl View for Slider {
                 let LogicalKey::Named(key) = &k.event.key else {
                     return Handled::Continue;
                 };
+                // Left increases under RTL.
+                let forward = if rtl() {
+                    NamedKey::ArrowLeft
+                } else {
+                    NamedKey::ArrowRight
+                };
                 let new = match key {
-                    NamedKey::ArrowRight | NamedKey::ArrowUp => model.stepped(1.0),
-                    NamedKey::ArrowLeft | NamedKey::ArrowDown => model.stepped(-1.0),
+                    k if *k == forward || *k == NamedKey::ArrowUp => model.stepped(1.0),
+                    NamedKey::ArrowRight | NamedKey::ArrowLeft | NamedKey::ArrowDown => {
+                        model.stepped(-1.0)
+                    }
                     NamedKey::Home => model.value_at(0.0),
                     NamedKey::End => model.value_at(1.0),
                     _ => return Handled::Continue,
@@ -397,6 +420,7 @@ impl View for Slider {
                 Rc::clone(&last_reported),
             );
             move |x: f32, width: f32| {
+                let x = if rtl() { width - x } else { x };
                 let value = model.value_under(x, width);
                 let previous = last.get().unwrap_or_else(|| (model.value)());
                 if value != previous {
@@ -448,6 +472,7 @@ struct SliderPaint {
     focused: bool,
     dragging: bool,
     colors: ColorScheme,
+    rtl: bool,
 }
 
 fn circle(cx: f32, cy: f32, radius: f32) -> RoundedRect {
@@ -461,7 +486,10 @@ impl Paint for SliderPaint {
     fn paint(&self, cx: &mut PaintCx<'_, '_>) {
         let size = cx.size();
         let length = (size.width - 2.0 * THUMB_RADIUS).max(0.0);
-        let (x, y) = (THUMB_RADIUS + self.fraction * length, size.height / 2.0);
+        // Positions along the track, mirrored under RTL.
+        let along = |x: f32| if self.rtl { size.width - x } else { x };
+        let (logical_x, y) = (THUMB_RADIUS + self.fraction * length, size.height / 2.0);
+        let x = along(logical_x);
         let colors = &self.colors;
         let (active, inactive) = if self.enabled {
             (colors.primary, colors.surface_container_highest)
@@ -472,18 +500,20 @@ impl Paint for SliderPaint {
             )
         };
         let track = |from: f32, to: f32| {
+            let (from, to) = (along(from), along(to));
             RoundedRect::new(
-                Rect::from_ltrb(from, y - TRACK_HALF, to, y + TRACK_HALF),
+                Rect::from_ltrb(from.min(to), y - TRACK_HALF, from.max(to), y + TRACK_HALF),
                 BorderRadius::circular(TRACK_HALF),
             )
         };
         let scene = cx.scene();
-        scene.fill(track(THUMB_RADIUS, x), active);
-        scene.fill(track(x, size.width - THUMB_RADIUS), inactive);
+        scene.fill(track(THUMB_RADIUS, logical_x), active);
+        scene.fill(track(logical_x, size.width - THUMB_RADIUS), inactive);
         if self.divisions > 0 {
             for i in 0..=self.divisions {
-                let tick = THUMB_RADIUS + (i as f32 / self.divisions as f32) * length;
-                let color = if tick <= x {
+                let logical_tick = THUMB_RADIUS + (i as f32 / self.divisions as f32) * length;
+                let tick = along(logical_tick);
+                let color = if logical_tick <= logical_x {
                     at(colors.on_primary, ALPHA_38)
                 } else {
                     at(colors.on_surface_variant, ALPHA_38)

@@ -3,6 +3,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
+use tantu_view::layout::TextDirection;
 
 use tantu_view::core::{Color, Point, Rect, Size};
 use tantu_view::layout::{RenderViewport, ScrollAxis};
@@ -258,6 +259,8 @@ pub(crate) struct Scrollbar {
     pub(crate) viewport: f32,
     content: f32,
     cross: f32,
+    /// A vertical bar at the left edge (right to left, WIDGETS-RTL-03).
+    start_edge: bool,
 }
 
 impl Scrollbar {
@@ -271,7 +274,14 @@ impl Scrollbar {
             viewport,
             content: extent,
             cross,
+            start_edge: false,
         }
+    }
+
+    /// The bar for a right-to-left view: a vertical bar moves to the left edge.
+    pub(crate) fn directed(mut self, rtl: bool) -> Self {
+        self.start_edge = rtl;
+        self
     }
 
     pub(crate) fn max(&self) -> f32 {
@@ -305,7 +315,10 @@ impl Scrollbar {
         let along = MARGIN + (self.track() - self.thumb_length()) * (offset / max).clamp(0.0, 1.0);
         let near = self.cross - MARGIN - THUMB_WIDTH;
         Some(match self.axis {
-            ScrollAxis::Vertical => Rect::from_ltwh(near, along, THUMB_WIDTH, self.thumb_length()),
+            ScrollAxis::Vertical => {
+                let x = if self.start_edge { MARGIN } else { near };
+                Rect::from_ltwh(x, along, THUMB_WIDTH, self.thumb_length())
+            }
             ScrollAxis::Horizontal => {
                 Rect::from_ltwh(along, near, self.thumb_length(), THUMB_WIDTH)
             }
@@ -394,8 +407,17 @@ impl View for ScrollView {
                 shared: Rc::clone(&shared),
                 thumb: Color::TRANSPARENT,
                 scrollbar,
+                rtl: false,
             },
         );
+        let direction = crate::util::dynamic(crate::directionality::direction_prop(cx));
+        let rtl = move || direction() == TextDirection::Rtl;
+        {
+            let rtl = rtl.clone();
+            cx.bind(id, Prop::Dynamic(Box::new(rtl)), |e, on| {
+                e.update_paint::<ViewportPaint>(|p| p.rtl = on);
+            });
+        }
         cx.bind(
             id,
             theme.color_prop(|c| at(c.on_surface, THUMB_ALPHA)),
@@ -461,7 +483,7 @@ impl View for ScrollView {
         let drag: Rc<Cell<Option<(f32, f32)>>> = Rc::default();
         cx.on_pointer(id, Phase::Bubble, move |p| {
             let (size, content) = shared.get();
-            let bar = Scrollbar::from(axis, size, content);
+            let bar = Scrollbar::from(axis, size, content).directed(rtl());
             let along = |point: Point| match axis {
                 ScrollAxis::Vertical => point.y,
                 ScrollAxis::Horizontal => point.x,
@@ -515,6 +537,8 @@ struct ViewportPaint {
     thumb: Color,
     /// Whether the thumb is shown.
     scrollbar: bool,
+    /// Right to left: a vertical thumb at the left edge.
+    rtl: bool,
 }
 
 impl Paint for ViewportPaint {
@@ -524,7 +548,7 @@ impl Paint for ViewportPaint {
             .render::<RenderViewport>()
             .map_or(Size::ZERO, |v| v.content());
         self.shared.set((size, content));
-        let bar = Scrollbar::from(self.axis, size, content);
+        let bar = Scrollbar::from(self.axis, size, content).directed(self.rtl);
         self.controller.set_extents(bar.viewport, bar.max());
         let bounds = Rect::from_ltwh(0.0, 0.0, size.width, size.height);
         cx.scene().push_clip(Clip::Rect(bounds));

@@ -16,8 +16,8 @@ use tantu_view::{
 use crate::text_field::FieldDecoration;
 use crate::theme::ThemeHandle;
 use crate::{
-    Align, Center, Column, Icon, Icons, Padding, Positioned, ScrollController, ScrollView,
-    SizedBox, Stack, Text, TextEditingController, TextField,
+    Align, Center, Column, Icon, Icons, Padding, PositionedDirectional, ScrollController,
+    ScrollView, SizedBox, Stack, Text, TextEditingController, TextField,
 };
 
 /// A text field with a filtered list of options (Flutter's `DropdownMenu` with filtering;
@@ -266,7 +266,8 @@ impl View for ComboBox {
         }
         let width = self.width;
         let theme = ThemeHandle::of(cx);
-        let arrow = Positioned::new(
+        // At the end edge, so the left under RTL (WIDGETS-RTL-06).
+        let arrow = PositionedDirectional::new(
             Center::new().child(
                 Icon::new(Icons::ARROW_DROP_DOWN)
                     .size(24.0)
@@ -275,7 +276,7 @@ impl View for ComboBox {
         )
         .top(0.0)
         .bottom(0.0)
-        .right(8.0)
+        .end(8.0)
         .width(24.0);
         // The popup belongs to the field itself, so its options are the field's popup
         // (A11Y-TREE-13); the arrow sits under the field, which takes every press.

@@ -5,7 +5,9 @@ use std::rc::Rc;
 
 use tantu_view::layout::{StackParentData, TextDirection};
 use tantu_view::reactive::memo;
-use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Prop, Provide, View};
+use tantu_view::{
+    AnyView, BuildCx, ElementId, IntoProp, LogicalKey, NamedKey, Prop, Provide, View,
+};
 
 /// The direction a [`Directionality`] provides: a tracked read.
 #[derive(Clone)]
@@ -17,6 +19,21 @@ pub(crate) fn direction_prop(cx: &BuildCx<'_>) -> Prop<TextDirection> {
     match cx.inherit::<Direction>() {
         Some(Direction(read)) => Prop::Dynamic(Box::new(move || read())),
         None => Prop::Value(TextDirection::Ltr),
+    }
+}
+
+/// Whether the nearest direction is right to left, as a tracked function.
+pub(crate) fn is_rtl(cx: &BuildCx<'_>) -> Rc<dyn Fn() -> bool> {
+    let direction = crate::util::dynamic(direction_prop(cx));
+    Rc::new(move || direction() == TextDirection::Rtl)
+}
+
+/// `key` with Left and Right swapped when `rtl` (directional arrow keys, WIDGETS-RTL-04, -05).
+pub(crate) fn directional_key(key: &LogicalKey, rtl: bool) -> LogicalKey {
+    match key {
+        LogicalKey::Named(NamedKey::ArrowLeft) if rtl => LogicalKey::Named(NamedKey::ArrowRight),
+        LogicalKey::Named(NamedKey::ArrowRight) if rtl => LogicalKey::Named(NamedKey::ArrowLeft),
+        other => other.clone(),
     }
 }
 

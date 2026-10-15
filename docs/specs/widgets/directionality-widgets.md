@@ -1,6 +1,6 @@
 # i18n, part 1b: right-to-left inside widgets
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-widgets` (`Switch`, `Slider`, `ScrollView`, `TreeView`, menus,
   `ComboBox`, `CalendarDatePicker`), `examples/gallery`
 - **Plan item:** Phase 4, i18n, part 1 follow-up (RTL layout mirroring)
