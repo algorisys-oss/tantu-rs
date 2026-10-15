@@ -116,6 +116,13 @@ impl ViewTree {
 - **VIEW-EVENT-07:** `PointerCx::size` is the element's size from the last layout (`Size::ZERO` if
   never laid out), so a handler can tell whether a release lands inside the element. (Added
   with [Text and Button](../widgets/basic.md).)
+- **VIEW-EVENT-10:** A handler registered through `BuildCx` (pointer, key, IME, focus
+  change and focus within, semantic actions, drag) belongs to the reactive scope current
+  when it was registered as well as to its element: when that scope is disposed (the
+  registering component removed, or a `Dyn` version replaced) the handler is dropped,
+  even if its element stays. A dropped handler never runs and doesn't count as having
+  run. (Added 2026-10-16 for the handler-ownership open question; decided by the agent
+  while the user was away, review.)
 
 ## Open questions
 
