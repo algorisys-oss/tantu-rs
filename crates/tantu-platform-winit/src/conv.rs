@@ -2,8 +2,8 @@
 
 use tantu_core::{Point, Vec2};
 use tantu_platform::{
-    ButtonState, ImeEvent, Key, KeyEvent, KeyLocation, Modifiers, NamedKey, PhysicalSize,
-    PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent,
+    ButtonState, CursorIcon, ImeEvent, Key, KeyEvent, KeyLocation, Modifiers, NamedKey,
+    PhysicalSize, PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent,
 };
 use winit::event::{ElementState, MouseButton, MouseScrollDelta};
 use winit::keyboard::ModifiersState;
@@ -240,6 +240,13 @@ pub(crate) fn ime_event(ime: winit::event::Ime) -> ImeEvent {
         Ime::Commit(text) => ImeEvent::Commit(text),
         Ime::Disabled => ImeEvent::Disabled,
     }
+}
+
+/// A Tantu cursor shape as winit's (PLATFORM-WINIT-16).
+#[allow(dead_code)] // used by the shell once implemented
+pub(crate) fn cursor(cursor: CursorIcon) -> winit::window::CursorIcon {
+    let _ = cursor;
+    todo!("PLATFORM-WINIT-16")
 }
 
 #[cfg(test)]
@@ -579,5 +586,23 @@ mod tests {
         assert_eq!(b.min_inner_size, None);
         assert!(b.resizable && b.visible);
         let _ = Size::ZERO;
+    }
+
+    #[test]
+    fn platform_winit_16_cursor_icons() {
+        use winit::window::CursorIcon as W;
+        let cases = [
+            (CursorIcon::Default, W::Default),
+            (CursorIcon::Pointer, W::Pointer),
+            (CursorIcon::Text, W::Text),
+            (CursorIcon::Grab, W::Grab),
+            (CursorIcon::Grabbing, W::Grabbing),
+            (CursorIcon::NotAllowed, W::NotAllowed),
+            (CursorIcon::ResizeHorizontal, W::EwResize),
+            (CursorIcon::ResizeVertical, W::NsResize),
+        ];
+        for (ours, theirs) in cases {
+            assert_eq!(cursor(ours), theirs, "{ours:?}");
+        }
     }
 }

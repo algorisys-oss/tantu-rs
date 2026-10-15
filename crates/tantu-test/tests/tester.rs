@@ -462,3 +462,32 @@ fn test_wt_15_ensure_visible() {
     assert_eq!(tester.enter(|| controller.offset()), 600.0);
     assert_eq!(tester.rect(c7), Rect::from_ltwh(0.0, 100.0, 300.0, 100.0));
 }
+
+/// A box filling its constraints that asks for `cursor`.
+struct CursorZone(tantu_view::CursorIcon);
+
+impl View for CursorZone {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::expand(), []);
+        cx.set_cursor(id, self.0);
+        id
+    }
+}
+
+#[test]
+fn test_wt_17_cursor() {
+    use tantu_view::CursorIcon;
+    let mut tester = WidgetTester::with_size(200.0, 200.0, || {
+        Column::new()
+            .child(SizedBox::height(100.0).child(Keyed::new("text", CursorZone(CursorIcon::Text))))
+            .child(SizedBox::height(100.0).child(Keyed::new(
+                "resize",
+                CursorZone(CursorIcon::ResizeHorizontal),
+            )))
+    });
+    assert_eq!(tester.cursor(), CursorIcon::Default, "no pointer event yet");
+    tester.hover(&Finder::key("text"));
+    assert_eq!(tester.cursor(), CursorIcon::Text);
+    tester.tap(&Finder::key("resize"));
+    assert_eq!(tester.cursor(), CursorIcon::ResizeHorizontal);
+}

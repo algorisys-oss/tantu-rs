@@ -231,6 +231,12 @@ impl WidgetTester {
         self.pump();
     }
 
+    /// The cursor the window would show for the pointer's last position: `Default` before
+    /// any pointer event (TEST-WT-17).
+    pub fn cursor(&self) -> tantu_view::CursorIcon {
+        todo!("TEST-WT-17")
+    }
+
     /// A primary press at the center of the single element `finder` matches, a move by
     /// `delta`, and a release there, pumping after each. Panics if it matches no element or
     /// several.

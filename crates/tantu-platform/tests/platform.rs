@@ -10,9 +10,10 @@ use tantu_platform::accesskit::{
     Action, ActionRequest, Node, NodeId, Role, Tree, TreeId, TreeUpdate,
 };
 use tantu_platform::{
-    AccessibilityEvent, ButtonState, FakePlatform, FakeStep, ImeEvent, Key, KeyEvent, KeyLocation,
-    Modifiers, NamedKey, PhysicalSize, Platform, PlatformContext, PlatformError, PlatformHandler,
-    PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
+    AccessibilityEvent, ButtonState, CursorIcon, FakePlatform, FakeStep, ImeEvent, Key, KeyEvent,
+    KeyLocation, Modifiers, NamedKey, PhysicalSize, Platform, PlatformContext, PlatformError,
+    PlatformHandler, PointerButton, PointerId, ScrollDelta, WindowAttributes, WindowEvent,
+    WindowId,
 };
 
 // ---- Value types -------------------------------------------------------------------------
@@ -789,4 +790,53 @@ fn platform_fake_13_records_updates() {
     assert_eq!(labels(0), ["a1", "a2", "a3"]);
     assert_eq!(labels(1), ["b1"]);
     assert_eq!(log.windows.len(), 2);
+}
+
+#[test]
+fn platform_cursor_01_set_cursor() {
+    let mut handler = Recorder::with(|cx, seen| {
+        if let Seen::Started = seen {
+            let a = cx.create_window(&WindowAttributes::new("A")).unwrap();
+            cx.set_cursor(a, CursorIcon::ResizeVertical);
+            cx.close_window(a);
+            // A closed window and an unknown one are ignored, without panicking.
+            cx.set_cursor(a, CursorIcon::Text);
+            cx.set_cursor(WindowId::from_raw(99), CursorIcon::Pointer);
+        }
+    });
+    let log = FakePlatform::new().run_logged(&mut handler);
+    assert_eq!(log.windows[0].cursors, [CursorIcon::ResizeVertical]);
+    // A new window starts with the default shape and nothing recorded.
+    assert_eq!(CursorIcon::default(), CursorIcon::Default);
+}
+
+#[test]
+fn platform_fake_14_records_cursors() {
+    let mut handler = Recorder::with(|cx, seen| match seen {
+        Seen::Started => {
+            let a = cx.create_window(&WindowAttributes::new("A")).unwrap();
+            let b = cx.create_window(&WindowAttributes::new("B")).unwrap();
+            cx.set_cursor(a, CursorIcon::Text);
+            cx.set_cursor(b, CursorIcon::Pointer);
+            // Repeats are recorded too.
+            cx.set_cursor(a, CursorIcon::Text);
+            cx.set_cursor(WindowId::from_raw(99), CursorIcon::Grab);
+        }
+        Seen::Event(w, WindowEvent::Focused(true)) => {
+            cx.set_cursor(*w, CursorIcon::ResizeHorizontal);
+        }
+        _ => {}
+    });
+    let log = FakePlatform::new()
+        .event(0, WindowEvent::Focused(true))
+        .run_logged(&mut handler);
+    assert_eq!(
+        log.windows[0].cursors,
+        [
+            CursorIcon::Text,
+            CursorIcon::Text,
+            CursorIcon::ResizeHorizontal
+        ]
+    );
+    assert_eq!(log.windows[1].cursors, [CursorIcon::Pointer]);
 }

@@ -3,7 +3,7 @@
 use tantu_core::{Point, Size};
 
 use crate::platform::{Platform, PlatformContext, PlatformError, PlatformHandler, SurfaceTarget};
-use crate::types::{PhysicalSize, WindowAttributes, WindowEvent, WindowId};
+use crate::types::{CursorIcon, PhysicalSize, WindowAttributes, WindowEvent, WindowId};
 
 /// One step of a [`FakePlatform`] script.
 #[derive(Clone, Debug, PartialEq)]
@@ -56,6 +56,8 @@ pub struct FakeWindow {
     pub ime_area: Option<(Point, Size)>,
     /// The updates sent with `update_accessibility`, in order (PLATFORM-FAKE-13).
     pub accessibility_updates: Vec<accesskit::TreeUpdate>,
+    /// Every cursor set with `set_cursor`, in order, repeats included (PLATFORM-FAKE-14).
+    pub cursors: Vec<CursorIcon>,
 }
 
 /// A platform without a display: runs a handler against a script of events.
@@ -223,6 +225,7 @@ impl PlatformContext for FakeContext {
             ime_allowed: false,
             ime_area: None,
             accessibility_updates: Vec::new(),
+            cursors: Vec::new(),
         });
         self.mark_pending(index);
         Ok(id)
@@ -270,6 +273,11 @@ impl PlatformContext for FakeContext {
         if let Some(index) = self.open_index(window) {
             self.log.windows[index].ime_area = Some((origin, size));
         }
+    }
+
+    fn set_cursor(&mut self, window: WindowId, cursor: CursorIcon) {
+        let _ = (window, cursor);
+        todo!("PLATFORM-FAKE-14")
     }
 
     fn exit(&mut self) {

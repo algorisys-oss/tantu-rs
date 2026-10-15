@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15.
+//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15 and -17.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -819,4 +819,54 @@ fn facade_app_15_accessibility_trees_and_actions() {
     // Activation: 1; idle: nothing; resize frame: 1; the click's frame: 1; after
     // deactivation: nothing.
     assert_eq!(updates_after_step(&log), 3);
+}
+
+/// A box filling its constraints that asks for `cursor`.
+struct CursorZone(tantu::view::CursorIcon);
+
+impl View for CursorZone {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::expand(), []);
+        cx.set_cursor(id, self.0);
+        id
+    }
+}
+
+#[test]
+fn facade_app_17_cursor_follows_the_tree() {
+    use std::time::Duration;
+    use tantu::platform::CursorIcon;
+    use tantu::view::CursorIcon as ViewCursor;
+    // A text zone above a resize zone; a timer shrinks the text zone under a still pointer.
+    let app = App::new().window(Window::new("A").size(200.0, 100.0), || {
+        let height = signal(50.0f32);
+        timer(Duration::from_millis(20), move || height.set(20.0));
+        Column::new()
+            .child(SizedBox::height(height).child(CursorZone(ViewCursor::Text)))
+            .child(Expanded::new(CursorZone(ViewCursor::ResizeVertical)))
+    });
+    let moved = |y: f32| WindowEvent::PointerMoved {
+        pointer: PointerId::Mouse,
+        position: Point::new(5.0, y),
+    };
+    let platform = FakePlatform::new()
+        .step(FakeStep::Idle)
+        .event(0, moved(30.0))
+        // Still over the text zone: nothing new is sent.
+        .event(0, moved(35.0))
+        // The frame after the deadline moves the boundary above the pointer.
+        .step(FakeStep::Advance(Duration::from_millis(25)))
+        .event(0, moved(36.0))
+        .event(
+            0,
+            WindowEvent::PointerLeft {
+                pointer: PointerId::Mouse,
+            },
+        );
+    let (log, _) = run(app, platform, &Recorders::default());
+    assert_eq!(
+        log.windows[0].cursors,
+        [CursorIcon::Text, CursorIcon::ResizeVertical],
+        "only changes are sent, after pointer events and after frames; leaving sends nothing"
+    );
 }

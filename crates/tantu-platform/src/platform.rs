@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use tantu_core::{Point, Size};
 
-use crate::types::{PhysicalSize, WindowAttributes, WindowEvent, WindowId};
+use crate::types::{CursorIcon, PhysicalSize, WindowAttributes, WindowEvent, WindowId};
 
 /// Why a platform operation failed.
 #[derive(Debug)]
@@ -81,6 +81,10 @@ pub trait PlatformContext {
 
     /// Where the caret is, in logical pixels, so the IME can place its candidate window.
     fn set_ime_cursor_area(&mut self, window: WindowId, origin: Point, size: Size);
+
+    /// Shows `cursor` while the pointer is over `window`, until the next call. A new window
+    /// starts with [`CursorIcon::Default`]; unknown windows are ignored (PLATFORM-CURSOR-01).
+    fn set_cursor(&mut self, window: WindowId, cursor: CursorIcon);
 
     /// Ends the event loop after the current callback returns. [`Platform::run`] then returns.
     fn exit(&mut self);

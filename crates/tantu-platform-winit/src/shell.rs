@@ -249,6 +249,11 @@ impl PlatformContext for Context<'_> {
         }
     }
 
+    fn set_cursor(&mut self, window: WindowId, cursor: tantu_platform::CursorIcon) {
+        let _ = (window, cursor);
+        todo!("PLATFORM-WINIT-16")
+    }
+
     fn exit(&mut self) {
         self.event_loop.exit();
     }

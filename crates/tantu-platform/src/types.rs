@@ -294,6 +294,29 @@ pub struct KeyEvent {
     pub text: Option<String>,
 }
 
+/// A cursor shape, independent of any windowing library (PLATFORM-CURSOR-01). It mirrors
+/// `tantu_view::CursorIcon`; the app runner converts between the two.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum CursorIcon {
+    /// The platform's default arrow.
+    #[default]
+    Default,
+    /// A hand, for things that can be pressed.
+    Pointer,
+    /// A text caret.
+    Text,
+    /// An open hand.
+    Grab,
+    /// A closed hand.
+    Grabbing,
+    /// Not allowed.
+    NotAllowed,
+    /// Horizontal resize (a left-right arrow).
+    ResizeHorizontal,
+    /// Vertical resize (an up-down arrow).
+    ResizeVertical,
+}
+
 /// What assistive technology does with a window (PLATFORM-A11Y-01).
 #[derive(Clone, Debug, PartialEq)]
 pub enum AccessibilityEvent {

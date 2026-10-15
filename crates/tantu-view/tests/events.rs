@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/events.md`, rules VIEW-EVENT-01..06.
+//! Tests for `docs/specs/view/events.md`, rules VIEW-EVENT-01..06 and -09.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -398,6 +398,57 @@ fn view_event_05_cursor() {
     assert_eq!(f.tree.cursor(), CursorIcon::Grab);
     f.send(PointerKind::Move, 150.0, 150.0);
     assert_eq!(f.tree.cursor(), CursorIcon::Default);
+}
+
+#[test]
+fn view_event_09_capture_keeps_the_cursor() {
+    let mut f = fixture(&[
+        (
+            "col",
+            Wiring {
+                cursor: Some(CursorIcon::Grab),
+                ..Wiring::default()
+            },
+        ),
+        (
+            "b",
+            Wiring {
+                handlers: true,
+                cursor: Some(CursorIcon::ResizeHorizontal),
+                ..Wiring::default()
+            },
+        ),
+    ]);
+    // A handled press on b captures the pointer; b's cursor stays while the pointer is
+    // outside everything, and over another element.
+    f.send(PointerKind::Down(PointerButton::Primary), 30.0, 70.0);
+    f.send(PointerKind::Move, 150.0, 150.0);
+    assert_eq!(f.tree.cursor(), CursorIcon::ResizeHorizontal);
+    f.send(PointerKind::Move, 30.0, 10.0);
+    assert_eq!(f.tree.cursor(), CursorIcon::ResizeHorizontal);
+    // After the release the hit test decides again.
+    f.send(PointerKind::Up(PointerButton::Primary), 150.0, 150.0);
+    assert_eq!(f.tree.cursor(), CursorIcon::Default);
+    f.send(PointerKind::Move, 30.0, 10.0);
+    assert_eq!(f.tree.cursor(), CursorIcon::Grab);
+}
+
+#[test]
+fn view_event_09_capture_uses_the_innermost_cursor_of_its_path() {
+    let mut f = fixture(&[
+        (
+            "col",
+            Wiring {
+                cursor: Some(CursorIcon::Grab),
+                ..Wiring::default()
+            },
+        ),
+        ("b", ON),
+    ]);
+    // b has no cursor of its own: its ancestor's applies, wherever the pointer goes.
+    f.send(PointerKind::Down(PointerButton::Primary), 30.0, 70.0);
+    f.send(PointerKind::Move, 150.0, 150.0);
+    assert_eq!(f.tree.cursor(), CursorIcon::Grab);
 }
 
 #[test]
