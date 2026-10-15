@@ -103,6 +103,10 @@ impl ContextMenuRegion {
 - **VIEW-OVERLAY-11:** `OverlayPortal::anchor` accepts a value, closure or signal; a new
   anchor value places the overlay again at the next frame with the same rules
   (VIEW-OVERLAY-01, -03). `Anchor` is an `IntoProp` value.
+- **VIEW-OVERLAY-12:** (found while implementing, review) A press inside a nested overlay
+  (one whose target lies inside another overlay's content, at any depth) counts as inside
+  the outer overlay for `on_outside_press`, so clicking a submenu doesn't close its parent
+  menu (VIEW-OVERLAY-05 otherwise applies unchanged).
 - **WIDGETS-MENU-01:** While its controller is open, `MenuAnchor` shows its items in a menu
   below the child (`Anchor::below()`, flipping above and clamping to the window). The menu
   is a column of 40 px items between 8 px top and bottom padding, at least 112 px and at
