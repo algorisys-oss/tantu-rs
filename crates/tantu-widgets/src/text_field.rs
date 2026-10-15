@@ -21,6 +21,7 @@ use tantu_view::{
 
 use tantu_theme::ColorScheme;
 
+use crate::formatter::TextInputFormatter;
 use crate::text_editing::{
     Direction, EditingValue, Movement, TextRange, TextSelection, segment_at,
 };
@@ -78,6 +79,7 @@ pub struct TextField {
     on_submit: Option<Rc<dyn Fn(String)>>,
     style: Option<TextStyle>,
     decoration: Option<FieldDecoration>,
+    pub(crate) formatters: Vec<Rc<dyn TextInputFormatter>>,
 }
 
 /// What a form field adds to its text field: its name, its error and helper text
@@ -119,7 +121,15 @@ impl TextField {
             on_submit: None,
             style: None,
             decoration: None,
+            formatters: Vec::new(),
         }
+    }
+
+    /// Adds a formatter; formatters run on the user's edits in the order added
+    /// (WIDGETS-MASK-01).
+    pub fn input_formatter(mut self, formatter: impl TextInputFormatter + 'static) -> Self {
+        self.formatters.push(Rc::new(formatter));
+        self
     }
 
     /// A form field's name, error and helper (WIDGETS-FORM-01, -06).

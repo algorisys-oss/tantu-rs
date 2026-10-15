@@ -8,6 +8,7 @@ use tantu_view::layout::CrossAxisAlignment;
 use tantu_view::reactive::{Signal, effect, on_cleanup, signal, untrack};
 use tantu_view::{AnyView, BuildCx, Dyn, ElementId, Provide, View};
 
+use crate::formatter::TextInputFormatter;
 use crate::text_field::FieldDecoration;
 use crate::theme::ThemeHandle;
 use crate::{Column, Text, TextEditingController, TextField};
@@ -250,6 +251,7 @@ pub struct TextFormField {
     autovalidate: Option<AutovalidateMode>,
     max_lines: Option<Option<u32>>,
     on_change: Option<Rc<dyn Fn(String)>>,
+    formatters: Vec<Rc<dyn TextInputFormatter>>,
 }
 
 impl TextFormField {
@@ -264,7 +266,14 @@ impl TextFormField {
             autovalidate: None,
             max_lines: None,
             on_change: None,
+            formatters: Vec::new(),
         }
+    }
+
+    /// Adds a formatter to the field's `TextField` (WIDGETS-MASK-01).
+    pub fn input_formatter(mut self, formatter: impl TextInputFormatter + 'static) -> Self {
+        self.formatters.push(Rc::new(formatter));
+        self
     }
 
     /// The label above the field (also its accessible name).
@@ -393,6 +402,7 @@ impl View for TextFormField {
         if let Some(max_lines) = self.max_lines {
             field = field.max_lines(max_lines);
         }
+        field.formatters = self.formatters;
         {
             let (check, on_change) = (Rc::clone(&check), self.on_change);
             field = field.on_change(move |text| {

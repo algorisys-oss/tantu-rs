@@ -34,6 +34,7 @@ mod divider;
 mod dock;
 mod focus_scope;
 mod form;
+mod formatter;
 mod grid_selection;
 mod icon;
 #[cfg(feature = "material-icons")]
@@ -72,6 +73,9 @@ pub use dock::{
 };
 pub use focus_scope::FocusScope;
 pub use form::{AutovalidateMode, Form, FormController, TextFormField, Validator, validators};
+pub use formatter::{
+    FilteringFormatter, LengthLimitingFormatter, MaskFormatter, TextInputFormatter,
+};
 pub use grid_selection::{GridCell, GridSelection, GridSelectionController, GridSelectionMode};
 pub use icon::{Icon, IconButton, IconData};
 #[cfg(feature = "material-icons")]
