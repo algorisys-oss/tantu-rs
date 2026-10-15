@@ -127,8 +127,10 @@ into the Scene. Backends rasterize the glyphs.
    Keyboard events follow focus. Handlers are app closures, and they usually write to signals.
 4. Those signal writes start the next frame (see Reactivity).
 
-Pointer capture, cursor icons, shortcuts and the command registry live in `tantu-view`'s dispatch
-layer; the runner passes the chosen cursor to the window through the `Platform` trait.
+Pointer capture, cursor icons, shortcuts, the command registry and drag sessions (a source's
+payload, with enter/over/leave/drop delivered to drag targets under the pointer) live in
+`tantu-view`'s dispatch layer; the runner passes the chosen cursor to the window through the
+`Platform` trait.
 
 > The rough sketch drew events flowing into the View tree. In the actual design, events are
 > hit-tested against the render tree and dispatched to handlers. The View tree only changes because

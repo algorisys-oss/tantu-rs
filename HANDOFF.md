@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (RTL inside widgets done; the user is away until morning)_
+_Last updated: 2026-10-16 (drag and drop inside the app done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1241,6 +1241,22 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     box arrow at the end edge (`PositionedDirectional`); the calendar's swapped chevrons.
     Crate-private helpers `is_rtl` and `directional_key`. Not mirrored yet: caret keys in
     bidirectional text, paragraph alignment, the data grid, split view and dock.
+99. **Drag and drop inside the app** (2026-10-16, spec
+    `docs/specs/widgets/drag-and-drop.md`; decided by the agent while the user was away,
+    review). The drag-and-drop item is split (inside the app; with the OS). Handlers can't
+    touch the tree and a source's capture hides targets, so `tantu-view` gained drag
+    sessions: `BuildCx::drag()` gives a `DragHandle` (start with an `Rc<dyn Any>` payload,
+    reactive `is_active`, `outcome`, and `position`, which follows the pointer — found
+    while implementing: a placeholder taking the pressed child offstage releases the
+    source's capture, review); `BuildCx::on_drag` registers targets. The tree delivers
+    Leave/Enter (accepting)/Over on moves to the innermost target under the pointer,
+    Drop before the release's normal delivery (so the source sees the outcome), and
+    Escape cancels. Flutter's `Draggable<T>` (4 px slop, feedback in a passthrough
+    overlay at the press offset, `child_when_dragging` with the child kept offstage,
+    `on_drag_started`/`on_drag_end(accepted)`) and `DragTarget<T>` (typed downcast,
+    `on_will_accept`, `on_accept`, a `candidate` signal). Architecture doc's event
+    section mentions drag sessions; no new crate or edge. Gallery: a "dnd" kitchen-sink
+    card (chips into Warm/Any bins).
 
 ## Commit log
 
@@ -1816,7 +1832,13 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `85f0364` | test: RTL inside widgets, 6 failing tests |
 | `b591ea6` | test: WIDGETS-RTL-06 measures the combo field again after flipping |
 | `a7dc32b` | test: GALLERY-48, the RTL switch's thumb mirrored, failing |
-| _this commit_ | impl: RTL in Switch, Slider, ScrollView, TreeView, menus, ComboBox and the calendar; gallery RTL golden; PLAN.md part 1b ticked |
+| `4347a69` | impl: RTL in Switch, Slider, ScrollView, TreeView, menus, ComboBox and the calendar; gallery RTL golden; PLAN.md part 1b ticked (CI green, run 38815982321) |
+| `123e58f` | spec: drag and drop inside the app (VIEW-DRAG-01..04, WIDGETS-DND-01..02, GALLERY-49) |
+| `319bb46` | test: drag and drop, stubs + 7 failing tests |
+| `f14fef2` | test: WIDGETS-DND-01, the ghost takes the chip's place |
+| `6b1e7a7` | spec: VIEW-DRAG-05, `DragHandle::position` |
+| `0e80fb2` | test: VIEW-DRAG-05, stub + 1 failing test |
+| _this commit_ | impl: drag sessions in tantu-view, Draggable and DragTarget; gallery dnd card, goldens; architecture doc; PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1825,8 +1847,8 @@ that with the real hash from `git log`.
 
 Continue Phase 4 in PLAN.md order (Forms and `LayoutGrid` are done): i18n parts 2–3
 (Fluent localisation, locale formats; both need a new crate and dependencies, so the user
-decides first); the remaining clipboard/multi-window/drag-and-drop parts (intra-app drag
-and drop needs a view-layer drag protocol; a spec is the next step). RTL caret movement in
+decides first); the remaining clipboard/multi-window parts and OS drag and drop (file and
+text drops through the platform; winit delivers dropped files). RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

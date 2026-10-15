@@ -40,7 +40,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 25] = [
+pub const SINK_CARDS: [(&str, &[&str]); 26] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -67,6 +67,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 25] = [
     ("date", &["calendar_date_picker"]),
     ("time", &["time_picker_field"]),
     ("dashboard", &["layout_grid"]),
+    ("dnd", &["draggable", "drag_target"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -844,6 +845,7 @@ fn kitchen_sink_section() -> impl View {
             .child(forms::date_sink())
             .child(forms::time_sink())
             .child(dashboard_sink())
+            .child(dnd_sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())
@@ -912,6 +914,95 @@ fn dashboard_sink() -> impl View {
         "Layout grid",
         SizedBox::width(480.0).child(Keyed::new("sink-layout_grid", grid)),
         echo(move || format!("Tiles: {tiles}")),
+    )
+}
+
+/// A labelled 80 × 40 tile in `color`.
+fn tile(label: &'static str, color: Color) -> impl View {
+    Stack::new()
+        .child(swatch(80.0, color))
+        .child(Positioned::fill(
+            Center::new().child(
+                Text::new(label)
+                    .style(TextStyle::label())
+                    .color(Color::WHITE),
+            ),
+        ))
+}
+
+/// The drag-and-drop card: three chips and two bins, Warm taking only Red (GALLERY-49).
+fn dnd_sink() -> impl View {
+    let warm = signal(None::<&'static str>);
+    let any = signal(None::<&'static str>);
+    let chip = |name: &'static str, color: u32| {
+        let color = Color::from_argb32(color);
+        Draggable::new(
+            name,
+            Keyed::new(
+                format!("dnd-chip-{}", name.to_lowercase()),
+                tile(name, color),
+            ),
+        )
+        .feedback(move || tile(name, color.with_alpha(0.7)))
+        .child_when_dragging(|| swatch(80.0, Color::from_argb32(0x1F1C_1B1F)))
+    };
+    let bin = |name: &'static str, into: Signal<Option<&'static str>>, warm_only: bool| {
+        let candidate = signal(false);
+        let body = Stack::new()
+            .child(ColorBox {
+                width: 160.0.into_prop(),
+                color: (move || {
+                    Color::from_argb32(if candidate.get() {
+                        0xFF67_50A4
+                    } else {
+                        0xFF62_5B71
+                    })
+                })
+                .into_prop(),
+            })
+            .child(Positioned::fill(
+                Center::new().child(
+                    Text::new(name)
+                        .style(TextStyle::label())
+                        .color(Color::WHITE),
+                ),
+            ));
+        DragTarget::<&'static str>::new(Keyed::new(
+            format!("dnd-bin-{}", name.to_lowercase()),
+            body,
+        ))
+        .on_will_accept(move |chip| !warm_only || *chip == "Red")
+        .on_accept(move |chip| into.set(Some(chip)))
+        .candidate(candidate)
+    };
+    let body = Column::new()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .spacing(12.0)
+        .child(Keyed::new(
+            "sink-draggable",
+            Row::new()
+                .main_axis_size(MainAxisSize::Min)
+                .spacing(12.0)
+                .child(chip("Red", 0xFFB3_261E))
+                .child(chip("Green", 0xFF38_6A20))
+                .child(chip("Blue", 0xFF00_639B)),
+        ))
+        .child(Keyed::new(
+            "sink-drag_target",
+            Row::new()
+                .main_axis_size(MainAxisSize::Min)
+                .spacing(12.0)
+                .child(bin("Warm", warm, true))
+                .child(bin("Any", any, false)),
+        ));
+    card(
+        "dnd",
+        "Drag and drop",
+        body,
+        echo(move || {
+            let show = |v: Option<&str>| v.unwrap_or("none").to_owned();
+            format!("Warm: {}, Any: {}", show(warm.get()), show(any.get()))
+        }),
     )
 }
 

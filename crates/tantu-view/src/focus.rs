@@ -369,6 +369,11 @@ impl ViewTree {
     /// Delivers `event` to the focused path (capture, then bubble); an unhandled Tab or
     /// Shift+Tab press moves focus. Returns whether anything handled it.
     pub fn dispatch_key(&mut self, event: KeyEvent) -> bool {
+        // Escape cancels a drag and is consumed (VIEW-DRAG-03).
+        if self.dragging() && event.pressed && event.key == LogicalKey::Named(NamedKey::Escape) {
+            self.cancel_drag();
+            return true;
+        }
         let path = self.focus_path();
         let (ran, stopped) = self.deliver_key(&path, &event);
         // An unhandled Tab moves focus (VIEW-FOCUS-05).

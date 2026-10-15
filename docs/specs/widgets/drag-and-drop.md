@@ -1,6 +1,6 @@
 # Drag and drop, part 1: inside the app
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-view` (drag sessions, drag handlers, dispatch), `tantu-widgets`
   (`Draggable`, `DragTarget`), `examples/gallery`
 - **Plan item:** Phase 4, "Multi-window, drag & drop (intra-app + OS), clipboard", the

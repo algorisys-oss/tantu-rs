@@ -257,6 +257,8 @@ pub struct ViewTree {
     pub(crate) overlays: OverlayState,
     /// The tree's clipboard, behind a slot handles forward through (VIEW-CLIP-01).
     pub(crate) clipboard: Rc<crate::clipboard::ClipboardSlot>,
+    /// The tree's drag session (VIEW-DRAG-01).
+    pub(crate) drag: Rc<crate::drag::DragSlot>,
 }
 
 impl ViewTree {
@@ -282,9 +284,16 @@ impl ViewTree {
             focus_state: FocusState::default(),
             overlays: OverlayState::default(),
             clipboard: Rc::default(),
+            drag: Rc::default(),
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {
+            // The drag session's reactive flag belongs to no element (VIEW-DRAG-01).
+            let _ = tree.drag.active.set(tantu_reactive::signal(false));
+            let _ = tree
+                .drag
+                .position
+                .set(tantu_reactive::signal(tantu_core::Point::ZERO));
             let scope = Scope::new();
             let layout = tree.layout.insert(RootBox);
             let root = ElementId::from(tree.elements.insert(Element {

@@ -95,7 +95,7 @@ fn main() -> tantu::Result<()> {
 - **Input:** pointer events with cursor shapes, keyboard focus and Tab traversal, `Shortcuts`
   and `Actions`, overlays anchored to widgets, popup and context menus (`MenuAnchor`,
   `ContextMenuRegion`) with submenus, check marks and shortcut hints, a `MenuBar`, `Toolbar`
-  and `StatusBar`; modal `Dialog`s with an `AlertDialog` layout; `Form`s with validated `TextFormField`s; a searchable `ComboBox`; input formatters and masks (`MaskFormatter`); a `CalendarDatePicker`, a `DatePickerField` and a `TimePickerField`; right-to-left layout through `Directionality`; a `LayoutGrid` with fixed, flexible and auto tracks.
+  and `StatusBar`; modal `Dialog`s with an `AlertDialog` layout; `Form`s with validated `TextFormField`s; a searchable `ComboBox`; input formatters and masks (`MaskFormatter`); a `CalendarDatePicker`, a `DatePickerField` and a `TimePickerField`; right-to-left layout through `Directionality`; a `LayoutGrid` with fixed, flexible and auto tracks; drag and drop with `Draggable` and `DragTarget`.
 - **Scrolling:** `ScrollView` with a scrollbar, and `ListView::builder` that builds only the
   rows in view (100 000 rows cost what a dozen do).
 - **Theming:** `Theme::light()` and `Theme::dark()` (Material 3 colors, text presets, shape,

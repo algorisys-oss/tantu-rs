@@ -28,6 +28,10 @@ pub(crate) struct EventState {
     position: Option<Point>,
     /// Accessibility action handlers (VIEW-SEM-03).
     pub(crate) actions: HashMap<ElementId, Vec<ActionHandler>>,
+    /// Drag targets' handlers (VIEW-DRAG-02).
+    pub(crate) drags: HashMap<ElementId, Vec<crate::drag::DragHandler>>,
+    /// The drag target under the pointer and whether it accepts the payload.
+    pub(crate) drag_target: Option<(ElementId, bool)>,
 }
 
 impl EventState {
@@ -36,6 +40,12 @@ impl EventState {
         self.handlers.remove(&id);
         self.cursors.remove(&id);
         self.actions.remove(&id);
+        self.drags.remove(&id);
+    }
+
+    /// The last pointer position in the window, if the pointer is in it.
+    pub(crate) fn pointer_position(&self) -> Option<Point> {
+        self.position
     }
 }
 
@@ -167,6 +177,15 @@ impl ViewTree {
     /// Delivers `event`: capture phase root to target, then bubble phase target to root, until
     /// a handler returns `Stop`. Returns whether any handler ran.
     pub fn dispatch_pointer(&mut self, event: PointerEvent) -> bool {
+        // A release ends a drag before its normal delivery; moves update the drag target
+        // after it (VIEW-DRAG-02, -03).
+        self.drag_before(&event);
+        let ran = self.dispatch_pointer_normally(event);
+        self.drag_after(&event);
+        ran
+    }
+
+    fn dispatch_pointer_normally(&mut self, event: PointerEvent) -> bool {
         // A capture whose holder was removed is released (VIEW-EVENT-06).
         if let Some((path, _)) = &self.events.captured {
             if !path.first().is_some_and(|target| self.contains(*target)) {
