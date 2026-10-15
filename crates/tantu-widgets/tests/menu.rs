@@ -81,6 +81,7 @@ fn fixture_at(x: f32) -> Fx {
             *out.borrow_mut() = Some((controller, wrap));
             Padding::new(tantu_view::core::EdgeInsets::from_ltrb(x, 20.0, 0.0, 0.0)).child(
                 Column::new()
+                    .cross_axis_alignment(tantu_view::layout::CrossAxisAlignment::Start)
                     .child(Keyed::new(
                         "anchor",
                         MenuAnchor::new(
@@ -379,7 +380,8 @@ fn widgets_menu_06_submenu_position() {
     let item = fx.item_rect("Open recent");
     let menus = fx.menus();
     let sub = fx.t.rect(menus[1].0);
-    assert_eq!((sub.left, sub.top), (item.right, item.top - 8.0));
+    // Beside the item; it would run off the 300 px window's bottom, so it flips upward.
+    assert_eq!((sub.left, sub.bottom), (item.right, item.bottom + 8.0));
     // Near the window's right edge it opens to the left.
     let mut fx = fixture_at(250.0);
     fx.open();
@@ -467,18 +469,18 @@ fn widgets_menu_08_context_menu() {
     let menu = fx.t.rect(menus[0].0);
     assert_eq!((menu.left, menu.top), (50.0, 60.0));
     assert_eq!(fx.log(), ["secondary"]);
-    // Another secondary press moves it.
+    // Another secondary press (in the region, clear of the open menu) moves it.
     fx.pointer(
         PointerKind::Down(PointerButton::Secondary),
-        Point::new(80.0, 90.0),
+        Point::new(260.0, 180.0),
     );
     fx.pointer(
         PointerKind::Up(PointerButton::Secondary),
-        Point::new(80.0, 90.0),
+        Point::new(260.0, 180.0),
     );
     let menus = fx.menus();
     assert_eq!(menus.len(), 1);
-    assert_eq!(fx.t.rect(menus[0].0).left, 80.0);
+    assert_eq!(fx.t.rect(menus[0].0).left, 260.0);
     let delete = fx.item_rect("Delete").center();
     fx.click(delete);
     assert_eq!(fx.log(), ["secondary", "secondary", "delete"]);
