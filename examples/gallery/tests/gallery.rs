@@ -1522,7 +1522,9 @@ fn gallery_38_combo_box_in_the_selection_section() {
         .a11y_tree()
         .nodes
         .iter()
-        .find(|(_, n)| n.role() == tantu_test::accesskit::Role::ComboBox)
+        .find(|(_, n)| {
+            n.role() == tantu_test::accesskit::Role::ComboBox && n.label() == Some("Fruit")
+        })
         .and_then(|(_, n)| n.value().map(str::to_owned));
     assert_eq!(value.as_deref(), Some("Mango"));
 }
