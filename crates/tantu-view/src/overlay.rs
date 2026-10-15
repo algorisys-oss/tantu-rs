@@ -1,6 +1,7 @@
 //! The overlay layer, [`OverlayPortal`] and [`Anchor`]: content drawn above everything,
 //! anchored to a target. Spec: `docs/specs/view/overlay.md`.
 
+use std::cell::Cell;
 use std::rc::Rc;
 
 use tantu_core::{Rect, Size, Vec2};
@@ -92,7 +93,7 @@ pub struct OverlayPortal<V> {
     child: V,
     visible: Prop<bool>,
     content: Option<ContentFn>,
-    anchor: Anchor,
+    anchor: Prop<Anchor>,
     z_index: i32,
     pointer: OverlayPointer,
     on_outside_press: Option<Rc<dyn Fn()>>,
@@ -105,7 +106,7 @@ impl<V: View> OverlayPortal<V> {
             child,
             visible: Prop::Value(false),
             content: None,
-            anchor: Anchor::below(),
+            anchor: Prop::Value(Anchor::below()),
             z_index: 0,
             pointer: OverlayPointer::Capture,
             on_outside_press: None,
@@ -127,10 +128,7 @@ impl<V: View> OverlayPortal<V> {
     /// Where the overlay goes relative to the child: a value, closure or signal; changes
     /// re-place the overlay at the next frame (VIEW-OVERLAY-11).
     pub fn anchor(mut self, anchor: impl IntoProp<Anchor>) -> Self {
-        // Stub until VIEW-OVERLAY-11: only a fixed value is used.
-        if let Prop::Value(anchor) = anchor.into_prop() {
-            self.anchor = anchor;
-        }
+        self.anchor = anchor.into_prop();
         self
     }
 
@@ -159,8 +157,15 @@ impl<V: View> View for OverlayPortal<V> {
         let Some(content) = self.content else {
             return target;
         };
+        // The anchor is shared with the entry, so a new value re-places the overlay at the
+        // next layout (VIEW-OVERLAY-11).
+        let anchor = Rc::new(Cell::new(Anchor::below()));
+        {
+            let anchor = Rc::clone(&anchor);
+            cx.bind(target, self.anchor, move |_, value| anchor.set(value));
+        }
         let config = EntryConfig {
-            anchor: self.anchor,
+            anchor,
             z_index: self.z_index,
             pointer: self.pointer,
             on_outside_press: self.on_outside_press,
@@ -179,7 +184,7 @@ impl<V: View> View for OverlayPortal<V> {
 /// How a portal's overlay is placed and behaves.
 #[derive(Clone)]
 struct EntryConfig {
-    anchor: Anchor,
+    anchor: Rc<Cell<Anchor>>,
     z_index: i32,
     pointer: OverlayPointer,
     on_outside_press: Option<Rc<dyn Fn()>>,
@@ -419,7 +424,7 @@ impl ViewTree {
                 let size = self
                     .layout_id(e.root)
                     .and_then(|l| self.layout_tree().size(l))?;
-                Some((e.root, place(&e.config.anchor, target, size, window)))
+                Some((e.root, place(&e.config.anchor.get(), target, size, window)))
             })
             .collect();
         for (root, offset) in placements {
@@ -466,12 +471,43 @@ impl ViewTree {
 
     /// Runs the `on_outside_press` callbacks of overlays a primary press on `path` misses
     /// (VIEW-OVERLAY-05).
+    /// Whether a press on `path` is inside the overlay rooted at `root`: in its content, or in
+    /// an overlay nested in it (one whose target lies inside it, at any depth) (VIEW-OVERLAY-12).
+    fn press_inside(&self, root: ElementId, path: &[ElementId]) -> bool {
+        let mut roots = vec![root];
+        let mut i = 0;
+        while let Some(&current) = roots.get(i) {
+            if path.contains(&current) {
+                return true;
+            }
+            for entry in &self.overlays.entries {
+                if !roots.contains(&entry.root) && self.is_within(entry.target, current) {
+                    roots.push(entry.root);
+                }
+            }
+            i += 1;
+        }
+        false
+    }
+
+    /// Whether `element` is `ancestor` or one of its descendants.
+    fn is_within(&self, element: ElementId, ancestor: ElementId) -> bool {
+        let mut next = Some(element);
+        while let Some(e) = next {
+            if e == ancestor {
+                return true;
+            }
+            next = self.parent(e);
+        }
+        false
+    }
+
     pub(crate) fn outside_presses(&self, path: &[ElementId]) {
         let callbacks: Vec<Rc<dyn Fn()>> = self
             .overlays
             .entries
             .iter()
-            .filter(|e| !path.contains(&e.root) && !path.contains(&e.target))
+            .filter(|e| !path.contains(&e.target) && !self.press_inside(e.root, path))
             .filter(|e| !self.is_offstage(e.root))
             .filter_map(|e| e.config.on_outside_press.clone())
             .collect();

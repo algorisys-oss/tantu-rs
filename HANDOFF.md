@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (docking done; the user is away until morning)_
+_Last updated: 2026-10-16 (popup menus done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -30,7 +30,8 @@ dock's edges, with indicators, Escape and a keyboard reorder. **Docking is compl
 The user went away until the morning (2026-10-16) and asked the agent to keep adding
 features, committing and pushing (autonomy rules apply: recommended options, marked for
 review). **Next (PLAN.md order):** menus (native + custom), context menus, toolbars, status
-bar. Commit/push authorization persists.
+bar. **Menus part 1 is done** (decision 87): popup and context menus. **Next:** menus part 2
+(`MenuBar`, toolbars, status bar). Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1064,6 +1065,24 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     tab is dimmed to 38 % with `Opacity`; Control+Shift+Left/Right reorder tabs. Gallery
     hint updated, GALLERY-28 test and the mid-drag golden. No new public API, crate or edge.
 
+87. **Popup menus and context menus** (2026-10-16, spec `docs/specs/widgets/menu.md`;
+    decided by the agent while the user was away, review). The menus item is split in three:
+    popup/context menus (this), `MenuBar` + toolbars + status bar, and native OS menus
+    (deferred: needs an ADR and a `muda`-style platform dependency). Flutter's model:
+    `MenuItem` values (actions, dividers, submenus, shortcut hints, icons, check marks,
+    disabled), a `Copy` `MenuController`, `MenuAnchor` (below a widget) and
+    `ContextMenuRegion` (at the pointer on a secondary press, Shift+F10 at the top-left).
+    Menus are overlays with 40 px items, 112–280 px wide, the theme surface with a
+    level-2 shadow; an open menu is a focus scope that takes the focus and gives it back on
+    close (only if nothing else took it); arrows/Home/End/Enter/Space/Right/Left/Escape,
+    hover highlighting and hover-opened submenus (keyboard-opened ones take the focus and
+    highlight their first item); `Menu`/`MenuItem`/`MenuItemCheckBox` roles. View
+    amendments: a reactive `OverlayPortal::anchor` (VIEW-OVERLAY-11); a press inside a
+    nested overlay counts as inside its outer overlay (VIEW-OVERLAY-12, found while
+    implementing); and a fix: overlay placement repeats (up to 8 rounds) so nested
+    overlays follow their popup in the same frame. Gallery: menus in the Buttons section
+    (the sidebar is full) and a "menus" kitchen-sink card. No new crate or edge.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1576,15 +1595,27 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `4fb7e9e` | docs: draft the drag-to-dock spec (docking part 3) for review |
 | `8682d37` | spec: drag-to-dock agreed (WIDGETS-DOCKDRAG-01..07, GALLERY-28) |
 | `1a6b5ad` | test: drag-to-dock, 7 failing tests |
-| _this commit_ | impl: drag-to-dock (targets, indicators, drop/cancel, keyboard reorder); gallery hint and mid-drag golden; PLAN.md docking ticked |
+| `ac4513b` | impl: drag-to-dock (targets, indicators, drop/cancel, keyboard reorder); gallery hint and mid-drag golden; PLAN.md docking ticked |
+| `49b048c` | spec: popup menus and context menus (VIEW-OVERLAY-11, WIDGETS-MENU-01..09, A11Y-TREE-09, GALLERY-29..30); PLAN.md menus item split in three |
+| `8235da1` | test: popup menus and context menus, stubs + 15 failing tests |
+| `9efe6b8` | spec: VIEW-OVERLAY-12, a press inside a nested overlay is inside its outer overlay |
+| `0a0d516` | test: VIEW-OVERLAY-12, failing |
+| `a7d2086` | test: VIEW-OVERLAY-12 presses a second box of the outer popup |
+| `7465b40` | test: WIDGETS-MENU-04 takes one Down from a.txt to c.txt |
+| `f32753e` | test: nested overlays placed against their popup's final position (failing); context-menu fixture in the runtime |
+| `a30d178` | fix: nested overlays follow their popup in the same frame |
+| `5841349` | spec: WIDGETS-MENU-06 states the upward flip near the window's bottom |
+| `6b7d2a8` | test: menu fixtures start-align the anchor; the second right-click lands clear of the menu; the submenu flips upward |
+| _this commit_ | impl: reactive overlay anchors, nested-overlay presses, popup and context menus with submenus, keys and semantics; gallery samples and kitchen-sink card; PLAN.md part 1 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: menus (native + custom), context menus, toolbars,
-status bar; then dialogs, multi-window and clipboard, forms, i18n, `Grid` layout.
+Continue Phase 4 in PLAN.md order: menus part 2 (`MenuBar`, toolbars, status bar); then
+dialogs, multi-window and clipboard, forms, i18n, `Grid` layout. Native OS menus (part 3)
+wait for the user (ADR and platform dependency).
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
@@ -1637,6 +1668,9 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
   reference Scene yet; check when shadows get a closer look.
 - **A debug build printed an ICU4X "No segmentation model" message** to stderr for Japanese
   text (decision 43); find where it comes from with Phase 4 i18n.
+- **Native OS menus** (menus part 3, decision 87): a macOS app menu and native menu bars
+  and context menus need a platform-crate dependency (e.g. `muda`, which winit-based
+  toolkits use) and `Platform` trait additions; that wants an ADR the user should agree.
 - **The gallery sidebar is full** (decision 85): thirteen buttons with 4 px spacing fill
   the 640 px test window. The next section needs a scrolling sidebar (and the tests'
   `nav` taps an `ensure_visible` first) or a two-level navigation.

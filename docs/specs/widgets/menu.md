@@ -1,6 +1,6 @@
 # Menus, part 1: popup menus and context menus
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-widgets` (menus), `tantu-view` (reactive anchor, menu roles),
   `tantu-a11y` (role mapping), `examples/gallery`
 - **Plan item:** Phase 4, "Menus (native + custom), context menus, toolbars, status bar",

@@ -2,6 +2,7 @@
 //! sections and the selected section's samples.
 
 mod dock;
+mod menus;
 mod split;
 mod tabs;
 mod tree;
@@ -36,7 +37,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 16] = [
+pub const SINK_CARDS: [(&str, &[&str]); 17] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -54,6 +55,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 16] = [
     ("tabs", &["tab_bar", "tab_view"]),
     ("split", &["split_view"]),
     ("dock", &["dock_area"]),
+    ("menus", &["menu_anchor", "context_menu"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -216,6 +218,7 @@ fn buttons_section() -> impl View {
                     Button::new("Hover me").on_press(|| {}),
                 )),
         )
+        .child(menus::samples())
 }
 
 fn text_section() -> impl View {
@@ -720,6 +723,7 @@ fn kitchen_sink_section() -> impl View {
             .child(tabs::sink())
             .child(split::sink())
             .child(dock::sink())
+            .child(menus::sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

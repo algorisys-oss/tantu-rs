@@ -177,7 +177,7 @@ faster or more portable without changing how apps are written.
   - [x] `DockArea`: drawing a layout with nested splits and dynamic tab strips (close buttons, activation), panel content kept alive across moves, keyboard and semantics (spec `docs/specs/widgets/dock-area.md`)
   - [x] drag-to-dock: dragging tabs, drop indicators for tab, beside and edge targets (spec `docs/specs/widgets/dock-drag.md`); floating panels wait for multi-window
 - [ ] Menus (native + custom), context menus, toolbars, status bar, in parts:
-  - [ ] popup menus and context menus: `MenuItem`, `MenuController`, `MenuAnchor`, `ContextMenuRegion`, submenus, keyboard, semantics (spec `docs/specs/widgets/menu.md`)
+  - [x] popup menus and context menus: `MenuItem`, `MenuController`, `MenuAnchor`, `ContextMenuRegion`, submenus, keyboard, semantics (spec `docs/specs/widgets/menu.md`)
   - [ ] `MenuBar`, toolbars and the status bar (separate spec)
   - [ ] native OS menus (macOS app menu, native menu bars and context menus): needs an ADR and a platform dependency; deferred for the user
 - [ ] Dialogs, native file dialogs, notifications, system tray

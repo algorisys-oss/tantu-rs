@@ -150,6 +150,13 @@ context described below. Internal representation and demo details are marked rev
   inherited values without retaining stale references. Existing placement, paint, hit-test
   and focus rules remain valid.
 
+### Menu amendments (Implemented 2026-10-16, review)
+
+VIEW-OVERLAY-11 (a reactive `OverlayPortal::anchor`) and VIEW-OVERLAY-12 (a press inside a
+nested overlay is inside its outer overlay) are specified in [menus](../widgets/menu.md).
+Nested overlays are placed in repeated rounds after a layout (at most 8) until nothing
+moves, so a popup inside a popup follows it in the same frame (VIEW-OVERLAY-06).
+
 ## Implementation notes
 
 - The overlay layer is a render element added as the root's last child the first time an

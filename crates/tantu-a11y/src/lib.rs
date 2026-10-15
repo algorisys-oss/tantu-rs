@@ -179,8 +179,9 @@ fn node(semantics: &Semantics) -> Node {
         R::Tab => Role::Tab,
         R::TabPanel => Role::TabPanel,
         R::Splitter => Role::Splitter,
-        // Stubs until A11Y-TREE-09.
-        R::Menu | R::MenuItem | R::MenuItemCheckBox => Role::Group,
+        R::Menu => Role::Menu,
+        R::MenuItem => Role::MenuItem,
+        R::MenuItemCheckBox => Role::MenuItemCheckBox,
     };
     let mut node = Node::new(role);
     if let Some(v) = semantics.expanded {
