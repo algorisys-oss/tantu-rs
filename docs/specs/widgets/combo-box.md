@@ -49,6 +49,10 @@ impl ComboBox {
 
 // tantu-view
 pub enum Role { /* existing, */ ComboBox, ListBox, ListBoxOption }
+impl ViewTree {
+    /// The element an overlay's wrapper is anchored to (VIEW-OVERLAY-14).
+    pub fn popup_owner(&self, element: ElementId) -> Option<ElementId>;
+}
 ```
 
 ## Behavior
@@ -80,7 +84,13 @@ pub enum Role { /* existing, */ ComboBox, ListBox, ListBoxOption }
   the popup is a `ListBox` whose options are `ListBoxOption`s named by their text, with
   `selected` for the chosen one; the field's `active_descendant` is the highlighted option.
 - **A11Y-TREE-13:** `Role::ComboBox`, `ListBox` and `ListBoxOption` map to AccessKit's roles
-  of the same names.
+  of the same names. An `active_descendant` is also accepted when it lies in a popup the
+  element owns (an overlay whose portal target is the element or inside it, at any depth):
+  the WAI-ARIA combobox's highlighted option is in its popup, not under the field (found
+  while implementing, review).
+- **VIEW-OVERLAY-14:** `ViewTree::popup_owner(element)` returns the portal target of an
+  overlay's wrapper element (the root of a shown overlay's content), and `None` for any
+  other element (found while implementing, review).
 - **GALLERY-38:** The Selection section gains a "Fruit" `ComboBox` of twelve fruits with a
   "Fruit: …" echo (`combo-echo`). Tests: typing "an" lists Banana, Mango and Orange (Banana
   highlighted); Down, Enter picks Mango; Escape after typing restores the field. Golden `gallery-combo.png`
