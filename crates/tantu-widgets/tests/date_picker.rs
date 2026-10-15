@@ -335,11 +335,17 @@ fn widgets_date_03_appearance() {
         .iter()
         .any(|c| matches!(c, Command::Stroke { color, .. } if *color == colors.primary));
     assert!(outlined, "today is outlined");
-    // Out-of-range days can't be chosen.
-    let mut fx = calendar(Some(d(2025, 1, 2)), Weekday::Monday);
-    fx.key(NamedKey::Tab, Modifiers::default());
-    let (_, node) = fx.cell("Tuesday, December 31, 2024");
+    // Out-of-range days can't be chosen: a range starting mid-month.
+    let mut fx = fixture(
+        Some(d(2026, 10, 16)),
+        Box::new(|selected, _| {
+            tantu_view::AnyView::new(CalendarDatePicker::new(selected).first_date(d(2026, 10, 10)))
+        }),
+    );
+    let (_, node) = fx.cell("Monday, October 5, 2026");
     assert!(node.is_disabled());
+    fx.click_cell("Monday, October 5, 2026");
+    assert_eq!(fx.selected(), Some(d(2026, 10, 16)));
 }
 
 #[test]
