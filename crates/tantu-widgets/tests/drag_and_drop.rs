@@ -102,7 +102,9 @@ fn widgets_dnd_01_draggable() {
     // Past it: started, the ghost in place, the feedback at the press's offset.
     fx.pointer(PointerKind::Move, 160.0, 25.0);
     assert_eq!(fx.take(), ["started"]);
-    assert!(fx.has("ghost") && !fx.has("chip"));
+    // The ghost takes the chip's place (the chip is kept, offstage).
+    let ghost = fx.t.rect(fx.t.find(&Finder::key("ghost")));
+    assert_eq!((ghost.left, ghost.top, ghost.width()), (0.0, 0.0, 40.0));
     let feedback = fx.t.rect(fx.t.find(&Finder::key("feedback")));
     assert_eq!((feedback.left, feedback.top), (150.0, 10.0));
     assert!(fx.candidate());
