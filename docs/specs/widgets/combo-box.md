@@ -82,8 +82,8 @@ pub enum Role { /* existing, */ ComboBox, ListBox, ListBoxOption }
 - **A11Y-TREE-13:** `Role::ComboBox`, `ListBox` and `ListBoxOption` map to AccessKit's roles
   of the same names.
 - **GALLERY-38:** The Selection section gains a "Fruit" `ComboBox` of twelve fruits with a
-  "Fruit: …" echo (`combo-echo`). Tests: typing "an" lists Banana and Mango; Down, Down,
-  Enter picks Mango; Escape after typing restores the field. Golden `gallery-combo.png`
+  "Fruit: …" echo (`combo-echo`). Tests: typing "an" lists Banana, Mango and Orange (Banana
+  highlighted); Down, Enter picks Mango; Escape after typing restores the field. Golden `gallery-combo.png`
   with the filtered popup open.
 - **GALLERY-39:** A "combo" kitchen-sink card after "form" (twenty-one `SINK_CARDS` entries,
   sample `combo_box`): a currency combo box echoed by `sink-combo-state`.
