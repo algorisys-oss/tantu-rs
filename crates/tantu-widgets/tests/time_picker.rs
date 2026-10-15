@@ -210,10 +210,16 @@ fn widgets_time_04_semantics() {
     assert_eq!(node.value(), Some("09:00"));
     assert!(node.supports_action(accesskit::Action::Increment));
     assert!(node.supports_action(accesskit::Action::Decrement));
-    assert!(fx.t.perform_action(&Finder::key("time"), SemanticsAction::Increment));
+    assert!(fx.t.perform_action(
+        &Finder::semantics_label("Start"),
+        SemanticsAction::Increment
+    ));
     fx.pump();
     assert_eq!(fx.selected(), Some(t(9, 15)));
-    assert!(fx.t.perform_action(&Finder::key("time"), SemanticsAction::Decrement));
+    assert!(fx.t.perform_action(
+        &Finder::semantics_label("Start"),
+        SemanticsAction::Decrement
+    ));
     fx.pump();
     assert_eq!(fx.selected(), Some(t(9, 0)));
 }
