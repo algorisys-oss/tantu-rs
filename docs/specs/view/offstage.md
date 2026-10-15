@@ -1,6 +1,6 @@
 # Offstage: retained but hidden subtrees
 
-- **Status:** Draft
+- **Status:** Agreed (2026-10-15, the user said "continue" on the three proposals)
 - **Crates:** `tantu-view` (the flag and every tree walk), `tantu-a11y` (the semantics walk),
   `tantu-widgets` (the `Offstage` widget)
 - **Plan item:** Phase 4, "`TabView`", part 1 (`Offstage`)
@@ -90,13 +90,15 @@ impl Offstage {
 
 ## Performance and allocation
 
-Toggling is O(depth + direct render children) for the layout attachment and O(1) per walk
-step for the skips; hidden subtrees cost nothing per frame in layout, paint, hit-testing or
+Toggling is O(depth + direct render children) for the layout attachment, plus one pass
+over the shown overlays. Layout, paint, hit-testing and focus traversal check each visited
+element's own flag (O(1) per step); the accessibility walk asks `is_offstage` (O(depth))
+per visited child. Hidden subtrees cost nothing per frame in layout, paint, hit-testing or
 the accessibility tree beyond their running effects. No allocation in the walks.
 
 ## Open questions
 
-Proposals, to accept or change:
+Accepted by the user ("continue", 2026-10-15):
 
 1. **One element flag honored by every walk**, rather than a layout object (`IndexedStack`)
    plus separate paint/hit/focus/a11y switches: the hiding is a view-tree property, and
