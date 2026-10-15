@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/overlay.md`, rules VIEW-OVERLAY-01..07.
+//! Tests for `docs/specs/view/overlay.md`, rules VIEW-OVERLAY-01..07 and -11.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -733,4 +733,39 @@ fn view_overlay_10_reactive_rebuild_hide_show_and_provider_removal() {
     assert!(find(&tree, "reactive-popup").is_none());
     assert!(weak.borrow().as_ref().expect("owner").upgrade().is_none());
     assert_eq!(tree.enter(|| color.try_get()), None);
+}
+
+#[test]
+fn view_overlay_11_reactive_anchor() {
+    type Handles = Rc<RefCell<Option<(Signal<bool>, Signal<Anchor>)>>>;
+    let handles: Handles = Rc::default();
+    let h = handles.clone();
+    let mut tree = ViewTree::new(move || {
+        let visible = signal(false);
+        let anchor = signal(Anchor::new(Alignment::TOP_LEFT, Alignment::TOP_LEFT));
+        *h.borrow_mut() = Some((visible, anchor));
+        let portal = OverlayPortal::new(Keyed::new("target", boxed(100.0, 40.0)))
+            .visible(visible)
+            .anchor(anchor)
+            .overlay(|| Keyed::new("popup", boxed(80.0, 30.0)));
+        ClippedStack(vec![AnyView::new(At(0.0, 50.0, portal))])
+    });
+    let (visible, anchor) = handles.borrow_mut().take().expect("built");
+    frame(&mut tree);
+    tree.enter(|| visible.set(true));
+    frame(&mut tree);
+    let popup = find(&tree, "popup").expect("shown");
+    assert_eq!(rect(&tree, popup), Rect::from_ltwh(0.0, 50.0, 80.0, 30.0));
+    // A new anchor places the overlay again at the next frame.
+    tree.enter(|| {
+        anchor.set(Anchor::new(Alignment::TOP_LEFT, Alignment::TOP_LEFT).offset(30.0, 12.0))
+    });
+    frame(&mut tree);
+    assert_eq!(rect(&tree, popup), Rect::from_ltwh(30.0, 62.0, 80.0, 30.0));
+    // The same rules apply: clamped inside the window.
+    tree.enter(|| {
+        anchor.set(Anchor::new(Alignment::TOP_LEFT, Alignment::TOP_LEFT).offset(350.0, 0.0))
+    });
+    frame(&mut tree);
+    assert_eq!(rect(&tree, popup), Rect::from_ltwh(320.0, 50.0, 80.0, 30.0));
 }

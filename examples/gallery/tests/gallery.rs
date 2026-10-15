@@ -833,7 +833,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
 #[test]
 fn gallery_23_kitchen_sink_tabs_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 16);
+    assert_eq!(SINK_CARDS.len(), 17);
     assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -911,7 +911,7 @@ fn gallery_24_split_view_section() {
 #[test]
 fn gallery_25_kitchen_sink_split_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 16);
+    assert_eq!(SINK_CARDS.len(), 17);
     assert_eq!(index("split"), index("tabs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1006,7 +1006,7 @@ fn gallery_26_docking_section() {
 #[test]
 fn gallery_27_kitchen_sink_dock_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 16);
+    assert_eq!(SINK_CARDS.len(), 17);
     assert_eq!(index("dock"), index("split").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1127,4 +1127,93 @@ fn gallery_28_docking_drag() {
         problems.left > editor.right,
         "restored beside the editor group"
     );
+}
+
+/// An open menu item's rect, by its label.
+fn menu_item(t: &mut WidgetTester, name: &str) -> Rect {
+    use tantu_test::accesskit::Role;
+    let id = t
+        .a11y_tree()
+        .nodes
+        .iter()
+        .find(|(_, n)| {
+            matches!(n.role(), Role::MenuItem | Role::MenuItemCheckBox) && n.label() == Some(name)
+        })
+        .map(|(id, _)| tantu::view::ElementId::from_raw(id.0).expect("element id"))
+        .unwrap_or_else(|| panic!("no menu item {name}"));
+    t.rect(id)
+}
+
+fn click(t: &mut WidgetTester, at: Point, button: PointerButton) {
+    pointer(t, PointerKind::Down(button), at);
+    pointer(t, PointerKind::Up(button), at);
+    t.pump();
+}
+
+fn key(t: &mut WidgetTester, key: tantu::view::NamedKey) {
+    t.press_key(
+        tantu::view::LogicalKey::Named(key),
+        tantu::view::Modifiers::default(),
+    );
+    t.pump();
+    t.pump();
+}
+
+#[test]
+fn gallery_29_menus_in_the_buttons_section() {
+    use tantu::view::NamedKey;
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.tap(&Finder::key(nav("Buttons")));
+    t.pump();
+    assert_eq!(text_of(&t, "menu-echo"), "Menu: none");
+    // Choosing Copy through the anchor.
+    t.tap(&Finder::text("More"));
+    t.pump();
+    let copy = menu_item(&mut t, "Copy");
+    click(&mut t, copy.center(), PointerButton::Primary);
+    assert_eq!(text_of(&t, "menu-echo"), "Menu: Copy");
+    // Toggling Word wrap.
+    t.tap(&Finder::text("More"));
+    t.pump();
+    let wrap = menu_item(&mut t, "Word wrap");
+    click(&mut t, wrap.center(), PointerButton::Primary);
+    assert_eq!(text_of(&t, "menu-echo"), "Menu: Word wrap off");
+    // A submenu item through the keyboard; the golden shows both menus open.
+    t.tap(&Finder::text("More"));
+    t.pump();
+    key(&mut t, NamedKey::End);
+    key(&mut t, NamedKey::ArrowRight);
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-menu.png"
+    ));
+    key(&mut t, NamedKey::Enter);
+    assert_eq!(text_of(&t, "menu-echo"), "Menu: notes.md");
+    // A context-menu item.
+    let region = rect(&t, "context-region");
+    click(&mut t, region.center(), PointerButton::Secondary);
+    let rename = menu_item(&mut t, "Rename");
+    click(&mut t, rename.center(), PointerButton::Primary);
+    assert_eq!(text_of(&t, "menu-echo"), "Menu: Rename");
+}
+
+#[test]
+fn gallery_30_kitchen_sink_menus_card() {
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 17);
+    assert_eq!(index("menus"), index("dock").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "menus" && widgets == &["menu_anchor", "context_menu"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-menus"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-menus-state"), "Menu: none");
+    t.tap(&Finder::text("Actions"));
+    t.pump();
+    let duplicate = menu_item(&mut t, "Duplicate");
+    click(&mut t, duplicate.center(), PointerButton::Primary);
+    assert_eq!(text_of(&t, "sink-menus-state"), "Menu: Duplicate");
 }

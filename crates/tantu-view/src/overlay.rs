@@ -124,9 +124,13 @@ impl<V: View> OverlayPortal<V> {
         self
     }
 
-    /// Where the overlay goes relative to the child.
-    pub fn anchor(mut self, anchor: Anchor) -> Self {
-        self.anchor = anchor;
+    /// Where the overlay goes relative to the child: a value, closure or signal; changes
+    /// re-place the overlay at the next frame (VIEW-OVERLAY-11).
+    pub fn anchor(mut self, anchor: impl IntoProp<Anchor>) -> Self {
+        // Stub until VIEW-OVERLAY-11: only a fixed value is used.
+        if let Prop::Value(anchor) = anchor.into_prop() {
+            self.anchor = anchor;
+        }
         self
     }
 

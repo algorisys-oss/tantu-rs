@@ -65,6 +65,12 @@ pub enum Role {
     TabPanel,
     /// A divider between resizable panes (WIDGETS-SPLIT-08).
     Splitter,
+    /// A popup menu (WIDGETS-MENU-09).
+    Menu,
+    /// An action in a menu.
+    MenuItem,
+    /// A menu item with a check mark.
+    MenuItemCheckBox,
 }
 
 /// A checkable element's state.

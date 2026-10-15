@@ -90,6 +90,7 @@ macro_rules! value_props {
 }
 
 value_props!(
+    crate::Anchor,
     bool,
     char,
     i8,

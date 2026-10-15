@@ -447,3 +447,29 @@ fn a11y_tree_08_splitter_role() {
         "Splitter is mapped"
     );
 }
+
+#[test]
+fn a11y_tree_09_menu_roles() {
+    let semantics = |role| {
+        Some(Semantics {
+            role,
+            ..Default::default()
+        })
+    };
+    let tree = ViewTree::new(move || {
+        column(
+            semantics(tantu_view::Role::Menu),
+            vec![
+                AnyView::new(leaf(semantics(tantu_view::Role::MenuItem))),
+                AnyView::new(leaf(semantics(tantu_view::Role::MenuItemCheckBox))),
+            ],
+        )
+    });
+    let update = AccessibilityTree::new("menus").update(&tree);
+    for role in [AkRole::Menu, AkRole::MenuItem, AkRole::MenuItemCheckBox] {
+        assert!(
+            update.nodes.iter().any(|(_, n)| n.role() == role),
+            "{role:?} is mapped"
+        );
+    }
+}
