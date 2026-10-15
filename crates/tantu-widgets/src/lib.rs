@@ -42,6 +42,7 @@ mod rich_text;
 mod scroll;
 mod slider;
 mod switcher;
+mod tab_view;
 mod text_editing;
 mod text_field;
 mod theme;
@@ -70,6 +71,7 @@ pub use rich_text::{RichText, TextSpan};
 pub use scroll::{ScrollController, ScrollView};
 pub use slider::Slider;
 pub use switcher::AnimatedSwitcher;
+pub use tab_view::{Tab, TabBar, TabBarView, TabView};
 pub use text_editing::{
     Direction, EditingValue, Movement, TextEditingController, TextRange, TextSelection,
 };

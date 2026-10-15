@@ -403,3 +403,29 @@ fn a11y_tree_05_roles_properties_and_expand_collapse_requests() {
         );
     }
 }
+
+#[test]
+fn a11y_tree_07_tab_roles() {
+    let semantics = |role| {
+        Some(Semantics {
+            role,
+            ..Default::default()
+        })
+    };
+    let tree = ViewTree::new(move || {
+        column(
+            semantics(tantu_view::Role::TabList),
+            vec![
+                AnyView::new(leaf(semantics(tantu_view::Role::Tab))),
+                AnyView::new(leaf(semantics(tantu_view::Role::TabPanel))),
+            ],
+        )
+    });
+    let update = AccessibilityTree::new("tabs").update(&tree);
+    for role in [AkRole::TabList, AkRole::Tab, AkRole::TabPanel] {
+        assert!(
+            update.nodes.iter().any(|(_, n)| n.role() == role),
+            "{role:?} is mapped"
+        );
+    }
+}

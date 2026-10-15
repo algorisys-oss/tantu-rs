@@ -776,3 +776,84 @@ fn gallery_21_kitchen_sink_tree_selection_collapse_and_golden() {
     t.pump();
     assert_eq!(text_of(&t, "sink-tree-state"), "Selected: 0, expanded: 1");
 }
+
+#[test]
+fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
+    use tantu::view::{LogicalKey, Modifiers, NamedKey};
+    assert_eq!(SECTIONS.len(), 11);
+    assert_eq!(
+        SECTIONS.iter().position(|s| *s == "Tabs"),
+        SECTIONS
+            .iter()
+            .position(|s| *s == "Kitchen sink")
+            .map(|i| i - 1)
+    );
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.tap(&Finder::key(nav("Tabs")));
+    t.pump();
+    t.pump();
+    assert_eq!(text_of(&t, "tab-echo"), "Tab: General");
+    t.find(&Finder::key("tabs-scrollable"));
+    t.enter_text(&Finder::key("tabs-field"), "hello");
+    t.pump();
+    let control = Modifiers {
+        control: true,
+        ..Default::default()
+    };
+    t.press_key(LogicalKey::Named(NamedKey::Tab), control);
+    t.pump();
+    t.pump();
+    assert_eq!(text_of(&t, "tab-echo"), "Tab: Advanced");
+    t.tap(&Finder::text("General"));
+    t.pump();
+    t.pump();
+    t.find(&Finder::text("hello"));
+    // Arrows skip the disabled Archived tab.
+    t.tap(&Finder::text("Data"));
+    t.pump();
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers::default(),
+    );
+    t.pump();
+    assert_eq!(text_of(&t, "tab-echo"), "Tab: General");
+    t.press_key(
+        LogicalKey::Named(NamedKey::ArrowRight),
+        Modifiers::default(),
+    );
+    t.pump();
+    t.advance(std::time::Duration::from_millis(400));
+    assert_eq!(text_of(&t, "tab-echo"), "Tab: Advanced");
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-tabs.png"
+    ));
+}
+
+#[test]
+fn gallery_23_kitchen_sink_tabs_card() {
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 14);
+    assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "tabs" && widgets == &["tab_bar", "tab_view"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-tabs"));
+    t.pump();
+    assert_eq!(sink_rect(&t, "tab_view").height(), 200.0);
+    assert_eq!(text_of(&t, "sink-tabs-state"), "Tab: Note, range: Day");
+    t.tap(&Finder::text("Option"));
+    t.pump();
+    t.tap(&Finder::text("Week"));
+    t.pump();
+    t.pump();
+    t.advance(std::time::Duration::from_millis(400));
+    assert_eq!(text_of(&t, "sink-tabs-state"), "Tab: Option, range: Week");
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-sink-tabs.png"
+    ));
+}

@@ -57,6 +57,12 @@ pub enum Role {
     Tree,
     /// A tree row.
     TreeItem,
+    /// A row of tabs (WIDGETS-TAB-10).
+    TabList,
+    /// One tab of a tab list.
+    Tab,
+    /// The page a tab shows.
+    TabPanel,
 }
 
 /// A checkable element's state.
