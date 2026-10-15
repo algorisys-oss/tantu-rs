@@ -839,7 +839,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
 #[test]
 fn gallery_23_kitchen_sink_tabs_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -917,7 +917,7 @@ fn gallery_24_split_view_section() {
 #[test]
 fn gallery_25_kitchen_sink_split_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("split"), index("tabs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1012,7 +1012,7 @@ fn gallery_26_docking_section() {
 #[test]
 fn gallery_27_kitchen_sink_dock_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("dock"), index("split").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1206,7 +1206,7 @@ fn gallery_29_menus_in_the_buttons_section() {
 #[test]
 fn gallery_30_kitchen_sink_menus_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("menus"), index("dock").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1275,7 +1275,7 @@ fn gallery_31_menu_bar_and_status_bar() {
 #[test]
 fn gallery_32_kitchen_sink_bars_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("bars"), index("menus").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1345,7 +1345,7 @@ fn gallery_33_dialog_in_the_buttons_section() {
 fn gallery_34_kitchen_sink_dialogs_card() {
     use tantu::view::NamedKey;
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("dialogs"), index("bars").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1475,7 +1475,7 @@ fn gallery_36_form_in_the_text_field_section() {
 #[test]
 fn gallery_37_kitchen_sink_form_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("form"), index("dialogs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1531,7 +1531,7 @@ fn gallery_38_combo_box_in_the_selection_section() {
 fn gallery_39_kitchen_sink_combo_card() {
     use tantu::view::NamedKey;
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("combo"), index("form").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1571,7 +1571,7 @@ fn gallery_40_masked_phone_in_the_form() {
 #[test]
 fn gallery_41_kitchen_sink_mask_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 22);
+    assert_eq!(SINK_CARDS.len(), 23);
     assert_eq!(index("mask"), index("combo").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1586,4 +1586,64 @@ fn gallery_41_kitchen_sink_mask_card() {
     assert_eq!(text_of(&t, "sink-mask-state"), "Date: incomplete");
     type_keys(&mut t, "2026");
     assert_eq!(text_of(&t, "sink-mask-state"), "Date: 12/31/2026");
+}
+
+#[test]
+fn gallery_42_date_field_in_the_selection_section() {
+    use tantu::view::NamedKey;
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    go(&mut t, "Selection");
+    assert_eq!(text_of(&t, "date-echo"), "Due: none");
+    type_into(&mut t, "Due date", "20261020");
+    assert_eq!(text_of(&t, "date-echo"), "Due: 2026-10-20");
+    t.press_key(
+        tantu::view::LogicalKey::Named(NamedKey::ArrowDown),
+        tantu::view::Modifiers {
+            alt: true,
+            ..Default::default()
+        },
+    );
+    t.pump();
+    t.pump();
+    let month = t
+        .a11y_tree()
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == tantu_test::accesskit::Role::Grid)
+        .and_then(|(_, n)| n.label().map(str::to_owned));
+    assert_eq!(month.as_deref(), Some("October 2026"));
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-date.png"
+    ));
+    key(&mut t, NamedKey::ArrowRight);
+    key(&mut t, NamedKey::Enter);
+    assert_eq!(text_of(&t, "date-echo"), "Due: 2026-10-21");
+}
+
+#[test]
+fn gallery_43_kitchen_sink_date_card() {
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 23);
+    assert_eq!(index("date"), index("mask").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "date" && widgets == &["calendar_date_picker"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-date"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-date-state"), "Picked: 2026-10-16");
+    let cell = t
+        .a11y_tree()
+        .nodes
+        .iter()
+        .find(|(_, n)| n.label() == Some("Tuesday, October 20, 2026"))
+        .map(|(id, _)| tantu::view::ElementId::from_raw(id.0).expect("element id"))
+        .expect("the 20th");
+    let at = t.rect(cell).center();
+    click(&mut t, at, PointerButton::Primary);
+    t.pump();
+    assert_eq!(text_of(&t, "sink-date-state"), "Picked: 2026-10-20");
 }

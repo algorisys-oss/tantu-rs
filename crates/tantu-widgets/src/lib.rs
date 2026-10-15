@@ -29,6 +29,8 @@ mod bars;
 mod basic;
 mod combo_box;
 mod data_grid;
+mod date;
+mod date_picker;
 mod dialog;
 mod divider;
 mod dock;
@@ -65,6 +67,8 @@ pub use combo_box::ComboBox;
 pub use data_grid::{
     CellValue, DataGrid, DataSource, FnSource, GridColumn, GridEditError, RowFilter, SortState,
 };
+pub use date::{Date, Weekday};
+pub use date_picker::{CalendarDatePicker, DatePickerField};
 pub use dialog::{AlertDialog, Dialog, DialogController};
 pub use divider::{Divider, VerticalDivider};
 pub use dock::{
