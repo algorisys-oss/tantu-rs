@@ -87,6 +87,8 @@ pub enum Role {
     ListBox,
     /// One option of a list box.
     ListBoxOption,
+    /// A value stepped with Increment and Decrement, which may also be typed (VIEW-SEM-05).
+    SpinButton,
 }
 
 /// A checkable element's state.

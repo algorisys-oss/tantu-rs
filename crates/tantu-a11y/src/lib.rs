@@ -208,6 +208,8 @@ fn node(semantics: &Semantics) -> Node {
         R::ComboBox => Role::ComboBox,
         R::ListBox => Role::ListBox,
         R::ListBoxOption => Role::ListBoxOption,
+        // Stub until A11Y-TREE-14.
+        R::SpinButton => Role::GenericContainer,
     };
     let mut node = Node::new(role);
     if semantics.modal {

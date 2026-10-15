@@ -681,3 +681,15 @@ fn a11y_tree_13_popup_target_enclosing_the_element() {
         Some(AccessibilityTree::node_id(option))
     );
 }
+
+#[test]
+fn a11y_tree_14_spin_button_role() {
+    let tree = ViewTree::new(|| leaf(Some(sem(Role::SpinButton, "spin"))));
+    let update = AccessibilityTree::new("spin").update(&tree);
+    assert!(
+        update
+            .nodes
+            .iter()
+            .any(|(_, n)| n.role() == AkRole::SpinButton && n.label() == Some("spin"))
+    );
+}

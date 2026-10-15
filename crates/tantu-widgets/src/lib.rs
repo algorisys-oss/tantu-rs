@@ -56,6 +56,8 @@ mod tab_view;
 mod text_editing;
 mod text_field;
 mod theme;
+mod time;
+mod time_picker;
 mod toggles;
 mod tooltip;
 mod tree_view;
@@ -103,6 +105,8 @@ pub use text_editing::{
 pub use text_field::{
     CopyIntent, CutIntent, PasteIntent, RedoIntent, SelectAllIntent, TextField, UndoIntent,
 };
+pub use time::Time;
+pub use time_picker::TimePickerField;
 pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;
 pub use tree_view::{TreeDataSource, TreeNodeId, TreeRowState, TreeView};
