@@ -188,7 +188,11 @@ faster or more portable without changing how apps are written.
   - [ ] rich text and image clipboard, primary selection (separate spec)
   - [ ] multi-window (separate spec)
   - [ ] drag and drop, intra-app and with the OS (separate spec)
-- [ ] Forms: validation, field binding, masked input, date/time pickers, combo box with search
+- [ ] Forms: validation, field binding, masked input, date/time pickers, combo box with search, in parts:
+  - [ ] validation and field binding: `Form`, `FormController`, `TextFormField`, validators, error semantics (spec `docs/specs/widgets/form.md`)
+  - [ ] combo box with search (separate spec)
+  - [ ] masked input (separate spec)
+  - [ ] date and time pickers (separate spec)
 - [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting
 - [ ] `Grid` layout (possibly via taffy) for dashboard-style screens
 - [x] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)
