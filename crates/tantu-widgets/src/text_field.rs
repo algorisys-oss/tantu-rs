@@ -339,14 +339,17 @@ impl View for FieldBox {
         let theme = self.theme;
         // Semantics: a text input named by the placeholder with the text as its value, and
         // `SetValue` replacing the text (WIDGETS-SEM-02).
+        let role = match self.decoration.as_ref().and_then(|d| d.role) {
+            Some(role) => role,
+            None if self.single_line => Role::TextInput,
+            None => Role::MultilineTextInput,
+        };
+        // A spin button steps through its keys (WIDGETS-TIME-04).
+        let spin = role == Role::SpinButton;
         cx.set_semantics(
             id,
             Semantics {
-                role: match self.decoration.as_ref().and_then(|d| d.role) {
-                    Some(role) => role,
-                    None if self.single_line => Role::TextInput,
-                    None => Role::MultilineTextInput,
-                },
+                role,
                 name: self
                     .decoration
                     .as_ref()
@@ -356,6 +359,8 @@ impl View for FieldBox {
                 actions: SemanticsActions {
                     set_value: true,
                     focus: true,
+                    increment: spin,
+                    decrement: spin,
                     ..Default::default()
                 },
                 ..Default::default()

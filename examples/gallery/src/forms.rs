@@ -1,4 +1,4 @@
-//! Gallery and kitchen-sink form examples (GALLERY-36..43).
+//! Gallery and kitchen-sink form examples (GALLERY-36..45).
 use tantu::prelude::*;
 use tantu::view::Keyed;
 
@@ -268,6 +268,40 @@ pub(super) fn date_sink() -> impl View {
         super::echo(move || match picked.get() {
             Some(date) => format!("Picked: {date}"),
             None => "Picked: none".to_owned(),
+        }),
+    )
+}
+
+/// The Selection section's time field and its echo (GALLERY-44).
+pub(super) fn time_sample() -> impl View {
+    let start = signal(None::<Time>);
+    Row::new()
+        .cross_axis_alignment(CrossAxisAlignment::Center)
+        .spacing(12.0)
+        .child(TimePickerField::new(start).label("Start").minute_step(15))
+        .child(Keyed::new(
+            "time-echo",
+            Text::new(move || match start.get() {
+                Some(time) => format!("Start: {time}"),
+                None => "Start: none".to_owned(),
+            }),
+        ))
+}
+
+/// The time card: a field starting at noon (GALLERY-45).
+pub(super) fn time_sink() -> impl View {
+    let time = signal(Time::new(12, 0));
+    let body = Keyed::new(
+        "sink-time_picker_field",
+        TimePickerField::new(time).label("Reminder"),
+    );
+    super::card(
+        "time",
+        "Time picker",
+        body,
+        super::echo(move || match time.get() {
+            Some(time) => format!("Time: {time}"),
+            None => "Time: none".to_owned(),
         }),
     )
 }

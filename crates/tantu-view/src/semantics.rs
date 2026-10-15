@@ -376,6 +376,9 @@ impl ViewTree {
                 let key = match (role, forward) {
                     (Role::Slider, true) => NamedKey::ArrowRight,
                     (Role::Slider, false) => NamedKey::ArrowLeft,
+                    // A spin button's increment means "up" (VIEW-SEM-05).
+                    (Role::SpinButton, true) => NamedKey::ArrowUp,
+                    (Role::SpinButton, false) => NamedKey::ArrowDown,
                     (_, true) => NamedKey::ArrowDown,
                     (_, false) => NamedKey::ArrowUp,
                 };

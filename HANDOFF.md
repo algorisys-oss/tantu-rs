@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (forms part 4a, the date picker, done; the user is away until morning)_
+_Last updated: 2026-10-16 (forms done: the time picker was the last part; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1194,6 +1194,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     popup whose target encloses the element. English month and weekday names until the
     i18n item. Gallery: a "Due date" field in Selection and a "date" kitchen-sink card.
     No new crate or edge.
+95. **Forms part 4b: time picker** (2026-10-16, spec `docs/specs/widgets/time-picker.md`;
+    decided by the agent while the user was away, review). `Time` (00:00–23:59, wrapping
+    `add_minutes`, `HH:MM` text) and `TimePickerField`: a `##:##` masked spin field
+    (24-hour); typing a valid time selects it; Up/Down step the hours (caret before the
+    colon) or the minutes by `minute_step`, snapping to the step and wrapping at
+    midnight; from no time they select 00:00 (no system clock). New `Role::SpinButton`
+    (AccessKit `SpinButton`); Increment/Decrement on a spin button synthesize Up/Down
+    (VIEW-SEM-05), and the field exposes both actions. No popup list (desktop spin
+    convention; a list can come later). **The Forms item is complete.** Gallery: a
+    "Start" field in Selection and a "time" kitchen-sink card. No new crate or edge.
 
 ## Commit log
 
@@ -1751,15 +1761,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `944e500` | spec: A11Y-TREE-13 accepts a popup whose target encloses the element; WIDGETS-DATE-09 |
 | `b9a47db` | test: A11Y-TREE-13 enclosing target, failing; WIDGETS-DATE-09 button toggle |
 | `07f024c` | test: WIDGETS-DATE-03 out-of-range days in a range starting mid-month |
-| _this commit_ | impl: Date, Weekday, CalendarDatePicker, DatePickerField, enclosing popup targets in tantu-a11y; gallery date field and card, goldens; PLAN.md part 4a ticked |
+| `e566ba7` | impl: Date, Weekday, CalendarDatePicker, DatePickerField, enclosing popup targets in tantu-a11y; gallery date field and card, goldens; PLAN.md part 4a ticked (CI green, run 38810835706) |
+| `29b9261` | spec: forms part 4b, time picker (WIDGETS-TIME-01..04, VIEW-SEM-05, A11Y-TREE-14, GALLERY-44..45) |
+| `7069fb9` | test: forms part 4b, stubs + 9 failing tests |
+| `210393d` | test: WIDGETS-TIME-04 acts on the spin button by its name |
+| `91e321d` | test: GALLERY-45 focuses the Reminder spin button by its name |
+| _this commit_ | impl: Time, TimePickerField, Role::SpinButton (Increment as Up, AccessKit mapping); gallery Start field and time card, goldens; PLAN.md Forms ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: forms part 4b (time picker), i18n, `Grid` layout; the remaining clipboard/multi-window/drag-and-drop
-parts. Native OS menus and native file dialogs/notifications/tray wait for the user.
+Continue Phase 4 in PLAN.md order (Forms is done): i18n, `Grid` layout; the remaining
+clipboard/multi-window/drag-and-drop parts. Native OS menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 

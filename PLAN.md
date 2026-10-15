@@ -188,12 +188,12 @@ faster or more portable without changing how apps are written.
   - [ ] rich text and image clipboard, primary selection (separate spec)
   - [ ] multi-window (separate spec)
   - [ ] drag and drop, intra-app and with the OS (separate spec)
-- [ ] Forms: validation, field binding, masked input, date/time pickers, combo box with search, in parts:
+- [x] Forms: validation, field binding, masked input, date/time pickers, combo box with search, in parts:
   - [x] validation and field binding: `Form`, `FormController`, `TextFormField`, validators, error semantics (spec `docs/specs/widgets/form.md`)
   - [x] combo box with search: `ComboBox` (spec `docs/specs/widgets/combo-box.md`)
   - [x] input formatters and masked input: `TextInputFormatter`, `MaskFormatter` (spec `docs/specs/widgets/masked-input.md`)
   - [x] date picker: `Date`, `CalendarDatePicker`, `DatePickerField` (spec `docs/specs/widgets/date-picker.md`)
-  - [ ] time picker: `Time`, `TimePickerField` (spec `docs/specs/widgets/time-picker.md`)
+  - [x] time picker: `Time`, `TimePickerField` (spec `docs/specs/widgets/time-picker.md`)
 - [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting
 - [ ] `Grid` layout (possibly via taffy) for dashboard-style screens
 - [x] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)

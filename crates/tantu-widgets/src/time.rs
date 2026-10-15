@@ -20,8 +20,11 @@ pub struct Time {
 impl Time {
     /// `None` unless `hour < 24` and `minute < 60`.
     pub fn new(hour: u32, minute: u32) -> Option<Time> {
-        let _ = (hour, minute);
-        todo!("WIDGETS-TIME-01")
+        (hour < 24 && minute < 60).then_some(Time {
+            // Both fit: checked above.
+            hour: hour as u8,
+            minute: minute as u8,
+        })
     }
 
     /// The hour, 0 to 23.
@@ -36,16 +39,42 @@ impl Time {
 
     /// `minutes` later (earlier when negative), wrapping around midnight.
     pub fn add_minutes(self, minutes: i32) -> Time {
-        let _ = minutes;
-        todo!("WIDGETS-TIME-01")
+        let total = (self.minutes_of_day() + i64::from(minutes)).rem_euclid(MINUTES_PER_DAY);
+        Time {
+            // Both fit: `total` is below a day.
+            hour: (total / 60) as u8,
+            minute: (total % 60) as u8,
+        }
     }
 
     /// Reads `HH:MM` (two digits each).
     pub fn parse(text: &str) -> Option<Time> {
-        let _ = text;
-        todo!("WIDGETS-TIME-01")
+        let bytes = text.as_bytes();
+        if bytes.len() != 5 || bytes[2] != b':' {
+            return None;
+        }
+        let digits = |range: std::ops::Range<usize>| {
+            bytes[range.clone()]
+                .iter()
+                .all(u8::is_ascii_digit)
+                .then(|| text[range].parse::<u32>().ok())?
+        };
+        Time::new(digits(0..2)?, digits(3..5)?)
+    }
+
+    /// The time `minutes` after midnight (wrapping).
+    pub(crate) fn from_minutes(minutes: i64) -> Time {
+        Time { hour: 0, minute: 0 }.add_minutes((minutes.rem_euclid(MINUTES_PER_DAY)) as i32)
+    }
+
+    /// Minutes since midnight.
+    pub(crate) fn minutes_of_day(self) -> i64 {
+        i64::from(self.hour) * 60 + i64::from(self.minute)
     }
 }
+
+/// Minutes in a day.
+const MINUTES_PER_DAY: i64 = 24 * 60;
 
 /// Writes `HH:MM`.
 impl fmt::Display for Time {
