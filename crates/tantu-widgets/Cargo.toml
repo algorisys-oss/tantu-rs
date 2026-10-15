@@ -22,6 +22,8 @@ workspace = true
 tantu-view = { workspace = true }
 # The theme's tokens (ADR 0012).
 tantu-theme = { workspace = true }
+# The localization: messages, formats, `Date`/`Time` (ADR 0015).
+tantu-i18n = { workspace = true }
 # Diagnostics (AGENTS.md: `tracing`), as in tantu-layout and tantu-view.
 tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 # PNG decoding for `Image` (the same crate the render crates use for goldens).

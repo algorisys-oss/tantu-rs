@@ -1,0 +1,27 @@
+[package]
+name = "tantu-i18n"
+description = "Locales, Fluent messages and locale-aware formatting for Tantu."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tantu-view = { workspace = true }
+# Diagnostics (AGENTS.md: `tracing`).
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+# Fluent messages and locale negotiation (ADR 0015).
+fluent-bundle = "0.16.0"
+fluent-langneg = "0.14.2"
+unic-langid = "0.9"
+# Locale data and formatting, the ICU4X version parley already uses (ADR 0015).
+icu_locale_core = "2.3.0"
+icu_decimal = "2.3.0"
+icu_datetime = "2.3.0"
+icu_calendar = "2.3.0"
+icu_time = "2.3.0"

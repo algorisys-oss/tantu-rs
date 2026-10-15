@@ -29,7 +29,6 @@ mod bars;
 mod basic;
 mod combo_box;
 mod data_grid;
-mod date;
 mod date_picker;
 mod dialog;
 mod directionality;
@@ -47,6 +46,7 @@ mod image;
 mod layout;
 mod layout_grid;
 mod list_view;
+mod localizations;
 mod menu;
 mod offstage;
 mod opacity;
@@ -59,7 +59,6 @@ mod tab_view;
 mod text_editing;
 mod text_field;
 mod theme;
-mod time;
 mod time_picker;
 mod toggles;
 mod tooltip;
@@ -72,7 +71,6 @@ pub use combo_box::ComboBox;
 pub use data_grid::{
     CellValue, DataGrid, DataSource, FnSource, GridColumn, GridEditError, RowFilter, SortState,
 };
-pub use date::{Date, Weekday};
 pub use date_picker::{CalendarDatePicker, DatePickerField};
 pub use dialog::{AlertDialog, Dialog, DialogController};
 pub use directionality::{Directionality, PositionedDirectional};
@@ -96,6 +94,7 @@ pub use icons::Icons;
 pub use image::{BoxFit, Image, ImageError, decode_png};
 pub use layout_grid::{GridPlacement, LayoutGrid};
 pub use list_view::ListView;
+pub use localizations::Localizations;
 pub use menu::{ContextMenuRegion, MenuAnchor, MenuBar, MenuController, MenuItem};
 pub use offstage::Offstage;
 pub use opacity::Opacity;
@@ -105,13 +104,13 @@ pub use slider::Slider;
 pub use split_view::{SplitPane, SplitView};
 pub use switcher::AnimatedSwitcher;
 pub use tab_view::{Tab, TabBar, TabBarView, TabView};
+pub use tantu_i18n::{Date, Time, Weekday};
 pub use text_editing::{
     Direction, EditingValue, Movement, TextEditingController, TextRange, TextSelection,
 };
 pub use text_field::{
     CopyIntent, CutIntent, PasteIntent, RedoIntent, SelectAllIntent, TextField, UndoIntent,
 };
-pub use time::Time;
 pub use time_picker::TimePickerField;
 pub use toggles::{Checkbox, Radio, Switch};
 pub use tooltip::Tooltip;

@@ -6,7 +6,7 @@ use std::fmt;
 /// A time of day, 00:00 to 23:59.
 ///
 /// ```
-/// use tantu_widgets::Time;
+/// use tantu_i18n::Time;
 /// let time = Time::new(23, 45).expect("exists");
 /// assert_eq!(time.add_minutes(30).to_string(), "00:15");
 /// assert_eq!(Time::parse("23:45"), Some(time));
@@ -63,12 +63,12 @@ impl Time {
     }
 
     /// The time `minutes` after midnight (wrapping).
-    pub(crate) fn from_minutes(minutes: i64) -> Time {
+    pub fn from_minutes(minutes: i64) -> Time {
         Time { hour: 0, minute: 0 }.add_minutes((minutes.rem_euclid(MINUTES_PER_DAY)) as i32)
     }
 
     /// Minutes since midnight.
-    pub(crate) fn minutes_of_day(self) -> i64 {
+    pub fn minutes_of_day(self) -> i64 {
         i64::from(self.hour) * 60 + i64::from(self.minute)
     }
 }

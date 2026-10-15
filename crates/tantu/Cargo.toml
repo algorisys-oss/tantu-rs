@@ -35,6 +35,7 @@ tantu-widgets = { workspace = true }
 tantu-a11y = { workspace = true }
 tantu-platform = { workspace = true }
 tantu-theme = { workspace = true }
+tantu-i18n = { workspace = true }
 tantu-render-wgpu = { workspace = true, optional = true }
 tantu-render-soft = { workspace = true, optional = true }
 tantu-platform-winit = { workspace = true, optional = true }

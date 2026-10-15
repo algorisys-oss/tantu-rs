@@ -40,6 +40,8 @@ pub use app::{App, AppHandler, Error, Result, Window};
 
 /// `tantu-core`: geometry, color, ids.
 pub use tantu_core as core;
+/// `tantu-i18n`: locales, Fluent messages and locale-aware formatting.
+pub use tantu_i18n as i18n;
 /// `tantu-layout`: the layout protocol and render objects.
 pub use tantu_layout as layout;
 /// `tantu-platform`: the platform trait and event types.
@@ -61,6 +63,7 @@ pub use tantu_widgets as widgets;
 pub mod prelude {
     pub use crate::{App, Result, Window};
     pub use tantu_core::{Color, EdgeInsets, Point, Size};
+    pub use tantu_i18n::{Args, DateLength, Locale, Localization, Translations};
     pub use tantu_layout::{
         Alignment, AlignmentDirectional, Axis, CrossAxisAlignment, EdgeInsetsDirectional,
         MainAxisAlignment, MainAxisSize, StackFit, TextDirection, TrackSize,

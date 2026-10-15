@@ -1,12 +1,12 @@
-//! [`Date`] and [`Weekday`]: calendar dates for the date picker. Spec:
-//! `docs/specs/widgets/date-picker.md` (WIDGETS-DATE-01).
+//! [`Date`] and [`Weekday`]: calendar dates. Spec: `docs/specs/widgets/date-picker.md`
+//! (WIDGETS-DATE-01), moved here by `docs/specs/i18n/formatting.md` (I18N-FMT-06).
 
 use std::fmt;
 
 /// A calendar date (proleptic Gregorian, years 1 to 9999).
 ///
 /// ```
-/// use tantu_widgets::{Date, Weekday};
+/// use tantu_i18n::{Date, Weekday};
 /// let date = Date::new(2026, 10, 16).expect("exists");
 /// assert_eq!(date.weekday(), Weekday::Friday);
 /// assert_eq!(date.add_months(4).map(|d| d.to_string()).as_deref(), Some("2027-02-16"));
@@ -32,13 +32,8 @@ impl Date {
         })
     }
 
-    /// A date known to exist (no checks).
-    pub(crate) const fn from_ymd_unchecked(year: i32, month: u8, day: u8) -> Date {
-        Date { year, month, day }
-    }
-
     /// The month's English name ("October").
-    pub(crate) fn month_name(self) -> &'static str {
+    pub fn month_name(self) -> &'static str {
         MONTHS[usize::from(self.month) - 1]
     }
 
@@ -209,12 +204,17 @@ impl Weekday {
     }
 
     /// 0 for Monday to 6 for Sunday.
-    pub(crate) fn index(self) -> usize {
+    pub fn index(self) -> usize {
         self as usize
     }
 
+    /// The weekday with `index` (0 for Monday), wrapping past Sunday.
+    pub fn from_index(index: usize) -> Weekday {
+        WEEKDAYS[index % 7]
+    }
+
     /// The weekday `n` days after this one.
-    pub(crate) fn plus(self, n: usize) -> Weekday {
+    pub fn plus(self, n: usize) -> Weekday {
         WEEKDAYS[(self.index() + n) % 7]
     }
 }

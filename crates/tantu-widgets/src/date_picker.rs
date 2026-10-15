@@ -15,7 +15,6 @@ use tantu_view::{
 };
 
 use crate::combo_box::PopupPaint;
-use crate::date::{Date, Weekday};
 use crate::formatter::MaskFormatter;
 use crate::text_field::FieldDecoration;
 use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at};
@@ -23,6 +22,7 @@ use crate::{
     Align, Center, Column, Expanded, IconButton, Icons, Padding, Row, SizedBox, Text,
     TextEditingController, TextField,
 };
+use crate::{Date, Weekday};
 
 /// A day cell's side, and the calendar's width (WIDGETS-DATE-02).
 const CELL: f32 = 40.0;
@@ -51,8 +51,8 @@ struct Options {
 impl Options {
     fn new() -> Self {
         Options {
-            first: Date::from_ymd_unchecked(1900, 1, 1),
-            last: Date::from_ymd_unchecked(2100, 12, 31),
+            first: Date::new(1900, 1, 1).expect("1900-01-01 exists"),
+            last: Date::new(2100, 12, 31).expect("2100-12-31 exists"),
             today: None,
             first_day: Weekday::Monday,
             on_change: None,

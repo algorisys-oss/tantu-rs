@@ -6,10 +6,10 @@ use std::rc::Rc;
 use tantu_view::reactive::{Signal, effect, signal, untrack};
 use tantu_view::{BuildCx, ElementId, Handled, LogicalKey, Modifiers, NamedKey, Phase, Role, View};
 
+use crate::Time;
 use crate::formatter::MaskFormatter;
 use crate::text_editing::{EditingValue, TextSelection};
 use crate::text_field::FieldDecoration;
-use crate::time::Time;
 use crate::{SizedBox, TextEditingController, TextField};
 
 /// The field's error description (WIDGETS-TIME-02).
