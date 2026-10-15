@@ -172,7 +172,10 @@ faster or more portable without changing how apps are written.
 - [x] `SplitView`, in parts:
   - [x] cursor icons through the platform: `PlatformContext::set_cursor`, the runner syncing `ViewTree::cursor`, capture keeps the cursor (spec `docs/specs/platform/cursor.md`)
   - [x] `RenderSplit` and `SplitView`: N panes, shared fractions, minimums, collapsing, drag and keyboard resizing, splitter semantics, gallery and kitchen-sink samples (spec `docs/specs/widgets/split-view.md`)
-- [ ] Docking layout manager (drag panels, persist layout; separate spec)
+- [ ] Docking layout manager (drag panels, persist layout), in parts:
+  - [ ] the dock layout model: splits and tab groups, panel ids, operations in a normal form, a versioned text format for persisting (spec `docs/specs/widgets/dock-layout.md`)
+  - [ ] `DockArea`: drawing a layout with nested splits and dynamic tab strips (close buttons, activation), panel content kept alive across moves, keyboard and semantics (separate spec)
+  - [ ] drag-to-dock: dragging tabs, drop indicators for tab, beside and edge targets (separate spec); floating panels wait for multi-window
 - [ ] Menus (native + custom), context menus, toolbars, status bar
 - [ ] Dialogs, native file dialogs, notifications, system tray
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images)

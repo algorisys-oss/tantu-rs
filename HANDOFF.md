@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-15 (SplitView done; docking next)_
+_Last updated: 2026-10-15 (docking part 1 drafted for review)_
 
 ## Resume here (2026-10-15)
 
@@ -16,8 +16,14 @@ a gallery "Tabs" section and a kitchen-sink card.
 (`PlatformContext::set_cursor`, the runner syncing `ViewTree::cursor`, a drag keeping its
 cursor), and `RenderSplit` + `SplitView` give N resizable, collapsible panes with shared
 fractions, keyboard resizing, splitter semantics, a gallery "Split view" section and a
-kitchen-sink card. The grid's column handles show the resize cursor too. **Next:** draft the
-docking layout manager (`docs/specs/widgets/docking.md`). Commit/push authorization persists.
+kitchen-sink card. The grid's column handles show the resize cursor too. CI passed on
+Linux, Windows and macOS for `fda6c46` (run 38785174844).
+
+**Docking is drafted for review**, part 1 of three: `docs/specs/widgets/dock-layout.md`, the
+`DockLayout` model (splits and tab groups of app-named panels, operations in a normal form,
+a versioned text format), with six proposals. Parts 2 (`DockArea` widget) and 3
+(drag-to-dock) follow once it is agreed. **Next:** the user reviews the draft.
+Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1499,15 +1505,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `47965ac` | spec: TEST-WT-18 matches Semantics::name |
 | `42772c5` | test: RenderSplit, SplitView, splitter role, grid handle cursor and semantics-label finder, stubs + 21 failing tests |
 | `7e02088` | spec: GALLERY-24's Folders minimum is 160 px; GALLERY-25's labels and echo |
-| _this commit_ | impl: RenderSplit and SplitView (fractions, minimums, collapsing, drag and keys, splitter semantics), grid handle cursor, Finder::semantics_label; gallery Split view section and kitchen-sink card, goldens; README; PLAN.md SplitView ticked |
+| `fda6c46` | impl: RenderSplit and SplitView (fractions, minimums, collapsing, drag and keys, splitter semantics), grid handle cursor, Finder::semantics_label; gallery Split view section and kitchen-sink card, goldens; README; PLAN.md SplitView ticked |
+| _this commit_ | docs: draft the dock layout model spec (docking part 1) for review; PLAN.md docking item split in three |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Draft the docking layout manager spec (drag panels, persist layout), building on
-`RenderSplit` for its split nodes and on TabView for document tabs.
+Review the dock layout model draft; then implement it, and draft part 2 (`DockArea`, built
+on `RenderSplit` and a dynamic tab strip) and part 3 (drag-to-dock).
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
