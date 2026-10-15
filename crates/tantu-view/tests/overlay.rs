@@ -849,3 +849,36 @@ impl View for Pair {
         cx.render(tantu_layout::RenderFlex::column(), [self.0, self.1])
     }
 }
+
+#[test]
+fn view_overlay_06_nested_overlays_follow_their_popup() {
+    type Handles = Rc<RefCell<Option<(Signal<bool>, Signal<bool>)>>>;
+    let handles: Handles = Rc::default();
+    let h = handles.clone();
+    let mut tree = ViewTree::new(move || {
+        let (outer, inner) = (signal(false), signal(false));
+        *h.borrow_mut() = Some((outer, inner));
+        let portal = OverlayPortal::new(Keyed::new("target", boxed(100.0, 40.0)))
+            .visible(outer)
+            .overlay(move || {
+                OverlayPortal::new(Keyed::new("outer-popup", boxed(80.0, 30.0)))
+                    .visible(inner)
+                    .anchor(Anchor::new(Alignment::TOP_RIGHT, Alignment::TOP_LEFT))
+                    .overlay(|| Keyed::new("inner-popup", boxed(60.0, 30.0)))
+            });
+        ClippedStack(vec![AnyView::new(At(50.0, 50.0, portal))])
+    });
+    let (outer, inner) = handles.borrow_mut().take().expect("built");
+    frame(&mut tree);
+    // Both shown in the same frame: the inner popup is placed against the outer popup's
+    // final position (below the target at (50, 90)).
+    tree.enter(|| {
+        outer.set(true);
+        inner.set(true);
+    });
+    frame(&mut tree);
+    let outer_popup = rect(&tree, find(&tree, "outer-popup").expect("shown"));
+    assert_eq!(outer_popup, Rect::from_ltwh(50.0, 90.0, 80.0, 30.0));
+    let inner_popup = rect(&tree, find(&tree, "inner-popup").expect("shown"));
+    assert_eq!(inner_popup, Rect::from_ltwh(130.0, 90.0, 60.0, 30.0));
+}

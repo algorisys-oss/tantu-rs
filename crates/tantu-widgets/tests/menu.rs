@@ -444,10 +444,11 @@ fn widgets_menu_08_context_menu() {
                 ))),
             ))
         });
+        let (controller, wrap) = t.enter(|| (MenuController::new(), signal(false)));
         Fx {
             t,
-            controller: MenuController::new(),
-            wrap: signal(false),
+            controller,
+            wrap,
             log: log.clone(),
         }
     };
