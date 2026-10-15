@@ -187,6 +187,8 @@ fn node(semantics: &Semantics) -> Node {
         R::Status => Role::Status,
         R::Dialog => Role::Dialog,
         R::AlertDialog => Role::AlertDialog,
+        // Stubs until A11Y-TREE-13.
+        R::ComboBox | R::ListBox | R::ListBoxOption => Role::Group,
     };
     let mut node = Node::new(role);
     if semantics.modal {

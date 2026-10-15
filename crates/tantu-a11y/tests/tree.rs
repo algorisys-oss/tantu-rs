@@ -569,3 +569,31 @@ fn a11y_tree_12_invalid_and_description() {
     assert_eq!(email.invalid(), None);
     assert_eq!(email.description(), Some("We never share it"));
 }
+
+#[test]
+fn a11y_tree_13_combo_roles() {
+    let semantics = |role| {
+        Some(Semantics {
+            role,
+            ..Default::default()
+        })
+    };
+    let tree = ViewTree::new(move || {
+        column(
+            semantics(tantu_view::Role::ComboBox),
+            vec![AnyView::new(column(
+                semantics(tantu_view::Role::ListBox),
+                vec![AnyView::new(leaf(semantics(
+                    tantu_view::Role::ListBoxOption,
+                )))],
+            ))],
+        )
+    });
+    let update = AccessibilityTree::new("combo").update(&tree);
+    for role in [AkRole::ComboBox, AkRole::ListBox, AkRole::ListBoxOption] {
+        assert!(
+            update.nodes.iter().any(|(_, n)| n.role() == role),
+            "{role:?} is mapped"
+        );
+    }
+}

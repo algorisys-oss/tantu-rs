@@ -27,6 +27,7 @@
 
 mod bars;
 mod basic;
+mod combo_box;
 mod data_grid;
 mod dialog;
 mod divider;
@@ -59,6 +60,7 @@ mod util;
 
 pub use bars::{StatusBar, Toolbar};
 pub use basic::{Button, Text};
+pub use combo_box::ComboBox;
 pub use data_grid::{
     CellValue, DataGrid, DataSource, FnSource, GridColumn, GridEditError, RowFilter, SortState,
 };

@@ -81,6 +81,12 @@ pub enum Role {
     Dialog,
     /// A dialog asking for a decision.
     AlertDialog,
+    /// A text field with a list of options (WIDGETS-COMBO-07).
+    ComboBox,
+    /// A list of options to choose from.
+    ListBox,
+    /// One option of a list box.
+    ListBoxOption,
 }
 
 /// A checkable element's state.
