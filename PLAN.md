@@ -193,7 +193,7 @@ faster or more portable without changing how apps are written.
   - [x] combo box with search: `ComboBox` (spec `docs/specs/widgets/combo-box.md`)
   - [x] input formatters and masked input: `TextInputFormatter`, `MaskFormatter` (spec `docs/specs/widgets/masked-input.md`)
   - [x] date picker: `Date`, `CalendarDatePicker`, `DatePickerField` (spec `docs/specs/widgets/date-picker.md`)
-  - [ ] time picker (separate spec)
+  - [ ] time picker: `Time`, `TimePickerField` (spec `docs/specs/widgets/time-picker.md`)
 - [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting
 - [ ] `Grid` layout (possibly via taffy) for dashboard-style screens
 - [x] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)
