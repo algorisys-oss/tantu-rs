@@ -1024,3 +1024,107 @@ fn gallery_27_kitchen_sink_dock_card() {
     t.pump();
     assert_eq!(text_of(&t, "sink-dock-state"), "Active: Log · Panels: 3");
 }
+
+/// A dock tab's rect and its strip's rect, by the tab's title.
+fn tab_and_strip(t: &mut WidgetTester, title: &str) -> (Rect, Rect) {
+    use tantu_test::accesskit::Role;
+    let tree = t.a11y_tree();
+    let rect_of = |t: &WidgetTester, id: tantu_test::accesskit::NodeId| {
+        t.rect(tantu::view::ElementId::from_raw(id.0).expect("element id"))
+    };
+    let tab = tree
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == Role::Tab && n.label() == Some(title))
+        .map(|(id, _)| rect_of(t, *id))
+        .unwrap_or_else(|| panic!("no tab {title}"));
+    let strip = tree
+        .nodes
+        .iter()
+        .filter(|(_, n)| n.role() == Role::TabList)
+        .map(|(id, _)| rect_of(t, *id))
+        .find(|r| {
+            r.left <= tab.center().x
+                && tab.center().x <= r.right
+                && r.top <= tab.center().y
+                && tab.center().y <= r.bottom
+        })
+        .expect("a strip around the tab");
+    (tab, strip)
+}
+
+fn pointer(t: &mut WidgetTester, kind: PointerKind, at: Point) {
+    t.pointer(PointerEvent {
+        kind,
+        position: at,
+        modifiers: Default::default(),
+    });
+    t.pump();
+}
+
+#[test]
+fn gallery_28_docking_drag() {
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.tap(&Finder::key(nav("Docking")));
+    t.pump();
+    t.pump();
+    // Terminal onto the editor strip, after Readme.
+    let (terminal, _) = tab_and_strip(&mut t, "Terminal");
+    let (readme, strip) = tab_and_strip(&mut t, "Readme");
+    let to = Point::new(readme.right + 20.0, strip.center().y);
+    pointer(
+        &mut t,
+        PointerKind::Down(PointerButton::Primary),
+        terminal.center(),
+    );
+    pointer(
+        &mut t,
+        PointerKind::Move,
+        terminal.center() + Vec2::new(10.0, 0.0),
+    );
+    pointer(&mut t, PointerKind::Move, to);
+    pointer(&mut t, PointerKind::Up(PointerButton::Primary), to);
+    t.pump();
+    assert_eq!(text_of(&t, "dock-echo"), "Active: Terminal · Panels: 6");
+    let (_, terminal_strip) = tab_and_strip(&mut t, "Terminal");
+    let (_, editor_strip) = tab_and_strip(&mut t, "Editor");
+    assert_eq!(
+        terminal_strip, editor_strip,
+        "Terminal joined the editor group"
+    );
+    // Problems to the right edge of the editor content: a new group beside it.
+    let (problems, _) = tab_and_strip(&mut t, "Problems");
+    let (_, strip) = tab_and_strip(&mut t, "Editor");
+    let to = Point::new(strip.right - 40.0, strip.bottom + 60.0);
+    pointer(
+        &mut t,
+        PointerKind::Down(PointerButton::Primary),
+        problems.center(),
+    );
+    pointer(
+        &mut t,
+        PointerKind::Move,
+        problems.center() + Vec2::new(10.0, 0.0),
+    );
+    pointer(&mut t, PointerKind::Move, to);
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-docking-drag.png"
+    ));
+    pointer(&mut t, PointerKind::Up(PointerButton::Primary), to);
+    t.pump();
+    assert_eq!(text_of(&t, "dock-echo"), "Active: Problems · Panels: 6");
+    t.tap(&Finder::text("Save"));
+    t.pump();
+    t.tap(&Finder::text("Reset layout"));
+    t.pump();
+    t.tap(&Finder::text("Restore"));
+    t.pump();
+    t.pump();
+    let (problems, _) = tab_and_strip(&mut t, "Problems");
+    let (editor, _) = tab_and_strip(&mut t, "Editor");
+    assert!(
+        problems.left > editor.right,
+        "restored beside the editor group"
+    );
+}
