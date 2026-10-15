@@ -49,7 +49,7 @@ impl Localization {
     pub fn format_date_time(&self, date: Date, time: Time, length: DateLength) -> String;
     /// "October" (`wide`) or "Oct" (abbreviated) in the locale.
     pub fn month_name(&self, month: u32, abbreviated: bool) -> String;
-    /// "Friday" (`wide`) or the short form used in calendar headers ("Fr").
+    /// "Friday", or the abbreviated form ("Fri" in English, "Fr" in German) when `short`.
     pub fn weekday_name(&self, day: Weekday, short: bool) -> String;
     /// The month and year as a calendar header writes them ("October 2026").
     pub fn format_month_year(&self, year: i32, month: u32) -> String;
@@ -70,8 +70,9 @@ impl Localization {
   `Friday, October 16, 2026`; de gives `16.10.26`, `16.10.2026`, `16. Oktober 2026`,
   `Freitag, 16. Oktober 2026` (the exact strings are ICU4X's compiled data).
 - **I18N-FMT-03:** `format_time` writes hours and minutes with the locale's hour cycle
-  (`9:05 PM` en, `21:05` de); `format_date_time` joins them with the locale's glue
-  pattern.
+  (`9:05 PM` en, with U+202F before `PM`; `21:05` de); `format_date_time` joins the medium
+  (or given) date and the time with the locale's glue (`Oct 16, 2026, 9:05 PM`,
+  `16.10.2026, 21:05`).
 - **I18N-FMT-04:** `month_name`, `weekday_name`, `format_month_year` and `first_weekday`
   come from the locale's data (`Oktober`, `Freitag`, `Oktober 2026`; first weekday Sunday
   for en-US, Monday for de and fr); a month outside 1..=12 gives an empty string.
@@ -89,7 +90,8 @@ impl Localization {
   (English, Monday).
 - **GALLERY-52:** The "i18n" kitchen-sink card also shows 1234567.891 with two digits, the
   date 2026-10-16 (long) and the time 21:05 in the gallery's language, echoed in
-  `sink-i18n-format` ("1,234,567.89 · October 16, 2026 · 9:05 PM" in English).
+  `sink-i18n-format` ("1,234,567.89 · October 16, 2026 · 9:05 PM" in English, the time
+  with ICU's U+202F).
 
 ## Performance and allocation
 
