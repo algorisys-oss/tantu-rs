@@ -81,11 +81,11 @@ pub struct PasteIntent; // primary + V
   a failure to open, read or write returns `None`/false with a debug `tracing` message,
   never a panic. Checked by the opt-in window test (a write then a read round-trips).
 - **VIEW-CLIP-01:** Every `ViewTree` starts with its own `MemoryClipboard`;
-  `set_clipboard` replaces it for the tree, and `BuildCx::clipboard` returns the current
-  one (handlers keep the handle they took at build time, so `set_clipboard` is meant to run
-  before the views build).
+  `set_clipboard` replaces it for the tree at any time. `BuildCx::clipboard` returns a
+  handle that always reads and writes the tree's current clipboard, so handles taken at
+  build time follow a later `set_clipboard`.
 - **FACADE-APP-18:** The runner gives each window's tree the platform's clipboard (through
-  an adapter) before building its view, when the platform has one.
+  an adapter) when it creates the window, when the platform has one.
 - **TEST-WT-19:** The tester's tree keeps a `MemoryClipboard`; `clipboard_text` reads it and
   `set_clipboard_text` writes it.
 - **WIDGETS-TEXTFIELD-12:** In an enabled `TextField`, primary + C (`CopyIntent`) writes the
