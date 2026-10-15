@@ -79,7 +79,9 @@ impl Localization {
   view follows `set_locale`. Without a `Localization`, widgets format as `en`.
 - **I18N-FMT-06:** `Date`, `Time` and `Weekday` keep their API and rules (WIDGETS-DATE-01,
   WIDGETS-TIME-01) in `tantu-i18n`; `tantu-widgets` re-exports them, so existing paths keep
-  working.
+  working. Helpers the widgets used privately become public: `Date::month_name` (English),
+  `Weekday::index`/`from_index`/`plus`, `Time::minutes_of_day`/`from_minutes` (found while
+  implementing, review).
 - **WIDGETS-I18N-03:** Under a `Localization`, `CalendarDatePicker` (and the date field's
   popup) writes its header with `format_month_year`, its weekday row with short weekday
   names, its day cells' names with `format_date(Full)`, and starts the week on

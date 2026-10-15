@@ -96,6 +96,8 @@ impl Localization {
     pub fn text(&self, id: &str) -> String;
     /// The message with arguments.
     pub fn text_with(&self, id: &str, args: &Args) -> String;
+    /// The message, or `None` when no locale in the chain has it (a tracked read).
+    pub fn message(&self, id: &str, args: Option<&Args>) -> Option<String>;
     /// The nearest localization above the element being built.
     pub fn of(cx: &BuildCx<'_>) -> Option<Localization>;
 }
@@ -130,6 +132,9 @@ impl Localizations {
   `Text` built from them updates when `set_locale` runs; `set_locale` stores the
   negotiated locale (an unavailable `fr-CA` becomes `fr` when only `fr` exists, or the
   fallback).
+- **I18N-MSG-06:** `message` follows the same chain as `text` but returns `None` for a
+  missing message (no warning), so a caller can supply its own default; the built-in
+  widget strings use it (found while implementing, review).
 - **I18N-MSG-05:** `Translations::negotiate` follows Fluent's filtering negotiation:
   exact matches, then language-and-region, then language, in the order requested; the
   fallback if nothing matches.
