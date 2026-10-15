@@ -66,8 +66,9 @@ impl ViewTree {
   when the user types. It lists the matching options, 40 px each, at most six visible (the
   rest scroll), on the theme's `surface` with a 4 px radius and a level-2 shadow, as wide as
   the field. An empty match list shows one "No matches" row that can't be chosen.
-- **WIDGETS-COMBO-03:** Filtering: opened by a press or a key without typing, the popup
-  lists every option; once the user edits the text, it lists the options containing the
+- **WIDGETS-COMBO-03:** Filtering: opening by a press selects the field's text, so typing
+  replaces it (found with the gallery, review). Opened by a press or a key without typing,
+  the popup lists every option; once the user edits the text, it lists the options containing the
   text, ignoring case, in their original order.
 - **WIDGETS-COMBO-04:** Highlight: opening highlights the selected option if it is listed,
   else the first; Down/Up move the highlight (wrapping), Home/End go to the ends, the list
