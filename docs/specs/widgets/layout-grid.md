@@ -1,6 +1,6 @@
 # `LayoutGrid`: a two-dimensional track layout
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-layout` (`RenderLayoutGrid`, `TrackSize`, `GridPlacementData`),
   `tantu-widgets` (`LayoutGrid`, `GridPlacement`), `examples/gallery`
 - **Plan item:** Phase 4, "`Grid` layout (possibly via taffy) for dashboard-style screens"

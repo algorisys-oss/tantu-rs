@@ -1,8 +1,10 @@
 //! [`LayoutGrid`] and [`GridPlacement`]: children on column and row tracks. Spec:
 //! `docs/specs/widgets/layout-grid.md`.
 
-use tantu_view::layout::TrackSize;
+use tantu_view::layout::{GridPlacementData, RenderLayoutGrid, TextDirection, TrackSize};
 use tantu_view::{AnyView, BuildCx, ElementId, View};
+
+use crate::directionality::direction_prop;
 
 /// Lays children out on column and row tracks (`flutter_layout_grid`'s `LayoutGrid`,
 /// WIDGETS-LGRID-01).
@@ -58,15 +60,16 @@ impl LayoutGrid {
 }
 
 impl View for LayoutGrid {
-    fn build(self, _cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            self.columns,
-            self.rows,
-            self.column_gap,
-            self.row_gap,
-            self.children,
-        );
-        todo!("WIDGETS-LGRID-01")
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let direction = direction_prop(cx);
+        let mut render = RenderLayoutGrid::new(self.columns, self.rows);
+        render.column_gap = self.column_gap;
+        render.row_gap = self.row_gap;
+        let id = cx.render(render, self.children);
+        cx.bind(id, direction, |e, direction: TextDirection| {
+            e.update_render::<RenderLayoutGrid>(|r| r.text_direction = direction);
+        });
+        id
     }
 }
 
@@ -117,14 +120,20 @@ impl GridPlacement {
 }
 
 impl View for GridPlacement {
-    fn build(self, _cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (
-            self.child,
-            self.column,
-            self.row,
-            self.column_span,
-            self.row_span,
-        );
-        todo!("WIDGETS-LGRID-01")
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = self.child.build(cx);
+        let data = GridPlacementData {
+            column: self.column,
+            row: self.row,
+            column_span: self.column_span,
+            row_span: self.row_span,
+        };
+        if !cx.set_parent_data(id, data) {
+            tracing::warn!(
+                "GridPlacement around a dynamic region has no element to hold its placement; \
+                 the child is placed automatically"
+            );
+        }
+        id
     }
 }

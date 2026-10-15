@@ -40,7 +40,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 24] = [
+pub const SINK_CARDS: [(&str, &[&str]); 25] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -66,6 +66,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 24] = [
     ("mask", &["masked_field"]),
     ("date", &["calendar_date_picker"]),
     ("time", &["time_picker_field"]),
+    ("dashboard", &["layout_grid"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -842,6 +843,7 @@ fn kitchen_sink_section() -> impl View {
             .child(forms::mask_sink())
             .child(forms::date_sink())
             .child(forms::time_sink())
+            .child(dashboard_sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())
@@ -866,6 +868,51 @@ fn card(key: &str, title: &'static str, body: impl View, echo: Option<AnyView>) 
         column = column.child(Keyed::new(format!("sink-{key}-state"), echo));
     }
     Keyed::new(format!("sink-{key}"), column)
+}
+
+/// The dashboard card: labels in an auto column, tiles in two flexible columns, a header
+/// spanning all three (GALLERY-47).
+fn dashboard_sink() -> impl View {
+    let tile = |n: usize, color: u32| {
+        Keyed::new(
+            format!("dashboard-tile-{n}"),
+            swatch(1.0, Color::from_argb32(color)),
+        )
+    };
+    let label = |text: &'static str| {
+        Align::new(Alignment::CENTER_LEFT).child(Text::new(text).style(TextStyle::label()))
+    };
+    let mut grid = LayoutGrid::new([TrackSize::AUTO, TrackSize::fr(1.0), TrackSize::fr(1.0)])
+        .column_gap(8.0)
+        .row_gap(8.0)
+        .child(
+            GridPlacement::new(Keyed::new(
+                "dashboard-header",
+                swatch(1.0, Color::from_argb32(0xFF67_50A4)),
+            ))
+            .column(0)
+            .row(0)
+            .column_span(3),
+        );
+    let rows = [
+        ("Sales", 0xFF7D_5260),
+        ("Users", 0xFF62_5B71),
+        ("Errors", 0xFFB3_261E),
+    ];
+    let mut tiles = 0;
+    for (name, color) in rows {
+        grid = grid
+            .child(label(name))
+            .child(tile(tiles + 1, color))
+            .child(tile(tiles + 2, color));
+        tiles += 2;
+    }
+    card(
+        "dashboard",
+        "Layout grid",
+        SizedBox::width(480.0).child(Keyed::new("sink-layout_grid", grid)),
+        echo(move || format!("Tiles: {tiles}")),
+    )
 }
 
 /// A reactive-text echo for a card.

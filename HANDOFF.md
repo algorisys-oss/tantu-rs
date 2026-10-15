@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (i18n part 1, RTL layout mirroring, done; the user is away until morning)_
+_Last updated: 2026-10-16 (`LayoutGrid` done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1218,6 +1218,18 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     (switch thumbs, slider tracks, caret keys, chevrons, scrollbar side) and paragraph
     alignment. Gallery: an "RTL" header switch mirroring everything between the bars
     (every gallery golden regenerated for the header's new switch). No new crate or edge.
+97. **`LayoutGrid`** (2026-10-16, spec `docs/specs/widgets/layout-grid.md`; decided by the
+    agent while the user was away, review). The PLAN.md "`Grid` layout (possibly via
+    taffy)" item, done in-house (no taffy, `tantu-layout` stays dependency-free) with
+    `flutter_layout_grid`'s names, since `Grid*` names belong to the data grid:
+    `RenderLayoutGrid` with `TrackSize::{Fixed, Flex, Auto}` columns and rows, gaps,
+    explicit `GridPlacementData` (column, row, spans) and row-major auto placement,
+    implicit auto rows, flexible tracks sized as auto when the axis is unbounded, items
+    filling their cells (measured once in content-sized rows, then laid out tight;
+    amendment found with the gallery, review), RTL mirroring and intrinsic sizes.
+    Spanning items don't grow auto tracks (a documented simplification). Widgets
+    `LayoutGrid` and `GridPlacement`, following `Directionality`; `TrackSize` is in the
+    prelude. Gallery: a "dashboard" kitchen-sink card. No new crate or edge.
 
 ## Commit log
 
@@ -1783,16 +1795,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `3b9da1f` | impl: Time, TimePickerField, Role::SpinButton (Increment as Up, AccessKit mapping); gallery Start field and time card, goldens; PLAN.md Forms ticked (CI green, run 38811817902) |
 | `d0dffdd` | spec: i18n part 1, RTL layout mirroring (LAYOUT-DIR-01, LAYOUT-FLEX-15, LAYOUT-WRAP-10, VIEW-FRAME-09, WIDGETS-DIR-01..03, GALLERY-46); PLAN.md i18n split |
 | `e2b0d07` | test: i18n part 1, stubs + 8 failing tests |
-| _this commit_ | impl: TextDirection and directional types, mirrored flex/wrap, ElementMut::set_parent_data, Directionality, directional Padding/Align/Positioned, prelude exports; gallery RTL switch, goldens; PLAN.md part 1 ticked |
+| `d008147` | impl: TextDirection and directional types, mirrored flex/wrap, ElementMut::set_parent_data, Directionality, directional Padding/Align/Positioned, prelude exports; gallery RTL switch, goldens; PLAN.md part 1 ticked (CI green, run 38813219329) |
+| `4e34bba` | spec: LayoutGrid (LAYOUT-LGRID-01..06, WIDGETS-LGRID-01, GALLERY-47) |
+| `d1825ef` | test: LayoutGrid, stubs + 8 failing tests |
+| `4783573` | spec: LAYOUT-LGRID-04, items in content-sized rows fill their rows |
+| `d4b4fdf` | test: LAYOUT-LGRID-04 expects the spanning item to fill its rows, failing |
+| _this commit_ | impl: RenderLayoutGrid (placement, track sizing, stretch, RTL, intrinsics), LayoutGrid and GridPlacement; gallery dashboard card, goldens; PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order (Forms is done): i18n parts 2–3 (Fluent localisation,
-locale formats; both need dependency choices), `Grid` layout; the remaining
-clipboard/multi-window/drag-and-drop parts. Mirroring widgets' own painted geometry under
+Continue Phase 4 in PLAN.md order (Forms and `LayoutGrid` are done): i18n parts 2–3
+(Fluent localisation, locale formats; both need a new crate and dependencies, so the user
+decides first); the remaining clipboard/multi-window/drag-and-drop parts. Mirroring widgets' own painted geometry under
 RTL (switch, slider, caret keys, chevrons, scrollbar side) is a follow-up. Native OS menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
