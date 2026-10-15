@@ -86,9 +86,12 @@ fn main() -> tantu::Result<()> {
 - **Widgets:** `Text`, `RichText`, `Button`, `IconButton`, `Icon` (Material Icons), `Image`
   (PNG), `Checkbox`, `Radio`, `Switch`, `Slider`, `Divider`, `TextField` (with undo and IME),
   `Tooltip`.
+- **Enterprise widgets:** `DataGrid` (a million rows, frozen columns, sorting, resizing,
+  selection, cell editors), `TreeView`, `TabView` (with `TabBar` and `TabBarView`) and
+  `SplitView` (resizable, collapsible panes; nest them for IDE-style layouts).
 - **State:** `signal`, `memo`, `effect`; every widget prop takes a value, a closure or a signal.
-- **Input:** pointer events, keyboard focus and Tab traversal, `Shortcuts` and `Actions`,
-  overlays anchored to widgets.
+- **Input:** pointer events with cursor shapes, keyboard focus and Tab traversal, `Shortcuts`
+  and `Actions`, overlays anchored to widgets.
 - **Scrolling:** `ScrollView` with a scrollbar, and `ListView::builder` that builds only the
   rows in view (100 000 rows cost what a dozen do).
 - **Theming:** `Theme::light()` and `Theme::dark()` (Material 3 colors, text presets, shape,
@@ -103,8 +106,8 @@ fn main() -> tantu::Result<()> {
 
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
 window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
-Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (tabs,
-split views, docking, menus, dialogs, forms), multi-window, clipboard and i18n.
+Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (docking,
+menus, dialogs, forms), multi-window, clipboard and i18n.
 
 The **Tree view** section demonstrates a project explorer and a generated branch with 5,000
 children; the **Kitchen sink** includes the same expandable tree with selection/activation

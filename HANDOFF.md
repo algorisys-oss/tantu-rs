@@ -3,18 +3,21 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-15 (SplitView drafts for review)_
+_Last updated: 2026-10-15 (SplitView done; docking next)_
 
 ## Resume here (2026-10-15)
 
 **TabView is done** (decisions 80 and 81): `Offstage` keeps retained pages hidden, and
 `TabBar`, `TabBarView` and `TabView` share one `Signal<usize>`, with fixed and scrollable bars,
 visited pages kept alive and built lazily, the WAI-ARIA keyboard model, AccessKit tab roles,
-a gallery "Tabs" section and a kitchen-sink card. **SplitView is drafted for review** in two parts:
-`docs/specs/platform/cursor.md` (cursor icons never reached the window: `ViewTree::cursor`
-existed but the `Platform` trait had no `set_cursor`; four proposals) and
-`docs/specs/widgets/split-view.md` (`RenderSplit` + `SplitView`; seven proposals). **Next:**
-the user reviews both drafts, then spec/test/impl per part. Commit/push authorization persists.
+a gallery "Tabs" section and a kitchen-sink card.
+
+**SplitView is done** (decisions 82 and 83): cursor icons now reach the window
+(`PlatformContext::set_cursor`, the runner syncing `ViewTree::cursor`, a drag keeping its
+cursor), and `RenderSplit` + `SplitView` give N resizable, collapsible panes with shared
+fractions, keyboard resizing, splitter semantics, a gallery "Split view" section and a
+kitchen-sink card. The grid's column handles show the resize cursor too. **Next:** draft the
+docking layout manager (`docs/specs/widgets/docking.md`). Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -974,6 +977,32 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     card (every gallery golden regenerated for the sidebar's new button). No new crate,
     edge or pipeline stage.
 
+82. **Cursor icons through the platform** (2026-10-15, spec `docs/specs/platform/cursor.md`;
+    the user said "continue" on the four proposals). The view tree already chose cursors but
+    the `Platform` trait could not show them, so every window kept the arrow. A platform-side
+    `CursorIcon` copy (no new edge; the runner converts) and `PlatformContext::set_cursor`;
+    the fake platform records calls in `FakeWindow::cursors`; winit maps the resize shapes to
+    `EwResize`/`NsResize`; a held capture keeps its path's cursor (VIEW-EVENT-09); the runner
+    sends only changes, after pointer events and frames, and nothing while the pointer is
+    outside the window (it tracks that itself, since a window `Leave` clears the tree's
+    pointer position). `WidgetTester::cursor`. Checked on Wayland by the opt-in window test.
+
+83. **SplitView** (2026-10-15, spec `docs/specs/widgets/split-view.md`; the user said
+    "continue" on the seven proposals): `RenderSplit` in `tantu-layout` lays out N panes
+    from cleaned fractions with minimums (raised panes take space from the others in
+    proportion to their size above their own minimum; minimums that don't fit are scaled
+    down together), collapsible panes at 0, and divider handles centred on the gaps as the
+    last children so they win the hit test. `SplitView` keeps fractions in a shareable
+    signal; the split's paint records the laid-out sizes in a signal that the dividers'
+    drag, keys and numeric semantics read. Each divider moves only its two neighbours;
+    dragging below half a collapsible pane's minimum collapses it; arrows (both axes) move
+    10 px, Home/End go to the minimums, Enter collapses and restores. Added while agreeing
+    or implementing (review): dividers come after all panes in Tab order (they must be last
+    to win the hit test); `RenderSplit::panes()`; `Finder::semantics_label` (TEST-WT-18) to
+    find dividers; the grid's resize handles are a 6 px strip element with the resize cursor
+    (WIDGETS-GRID-29); the gallery's Folders minimum is 160 px. No new crate, edge or
+    pipeline stage; the architecture doc notes the cursor path.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1460,15 +1489,25 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `cba4a13` | test: TabBar, TabBarView and TabView, stubs + 14 failing tests |
 | `e3b02dd` | test: TabView tests copy the Copy text controller (clippy) |
 | `0e17195` | impl: TabBar, TabBarView and TabView (fixed/scrollable bars, lazy kept pages, keys, tab semantics); gallery Tabs section and kitchen-sink card, goldens; PLAN.md TabView ticked |
-| _this commit_ | docs: draft SplitView specs for review (cursor icons through the platform; RenderSplit and SplitView); PLAN.md item split in two |
+| `555dc75` | docs: draft SplitView specs for review (cursor icons through the platform; RenderSplit and SplitView); PLAN.md item split in two |
+| `c23ac3f` | spec: cursor icons through the platform agreed (PLATFORM-CURSOR-01, PLATFORM-FAKE-14, PLATFORM-WINIT-16, VIEW-EVENT-09, FACADE-APP-17, TEST-WT-17) |
+| `bedc652` | test: cursor icons through the platform, stubs + 8 failing tests |
+| `9ce777b` | impl: cursor icons through the platform (set_cursor, fake/winit shells, capture keeps the cursor, runner sync, WidgetTester::cursor); PLAN.md part 1 ticked |
+| `fa12617` | spec: RenderSplit and SplitView agreed (LAYOUT-SPLIT-01..05, WIDGETS-SPLIT-01..08, A11Y-TREE-08, GALLERY-24..25); grid resize-handle cursor (WIDGETS-GRID-29) |
+| `4e1d07b` | spec: RenderSplit keeps its pane count (panes()) and defines odd gap and handle values |
+| `2526038` | spec: Finder::semantics_label (TEST-WT-18); GALLERY-22/23 counts follow GALLERY-24/25 |
+| `47965ac` | spec: TEST-WT-18 matches Semantics::name |
+| `42772c5` | test: RenderSplit, SplitView, splitter role, grid handle cursor and semantics-label finder, stubs + 21 failing tests |
+| `7e02088` | spec: GALLERY-24's Folders minimum is 160 px; GALLERY-25's labels and echo |
+| _this commit_ | impl: RenderSplit and SplitView (fractions, minimums, collapsing, drag and keys, splitter semantics), grid handle cursor, Finder::semantics_label; gallery Split view section and kitchen-sink card, goldens; README; PLAN.md SplitView ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Review the two `SplitView` drafts (cursor icons, then the split view), implement both
-parts, then docking.
+Draft the docking layout manager spec (drag panels, persist layout), building on
+`RenderSplit` for its split nodes and on TabView for document tabs.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
@@ -1511,7 +1550,7 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR
   0008 (renderer conformance), 49 to 69 (the Phase 3 widgets, the theme, animation,
   lists, accessibility and focus scopes), 70 to 72 (DataGrid parts 1 to 3), 73 (the
-  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation); decision 76's BuildCx::focus, decision 77's kitchen-sink composition, and decision 78's overlay representation/demo details are also marked for review.
+  kitchen sink) 74 (column resize and reorder) and 75 (selection and keyboard navigation); decision 76's BuildCx::focus, decision 77's kitchen-sink composition, decision 78's overlay representation/demo details, and decision 83's additions (divider Tab order, `Finder::semantics_label`, the grid's handle strip) are also marked for review.
 - **Draw-command validity is checked in three places** (`RenderReport::for_scene` and private
   copies in the soft and wgpu renderers). A public helper in `tantu-scene` (e.g.
   `Command::is_drawable`) would remove the copies; it is an API addition, so it needs a spec
@@ -1521,10 +1560,6 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
   reference Scene yet; check when shadows get a closer look.
 - **A debug build printed an ICU4X "No segmentation model" message** to stderr for Japanese
   text (decision 43); find where it comes from with Phase 4 i18n.
-- **No cursor reaches the window** (corrects decision 74's note): `tantu_view::CursorIcon`
-  already has `ResizeHorizontal`/`ResizeVertical`, but the platform has no `set_cursor`, so
-  every window shows the arrow. Drafted as SplitView part 1 (`docs/specs/platform/cursor.md`);
-  the grid's column handles should set `ResizeHorizontal` once it lands.
 - **`.agents/` is untracked** in the working tree (a `skills` folder, not project code); decide
   whether to gitignore or commit it.
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the

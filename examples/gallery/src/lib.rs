@@ -1,6 +1,7 @@
 //! The Tantu widget gallery (spec `docs/specs/examples/gallery.md`): a header, a sidebar of
 //! sections and the selected section's samples.
 
+mod split;
 mod tabs;
 mod tree;
 
@@ -16,7 +17,7 @@ use tantu::scene::{BorderRadius, ImageData, RoundedRect};
 use tantu::view::{Anchor, BuildCx, ElementId, Keyed, OverlayPortal, Paint, PaintCx, Prop};
 
 /// The section names, in sidebar order.
-pub const SECTIONS: [&str; 11] = [
+pub const SECTIONS: [&str; 12] = [
     "Buttons",
     "Text",
     "Selection",
@@ -26,13 +27,14 @@ pub const SECTIONS: [&str; 11] = [
     "Animation",
     "Data grid",
     "Tree view",
+    "Split view",
     "Tabs",
     "Kitchen sink",
 ];
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 14] = [
+pub const SINK_CARDS: [(&str, &[&str]); 15] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -48,6 +50,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 14] = [
     ("lists", &["list_view"]),
     ("tree", &["tree_view"]),
     ("tabs", &["tab_bar", "tab_view"]),
+    ("split", &["split_view"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -162,6 +165,7 @@ fn content(section: Signal<&'static str>) -> impl View {
             "Kitchen sink" => AnyView::new(kitchen_sink_section()),
             "Tree view" => AnyView::new(tree::section()),
             "Tabs" => AnyView::new(tabs::section()),
+            "Split view" => AnyView::new(split::section()),
             _ => AnyView::new(buttons_section()),
         };
         Column::new()
@@ -709,6 +713,7 @@ fn kitchen_sink_section() -> impl View {
             .child(sink_lists())
             .child(tree::sink())
             .child(tabs::sink())
+            .child(split::sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

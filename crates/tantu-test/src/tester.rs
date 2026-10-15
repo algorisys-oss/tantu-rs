@@ -54,8 +54,14 @@ impl Finder {
 
     /// Elements whose semantics label is exactly `label` (TEST-WT-18).
     pub fn semantics_label(label: impl Into<String>) -> Self {
-        let _ = label.into();
-        todo!("TEST-WT-18")
+        let label = label.into();
+        Finder {
+            description: format!("Finder::semantics_label({label:?})"),
+            matches: Box::new(move |tree, id| {
+                tree.semantics(id)
+                    .is_some_and(|s| s.name.as_deref() == Some(label.as_str()))
+            }),
+        }
     }
 
     /// Render elements whose render object is an `R`.

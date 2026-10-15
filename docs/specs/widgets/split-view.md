@@ -1,6 +1,6 @@
 # SplitView: resizable panes
 
-- **Status:** Agreed (2026-10-15, the user said "continue" on the seven proposals)
+- **Status:** Implemented (2026-10-15; agreed the same day, the user said "continue" on the seven proposals)
 - **Crates:** `tantu-layout` (`RenderSplit`), `tantu-widgets` (`SplitView`, `SplitPane`),
   `tantu-view` and `tantu-a11y` (the splitter role), `examples/gallery`
 - **Plan item:** Phase 4, "`SplitView`", part 2 (the layout and the widget)

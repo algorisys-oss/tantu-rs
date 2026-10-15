@@ -11,13 +11,13 @@ use std::time::Duration;
 use tantu_view::core::{Affine, Color, EdgeInsets, Point, Rect, Size, Vec2};
 use tantu_view::layout::{
     Alignment, BoxConstraints, CrossAxisAlignment, GridSlot, ListExtents, RenderConstrainedBox,
-    RenderGridBody, ScrollAxis,
+    RenderGridBody, ScrollAxis, StackFit,
 };
 use tantu_view::reactive::{Memo, Signal, effect, memo, on_cleanup, signal};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::{
-    AnyView, BuildCx, Dyn, ElementId, FocusOptions, For, Handled, LogicalKey, NamedKey, Paint,
-    PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics, SemanticsAction,
+    AnyView, BuildCx, CursorIcon, Dyn, ElementId, FocusOptions, For, Handled, LogicalKey, NamedKey,
+    Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics, SemanticsAction,
     SemanticsActions, SortDirection, View,
 };
 
@@ -29,7 +29,7 @@ use crate::{GridCell, GridSelection, GridSelectionController, GridSelectionMode}
 
 use crate::scroll::{KEY_STEP, Scrollbar, THUMB_ALPHA, THUMB_WIDTH};
 use crate::theme::{ThemeHandle, at, blend};
-use crate::{Align, Column, Expanded, Padding, ScrollController, Text};
+use crate::{Align, Column, Expanded, Padding, Positioned, ScrollController, Stack, Text};
 
 /// A cell's horizontal padding.
 const CELL_PADDING: f32 = 8.0;
@@ -1805,11 +1805,41 @@ struct CellBox {
     child: AnyView,
 }
 
+/// A header's resize handle: shows the resize cursor (WIDGETS-GRID-29). The header cell's
+/// own handler does the resizing.
+struct ResizeStrip;
+
+impl View for ResizeStrip {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::expand(), []);
+        cx.set_cursor(id, CursorIcon::ResizeHorizontal);
+        id
+    }
+}
+
 impl View for CellBox {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let resizable = self
+            .header
+            .as_ref()
+            .is_some_and(|h| h.geometry.sizing[h.column].resizable);
+        let child = if resizable {
+            // The content fills the cell as before; the strip lies over its right edge.
+            AnyView::new(
+                Stack::new().fit(StackFit::Expand).child(self.child).child(
+                    Positioned::new(ResizeStrip)
+                        .top(0.0)
+                        .right(0.0)
+                        .bottom(0.0)
+                        .width(HANDLE_WIDTH),
+                ),
+            )
+        } else {
+            self.child
+        };
         let id = cx.render(
             RenderConstrainedBox::new(BoxConstraints::UNCONSTRAINED),
-            [self.child],
+            [child],
         );
         cx.set_parent_data(id, self.key.slot());
         cx.set_semantics(
