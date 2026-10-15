@@ -197,14 +197,14 @@ fn layout_lgrid_04_rows() {
         (5.0, 10.0, at(Some(0), Some(0), 1, 1)),
         (5.0, 25.0, at(Some(0), Some(1), 1, 1)),
         (5.0, 10.0, at(Some(0), Some(2), 1, 1)),
-        // Spanning the auto row: laid out with its own height.
+        // Spanning the auto row: measured with its own height, then fills its rows.
         (5.0, 7.0, at(Some(1), Some(0), 1, 2)),
     ];
     let render = RenderLayoutGrid::new(vec![TrackSize::px(10.0), TrackSize::px(10.0)], rows);
     let mut g = grid(render.clone(), &kids);
     let size = g.layout(BoxConstraints::loose(s(100.0, 200.0)));
     let heights: Vec<f32> = g.sizes().iter().map(|s| s.height).collect();
-    assert_eq!(heights, [30.0, 25.0, 145.0, 7.0]);
+    assert_eq!(heights, [30.0, 25.0, 145.0, 55.0]);
     let ys: Vec<f32> = g.offsets().iter().map(|o| o.y).collect();
     assert_eq!(ys, [0.0, 30.0, 55.0, 0.0]);
     assert_eq!(size, s(20.0, 200.0));
