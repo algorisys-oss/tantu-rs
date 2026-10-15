@@ -95,6 +95,12 @@ impl SplitView {
 
 // tantu-view
 pub enum Role { /* existing, */ Splitter }
+
+// tantu-test (TEST-WT-18, added while implementing; review)
+impl Finder {
+    /// Elements whose semantics label is exactly `label` (Flutter's `find.bySemanticsLabel`).
+    pub fn semantics_label(label: impl Into<String>) -> Self;
+}
 ```
 
 `SplitView` implements `View`; `SplitPane` is consumed by it. Both are in the facade prelude.
@@ -171,6 +177,10 @@ pub enum Role { /* existing, */ Splitter }
 - **WIDGETS-GRID-29:** (amends [DataGrid columns](data-grid-columns.md), review) A header
   cell's resize handle sets `ResizeHorizontal` as its cursor, so the column handles show
   the resize cursor now that cursors reach the window ([cursor icons](../platform/cursor.md)).
+- **TEST-WT-18:** (amends [WidgetTester](../test/widget-tester.md), review)
+  `Finder::semantics_label(label)` matches the elements whose `Semantics::label` equals
+  `label`, so tests can find elements that have a label but no key or text, such as a
+  split view's dividers ("Resize Folders").
 - **GALLERY-24:** A "Split view" section before Tabs (twelve sections): a horizontal split
   (key `split`) of a 200 px-minimum collapsible "Folders" list, a "Messages" list and a
   vertical split of a "Preview" text and an "Output" pane (keys `split-*`), with fractions

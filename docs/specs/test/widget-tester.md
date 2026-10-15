@@ -165,6 +165,9 @@ impl Finder {
   see [timers and tickers](../reactive/timers.md).
 - **TEST-WT-14:** `a11y_tree` and `perform_action`; see [semantics](../a11y/semantics.md).
 - **TEST-WT-15:** `ensure_visible`; see [focus scopes](../view/focus-scope.md).
+- **TEST-WT-16:** see [DataGrid selection](../widgets/data-grid-selection.md) (modified taps).
+- **TEST-WT-17:** `cursor`; see [cursor icons](../platform/cursor.md).
+- **TEST-WT-18:** `Finder::semantics_label`; see [SplitView](../widgets/split-view.md).
 
 ## Open questions
 
