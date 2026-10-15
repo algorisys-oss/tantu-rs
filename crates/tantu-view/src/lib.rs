@@ -48,6 +48,7 @@ mod frame;
 mod inherited;
 mod keys;
 mod layout_builder;
+mod offstage;
 mod overlay;
 mod paint;
 mod prop;
