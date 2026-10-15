@@ -1,4 +1,4 @@
-//! Gallery and kitchen-sink form examples (GALLERY-36..37).
+//! Gallery and kitchen-sink form examples (GALLERY-36..41).
 use tantu::prelude::*;
 use tantu::view::Keyed;
 
@@ -8,29 +8,54 @@ fn looks_like_email(text: &str) -> bool {
         .is_some_and(|(user, domain)| !user.is_empty() && domain.contains('.'))
 }
 
-/// The Text field section's form: Name and Email, Submit and Reset, and an echo.
+/// "Phone: none", "Phone: incomplete" or the digits (GALLERY-40).
+fn masked_echo(
+    label: &str,
+    mask: &MaskFormatter,
+    text: &str,
+    show: impl Fn(&str) -> String,
+) -> String {
+    let shown = if text.is_empty() {
+        "none".to_owned()
+    } else if mask.is_complete(text) {
+        show(text)
+    } else {
+        "incomplete".to_owned()
+    };
+    format!("{label}: {shown}")
+}
+
+/// The Text field section's form: Name, Email and a masked Phone, Submit and Reset, and
+/// echoes.
 pub(super) fn sample() -> impl View {
     let form = FormController::new();
-    let (name, email) = (
+    let (name, email, phone) = (
+        TextEditingController::new(""),
         TextEditingController::new(""),
         TextEditingController::new(""),
     );
+    let mask = MaskFormatter::new("(###) ###-####");
     let result = signal("not submitted".to_owned());
-    let submit = move || {
-        if form.validate() {
-            result.set(format!("submitted {} <{}>", name.text(), email.text()));
-        } else {
-            let invalid = [
-                name.text().trim().is_empty(),
-                !looks_like_email(&email.text()),
-            ]
-            .into_iter()
-            .filter(|bad| *bad)
-            .count();
-            result.set(format!(
-                "fix {invalid} field{}",
-                if invalid == 1 { "" } else { "s" }
-            ));
+    let submit = {
+        let mask = mask.clone();
+        move || {
+            if form.validate() {
+                result.set(format!("submitted {} <{}>", name.text(), email.text()));
+            } else {
+                let phone = phone.text();
+                let invalid = [
+                    name.text().trim().is_empty(),
+                    !looks_like_email(&email.text()),
+                    !phone.is_empty() && !mask.is_complete(&phone),
+                ]
+                .into_iter()
+                .filter(|bad| *bad)
+                .count();
+                result.set(format!(
+                    "fix {invalid} field{}",
+                    if invalid == 1 { "" } else { "s" }
+                ));
+            }
         }
     };
     Keyed::new(
@@ -56,6 +81,19 @@ pub(super) fn sample() -> impl View {
                                 "That doesn't look like an email",
                             )),
                     )
+                    .child(
+                        TextFormField::new(phone)
+                            .label("Phone")
+                            .placeholder("(555) 123-4567")
+                            .input_formatter(mask.clone())
+                            .validator(mask.validator("Enter all ten digits")),
+                    )
+                    .child(Keyed::new(
+                        "mask-echo",
+                        Text::new(move || {
+                            masked_echo("Phone", &mask, &phone.text(), |t| mask.unmask(t))
+                        }),
+                    ))
                     .child(
                         Row::new()
                             .spacing(8.0)
@@ -95,6 +133,27 @@ pub(super) fn sink() -> impl View {
         "Form",
         body,
         super::echo(move || if form.is_valid() { "Valid" } else { "Invalid" }.to_owned()),
+    )
+}
+
+/// The mask card: a date field (GALLERY-41).
+pub(super) fn mask_sink() -> impl View {
+    let date = TextEditingController::new("");
+    let mask = MaskFormatter::new("##/##/####");
+    let body = SizedBox::width(320.0).child(Keyed::new(
+        "sink-masked_field",
+        TextFormField::new(date)
+            .label("Date")
+            .placeholder("MM/DD/YYYY")
+            .input_formatter(mask.clone())
+            .validator(mask.validator("Enter the whole date"))
+            .autovalidate(AutovalidateMode::OnUserInteraction),
+    ));
+    super::card(
+        "mask",
+        "Masked input",
+        body,
+        super::echo(move || masked_echo("Date", &mask, &date.text(), str::to_owned)),
     )
 }
 

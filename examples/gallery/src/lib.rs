@@ -40,7 +40,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 21] = [
+pub const SINK_CARDS: [(&str, &[&str]); 22] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -63,6 +63,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 21] = [
     ("dialogs", &["dialog"]),
     ("form", &["text_form_field"]),
     ("combo", &["combo_box"]),
+    ("mask", &["masked_field"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -806,6 +807,7 @@ fn kitchen_sink_section() -> impl View {
             .child(dialogs::sink())
             .child(forms::sink())
             .child(forms::combo_sink())
+            .child(forms::mask_sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

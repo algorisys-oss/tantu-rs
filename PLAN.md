@@ -191,7 +191,7 @@ faster or more portable without changing how apps are written.
 - [ ] Forms: validation, field binding, masked input, date/time pickers, combo box with search, in parts:
   - [x] validation and field binding: `Form`, `FormController`, `TextFormField`, validators, error semantics (spec `docs/specs/widgets/form.md`)
   - [x] combo box with search: `ComboBox` (spec `docs/specs/widgets/combo-box.md`)
-  - [ ] input formatters and masked input: `TextInputFormatter`, `MaskFormatter` (spec `docs/specs/widgets/masked-input.md`)
+  - [x] input formatters and masked input: `TextInputFormatter`, `MaskFormatter` (spec `docs/specs/widgets/masked-input.md`)
   - [ ] date and time pickers (separate spec)
 - [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting
 - [ ] `Grid` layout (possibly via taffy) for dashboard-style screens

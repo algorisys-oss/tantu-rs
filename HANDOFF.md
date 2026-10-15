@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (forms part 2, the combo box, done; the user is away until morning)_
+_Last updated: 2026-10-16 (forms part 3, masked input, done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1163,6 +1163,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     new `ViewTree::popup_owner` (VIEW-OVERLAY-14), and the portal targets the field itself.
     Gallery: a "Fruit" combo box in Selection and a "combo" kitchen-sink card. No new crate
     or edge.
+93. **Forms part 3: input formatters and masked input** (2026-10-16, spec
+    `docs/specs/widgets/masked-input.md`; decided by the agent while the user was away,
+    review). Flutter's `TextInputFormatter` chain on `TextField` (and forwarded by
+    `TextFormField`) rather than a masked-field widget: formatters rewrite every user edit
+    that changes the text (typing, deleting, IME commits, paste, cut, `SetValue`), never
+    selection-only edits, compositions in progress or app-set text; `on_change` reports
+    the formatted text. `FilteringFormatter` (allow/deny/digits_only),
+    `LengthLimitingFormatter`, and `MaskFormatter` (`#` digit, `A` letter, `*` either,
+    `\` escape): input read by walking the text against the mask, literals emitted only
+    before a filled slot, the caret kept after the same number of inputs, and a deletion
+    of separators alone deleting the input before them; `unmask`, `is_complete` and a
+    validator. Cut and paste now go through the same edit path as typing. Gallery: a
+    masked Phone field in the Text field section's form and a "mask" kitchen-sink card
+    (a date). No new crate or edge.
 
 ## Commit log
 
@@ -1709,14 +1723,19 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `37af9b0` | test: `ViewTree::popup_owner`, stub + 1 failing test |
 | `7cb8f37` | test: gallery `type_into` also finds combo boxes |
 | `bddbb44` | spec: WIDGETS-COMBO-03, opening by a press selects the field's text |
-| _this commit_ | impl: ComboBox, popup_owner, popup-owned active descendants; gallery combo sample and card, goldens; PLAN.md part 2 ticked |
+| `4508c40` | impl: ComboBox, popup_owner, popup-owned active descendants; gallery combo sample and card, goldens; PLAN.md part 2 ticked (CI green, run 38807476870) |
+| `64b668c` | spec: forms part 3, input formatters and masked input (WIDGETS-MASK-01..06, GALLERY-40..41) |
+| `3edd991` | test: forms part 3, stubs + 8 failing tests |
+| `c275e7d` | test: WIDGETS-MASK-01 finds the Code field by its TextInput role |
+| `34cade0` | test: GALLERY-40..41 type further keys without a second click; Phone by its role |
+| _this commit_ | impl: formatters (filtering, length, mask) on TextField/TextFormField; gallery Phone field and mask card, goldens; PLAN.md part 3 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: forms parts 3–4 (masked input, date/time pickers), i18n, `Grid` layout; the remaining clipboard/multi-window/drag-and-drop
+Continue Phase 4 in PLAN.md order: forms part 4 (date/time pickers), i18n, `Grid` layout; the remaining clipboard/multi-window/drag-and-drop
 parts. Native OS menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.

@@ -180,31 +180,44 @@ type SharedGeometry = Rc<RefCell<TextGeometry>>;
 /// The content's horizontal shift (WIDGETS-TEXTFIELD-09), also shared.
 type SharedShift = Rc<Cell<f32>>;
 
-/// Applies `f` to the controller and reports a text change (WIDGETS-TEXTFIELD-04).
+/// What happens to the user's edits: the formatters rewrite them (WIDGETS-MASK-01) and
+/// `on_change` hears about them (WIDGETS-TEXTFIELD-04).
+#[derive(Clone, Default)]
+struct Edits {
+    on_change: Option<Rc<dyn Fn(String)>>,
+    formatters: Rc<[Rc<dyn TextInputFormatter>]>,
+}
+
+/// Applies the user's edit `f` to the controller, formatted, and reports a text change.
 fn apply(
     controller: TextEditingController,
-    on_change: &Option<Rc<dyn Fn(String)>>,
+    edits: &Edits,
     f: impl FnOnce(&EditingValue) -> EditingValue,
 ) {
     let before = controller.value();
-    controller.edit(f);
-    let after = controller.value();
-    if after.text != before.text {
-        if let Some(on_change) = on_change {
-            on_change(after.text);
+    controller.edit(|old| {
+        let new = f(old);
+        // Selection-only edits and compositions in progress aren't formatted; the commit
+        // ending a composition is, even when it keeps the preedit's text.
+        let committed = old.composing.is_some() && new.composing.is_none();
+        if (new.text == old.text && !committed) || new.composing.is_some() {
+            return new;
         }
-    }
+        let formatted = edits
+            .formatters
+            .iter()
+            .fold(new, |value, formatter| formatter.format(old, value));
+        let selection = formatted.selection;
+        formatted.with_selection(selection)
+    });
+    report_if_changed(controller, edits, &before.text);
 }
 
-/// Reports a text change made by undo or redo.
-fn report_if_changed(
-    controller: TextEditingController,
-    on_change: &Option<Rc<dyn Fn(String)>>,
-    before: &str,
-) {
+/// Reports a text change (also one made by undo or redo).
+fn report_if_changed(controller: TextEditingController, edits: &Edits, before: &str) {
     let after = controller.value();
     if after.text != before {
-        if let Some(on_change) = on_change {
+        if let Some(on_change) = &edits.on_change {
             on_change(after.text);
         }
     }
@@ -227,7 +240,10 @@ impl View for TextField {
             ..theme.snapshot().text.body
         });
         let style = cx.text_style(style);
-        let on_change = self.on_change;
+        let on_change = Edits {
+            on_change: self.on_change,
+            formatters: self.formatters.into(),
+        };
         let on_submit = self.on_submit;
 
         let editor = Editor {
@@ -302,7 +318,7 @@ struct FieldBox {
     caret_visible: Signal<bool>,
     controller: TextEditingController,
     single_line: bool,
-    on_change: Option<Rc<dyn Fn(String)>>,
+    on_change: Edits,
     on_submit: Option<Rc<dyn Fn(String)>>,
     geometry: SharedGeometry,
     shift: SharedShift,
@@ -509,9 +525,7 @@ impl View for FieldBox {
                 let value = controller.value();
                 if enabled() && !value.selection.is_collapsed() {
                     clipboard.write_text(value.selected_text());
-                    let before = value.text.clone();
-                    controller.edit(|v| v.insert(""));
-                    report_if_changed(controller, &on_change, &before);
+                    apply(controller, &on_change, |v| v.insert(""));
                 }
             });
         }
@@ -530,9 +544,7 @@ impl View for FieldBox {
                 } else {
                     text
                 };
-                let before = controller.text();
-                controller.edit(|v| v.insert(&text));
-                report_if_changed(controller, &on_change, &before);
+                apply(controller, &on_change, |v| v.insert(&text));
             });
         }
         {

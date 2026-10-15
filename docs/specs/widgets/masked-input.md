@@ -1,6 +1,6 @@
 # Forms, part 3: input formatters and masked input
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-widgets` (`TextInputFormatter`, `FilteringFormatter`,
   `LengthLimitingFormatter`, `MaskFormatter`; `TextField` and `TextFormField`),
   `examples/gallery`
