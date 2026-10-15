@@ -5,7 +5,34 @@ whole history. Update this file in every commit (see `AGENTS.md` → General rul
 
 _Last updated: 2026-10-16 (handler ownership fixed; the user is away until morning)_
 
-## Resume here (2026-10-15)
+## Resume here (2026-10-16, morning)
+
+**Overnight (the user was away; every item decided by the agent and marked "review"):**
+forms parts 2–4 (`ComboBox`, input formatters and `MaskFormatter`, `Date`/
+`CalendarDatePicker`/`DatePickerField`, `Time`/`TimePickerField` with a new
+`Role::SpinButton`), so **Forms is complete**; i18n part 1, **RTL layout mirroring**
+(`TextDirection`, `Directionality`, directional `Padding`/`Align`/`PositionedDirectional`,
+mirrored flex/wrap, a gallery RTL switch) and part 1b, **RTL inside widgets** (switch,
+slider, scrollbar, tree view, menus, combo arrow, calendar chevrons); **`LayoutGrid`**
+(in-house track grid, no taffy); **drag and drop inside the app** (view-level drag
+sessions, `Draggable`, `DragTarget`); and the **handler-ownership fix** (VIEW-EVENT-10).
+Decisions 92–100; every push passed CI. Spec amendments found while implementing are
+marked "review" in the specs (A11Y-TREE-13 enclosing popup targets, WIDGETS-DATE-09,
+LAYOUT-LGRID-04 stretch, VIEW-DRAG-05, WIDGETS-COMBO-03).
+
+**Waiting for the user's decisions** (the rest of Phase 4 needs them):
+1. **Fluent localisation and locale formats** (i18n parts 2–3): a new crate (e.g.
+   `tantu-i18n`) with `fluent-bundle` (and ICU data or a smaller formatter) changes the
+   AGENTS.md crate table, which needs a proposal first.
+2. **Multi-window**: each window's `ViewTree` has its own reactive `Runtime`, so signals
+   can't be shared between windows. Proposal: one runtime per app shared by its windows'
+   trees (an ADR superseding part of decision 20), then `App`-level `open_window`.
+3. **Image clipboard**: arboard's `image-data` feature pulls the `image` crate.
+4. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
+5. **OS file drops**: winit 0.30 reports dropped files without a position, so targets
+   can't be hit-tested; either window-level file drops or wait for a winit with positions.
+
+## Earlier (2026-10-15)
 
 **TabView is done** (decisions 80 and 81): `Offstage` keeps retained pages hidden, and
 `TabBar`, `TabBarView` and `TabView` share one `Signal<usize>`, with fixed and scrollable bars,
