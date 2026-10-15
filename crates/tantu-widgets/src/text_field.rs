@@ -87,6 +87,24 @@ pub(crate) struct FieldDecoration {
     pub(crate) name: Option<String>,
     pub(crate) error: Rc<dyn Fn() -> Option<String>>,
     pub(crate) helper: Option<String>,
+    /// A combo box's role, popup state and highlighted option (WIDGETS-COMBO-07).
+    pub(crate) role: Option<Role>,
+    pub(crate) expanded: Option<Rc<dyn Fn() -> bool>>,
+    pub(crate) active: Option<Rc<dyn Fn() -> Option<ElementId>>>,
+}
+
+impl FieldDecoration {
+    /// A decoration naming the field, with nothing else.
+    pub(crate) fn named(name: Option<String>) -> Self {
+        FieldDecoration {
+            name,
+            error: Rc::new(|| None),
+            helper: None,
+            role: None,
+            expanded: None,
+            active: None,
+        }
+    }
 }
 
 impl TextField {
@@ -298,10 +316,10 @@ impl View for FieldBox {
         cx.set_semantics(
             id,
             Semantics {
-                role: if self.single_line {
-                    Role::TextInput
-                } else {
-                    Role::MultilineTextInput
+                role: match self.decoration.as_ref().and_then(|d| d.role) {
+                    Some(role) => role,
+                    None if self.single_line => Role::TextInput,
+                    None => Role::MultilineTextInput,
                 },
                 name: self
                     .decoration
@@ -354,6 +372,25 @@ impl View for FieldBox {
                 radius: theme.shape().extra_small,
             },
         );
+        // A combo box's popup state and highlighted option (WIDGETS-COMBO-07).
+        if let Some(expanded) = self.decoration.as_ref().and_then(|d| d.expanded.clone()) {
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || expanded())),
+                |e, expanded| {
+                    e.update_semantics(|s| s.expanded = Some(expanded));
+                },
+            );
+        }
+        if let Some(active) = self.decoration.as_ref().and_then(|d| d.active.clone()) {
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || active())),
+                |e, active| {
+                    e.update_semantics(|s| s.active_descendant = active);
+                },
+            );
+        }
         // A form field's error: the outline, `invalid` and the description (WIDGETS-FORM-01, -06).
         if let Some(decoration) = self.decoration.clone() {
             let helper = decoration.helper.clone();

@@ -97,3 +97,73 @@ pub(super) fn sink() -> impl View {
         super::echo(move || if form.is_valid() { "Valid" } else { "Invalid" }.to_owned()),
     )
 }
+
+/// Twelve fruits for the Selection section's combo box (GALLERY-38).
+const FRUITS: [&str; 12] = [
+    "Apple",
+    "Apricot",
+    "Banana",
+    "Blueberry",
+    "Cherry",
+    "Grape",
+    "Kiwi",
+    "Lemon",
+    "Mango",
+    "Orange",
+    "Peach",
+    "Pear",
+];
+
+/// The Selection section's combo box and its echo.
+pub(super) fn combo_sample() -> impl View {
+    let fruit = signal(None::<usize>);
+    Row::new()
+        .cross_axis_alignment(CrossAxisAlignment::Center)
+        .spacing(12.0)
+        .child(ComboBox::new(fruit, FRUITS).placeholder("Fruit"))
+        .child(Keyed::new(
+            "combo-echo",
+            Text::new(move || {
+                format!(
+                    "Fruit: {}",
+                    fruit
+                        .get()
+                        .and_then(|i| FRUITS.get(i))
+                        .copied()
+                        .unwrap_or("none")
+                )
+            }),
+        ))
+}
+
+/// Currencies for the combo card (GALLERY-39).
+const CURRENCIES: [&str; 5] = [
+    "EUR — Euro",
+    "GBP — Pound sterling",
+    "INR — Indian rupee",
+    "JPY — Japanese yen",
+    "USD — US dollar",
+];
+
+/// The combo card: a currency picker echoing the code.
+pub(super) fn combo_sink() -> impl View {
+    let currency = signal(Some(0usize));
+    let body = Keyed::new(
+        "sink-combo_box",
+        ComboBox::new(currency, CURRENCIES)
+            .width(280.0)
+            .placeholder("Currency"),
+    );
+    super::card(
+        "combo",
+        "Combo box",
+        body,
+        super::echo(move || {
+            let code = currency
+                .get()
+                .and_then(|i| CURRENCIES.get(i))
+                .map_or("none", |c| &c[..3]);
+            format!("Currency: {code}")
+        }),
+    )
+}

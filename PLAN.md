@@ -190,7 +190,7 @@ faster or more portable without changing how apps are written.
   - [ ] drag and drop, intra-app and with the OS (separate spec)
 - [ ] Forms: validation, field binding, masked input, date/time pickers, combo box with search, in parts:
   - [x] validation and field binding: `Form`, `FormController`, `TextFormField`, validators, error semantics (spec `docs/specs/widgets/form.md`)
-  - [ ] combo box with search: `ComboBox` (spec `docs/specs/widgets/combo-box.md`)
+  - [x] combo box with search: `ComboBox` (spec `docs/specs/widgets/combo-box.md`)
   - [ ] masked input (separate spec)
   - [ ] date and time pickers (separate spec)
 - [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting

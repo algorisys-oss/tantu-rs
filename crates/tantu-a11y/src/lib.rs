@@ -124,12 +124,13 @@ fn visit(
                 {
                     return false;
                 }
+                // Under the element, or in a popup it owns (A11Y-TREE-13).
                 let mut parent = tree.parent(*active);
                 while let Some(id) = parent {
                     if id == element {
                         return true;
                     }
-                    parent = tree.parent(id);
+                    parent = tree.popup_owner(id).or_else(|| tree.parent(id));
                 }
                 false
             }) {
@@ -187,8 +188,9 @@ fn node(semantics: &Semantics) -> Node {
         R::Status => Role::Status,
         R::Dialog => Role::Dialog,
         R::AlertDialog => Role::AlertDialog,
-        // Stubs until A11Y-TREE-13.
-        R::ComboBox | R::ListBox | R::ListBoxOption => Role::Group,
+        R::ComboBox => Role::ComboBox,
+        R::ListBox => Role::ListBox,
+        R::ListBoxOption => Role::ListBoxOption,
     };
     let mut node = Node::new(role);
     if semantics.modal {

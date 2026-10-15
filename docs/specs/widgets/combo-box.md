@@ -1,6 +1,6 @@
 # Forms, part 2: combo box with search
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-widgets` (`ComboBox`), `tantu-view` (roles), `tantu-a11y` (mapping),
   `examples/gallery`
 - **Plan item:** Phase 4, "Forms: …, combo box with search", part 2

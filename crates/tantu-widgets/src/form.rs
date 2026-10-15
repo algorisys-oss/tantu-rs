@@ -383,9 +383,9 @@ impl View for TextFormField {
         }
         let helper = self.helper.clone();
         let mut field = TextField::new(controller).decoration(FieldDecoration {
-            name: self.label.clone(),
             error: Rc::new(move || error.get()),
             helper: helper.clone(),
+            ..FieldDecoration::named(self.label.clone())
         });
         if let Some(placeholder) = self.placeholder {
             field = field.placeholder(placeholder);

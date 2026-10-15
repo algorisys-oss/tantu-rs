@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (forms part 1 done; the user is away until morning)_
+_Last updated: 2026-10-16 (forms part 2, the combo box, done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1149,6 +1149,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     sets the error outline and the new `Semantics::invalid`/`description`, mapped to
     AccessKit's `Invalid::True` and description. Gallery: a form beside the Text field
     section's fields and a "form" kitchen-sink card. No new crate or edge.
+92. **Forms part 2: combo box with search** (2026-10-16, spec
+    `docs/specs/widgets/combo-box.md`; decided by the agent while the user was away,
+    review). `ComboBox::new(Signal<Option<usize>>, options)`: string options and an index
+    signal; a `TextField` with a drop-down arrow and an overlay list below it (at most six
+    40 px rows, scrolling, "No matches" when empty). Opening by a press selects the field's
+    text so typing replaces it; typing filters by case-insensitive substring; Down/Up wrap,
+    Home/End, hover highlights; Enter or a click chooses (`on_change` only on a change);
+    Escape, an outside press or Tab restore the chosen text (no free text). The focus stays
+    in the field: roles `ComboBox`/`ListBox`/`ListBoxOption`, with the highlighted option as
+    the field's `active_descendant`. Amendments found while implementing (review):
+    A11Y-TREE-13 accepts an active descendant inside a popup the element owns, through the
+    new `ViewTree::popup_owner` (VIEW-OVERLAY-14), and the portal targets the field itself.
+    Gallery: a "Fruit" combo box in Selection and a "combo" kitchen-sink card. No new crate
+    or edge.
 
 ## Commit log
 
@@ -1687,15 +1701,22 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `1387a19` | impl: platform/fake/winit (arboard)/view/runner/tester clipboards, TextField copy/cut/paste; PLAN.md part 1 ticked |
 | `b98401f` | spec: forms part 1, validation and field binding; PLAN.md forms item split |
 | `e34bb13` | test: forms part 1, stubs + 10 failing tests |
-| _this commit_ | impl: Form, FormController, TextFormField, validators, error semantics; gallery form and card, goldens; PLAN.md part 1 ticked |
+| `8736b4c` | impl: Form, FormController, TextFormField, validators, error semantics; gallery form and card, goldens; PLAN.md part 1 ticked |
+| `a91010d` | spec: forms part 2, combo box with search (WIDGETS-COMBO-01..07, A11Y-TREE-13, GALLERY-38..39) |
+| `6c8d4f0` | spec: GALLERY-38's example matches the highlight rule |
+| `2dd3ae5` | test: forms part 2, combo box with search, stubs + 10 failing tests |
+| `ff64fdf` | spec: active descendants inside an owned popup (A11Y-TREE-13 amendment), `ViewTree::popup_owner` (VIEW-OVERLAY-14) |
+| `37af9b0` | test: `ViewTree::popup_owner`, stub + 1 failing test |
+| `7cb8f37` | test: gallery `type_into` also finds combo boxes |
+| `bddbb44` | spec: WIDGETS-COMBO-03, opening by a press selects the field's text |
+| _this commit_ | impl: ComboBox, popup_owner, popup-owned active descendants; gallery combo sample and card, goldens; PLAN.md part 2 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: forms parts 2–4 (combo box with search, masked input,
-date/time pickers), i18n, `Grid` layout; the remaining clipboard/multi-window/drag-and-drop
+Continue Phase 4 in PLAN.md order: forms parts 3–4 (masked input, date/time pickers), i18n, `Grid` layout; the remaining clipboard/multi-window/drag-and-drop
 parts. Native OS menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
