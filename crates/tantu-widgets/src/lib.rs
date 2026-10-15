@@ -32,6 +32,7 @@ mod data_grid;
 mod date;
 mod date_picker;
 mod dialog;
+mod directionality;
 mod divider;
 mod dock;
 mod focus_scope;
@@ -72,6 +73,7 @@ pub use data_grid::{
 pub use date::{Date, Weekday};
 pub use date_picker::{CalendarDatePicker, DatePickerField};
 pub use dialog::{AlertDialog, Dialog, DialogController};
+pub use directionality::{Directionality, PositionedDirectional};
 pub use divider::{Divider, VerticalDivider};
 pub use dock::{
     DockArea, DockError, DockGroupId, DockLayout, DockLoadError, DockNode, DockSide, DockSplitId,

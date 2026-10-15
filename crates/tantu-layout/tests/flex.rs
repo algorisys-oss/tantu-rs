@@ -581,3 +581,64 @@ fn layout_flex_14_robustness() {
         }
     }
 }
+
+#[test]
+fn layout_flex_15_right_to_left() {
+    use tantu_layout::TextDirection;
+    let kids: [Kid; 3] = [(10.0, 10.0, None), (20.0, 10.0, None), (30.0, 10.0, None)];
+    let c = BoxConstraints::loose(s(100.0, 50.0));
+    assert_eq!(row().text_direction, TextDirection::Ltr);
+    assert_ne!(row(), with(|r| r.text_direction = TextDirection::Rtl));
+    // A row runs right to left: Start packs at the right, the first child rightmost.
+    let mut f = flex(with(|r| r.text_direction = TextDirection::Rtl), &kids);
+    f.layout(c);
+    let xs: Vec<f32> = f.offsets().iter().map(|o| o.x).collect();
+    assert_eq!(xs, [90.0, 70.0, 40.0]);
+    let mut f = flex(
+        with(|r| {
+            r.text_direction = TextDirection::Rtl;
+            r.main_axis_alignment = MainAxisAlignment::End;
+        }),
+        &kids,
+    );
+    f.layout(c);
+    let xs: Vec<f32> = f.offsets().iter().map(|o| o.x).collect();
+    assert_eq!(xs, [50.0, 30.0, 0.0]);
+    // Every alignment mirrors the left-to-right result within the flex's width.
+    for alignment in [
+        MainAxisAlignment::Center,
+        MainAxisAlignment::SpaceBetween,
+        MainAxisAlignment::SpaceAround,
+        MainAxisAlignment::SpaceEvenly,
+    ] {
+        let mut ltr = flex(with(|r| r.main_axis_alignment = alignment), &kids);
+        let width = ltr.layout(c).width;
+        let mut rtl = flex(
+            with(|r| {
+                r.main_axis_alignment = alignment;
+                r.text_direction = TextDirection::Rtl;
+            }),
+            &kids,
+        );
+        assert_eq!(rtl.layout(c).width, width);
+        let expected: Vec<Vec2> = ltr
+            .offsets()
+            .iter()
+            .zip(ltr.sizes())
+            .map(|(o, size)| v(width - o.x - size.width, o.y))
+            .collect();
+        assert_offsets_close(&rtl.offsets(), &expected);
+    }
+    // A column's cross-axis start is the right edge.
+    let column = |direction| {
+        let mut r = RenderFlex::column();
+        r.cross_axis_alignment = CrossAxisAlignment::Start;
+        r.text_direction = direction;
+        r
+    };
+    let mut f = flex(column(TextDirection::Rtl), &kids);
+    let size = f.layout(c);
+    let xs: Vec<f32> = f.offsets().iter().map(|o| o.x).collect();
+    assert_eq!(size.width, 30.0);
+    assert_eq!(xs, [20.0, 10.0, 0.0]);
+}

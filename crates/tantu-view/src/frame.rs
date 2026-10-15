@@ -71,6 +71,13 @@ impl ElementMut<'_> {
         self.tree.layout.set(layout, copy)
     }
 
+    /// Replaces the element's parent data and marks its layout parent for layout; false for a
+    /// region (VIEW-FRAME-09).
+    pub fn set_parent_data<T: std::any::Any>(&mut self, data: T) -> bool {
+        let _ = data;
+        todo!("VIEW-FRAME-09")
+    }
+
     /// The element's paint behavior, if it is a `P`.
     pub fn paint<P: Paint>(&self) -> Option<&P> {
         let element = self.tree.elements.get(arena_id(self.id)?)?;

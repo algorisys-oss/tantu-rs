@@ -451,3 +451,67 @@ fn view_time_01_tree_forwards_the_clock() {
     frame(&mut tree);
     assert_eq!(*applied.borrow(), [10.0, 20.0]);
 }
+
+#[test]
+fn view_frame_09_parent_data_from_a_binding() {
+    use tantu_layout::FlexParentData;
+
+    /// A 10 × 10 box that becomes `Expanded` while `grow` is true.
+    struct Grower {
+        grow: Signal<bool>,
+        out: Rc<Cell<Option<ElementId>>>,
+    }
+    impl View for Grower {
+        fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+            let id = cx.render(RenderConstrainedBox::sized(Some(10.0), Some(10.0)), []);
+            let grow = self.grow;
+            cx.bind(
+                id,
+                (move || grow.get()).into_prop(),
+                |e: &mut ElementMut<'_>, on| {
+                    let data = if on {
+                        FlexParentData::expanded(1)
+                    } else {
+                        FlexParentData::flexible(0)
+                    };
+                    assert!(e.set_parent_data(data));
+                },
+            );
+            self.out.set(Some(id));
+            id
+        }
+    }
+
+    let out = Rc::new(Cell::new(None));
+    let sig: Rc<Cell<Option<Signal<bool>>>> = Rc::default();
+    let mut tree = {
+        let (out, sig) = (out.clone(), sig.clone());
+        ViewTree::new(move || {
+            let grow = signal(false);
+            sig.set(Some(grow));
+            Row {
+                child: AnyView::new(Grower {
+                    grow,
+                    out: out.clone(),
+                }),
+            }
+        })
+    };
+    let (grow, element) = (sig.get().expect("created"), out.get().expect("built"));
+    frame(&mut tree);
+    assert_eq!(tree.bounds(element).map(|b| b.width()), Some(10.0));
+    tree.enter(|| grow.set(true));
+    frame(&mut tree);
+    assert_eq!(tree.bounds(element).map(|b| b.width()), Some(800.0));
+}
+
+/// A row holding one child.
+struct Row {
+    child: AnyView,
+}
+
+impl View for Row {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        cx.render(RenderFlex::row(), [self.child])
+    }
+}

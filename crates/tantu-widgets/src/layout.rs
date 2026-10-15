@@ -3,9 +3,10 @@
 
 use tantu_view::core::EdgeInsets;
 use tantu_view::layout::{
-    Alignment, BoxConstraints, CrossAxisAlignment, FlexFit, FlexParentData, MainAxisAlignment,
-    MainAxisSize, RenderBox, RenderConstrainedBox, RenderFlex, RenderLimitedBox, RenderPadding,
-    RenderPositionedBox, RenderStack, StackFit, StackParentData,
+    Alignment, AlignmentDirectional, BoxConstraints, CrossAxisAlignment, EdgeInsetsDirectional,
+    FlexFit, FlexParentData, MainAxisAlignment, MainAxisSize, RenderBox, RenderConstrainedBox,
+    RenderFlex, RenderLimitedBox, RenderPadding, RenderPositionedBox, RenderStack, StackFit,
+    StackParentData,
 };
 use tantu_view::{AnyView, BuildCx, ElementId, IntoProp, Prop, View};
 
@@ -34,6 +35,13 @@ impl Padding {
             padding: padding.into_prop(),
             child: None,
         }
+    }
+
+    /// Padding with start and end sides, resolved against the nearest
+    /// [`Directionality`](crate::Directionality) (WIDGETS-DIR-03).
+    pub fn directional(padding: impl IntoProp<EdgeInsetsDirectional>) -> Self {
+        let _ = padding;
+        todo!("WIDGETS-DIR-03")
     }
 
     /// `Padding::new(EdgeInsets::all(value))`.
@@ -75,6 +83,13 @@ impl Align {
             height_factor: None,
             child: None,
         }
+    }
+
+    /// Aligns the child at a directional alignment, resolved against the nearest
+    /// [`Directionality`](crate::Directionality) (WIDGETS-DIR-03).
+    pub fn directional(alignment: impl IntoProp<AlignmentDirectional>) -> Self {
+        let _ = alignment;
+        todo!("WIDGETS-DIR-03")
     }
 
     /// Width as a multiple of the child's width, instead of filling.

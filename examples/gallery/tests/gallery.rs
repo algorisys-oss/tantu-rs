@@ -1691,3 +1691,29 @@ fn gallery_45_kitchen_sink_time_card() {
     key(&mut t, NamedKey::ArrowDown);
     assert_eq!(text_of(&t, "sink-time-state"), "Time: 11:59");
 }
+
+#[test]
+fn gallery_46_right_to_left_switch() {
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.pump();
+    let title = t.rect(t.find(&Finder::text("Tantu gallery")));
+    let buttons = t.rect(t.find(&Finder::key("sidebar")));
+    assert!(buttons.right < 480.0, "the sidebar starts on the left");
+    t.tap(&Finder::key("rtl"));
+    t.pump();
+    t.pump();
+    let moved_title = t.rect(t.find(&Finder::text("Tantu gallery")));
+    let moved = t.rect(t.find(&Finder::key("sidebar")));
+    assert!(
+        moved.left > 480.0,
+        "the sidebar moved to the right: {moved:?}"
+    );
+    assert!(
+        moved_title.left > title.left,
+        "the title moved to the right"
+    );
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-rtl.png"
+    ));
+}

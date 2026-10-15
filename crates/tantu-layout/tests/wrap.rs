@@ -292,3 +292,38 @@ fn layout_wrap_09_robustness() {
         }
     }
 }
+
+#[test]
+fn layout_wrap_10_right_to_left() {
+    use tantu_layout::TextDirection;
+    let c = BoxConstraints::loose(s(100.0, INF));
+    for direction in [Axis::Horizontal, Axis::Vertical] {
+        let make = |text_direction| {
+            let mut r = RenderWrap::new(direction);
+            r.spacing = 10.0;
+            r.run_spacing = 5.0;
+            r.text_direction = text_direction;
+            r
+        };
+        let constraints = match direction {
+            Axis::Horizontal => c,
+            Axis::Vertical => BoxConstraints::loose(s(200.0, 30.0)),
+        };
+        let mut ltr = wrap(make(TextDirection::Ltr), &THREE);
+        let size = ltr.layout(constraints);
+        let mut rtl = wrap(make(TextDirection::Rtl), &THREE);
+        assert_eq!(rtl.layout(constraints), size);
+        let widths: Vec<f32> = THREE.iter().map(|k| k.0).collect();
+        let expected: Vec<Vec2> = ltr
+            .offsets()
+            .iter()
+            .zip(&widths)
+            .map(|(o, w)| v(size.width - o.x - w, o.y))
+            .collect();
+        assert_eq!(rtl.offsets(), expected, "{direction:?}");
+    }
+    assert_ne!(
+        RenderWrap::horizontal(),
+        with(|r| r.text_direction = TextDirection::Rtl)
+    );
+}

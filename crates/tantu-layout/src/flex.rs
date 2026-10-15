@@ -1,6 +1,7 @@
 //! [`RenderFlex`]: Flutter's flex layout, behind `Row` and `Column`, with [`FlexParentData`]
 //! for `Expanded`, `Flexible` and `Spacer`. Spec: `docs/specs/layout/flex.md`.
 
+use crate::TextDirection;
 use tantu_core::{Size, Vec2};
 
 use crate::{BoxConstraints, IntrinsicChildren, LayoutChildren, RenderBox};
@@ -148,6 +149,8 @@ pub struct RenderFlex {
     pub cross_axis_alignment: CrossAxisAlignment,
     /// Space between adjacent children, on top of the alignment's (negative or NaN counts as 0).
     pub spacing: f32,
+    /// `Rtl` mirrors the children horizontally (LAYOUT-FLEX-15).
+    pub text_direction: TextDirection,
     overflow: f32,
 }
 
@@ -160,6 +163,7 @@ impl RenderFlex {
             main_axis_size: MainAxisSize::Max,
             cross_axis_alignment: CrossAxisAlignment::Center,
             spacing: 0.0,
+            text_direction: TextDirection::Ltr,
             overflow: 0.0,
         }
     }
@@ -274,6 +278,7 @@ impl PartialEq for RenderFlex {
             && self.main_axis_size == other.main_axis_size
             && self.cross_axis_alignment == other.cross_axis_alignment
             && self.spacing == other.spacing
+            && self.text_direction == other.text_direction
     }
 }
 
