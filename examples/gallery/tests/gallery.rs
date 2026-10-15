@@ -1686,7 +1686,8 @@ fn gallery_45_kitchen_sink_time_card() {
     t.ensure_visible(&Finder::key("sink-time"));
     t.pump();
     assert_eq!(text_of(&t, "sink-time-state"), "Time: 12:00");
-    t.focus(&Finder::key("sink-time_picker_field"));
+    t.find(&Finder::key("sink-time_picker_field"));
+    t.focus(&Finder::semantics_label("Reminder"));
     key(&mut t, NamedKey::ArrowDown);
     assert_eq!(text_of(&t, "sink-time-state"), "Time: 11:59");
 }
