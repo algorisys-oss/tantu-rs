@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (docking part 1 done; part 2 next)_
+_Last updated: 2026-10-16 (docking part 2 drafted for review)_
 
 ## Resume here (2026-10-15)
 
@@ -21,9 +21,11 @@ Linux, Windows and macOS for `fda6c46` (run 38785174844).
 
 **Docking part 1 is done** (decision 84): `DockLayout` in `tantu-widgets`, a normalized tree
 of splits and tab groups of app-named panels, with activate/close/add/move/set_fractions
-and a versioned text format (`save`/`load`). **Next:** draft part 2, the `DockArea` widget
-(`docs/specs/widgets/dock-area.md`), then part 3 (drag-to-dock). Commit/push authorization
-persists.
+and a versioned text format (`save`/`load`). **Part 2 is drafted for review**:
+`docs/specs/widgets/dock-area.md`, the `DockArea` widget (one flat `RenderDock` so panels
+keep state across moves, compact document tabs, active group, keyboard, dividers), with
+seven proposals. **Next:** the user reviews it; then part 3 (drag-to-dock). Commit/push
+authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1523,15 +1525,16 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `de7b6d0` | spec: dock layout model agreed (WIDGETS-DOCK-01..12) |
 | `9312ac6` | spec: dock layout equality compares fractions within 1e-5; exact load error strings; save's line ending |
 | `a855c96` | test: dock layout model, stubs + 12 failing tests |
-| _this commit_ | impl: dock layout model (normalized tree, ids, operations, text format); PLAN.md part 1 ticked |
+| `95fb454` | impl: dock layout model (normalized tree, ids, operations, text format); PLAN.md part 1 ticked |
+| _this commit_ | docs: draft the DockArea spec (docking part 2) for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Draft docking part 2 (`DockArea`, built on `RenderSplit` and a dynamic tab strip), then
-part 3 (drag-to-dock).
+Review the `DockArea` draft (docking part 2); implement it; then draft part 3
+(drag-to-dock).
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
