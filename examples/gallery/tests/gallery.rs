@@ -1400,14 +1400,16 @@ fn gallery_35_copy_and_paste_in_a_text_field() {
     assert_eq!(text_of(&t, "echo"), "You typed: copy mecopy me");
 }
 
-/// Clicks the text input named `label` and types `text` into it.
+/// Clicks the text input (or combo box) named `label` and types `text` into it.
 fn type_into(t: &mut WidgetTester, label: &str, text: &str) {
     use tantu_test::accesskit::Role;
     let id = t
         .a11y_tree()
         .nodes
         .iter()
-        .find(|(_, n)| n.role() == Role::TextInput && n.label() == Some(label))
+        .find(|(_, n)| {
+            matches!(n.role(), Role::TextInput | Role::ComboBox) && n.label() == Some(label)
+        })
         .map(|(id, _)| tantu::view::ElementId::from_raw(id.0).expect("element id"))
         .unwrap_or_else(|| panic!("no input {label}"));
     let at = t.rect(id).center();
