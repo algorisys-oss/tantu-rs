@@ -194,7 +194,10 @@ faster or more portable without changing how apps are written.
   - [x] input formatters and masked input: `TextInputFormatter`, `MaskFormatter` (spec `docs/specs/widgets/masked-input.md`)
   - [x] date picker: `Date`, `CalendarDatePicker`, `DatePickerField` (spec `docs/specs/widgets/date-picker.md`)
   - [x] time picker: `Time`, `TimePickerField` (spec `docs/specs/widgets/time-picker.md`)
-- [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting
+- [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting, in parts:
+  - [ ] RTL layout mirroring: `TextDirection`, `Directionality`, directional alignment, insets and positions, `Row`/`Column`/`Wrap` mirroring (spec `docs/specs/widgets/directionality.md`)
+  - [ ] Fluent-based localisation (separate spec)
+  - [ ] locale-aware formatting of numbers and dates (separate spec)
 - [ ] `Grid` layout (possibly via taffy) for dashboard-style screens
 - [x] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)
 - [ ] **Milestone:** `examples/enterprise-dashboard` (docking + grid + forms + charts area)
