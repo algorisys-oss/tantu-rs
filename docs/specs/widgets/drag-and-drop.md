@@ -50,6 +50,8 @@ impl DragHandle {
     pub fn is_active(&self) -> bool;
     /// How the last drag ended, `None` while one is active or before the first.
     pub fn outcome(&self) -> Option<DragOutcome>;
+    /// The pointer's last position in the window during a drag (a tracked read).
+    pub fn position(&self) -> Point;
 }
 
 /// What a drag handler is told.
@@ -119,11 +121,17 @@ impl<T: Clone + 'static> DragTarget<T> {
   `Cancelled`; the key is consumed. A pointer leaving the window doesn't end the session.
 - **VIEW-DRAG-04:** A target removed during a session is forgotten without events; its
   handlers go with it (VIEW-EVENT-06).
+- **VIEW-DRAG-05:** `DragHandle::position` follows the pointer during a session: every
+  move updates it before targets get their events. The source needs it because its own
+  pointer capture can end mid-drag (a placeholder replacing the pressed child takes the
+  child offstage, which releases the capture, VIEW-OFFSTAGE); found while implementing,
+  review.
 - **WIDGETS-DND-01:** `Draggable`: a primary press, then a move of more than 4 px with the
   button held, starts a session carrying its data (`Rc<T>` as the payload) and calls
   `on_drag_started`; the child is replaced by `child_when_dragging` (if given) and the
   feedback is shown in a pointer-passthrough overlay whose top-left corner keeps the
-  offset from the pointer that the press had from the child's top-left corner. When the
+  offset from the pointer (`DragHandle::position`) that the press had from the child's
+  top-left corner. When the
   session ends (release or Escape), the feedback goes, the child comes back and
   `on_drag_end` is called with whether the outcome was `Accepted`. A press and release
   without moving starts nothing (the press still reaches handlers below, so a `Button`
