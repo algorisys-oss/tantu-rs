@@ -175,15 +175,18 @@ impl DockArea {
 ### Gallery
 
 - **GALLERY-26:** A "Docking" section before Split view (thirteen sections): a `DockArea` (key `dock`, 720 ×
-  400) on the IDE layout (Explorer, Search | Editor / Terminal, Problems) with simple
-  per-panel content (the editor a `TextField`), Explorer not closable, "Reset layout",
+  400) on the IDE layout (Explorer, Search | Editor, Readme / Terminal, Problems) with
+  simple per-panel content (the editor a `TextField` keyed `dock-editor`), Explorer not
+  closable, "Reset layout",
   "Save" and "Restore" buttons (Restore loads the last saved text), and an echo
-  (`dock-echo`) "Active: <title> · Panels: <count>". Tests: clicking the Search tab
-  activates it; text typed in the editor survives switching to another tab and back;
+  (`dock-echo`) "Active: <title> · Panels: <count>" (the active group's active panel).
+  Tests: clicking the Search tab activates it; text typed in the editor survives switching
+  to Readme and back;
   closing Problems updates the echo; Save, close Terminal, Restore brings
   it back. Golden `gallery-docking.png` at 960 × 640.
 - **GALLERY-27:** A "dock" kitchen-sink card after "split" (sixteen `SINK_CARDS` entries, sample `dock_area`): a 600 ×
-  220 `DockArea` of two groups (Notes | Tasks, Log), echoed by `sink-dock-state`.
+  220 `DockArea` of two groups (Notes | Tasks, Log), echoed by `sink-dock-state` in the
+  section's format ("Active: Notes · Panels: 3" at first).
 
 ## Performance and allocation
 

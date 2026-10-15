@@ -131,13 +131,13 @@ pub enum Role { /* existing, */ TabList, Tab, TabPanel }
   offstage have no nodes (A11Y-TREE-06).
 - **A11Y-TREE-07:** `TabList`, `Tab` and `TabPanel` map to AccessKit's roles of the same
   names; tab selection and set position/size use the existing mappings.
-- **GALLERY-22:** A "Tabs" section before Kitchen sink (eleven sections, twelve since GALLERY-24): a `TabView` (key
+- **GALLERY-22:** A "Tabs" section before Kitchen sink (eleven sections, twelve since GALLERY-24, thirteen since GALLERY-26): a `TabView` (key
   `tabs`) with General (a `TextField`), Advanced (a `Switch` and a `Slider`), Data (a
   200-row `ListView`) and a disabled Archived tab, and a scrollable `TabBar` (key
   `tabs-scrollable`) of twelve tabs; "Tab: …" (`tab-echo`) shows the selected tab. Tests:
   typed text survives switching away and back; Control+Tab from inside the field moves on;
   arrows skip Archived. Golden `gallery-tabs.png` at 960 × 640 with Advanced selected.
-- **GALLERY-23:** A "tabs" kitchen-sink card after "tree" (fourteen `SINK_CARDS` entries, fifteen since GALLERY-25,
+- **GALLERY-23:** A "tabs" kitchen-sink card after "tree" (fourteen `SINK_CARDS` entries, fifteen since GALLERY-25, sixteen since GALLERY-27,
   samples `tab_bar` and `tab_view`): a three-tab `TabView` 200 px tall whose pages are a
   label, a checkbox and a text field, echoed by `sink-tabs-state`. Goldens touched by the
   new section and card are regenerated.

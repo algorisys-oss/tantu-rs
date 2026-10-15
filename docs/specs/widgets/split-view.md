@@ -181,7 +181,8 @@ impl Finder {
   `Finder::semantics_label(label)` matches the elements whose `Semantics::name` (the
   accessible label) equals `label`, so tests can find elements that have a label but no key or text, such as a
   split view's dividers ("Resize Folders").
-- **GALLERY-24:** A "Split view" section before Tabs (twelve sections): a horizontal split
+- **GALLERY-24:** A "Split view" section before Tabs (twelve sections, thirteen since
+  GALLERY-26): a horizontal split
   (key `split`, 720 × 360) of a 160 px-minimum collapsible "Folders" list (200 px
   would override its 25 % share in the gallery's 728 px content area), a "Messages" list and a
   vertical split of a "Preview" text and an "Output" pane (keys `split-*`), with fractions
@@ -189,7 +190,7 @@ impl Finder {
   "Reset" button. Tests: dragging the first divider changes the echo; Enter on the focused
   first divider collapses Folders and Enter restores it; Reset restores. Golden
   `gallery-split.png` at 960 × 640.
-- **GALLERY-25:** A "split" kitchen-sink card after "tabs" (fifteen `SINK_CARDS` entries,
+- **GALLERY-25:** A "split" kitchen-sink card after "tabs" (fifteen `SINK_CARDS` entries, sixteen since GALLERY-27,
   sample `split_view`): a two-pane horizontal split 160 px tall (panes labelled "Left"
   and "Right"), echoed by `sink-split-state` as "Sizes: 50 % · 50 %". Goldens touched by the new section and card are regenerated.
 
