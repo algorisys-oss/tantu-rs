@@ -1,6 +1,6 @@
 # Cursor icons through the platform
 
-- **Status:** Draft
+- **Status:** Agreed (2026-10-15, the user said "continue" on the four proposals)
 - **Crates:** `tantu-platform`, `tantu-platform-winit`, `tantu-view`, `tantu` (runner),
   `tantu-test`
 - **Plan item:** Phase 4, "`SplitView`", part 1 (cursor icons)
@@ -91,7 +91,7 @@ One hit test per pointer event and per frame, which dispatch already does; no al
 
 ## Open questions
 
-Proposals, to accept or change:
+Accepted by the user ("continue", 2026-10-15):
 
 1. **A platform-side copy of the enum** rather than moving `CursorIcon` into `tantu-core`
    or making `tantu-view` depend on `tantu-platform` (neither edge exists; the runner
