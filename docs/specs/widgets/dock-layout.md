@@ -1,6 +1,6 @@
 # Docking, part 1: the dock layout model and persistence
 
-- **Status:** Draft
+- **Status:** Agreed (2026-10-16, the user said "continue" on the six proposals)
 - **Crate:** `tantu-widgets`
 - **Plan item:** Phase 4, "Docking layout manager", part 1 (the model)
 - **Related:** [SplitView](split-view.md) (fraction cleaning, LAYOUT-SPLIT-01),
@@ -252,7 +252,7 @@ allocation here. `save`/`load` are linear in the text length.
 
 ## Open questions
 
-Proposals, to accept or change:
+Accepted by the user ("continue", 2026-10-16):
 
 1. **Three parts:** this model; part 2, a `DockArea` widget drawing the layout (nested
    splits through `RenderSplit`, dynamic tab strips with close buttons, panel content kept
