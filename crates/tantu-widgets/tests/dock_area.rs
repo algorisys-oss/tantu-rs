@@ -200,11 +200,16 @@ impl Fx {
         self.names(accesskit::Role::TabPanel)
     }
 
-    fn tab(&self, title: &str) -> ElementId {
-        self.t.find(&Finder::semantics_label(title))
+    /// The tab titled `title` (its panel and label carry the same name).
+    fn tab(&mut self, title: &str) -> ElementId {
+        self.nodes(accesskit::Role::Tab)
+            .into_iter()
+            .find(|(_, n)| n.label() == Some(title))
+            .map(|(id, _)| id)
+            .unwrap_or_else(|| panic!("no tab {title}"))
     }
 
-    fn center(&self, title: &str) -> Point {
+    fn center(&mut self, title: &str) -> Point {
         let id = self.tab(title);
         self.t.rect(id).center()
     }
@@ -380,7 +385,8 @@ fn widgets_dockarea_02_look() {
     });
     let strip = fx.nodes(accesskit::Role::TabList)[0].0;
     let strip_rect = fx.t.rect(strip);
-    let last = fx.t.rect(fx.tab("Panel7"));
+    let last = fx.tab("Panel7");
+    let last = fx.t.rect(last);
     assert!(
         last.right <= strip_rect.right + 0.5,
         "{last:?} in {strip_rect:?}"

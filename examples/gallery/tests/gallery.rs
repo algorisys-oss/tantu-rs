@@ -931,6 +931,37 @@ fn gallery_25_kitchen_sink_split_card() {
     assert_ne!(text_of(&t, "sink-split-state"), "Sizes: 50 % · 50 %");
 }
 
+/// Taps the dock tab titled `title` (its panel and label carry the same name).
+fn tap_tab(t: &mut WidgetTester, title: &str) {
+    let id = t
+        .a11y_tree()
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == tantu_test::accesskit::Role::Tab && n.label() == Some(title))
+        .map(|(id, _)| tantu::view::ElementId::from_raw(id.0).expect("element id"))
+        .unwrap_or_else(|| panic!("no tab {title}"));
+    let at = t.rect(id).center();
+    for kind in [
+        PointerKind::Down(PointerButton::Primary),
+        PointerKind::Up(PointerButton::Primary),
+    ] {
+        t.pointer(PointerEvent {
+            kind,
+            position: at,
+            modifiers: Default::default(),
+        });
+    }
+    t.pump();
+}
+
+/// Whether a dock tab titled `title` exists.
+fn has_tab(t: &mut WidgetTester, title: &str) -> bool {
+    t.a11y_tree()
+        .nodes
+        .iter()
+        .any(|(_, n)| n.role() == tantu_test::accesskit::Role::Tab && n.label() == Some(title))
+}
+
 #[test]
 fn gallery_26_docking_section() {
     assert_eq!(SECTIONS.len(), 13);
@@ -942,14 +973,14 @@ fn gallery_26_docking_section() {
     t.pump();
     t.find(&Finder::key("dock"));
     assert_eq!(text_of(&t, "dock-echo"), "Active: Explorer · Panels: 6");
-    t.tap(&Finder::semantics_label("Search"));
+    tap_tab(&mut t, "Search");
     t.pump();
     assert_eq!(text_of(&t, "dock-echo"), "Active: Search · Panels: 6");
     // Text typed in the editor survives switching to Readme and back.
     t.enter_text(&Finder::key("dock-editor"), "hello");
-    t.tap(&Finder::semantics_label("Readme"));
+    tap_tab(&mut t, "Readme");
     t.pump();
-    t.tap(&Finder::semantics_label("Editor"));
+    tap_tab(&mut t, "Editor");
     t.pump();
     t.find(&Finder::text("hello"));
     // Closing updates the echo; Save, close, Restore brings a panel back.
@@ -960,11 +991,11 @@ fn gallery_26_docking_section() {
     t.pump();
     t.tap(&Finder::semantics_label("Close Terminal"));
     t.pump();
-    assert!(t.find_all(&Finder::semantics_label("Terminal")).is_empty());
+    assert!(!has_tab(&mut t, "Terminal"));
     t.tap(&Finder::text("Restore"));
     t.pump();
     t.pump();
-    t.find(&Finder::semantics_label("Terminal"));
+    assert!(has_tab(&mut t, "Terminal"));
     assert!(text_of(&t, "dock-echo").ends_with("Panels: 5"));
     t.matches_golden(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -988,7 +1019,7 @@ fn gallery_27_kitchen_sink_dock_card() {
     let rect = sink_rect(&t, "dock_area");
     assert_eq!((rect.width(), rect.height()), (600.0, 220.0));
     assert_eq!(text_of(&t, "sink-dock-state"), "Active: Notes · Panels: 3");
-    t.tap(&Finder::semantics_label("Log"));
+    tap_tab(&mut t, "Log");
     t.pump();
     t.pump();
     assert_eq!(text_of(&t, "sink-dock-state"), "Active: Log · Panels: 3");
