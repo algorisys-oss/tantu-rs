@@ -180,7 +180,9 @@ signal. No new dependencies or feature flags.
   splits that survive an operation keep their ids (a group keeps its id when panels move in
   or out of it, and when it moves up the tree because its parent split was replaced or
   flattened); new nodes get ids never used before by this layout value or the value it was
-  cloned from. `clone` keeps ids. `==` ignores ids, so `load(save(l)) == l`.
+  cloned from. `clone` keeps ids. `==` ignores ids and compares fractions within 1e-5 (so
+  layouts reached by different operation orders compare equal despite rounding), so
+  `load(save(l)) == l`.
 
 ### Queries and operations
 
@@ -224,7 +226,7 @@ signal. No new dependencies or feature flags.
 ### Persistence
 
 - **WIDGETS-DOCK-11:** `save` writes the first line `tantu-dock 1`, then the tree in this
-  grammar on one line (whitespace is a single space between items):
+  grammar on a second line ending with a newline (a single space between items):
 
   ```text
   layout := "empty" | node
@@ -238,8 +240,10 @@ signal. No new dependencies or feature flags.
   `tantu-dock 1` / `row(0.2 tabs(0 "explorer" "search") 0.8 column(0.7 tabs(0 "editor") 0.3 tabs(1 "terminal" "problems")))`.
 - **WIDGETS-DOCK-12:** `load` accepts any amount of whitespace between items and a final
   newline, and fails with `Version` when the first line isn't `tantu-dock 1`, or `Syntax`
-  with the byte offset of the first unexpected character and what was expected there
-  ("node", "fraction", "panel", "`)`", "end of input"). Panels `keep` rejects are dropped,
+  with the byte offset of the first unexpected character and what was expected there (one
+  of the strings `"node"`, `"fraction"`, `"panel"`, `")"`, `"end of input"`). The parser
+  is lenient where normalizing can repair the input: a split with one child and a group
+  with no panels are accepted. Panels `keep` rejects are dropped,
   and the result is normalized as `new` (out-of-range `active`, bad fractions, duplicates
   and empty groups are repaired, not errors). No input panics, including empty text, deep
   nesting (the parser is iterative or bounded at 256 levels, returning `Syntax` beyond) and
