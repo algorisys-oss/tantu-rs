@@ -1739,3 +1739,20 @@ fn gallery_47_kitchen_sink_dashboard_card() {
     let (a, b) = (rect(&t, "dashboard-tile-1"), rect(&t, "dashboard-tile-3"));
     assert_eq!((a.left, a.width()), (b.left, b.width()), "tiles line up");
 }
+
+#[test]
+fn gallery_48_right_to_left_inside_widgets() {
+    use tantu::scene::Command;
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.pump();
+    t.tap(&Finder::key("rtl"));
+    t.pump();
+    t.pump();
+    // The RTL switch is on, so under RTL its thumb sits at the left.
+    let switch = t.find(&Finder::key("rtl"));
+    let thumb = t.frame().entries_for(switch).find_map(|e| match e.command {
+        Command::Fill { shape, .. } if shape.rect.width() == 24.0 => Some(shape.rect.center().x),
+        _ => None,
+    });
+    assert_eq!(thumb, Some(20.0));
+}
