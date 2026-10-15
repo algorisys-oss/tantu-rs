@@ -28,6 +28,7 @@
 mod basic;
 mod data_grid;
 mod divider;
+mod dock;
 mod focus_scope;
 mod grid_selection;
 mod icon;
@@ -57,6 +58,10 @@ pub use data_grid::{
     CellValue, DataGrid, DataSource, FnSource, GridColumn, GridEditError, RowFilter, SortState,
 };
 pub use divider::{Divider, VerticalDivider};
+pub use dock::{
+    DockError, DockGroupId, DockLayout, DockLoadError, DockNode, DockSide, DockSplitId, DockTarget,
+    DockView, PanelId,
+};
 pub use focus_scope::FocusScope;
 pub use grid_selection::{GridCell, GridSelection, GridSelectionController, GridSelectionMode};
 pub use icon::{Icon, IconButton, IconData};
