@@ -120,7 +120,9 @@ impl GridPlacement {
   tight height of those rows once they are sized; other children are laid out with an
   unbounded height first. `Auto` rows take the largest height of the items spanning only
   that row; `Flex` rows share the free height (bounded maximum height minus the others and
-  the gaps) by factor, or size as `Auto` when the height is unbounded.
+  the gaps) by factor, or size as `Auto` when the height is unbounded. Then the children
+  laid out with their own height are laid out again with a tight height of their rows, so
+  every item fills its cells (CSS's default stretch; found with the gallery, review).
 - **LAYOUT-LGRID-05:** Size and offsets: the grid takes the sum of its tracks and gaps,
   constrained; each child sits at the start of its first cell. With `text_direction: Rtl`,
   columns run from the right (the offsets mirrored within the grid's width).
