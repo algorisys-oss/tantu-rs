@@ -1,6 +1,6 @@
 # SplitView: resizable panes
 
-- **Status:** Draft
+- **Status:** Agreed (2026-10-15, the user said "continue" on the seven proposals)
 - **Crates:** `tantu-layout` (`RenderSplit`), `tantu-widgets` (`SplitView`, `SplitPane`),
   `tantu-view` and `tantu-a11y` (the splitter role), `examples/gallery`
 - **Plan item:** Phase 4, "`SplitView`", part 2 (the layout and the widget)
@@ -143,8 +143,9 @@ pub enum Role { /* existing, */ Splitter }
   minimum restores it at its minimum. A non-collapsible pane stops at its minimum.
 - **WIDGETS-SPLIT-05:** The divider sets `ResizeHorizontal` (side-by-side panes) or
   `ResizeVertical` (stacked panes) as its cursor; during a drag the cursor stays (VIEW-EVENT-09).
-- **WIDGETS-SPLIT-06:** Each divider is a focus stop, in tree order between its two panes'
-  contents. When focused: Left/Up move its boundary 10 px towards the start and Right/Down
+- **WIDGETS-SPLIT-06:** Each divider is a focus stop. Dividers come after all the panes'
+  contents in traversal order, in order (they are the split's last children so they win the
+  hit test over the panes they overlap, LAYOUT-SPLIT-04; review). When focused: Left/Up move its boundary 10 px towards the start and Right/Down
   10 px towards the end, whatever the axis (so accessibility increments work, VIEW-SEM-03);
   Home and End move it as far as the minimums allow; Enter collapses the nearest
   collapsible neighbour (the preceding pane first) and restores it to its fraction before
@@ -162,6 +163,9 @@ pub enum Role { /* existing, */ Splitter }
 
 - **A11Y-TREE-08:** `Role::Splitter` maps to AccessKit's `Splitter`; its numeric value uses
   the existing value mapping (A11Y-TREE-02).
+- **WIDGETS-GRID-29:** (amends [DataGrid columns](data-grid-columns.md), review) A header
+  cell's resize handle sets `ResizeHorizontal` as its cursor, so the column handles show
+  the resize cursor now that cursors reach the window ([cursor icons](../platform/cursor.md)).
 - **GALLERY-24:** A "Split view" section before Tabs (twelve sections): a horizontal split
   (key `split`) of a 200 px-minimum collapsible "Folders" list, a "Messages" list and a
   vertical split of a "Preview" text and an "Output" pane (keys `split-*`), with fractions
@@ -176,12 +180,13 @@ pub enum Role { /* existing, */ Splitter }
 ## Performance and allocation
 
 Layout is O(panes). A drag step writes one signal, causing a relayout of the split's
-subtree and a repaint; panes are not rebuilt. No allocation per frame; the fractions vector
-is reused when its length is unchanged.
+subtree and a repaint; panes are not rebuilt. No allocation per frame; a drag step updates
+the fractions vector in place and allocates only the layout object's new fraction list.
 
 ## Open questions
 
-Proposals, to accept or change:
+Accepted by the user ("continue", 2026-10-15); WIDGETS-SPLIT-06's traversal order and
+WIDGETS-GRID-29 were added while agreeing (review):
 
 1. **N panes along one axis**, nested for two dimensions, rather than a fixed two-pane
    splitter: IDE layouts need three or more, and docking wants an N-ary node.

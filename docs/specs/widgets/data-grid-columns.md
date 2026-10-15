@@ -20,8 +20,8 @@ In scope: reactive column widths (`column_widths`), the resize handle and drag, 
 width, the display order (`column_order`), the reorder drag with a drop indicator, the click
 amendment to sorting, the gallery's echoes.
 
-Out of scope (and where it goes): a resize cursor (`CursorIcon` has no column-resize variant;
-adding one is a view and platform amendment for later); auto-fit on double-click (later);
+Out of scope (and where it goes): a resize cursor (added later as WIDGETS-GRID-29 in
+[SplitView](split-view.md), once cursors reached the window); auto-fit on double-click (later);
 keyboard resize and reorder (specified in [part 5](data-grid-selection.md)); column
 hiding and a column chooser (later, with menus); persisting to disk (the app's job over the
 two signals).
