@@ -28,6 +28,7 @@
 mod bars;
 mod basic;
 mod data_grid;
+mod dialog;
 mod divider;
 mod dock;
 mod focus_scope;
@@ -60,6 +61,7 @@ pub use basic::{Button, Text};
 pub use data_grid::{
     CellValue, DataGrid, DataSource, FnSource, GridColumn, GridEditError, RowFilter, SortState,
 };
+pub use dialog::{AlertDialog, Dialog, DialogController};
 pub use divider::{Divider, VerticalDivider};
 pub use dock::{
     DockArea, DockError, DockGroupId, DockLayout, DockLoadError, DockNode, DockSide, DockSplitId,

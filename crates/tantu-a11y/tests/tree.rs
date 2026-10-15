@@ -499,3 +499,34 @@ fn a11y_tree_10_bar_roles() {
         );
     }
 }
+
+#[test]
+fn a11y_tree_11_dialog_roles_and_modal() {
+    let tree = ViewTree::new(move || {
+        column(
+            Some(Semantics {
+                role: tantu_view::Role::Dialog,
+                modal: true,
+                ..Default::default()
+            }),
+            vec![AnyView::new(leaf(Some(Semantics {
+                role: tantu_view::Role::AlertDialog,
+                ..Default::default()
+            })))],
+        )
+    });
+    let update = AccessibilityTree::new("dialogs").update(&tree);
+    let dialog = update
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == AkRole::Dialog)
+        .map(|(_, n)| n.clone())
+        .expect("Dialog is mapped");
+    assert!(dialog.is_modal());
+    let alert = update
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == AkRole::AlertDialog)
+        .expect("AlertDialog is mapped");
+    assert!(!alert.1.is_modal());
+}

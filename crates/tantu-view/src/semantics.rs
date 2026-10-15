@@ -77,6 +77,10 @@ pub enum Role {
     Toolbar,
     /// A status bar, a polite live region (WIDGETS-STATUSBAR-02).
     Status,
+    /// A dialog (WIDGETS-DIALOG-05).
+    Dialog,
+    /// A dialog asking for a decision.
+    AlertDialog,
 }
 
 /// A checkable element's state.
@@ -167,6 +171,8 @@ pub struct Semantics {
     pub focusable: bool,
     /// The supported actions.
     pub actions: SemanticsActions,
+    /// A dialog that blocks the rest of the window (WIDGETS-DIALOG-05).
+    pub modal: bool,
 }
 
 /// A column header's sorting direction.

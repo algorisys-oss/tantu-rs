@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/overlay.md`, rules VIEW-OVERLAY-01..07, -11 and -12.
+//! Tests for `docs/specs/view/overlay.md`, rules VIEW-OVERLAY-01..07 and -11..13.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -881,4 +881,36 @@ fn view_overlay_06_nested_overlays_follow_their_popup() {
     assert_eq!(outer_popup, Rect::from_ltwh(50.0, 90.0, 80.0, 30.0));
     let inner_popup = rect(&tree, find(&tree, "inner-popup").expect("shown"));
     assert_eq!(inner_popup, Rect::from_ltwh(130.0, 90.0, 60.0, 30.0));
+}
+
+#[test]
+fn view_overlay_13_cover_window() {
+    type Handles = Rc<RefCell<Option<Signal<bool>>>>;
+    let handles: Handles = Rc::default();
+    let h = handles.clone();
+    let mut tree = ViewTree::new(move || {
+        let visible = signal(false);
+        *h.borrow_mut() = Some(visible);
+        let portal = OverlayPortal::new(Keyed::new("target", boxed(100.0, 40.0)))
+            .visible(visible)
+            .anchor(Anchor::new(Alignment::CENTER, Alignment::CENTER).offset(30.0, 30.0))
+            .cover_window(true)
+            .overlay(|| Keyed::new("popup", boxed(80.0, 30.0)));
+        ClippedStack(vec![AnyView::new(At(120.0, 50.0, portal))])
+    });
+    let visible = handles.borrow_mut().take().expect("built");
+    frame(&mut tree);
+    tree.enter(|| visible.set(true));
+    frame(&mut tree);
+    // Tight to the window at its top-left, whatever the anchor.
+    let popup = find(&tree, "popup").expect("shown");
+    assert_eq!(rect(&tree, popup), Rect::from_ltwh(0.0, 0.0, 400.0, 300.0));
+    // It follows a window resize.
+    let mut scene = Scene::new();
+    tree.frame(
+        BoxConstraints::tight(Size::new(500.0, 360.0)),
+        &mut NoTextMeasure,
+        &mut scene,
+    );
+    assert_eq!(rect(&tree, popup), Rect::from_ltwh(0.0, 0.0, 500.0, 360.0));
 }

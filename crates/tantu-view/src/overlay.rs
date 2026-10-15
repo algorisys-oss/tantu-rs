@@ -144,6 +144,13 @@ impl<V: View> OverlayPortal<V> {
         self
     }
 
+    /// The overlay covers the window: laid out tight to the window at its top-left,
+    /// ignoring the anchor (VIEW-OVERLAY-13).
+    pub fn cover_window(self, cover: bool) -> Self {
+        let _ = cover; // Stub until VIEW-OVERLAY-13.
+        self
+    }
+
     /// Called on a primary press outside both the overlay content and the child.
     pub fn on_outside_press(mut self, f: impl Fn() + 'static) -> Self {
         self.on_outside_press = Some(Rc::new(f));

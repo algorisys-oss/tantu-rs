@@ -839,7 +839,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
 #[test]
 fn gallery_23_kitchen_sink_tabs_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 18);
+    assert_eq!(SINK_CARDS.len(), 19);
     assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -917,7 +917,7 @@ fn gallery_24_split_view_section() {
 #[test]
 fn gallery_25_kitchen_sink_split_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 18);
+    assert_eq!(SINK_CARDS.len(), 19);
     assert_eq!(index("split"), index("tabs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1012,7 +1012,7 @@ fn gallery_26_docking_section() {
 #[test]
 fn gallery_27_kitchen_sink_dock_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 18);
+    assert_eq!(SINK_CARDS.len(), 19);
     assert_eq!(index("dock"), index("split").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1206,7 +1206,7 @@ fn gallery_29_menus_in_the_buttons_section() {
 #[test]
 fn gallery_30_kitchen_sink_menus_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 18);
+    assert_eq!(SINK_CARDS.len(), 19);
     assert_eq!(index("menus"), index("dock").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1275,7 +1275,7 @@ fn gallery_31_menu_bar_and_status_bar() {
 #[test]
 fn gallery_32_kitchen_sink_bars_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 18);
+    assert_eq!(SINK_CARDS.len(), 19);
     assert_eq!(index("bars"), index("menus").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1298,4 +1298,72 @@ fn gallery_32_kitchen_sink_bars_card() {
     let italic = t.find(&Finder::key("sink-italic"));
     let focus = tantu::view::ElementId::from_raw(t.a11y_tree().focus.0);
     assert_eq!(focus, Some(italic));
+}
+
+#[test]
+fn gallery_33_dialog_in_the_buttons_section() {
+    use tantu::view::NamedKey;
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    assert_eq!(text_of(&t, "dialog-echo"), "Dialog: none");
+    // Delete.
+    t.tap(&Finder::text("Delete…"));
+    t.pump();
+    t.matches_golden(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/goldens/gallery-dialog.png"
+    ));
+    t.tap(&Finder::text("Delete"));
+    t.pump();
+    assert_eq!(text_of(&t, "dialog-echo"), "Dialog: deleted");
+    // Cancel.
+    t.tap(&Finder::text("Delete…"));
+    t.pump();
+    t.tap(&Finder::text("Cancel"));
+    t.pump();
+    assert_eq!(text_of(&t, "dialog-echo"), "Dialog: cancelled");
+    // The content behind can't be pressed: the press lands on the barrier and dismisses.
+    t.tap(&Finder::text("Delete…"));
+    t.pump();
+    let press = rect(&t, "press").center();
+    click(&mut t, press, PointerButton::Primary);
+    assert_eq!(text_of(&t, "press-count"), "Pressed 0 times");
+    assert_eq!(text_of(&t, "dialog-echo"), "Dialog: dismissed");
+    // Escape dismisses and the focus returns to the button.
+    t.focus(&Finder::key("delete-dialog"));
+    let button = tantu::view::ElementId::from_raw(t.a11y_tree().focus.0);
+    key(&mut t, NamedKey::Enter);
+    t.find(&Finder::text("Delete file?"));
+    key(&mut t, NamedKey::Escape);
+    assert!(t.find_all(&Finder::text("Delete file?")).is_empty());
+    assert_eq!(
+        tantu::view::ElementId::from_raw(t.a11y_tree().focus.0),
+        button
+    );
+}
+
+#[test]
+fn gallery_34_kitchen_sink_dialogs_card() {
+    use tantu::view::NamedKey;
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 19);
+    assert_eq!(index("dialogs"), index("bars").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "dialogs" && widgets == &["dialog"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-dialogs"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-dialogs-state"), "Name: untitled");
+    t.tap(&Finder::text("Rename…"));
+    t.pump();
+    // Not dismissible: Escape keeps it open.
+    key(&mut t, NamedKey::Escape);
+    t.find(&Finder::key("sink-rename-field"));
+    t.enter_text(&Finder::key("sink-rename-field"), "draft");
+    t.tap(&Finder::text("OK"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-dialogs-state"), "Name: draft");
+    assert!(t.find_all(&Finder::key("sink-rename-field")).is_empty());
 }
