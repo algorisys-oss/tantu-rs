@@ -1,6 +1,6 @@
 # TabView: tab bars and kept tab panels
 
-- **Status:** Draft
+- **Status:** Agreed (2026-10-15, the user said "continue" on the six proposals)
 - **Crates:** `tantu-widgets` (widgets), `tantu-view` and `tantu-a11y` (tab roles),
   `examples/gallery`
 - **Plan item:** Phase 4, "`TabView`", part 2 (the widgets)
@@ -150,7 +150,7 @@ beyond the existing widgets'.
 
 ## Open questions
 
-Proposals, to accept or change:
+Accepted by the user ("continue", 2026-10-15):
 
 1. **Flutter's split** (`TabBar` + `TabBarView` over one `Signal<usize>`, as TreeView shares
    signals rather than a controller object) plus a composed `TabView`, the name PLAN.md uses.
