@@ -348,7 +348,7 @@ fn widgets_menu_04_keyboard() {
     assert_eq!(fx.menus().len(), 1);
     fx.key(NamedKey::Enter);
     assert_eq!(fx.menus().len(), 2);
-    fx.key(NamedKey::ArrowDown);
+    assert_eq!(fx.highlighted().as_deref(), Some("a.txt"));
     fx.key(NamedKey::ArrowDown);
     fx.key(NamedKey::Enter);
     assert_eq!(fx.log(), ["c.txt"]);
