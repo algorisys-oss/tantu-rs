@@ -1,6 +1,6 @@
 # Docking, part 2: the DockArea widget
 
-- **Status:** Draft
+- **Status:** Agreed (2026-10-16, the user said "continue" on the seven proposals)
 - **Crates:** `tantu-layout` (`RenderDock`), `tantu-widgets` (`DockArea`), `examples/gallery`
 - **Plan item:** Phase 4, "Docking layout manager", part 2 (`DockArea`)
 - **Related:** [dock layout model](dock-layout.md) (part 1), [SplitView](split-view.md),
@@ -186,7 +186,7 @@ layout (O(nodes)) and no panel is rebuilt. Inactive panels cost nothing per fram
 
 ## Open questions
 
-Proposals, to accept or change:
+Accepted by the user ("continue", 2026-10-16):
 
 1. **One flat render object (`RenderDock`)** holding every strip, panel host and divider,
    positioned from a plan, so a panel moving between groups keeps its elements and state
