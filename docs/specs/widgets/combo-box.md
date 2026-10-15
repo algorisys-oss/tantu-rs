@@ -86,9 +86,11 @@ impl ViewTree {
   `selected` for the chosen one; the field's `active_descendant` is the highlighted option.
 - **A11Y-TREE-13:** `Role::ComboBox`, `ListBox` and `ListBoxOption` map to AccessKit's roles
   of the same names. An `active_descendant` is also accepted when it lies in a popup the
-  element owns (an overlay whose portal target is the element or inside it, at any depth):
-  the WAI-ARIA combobox's highlighted option is in its popup, not under the field (found
-  while implementing, review).
+  element owns (an overlay whose portal target is the element, inside it at any depth, or
+  encloses it): the WAI-ARIA combobox's highlighted option is in its popup, not under the
+  field (found while implementing, review). A target enclosing the element covers a field
+  whose popup belongs to the field and a button beside it (the date picker, found while
+  implementing it, review).
 - **VIEW-OVERLAY-14:** `ViewTree::popup_owner(element)` returns the portal target of an
   overlay's wrapper element (the root of a shown overlay's content), and `None` for any
   other element (found while implementing, review).

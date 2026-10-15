@@ -146,6 +146,10 @@ impl DatePickerField {
   is open the calendar keys of WIDGETS-DATE-05 move its cursor, Enter chooses, Escape or a
   press outside closes it; choosing (by key or click) closes it. The field is a `ComboBox`
   with `expanded` while open and the cursor's cell as its `active_descendant`.
+- **WIDGETS-DATE-09:** The popup's portal target is the field and its button together, so
+  a press on the button doesn't count as outside the popup (the button toggles it); the
+  field's active descendant is accepted through A11Y-TREE-13's enclosing target (found
+  while implementing, review).
 - **GALLERY-42:** The Selection section gains a "Due date" `DatePickerField` (range
   2026-01-01 to 2027-12-31, today 2026-10-16) with a "Due: …" echo (`date-echo`: "Due:
   none", "Due: 2026-10-20"). Tests: typing `20261020` sets it; Alt+Down opens the popup on
