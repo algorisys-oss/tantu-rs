@@ -1,6 +1,6 @@
 # Docking, part 3: dragging tabs to dock them
 
-- **Status:** Draft
+- **Status:** Agreed (2026-10-16, the user said "continue" on the six proposals)
 - **Crate:** `tantu-widgets` (`DockArea`), `examples/gallery`
 - **Plan item:** Phase 4, "Docking layout manager", part 3 (drag-to-dock)
 - **Related:** [dock layout model](dock-layout.md) (part 1, `DockTarget`, `move_panel`),
@@ -83,7 +83,7 @@ dock only. No allocation per move beyond the indicator state.
 
 ## Open questions
 
-Proposals, to accept or change:
+Accepted by the user ("continue", 2026-10-16):
 
 1. **The dock root follows the drag** in its capture phase (it is on the captured pointer
    path, and sees positions in its own coordinates), so tabs only start it.
