@@ -161,6 +161,40 @@ struct Windows {
     entries: HashMap<WindowId, Entry>,
     by_winit: HashMap<winit::window::WindowId, WindowId>,
     next: u64,
+    /// The OS clipboard, opened on first use; `Some(None)` after a failed open.
+    clipboard: Option<Option<std::rc::Rc<dyn tantu_platform::Clipboard>>>,
+}
+
+/// The OS clipboard through `arboard` (PLATFORM-WINIT-17).
+struct OsClipboard(std::cell::RefCell<arboard::Clipboard>);
+
+impl tantu_platform::Clipboard for OsClipboard {
+    fn read_text(&self) -> Option<String> {
+        match self.0.borrow_mut().get_text() {
+            Ok(text) if !text.is_empty() => Some(text),
+            Ok(_) => None,
+            Err(error) => {
+                tracing::debug!(%error, "couldn't read the clipboard");
+                None
+            }
+        }
+    }
+
+    fn write_text(&self, text: &str) -> bool {
+        let mut clipboard = self.0.borrow_mut();
+        let result = if text.is_empty() {
+            clipboard.clear()
+        } else {
+            clipboard.set_text(text)
+        };
+        match result {
+            Ok(()) => true,
+            Err(error) => {
+                tracing::debug!(%error, "couldn't write the clipboard");
+                false
+            }
+        }
+    }
 }
 
 /// `PlatformContext` for one callback.
@@ -250,7 +284,19 @@ impl PlatformContext for Context<'_> {
     }
 
     fn clipboard(&mut self) -> Option<std::rc::Rc<dyn tantu_platform::Clipboard>> {
-        todo!("PLATFORM-WINIT-17")
+        self.windows
+            .clipboard
+            .get_or_insert_with(|| match arboard::Clipboard::new() {
+                Ok(clipboard) => Some(std::rc::Rc::new(OsClipboard(std::cell::RefCell::new(
+                    clipboard,
+                )))
+                    as std::rc::Rc<dyn tantu_platform::Clipboard>),
+                Err(error) => {
+                    tracing::debug!(%error, "couldn't open the clipboard");
+                    None
+                }
+            })
+            .clone()
     }
 
     fn set_cursor(&mut self, window: WindowId, cursor: tantu_platform::CursorIcon) {

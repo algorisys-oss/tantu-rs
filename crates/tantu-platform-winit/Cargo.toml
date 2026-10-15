@@ -18,6 +18,10 @@ tantu-platform = { workspace = true }
 winit = "0.30.13"
 # The AccessKit platform adapter for winit windows (ADR 0013); 0.32 pairs with winit 0.30.
 accesskit_winit = "0.32.2"
+# The OS clipboard (plain text) (PLATFORM-WINIT-17); the crate egui and other winit
+# toolkits use. Default features: X11, macOS, Windows; Wayland goes through XWayland.
+arboard = "3.7.0"
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 
 # Opens a real window; needs the main thread, so it runs without the test harness.
 [[test]]

@@ -1,7 +1,11 @@
 //! [`FakePlatform`]: a scripted platform for tests without a display.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use tantu_core::{Point, Size};
 
+use crate::Clipboard as _;
 use crate::platform::{Platform, PlatformContext, PlatformError, PlatformHandler, SurfaceTarget};
 use crate::types::{CursorIcon, PhysicalSize, WindowAttributes, WindowEvent, WindowId};
 
@@ -72,6 +76,7 @@ pub struct FakeWindow {
 pub struct FakePlatform {
     scale_factor: f32,
     steps: Vec<FakeStep>,
+    clipboard: Option<String>,
 }
 
 impl FakePlatform {
@@ -80,13 +85,17 @@ impl FakePlatform {
         FakePlatform {
             scale_factor: 1.0,
             steps: Vec::new(),
+            clipboard: None,
         }
     }
 
     /// The clipboard's text when the run starts (PLATFORM-FAKE-15).
     pub fn clipboard_text(self, text: impl Into<String>) -> Self {
-        let _ = text.into();
-        todo!("PLATFORM-FAKE-15")
+        let text = text.into();
+        FakePlatform {
+            clipboard: (!text.is_empty()).then_some(text),
+            ..self
+        }
     }
 
     /// The scale factor new windows get.
@@ -111,12 +120,14 @@ impl FakePlatform {
     /// Runs like [`Platform::run`] and returns the log.
     pub fn run_logged(self, handler: &mut dyn PlatformHandler) -> FakeLog {
         let start = std::time::Instant::now();
+        let clipboard = Rc::new(FakeClipboard(RefCell::new(self.clipboard)));
         let mut cx = FakeContext {
             log: FakeLog::default(),
             scale_factor: self.scale_factor,
             pending: Vec::new(),
             start,
             now: start,
+            clipboard: Rc::clone(&clipboard),
         };
         handler.started(&mut cx);
         if !cx.log.exited {
@@ -158,6 +169,7 @@ impl FakePlatform {
         if !cx.log.exited {
             cx.redraw_round(handler);
         }
+        cx.log.clipboard_text = clipboard.read_text();
         cx.log
     }
 }
@@ -185,6 +197,22 @@ struct FakeContext {
     start: std::time::Instant,
     /// The fake clock, moved only by `Advance`.
     now: std::time::Instant,
+    /// The in-memory clipboard (PLATFORM-FAKE-15).
+    clipboard: Rc<FakeClipboard>,
+}
+
+/// The fake platform's clipboard: plain text in memory.
+struct FakeClipboard(RefCell<Option<String>>);
+
+impl crate::Clipboard for FakeClipboard {
+    fn read_text(&self) -> Option<String> {
+        self.0.borrow().clone()
+    }
+
+    fn write_text(&self, text: &str) -> bool {
+        *self.0.borrow_mut() = (!text.is_empty()).then(|| text.to_owned());
+        true
+    }
 }
 
 impl FakeContext {
@@ -284,7 +312,7 @@ impl PlatformContext for FakeContext {
     }
 
     fn clipboard(&mut self) -> Option<std::rc::Rc<dyn crate::Clipboard>> {
-        todo!("PLATFORM-FAKE-15")
+        Some(Rc::clone(&self.clipboard) as Rc<dyn crate::Clipboard>)
     }
 
     fn set_cursor(&mut self, window: WindowId, cursor: CursorIcon) {

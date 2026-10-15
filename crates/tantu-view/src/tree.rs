@@ -255,6 +255,8 @@ pub struct ViewTree {
     pub(crate) keys: HashMap<ElementId, Key>,
     pub(crate) focus_state: FocusState,
     pub(crate) overlays: OverlayState,
+    /// The tree's clipboard, behind a slot handles forward through (VIEW-CLIP-01).
+    pub(crate) clipboard: Rc<crate::clipboard::ClipboardSlot>,
 }
 
 impl ViewTree {
@@ -279,6 +281,7 @@ impl ViewTree {
             keys: HashMap::new(),
             focus_state: FocusState::default(),
             overlays: OverlayState::default(),
+            clipboard: Rc::default(),
         };
         let runtime = tree.runtime.clone();
         runtime.enter(|| {

@@ -1,6 +1,6 @@
 # Clipboard, part 1: plain text and TextField copy/paste
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-platform` (`Clipboard`, fake clipboard), `tantu-platform-winit`
   (`arboard`), `tantu-view` (the view-side clipboard), `tantu` (runner), `tantu-test`,
   `tantu-widgets` (`TextField` copy, cut and paste), `examples/gallery`

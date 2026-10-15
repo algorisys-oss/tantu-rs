@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (modal dialogs done; the user is away until morning)_
+_Last updated: 2026-10-16 (plain-text clipboard done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -34,8 +34,11 @@ bar. **Menus part 1 is done** (decision 87): popup and context menus, and **part
 88): `MenuBar`, `Toolbar`, `StatusBar`, with the gallery window using a menu bar, a status
 bar and a scrolling sidebar. Native OS menus (part 3) wait for the user. **Dialogs part 1
 is done** (decision 89): modal `Dialog`s and `AlertDialog`; native file dialogs,
-notifications and the tray wait for the user (platform dependencies, ADR). **Next:**
-multi-window, drag and drop, clipboard (PLAN.md order). Commit/push authorization persists.
+notifications and the tray wait for the user (platform dependencies, ADR). **Clipboard
+part 1 is done** (decision 90): plain text through the platform (`arboard`), the view layer
+and the tester, with `TextField` copy/cut/paste. **Next:** forms (PLAN.md order; rich/image
+clipboard, multi-window and drag and drop are later parts of the same item). Commit/push
+authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1116,6 +1119,22 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     mapped to AccessKit's modal flag. Window shortcuts still reach the root while a dialog
     is open (review). Gallery "Delete…" sample and a "dialogs" kitchen-sink card.
 
+90. **Plain-text clipboard** (2026-10-16, spec `docs/specs/platform/clipboard.md`; decided by
+    the agent while the user was away, review). The clipboard item is split (plain text;
+    rich text, images and the primary selection; multi-window; drag and drop).
+    `tantu_platform::Clipboard` (`read_text`/`write_text`) from `PlatformContext::clipboard`;
+    the fake platform keeps it in memory (`FakePlatform::clipboard_text`,
+    `FakeLog::clipboard_text`); the winit shell uses **`arboard` 3.7** (new dependency of
+    `tantu-platform-winit` only, the clipboard crate egui uses; default features, so
+    Wayland goes through XWayland) and `tracing` for failures. The view layer has its own
+    `Clipboard` trait and `MemoryClipboard`; each tree holds a slot that `BuildCx::clipboard`
+    handles forward through, so the runner can install the platform clipboard right after
+    building (VIEW-CLIP-01 amended while implementing). The tester keeps a memory clipboard
+    (`clipboard_text`/`set_clipboard_text`). `TextField` binds primary+C/X/V to
+    `CopyIntent`/`CutIntent`/`PasteIntent` (one undo step each; line breaks become spaces in
+    single-line fields). The opt-in window test round-trips the real clipboard (it passed
+    here; note it overwrites the desktop clipboard).
+
 ## Commit log
 
 | Commit | Summary |
@@ -1646,16 +1665,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `71e41b4` | impl: MenuBar, Toolbar, StatusBar, sticky keyboard flag for menus; gallery menu bar, status bar, scrolling sidebar, bars card, goldens; PLAN.md part 2 ticked |
 | `aaac859` | spec: modal dialogs (VIEW-OVERLAY-13, WIDGETS-DIALOG-01..05, A11Y-TREE-11, GALLERY-33..34); PLAN.md dialogs item split |
 | `be47e82` | test: modal dialogs, stubs + 13 failing tests |
-| _this commit_ | impl: window-covering overlays, Dialog/DialogController/AlertDialog, modal semantics; gallery dialog sample and card, goldens; PLAN.md part 1 ticked |
+| `52ae1dc` | impl: window-covering overlays, Dialog/DialogController/AlertDialog, modal semantics; gallery dialog sample and card, goldens; PLAN.md part 1 ticked |
+| `e2572e5` | spec: plain-text clipboard and TextField copy/paste; PLAN.md item split |
+| `6c9c648` | spec: VIEW-CLIP-01 handles follow the tree's current clipboard |
+| `fd6f049` | test: plain-text clipboard and TextField copy/paste, stubs + 8 failing tests |
+| _this commit_ | impl: platform/fake/winit (arboard)/view/runner/tester clipboards, TextField copy/cut/paste; PLAN.md part 1 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: multi-window, drag and drop and clipboard (platform
-work: plan the clipboard first, it unblocks TextField copy/paste), forms, i18n, `Grid`
-layout. Native OS menus and native file dialogs/notifications/tray wait for the user.
+Continue Phase 4 in PLAN.md order: forms (validation, field binding, masked input, date/time
+pickers, combo box with search), i18n, `Grid` layout; the remaining clipboard/multi-window/
+drag-and-drop parts. Native OS menus and native file dialogs/notifications/tray wait for
+the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
@@ -1684,10 +1708,6 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
 - **Reactive text presets:** a theme's `text` is read at build time; changing font sizes live
   would need paragraphs re-keyed (decision 62). Revisit with the theme's second user (Fluent)
   or an accessibility font-scale setting.
-- **Clipboard for `TextField`:** the `Platform` trait has no clipboard yet (PLAN.md puts it
-  in Phase 4), so `TextField` has no copy/paste. Proposal: add `Platform::clipboard_text` /
-  `set_clipboard_text` as a small platform spec amendment, before Phase 4 if the user wants
-  copy/paste sooner.
 - **Handler ownership:** pointer, key and focus handlers live on the element they are
   registered on. A component that registers on another element (e.g. its parent, or the root)
   leaves its handlers there after it is removed, and they may read its disposed signals (a

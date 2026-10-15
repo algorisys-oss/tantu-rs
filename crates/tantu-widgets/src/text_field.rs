@@ -33,15 +33,15 @@ use crate::{Padding, TextEditingController};
 pub struct SelectAllIntent;
 
 /// Copy the selection to the clipboard (primary + C; WIDGETS-TEXTFIELD-12).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CopyIntent;
 
 /// Cut the selection to the clipboard (primary + X).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CutIntent;
 
 /// Paste the clipboard's text over the selection (primary + V).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct PasteIntent;
 
 /// Undo the last edit (primary + Z).
@@ -397,6 +397,56 @@ impl View for FieldBox {
             RedoIntent,
         );
         cx.shortcut(id, SingleActivator::character("y").primary(), RedoIntent);
+        cx.shortcut(id, SingleActivator::character("c").primary(), CopyIntent);
+        cx.shortcut(id, SingleActivator::character("x").primary(), CutIntent);
+        cx.shortcut(id, SingleActivator::character("v").primary(), PasteIntent);
+        // Copy, cut and paste (WIDGETS-TEXTFIELD-12).
+        let clipboard = cx.clipboard();
+        {
+            let (enabled, clipboard) = (Rc::clone(&enabled), Rc::clone(&clipboard));
+            cx.action(id, move |_: &CopyIntent| {
+                let value = controller.value();
+                if enabled() && !value.selection.is_collapsed() {
+                    clipboard.write_text(value.selected_text());
+                }
+            });
+        }
+        {
+            let (enabled, clipboard, on_change) = (
+                Rc::clone(&enabled),
+                Rc::clone(&clipboard),
+                self.on_change.clone(),
+            );
+            cx.action(id, move |_: &CutIntent| {
+                let value = controller.value();
+                if enabled() && !value.selection.is_collapsed() {
+                    clipboard.write_text(value.selected_text());
+                    let before = value.text.clone();
+                    controller.edit(|v| v.insert(""));
+                    report_if_changed(controller, &on_change, &before);
+                }
+            });
+        }
+        {
+            let (enabled, on_change) = (Rc::clone(&enabled), self.on_change.clone());
+            let single_line = self.single_line;
+            cx.action(id, move |_: &PasteIntent| {
+                if !enabled() {
+                    return;
+                }
+                let Some(text) = clipboard.read_text() else {
+                    return;
+                };
+                let text = if single_line {
+                    text.replace("\r\n", " ").replace(['\n', '\r'], " ")
+                } else {
+                    text
+                };
+                let before = controller.text();
+                controller.edit(|v| v.insert(&text));
+                report_if_changed(controller, &on_change, &before);
+            });
+        }
         {
             let enabled = Rc::clone(&enabled);
             cx.action(id, move |_: &SelectAllIntent| {

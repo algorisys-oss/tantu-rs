@@ -1,6 +1,7 @@
 //! The view-side clipboard: [`Clipboard`] and [`MemoryClipboard`]. Spec:
 //! `docs/specs/platform/clipboard.md` (VIEW-CLIP-01).
 
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::{BuildCx, ViewTree};
@@ -16,32 +17,51 @@ pub trait Clipboard {
 /// An in-memory clipboard: every view tree starts with one.
 #[derive(Default)]
 pub struct MemoryClipboard {
-    text: std::cell::RefCell<Option<String>>,
+    text: RefCell<Option<String>>,
 }
 
 impl Clipboard for MemoryClipboard {
     fn read_text(&self) -> Option<String> {
-        let _ = &self.text;
-        todo!("VIEW-CLIP-01")
+        self.text.borrow().clone()
     }
 
     fn write_text(&self, text: &str) -> bool {
-        let _ = text;
-        todo!("VIEW-CLIP-01")
+        *self.text.borrow_mut() = (!text.is_empty()).then(|| text.to_owned());
+        true
+    }
+}
+
+/// The tree's current clipboard; the handles views get forward through it.
+pub(crate) struct ClipboardSlot(RefCell<Rc<dyn Clipboard>>);
+
+impl Default for ClipboardSlot {
+    fn default() -> Self {
+        ClipboardSlot(RefCell::new(Rc::new(MemoryClipboard::default())))
+    }
+}
+
+impl Clipboard for ClipboardSlot {
+    fn read_text(&self) -> Option<String> {
+        let current = Rc::clone(&self.0.borrow());
+        current.read_text()
+    }
+
+    fn write_text(&self, text: &str) -> bool {
+        let current = Rc::clone(&self.0.borrow());
+        current.write_text(text)
     }
 }
 
 impl ViewTree {
-    /// Replaces the tree's clipboard (call it before the views build; VIEW-CLIP-01).
+    /// Replaces the tree's clipboard; handles taken earlier follow (VIEW-CLIP-01).
     pub fn set_clipboard(&mut self, clipboard: Rc<dyn Clipboard>) {
-        let _ = clipboard;
-        todo!("VIEW-CLIP-01")
+        *self.clipboard.0.borrow_mut() = clipboard;
     }
 }
 
 impl BuildCx<'_> {
-    /// The tree's clipboard (VIEW-CLIP-01).
+    /// The tree's clipboard: a handle that always reaches its current one (VIEW-CLIP-01).
     pub fn clipboard(&self) -> Rc<dyn Clipboard> {
-        todo!("VIEW-CLIP-01")
+        Rc::clone(&self.tree.clipboard) as Rc<dyn Clipboard>
     }
 }

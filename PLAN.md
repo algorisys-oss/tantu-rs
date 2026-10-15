@@ -184,7 +184,7 @@ faster or more portable without changing how apps are written.
   - [x] modal dialogs: `Dialog`, `DialogController`, `AlertDialog`, barrier, focus trap and restore (spec `docs/specs/widgets/dialog.md`)
   - [ ] native file dialogs, notifications and the system tray: need platform dependencies and an ADR; deferred for the user
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images), in parts:
-  - [ ] plain-text clipboard through the platform, view and tester; `TextField` copy, cut and paste (spec `docs/specs/platform/clipboard.md`)
+  - [x] plain-text clipboard through the platform, view and tester; `TextField` copy, cut and paste (spec `docs/specs/platform/clipboard.md`)
   - [ ] rich text and image clipboard, primary selection (separate spec)
   - [ ] multi-window (separate spec)
   - [ ] drag and drop, intra-app and with the OS (separate spec)

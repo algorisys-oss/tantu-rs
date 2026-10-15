@@ -2,6 +2,7 @@
 //! `docs/specs/facade/app.md`.
 
 use std::fmt;
+use std::rc::Rc;
 
 use tantu_a11y::AccessibilityTree;
 use tantu_core::{Color, Point, Rect, Size, Vec2};
@@ -316,6 +317,19 @@ impl WindowState {
     }
 }
 
+/// The platform's clipboard as views see it (FACADE-APP-18).
+struct PlatformClipboard(Rc<dyn tantu_platform::Clipboard>);
+
+impl tantu_view::Clipboard for PlatformClipboard {
+    fn read_text(&self) -> Option<String> {
+        self.0.read_text()
+    }
+
+    fn write_text(&self, text: &str) -> bool {
+        self.0.write_text(text)
+    }
+}
+
 /// The view's cursor as the platform's.
 fn platform_cursor(cursor: tantu_view::CursorIcon) -> tantu_platform::CursorIcon {
     use tantu_platform::CursorIcon as P;
@@ -385,7 +399,11 @@ impl AppHandler {
             Ok(id) => id,
             Err(error) => return self.fail(cx, Error::Platform(error)),
         };
-        let tree = content(self.text.styles());
+        let mut tree = content(self.text.styles());
+        // The platform's clipboard for the window's views (FACADE-APP-18).
+        if let Some(clipboard) = cx.clipboard() {
+            tree.set_clipboard(Rc::new(PlatformClipboard(clipboard)));
+        }
         let mut renderer = match (self.factory)(cx, id) {
             Ok(renderer) => renderer,
             Err(error) => return self.fail(cx, error),

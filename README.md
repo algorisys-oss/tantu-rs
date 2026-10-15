@@ -84,7 +84,7 @@ fn main() -> tantu::Result<()> {
 - **Layout:** `Row`, `Column`, `Expanded`, `Flexible`, `Spacer`, `Padding`, `Align`, `Center`,
   `SizedBox`, `ConstrainedBox`, `LimitedBox`, `Stack`, `Positioned`, `LayoutBuilder`.
 - **Widgets:** `Text`, `RichText`, `Button`, `IconButton`, `Icon` (Material Icons), `Image`
-  (PNG), `Checkbox`, `Radio`, `Switch`, `Slider`, `Divider`, `TextField` (with undo and IME),
+  (PNG), `Checkbox`, `Radio`, `Switch`, `Slider`, `Divider`, `TextField` (with undo, IME and copy/paste),
   `Tooltip`.
 - **Enterprise widgets:** `DataGrid` (a million rows, frozen columns, sorting, resizing,
   selection, cell editors), `TreeView`, `TabView` (with `TabBar` and `TabBarView`),

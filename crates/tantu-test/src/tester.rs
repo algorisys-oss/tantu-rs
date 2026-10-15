@@ -100,6 +100,8 @@ pub struct WidgetTester {
     theme: Signal<Theme>,
     /// The fake clock (TEST-WT-13).
     clock: std::time::Instant,
+    /// The tree's in-memory clipboard (TEST-WT-19).
+    clipboard: Rc<tantu_view::MemoryClipboard>,
 }
 
 impl WidgetTester {
@@ -127,6 +129,9 @@ impl WidgetTester {
         let theme = theme
             .get()
             .expect("the tester's app closure runs once, when the tree is built");
+        let mut tree = tree;
+        let clipboard = Rc::new(tantu_view::MemoryClipboard::default());
+        tree.set_clipboard(clipboard.clone());
         let size = Size::new(width, height);
         let mut recorder = HeadlessRenderer::new(1, 1);
         recorder.resize(pixels(width), pixels(height), 1.0);
@@ -139,6 +144,7 @@ impl WidgetTester {
             size,
             theme,
             clock: std::time::Instant::now(),
+            clipboard,
         };
         tester.pump();
         tester
@@ -478,12 +484,13 @@ fn over(image: &ImageData, background: Color) -> ImageData {
 impl WidgetTester {
     /// The tester's clipboard text (TEST-WT-19).
     pub fn clipboard_text(&self) -> Option<String> {
-        todo!("TEST-WT-19")
+        use tantu_view::Clipboard;
+        self.clipboard.read_text()
     }
 
     /// Writes the tester's clipboard (TEST-WT-19).
     pub fn set_clipboard_text(&mut self, text: &str) {
-        let _ = text;
-        todo!("TEST-WT-19")
+        use tantu_view::Clipboard;
+        self.clipboard.write_text(text);
     }
 }
