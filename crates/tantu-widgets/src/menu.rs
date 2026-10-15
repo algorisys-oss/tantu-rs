@@ -9,7 +9,7 @@ use tantu_view::core::{Color, Rect, Size, Vec2};
 use tantu_view::layout::{
     Alignment, BoxConstraints, LayoutChildren, RenderBox, RenderConstrainedBox,
 };
-use tantu_view::reactive::{Signal, effect, memo, signal, untrack};
+use tantu_view::reactive::{Memo, Signal, effect, memo, signal, untrack};
 use tantu_view::scene::{BorderRadius, BoxShadow, RoundedRect};
 use tantu_view::{
     Anchor, AnyView, BuildCx, Dyn, ElementId, FocusOptions, Handled, IntoProp, LogicalKey,
@@ -320,7 +320,8 @@ const RADIUS: f32 = 4.0;
 
 /// One menu chain (a root menu and its submenus): how to close it, and where the focus was.
 struct Chain {
-    controller: MenuController,
+    /// Closes every menu of the chain.
+    close: Rc<dyn Fn()>,
     previous: Cell<Option<ElementId>>,
 }
 
@@ -351,7 +352,7 @@ fn build_menu(
     anchor: Prop<Anchor>,
 ) -> ElementId {
     let chain = Rc::new(Chain {
-        controller,
+        close: Rc::new(move || controller.close()),
         previous: Cell::new(None),
     });
     let items: Rc<[MenuItem]> = items.into();
@@ -366,6 +367,7 @@ fn build_menu(
                 items: Rc::clone(&items),
                 chain: Rc::clone(&chain),
                 parent: None,
+                sideways: None,
                 take_focus: true,
                 highlight_first: false,
             })
@@ -398,6 +400,18 @@ fn build_menu(
     })
 }
 
+/// Whether an open menu was opened by the keyboard, keeping its last value while the menu
+/// closes, so closing doesn't rebuild the menu (which would take the focus on its way out).
+fn sticky(keyboard: Memo<Option<bool>>) -> Memo<bool> {
+    let last = Cell::new(false);
+    memo(move || {
+        if let Some(flag) = keyboard.get() {
+            last.set(flag);
+        }
+        last.get()
+    })
+}
+
 /// How a submenu reaches its parent menu.
 #[derive(Clone)]
 struct ParentLink {
@@ -410,6 +424,8 @@ struct MenuView {
     items: Rc<[MenuItem]>,
     chain: Rc<Chain>,
     parent: Option<ParentLink>,
+    /// For a menu bar's menu: moves to the previous (false) or next (true) top menu.
+    sideways: Option<Rc<dyn Fn(bool)>>,
     take_focus: bool,
     highlight_first: bool,
 }
@@ -456,7 +472,7 @@ impl Level {
         match &self.items[i].kind {
             ItemKind::Submenu(_) => self.open_sub.set(Some((i, keyboard))),
             ItemKind::Action => {
-                self.chain.controller.close();
+                (self.chain.close)();
                 if let Some(f) = &self.items[i].on_select {
                     f();
                 }
@@ -536,12 +552,14 @@ impl View for MenuView {
                             .overlay(move || {
                                 let (sub, chain, link) =
                                     (Rc::clone(&sub), Rc::clone(&chain), link.clone());
+                                let by_keyboard = sticky(keyboard);
                                 Dyn::new(move || {
-                                    let by_keyboard = keyboard.get().unwrap_or(false);
+                                    let by_keyboard = by_keyboard.get();
                                     MenuView {
                                         items: Rc::clone(&sub),
                                         chain: Rc::clone(&chain),
                                         parent: Some(link.clone()),
+                                        sideways: None,
                                         take_focus: by_keyboard,
                                         highlight_first: by_keyboard,
                                     }
@@ -601,7 +619,8 @@ impl View for MenuView {
         cx.focus_scope(id);
         // Keys (WIDGETS-MENU-04).
         {
-            let (level, parent) = (level.clone(), self.parent.clone());
+            let (level, parent, sideways) =
+                (level.clone(), self.parent.clone(), self.sideways.clone());
             cx.on_key(id, Phase::Bubble, move |k| {
                 let event = &k.event;
                 if !event.pressed || event.modifiers != Modifiers::default() {
@@ -628,19 +647,22 @@ impl View for MenuView {
                             level.activate(i, true);
                         }
                     }
-                    LogicalKey::Named(NamedKey::ArrowRight) => match current {
-                        Some(i) if matches!(level.items[i].kind, ItemKind::Submenu(_)) => {
+                    LogicalKey::Named(NamedKey::ArrowRight) => match (current, &sideways) {
+                        (Some(i), _) if matches!(level.items[i].kind, ItemKind::Submenu(_)) => {
                             level.activate(i, true);
                         }
+                        // A menu bar's menu moves to the next top menu (WIDGETS-MENUBAR-03).
+                        (_, Some(sideways)) => sideways(true),
                         _ => return Handled::Continue,
                     },
-                    LogicalKey::Named(NamedKey::ArrowLeft) => match &parent {
-                        Some(parent) => (parent.close)(),
-                        None => return Handled::Continue,
+                    LogicalKey::Named(NamedKey::ArrowLeft) => match (&parent, &sideways) {
+                        (Some(parent), _) => (parent.close)(),
+                        (None, Some(sideways)) => sideways(false),
+                        _ => return Handled::Continue,
                     },
                     LogicalKey::Named(NamedKey::Escape) => match &parent {
                         Some(parent) => (parent.close)(),
-                        None => level.chain.controller.close(),
+                        None => (level.chain.close)(),
                     },
                     _ => return Handled::Continue,
                 }
@@ -648,7 +670,9 @@ impl View for MenuView {
             });
         }
         if self.take_focus {
-            if self.parent.is_none() {
+            // The first focus recorded is kept, so switching a bar's menus keeps the
+            // focus to return to.
+            if self.parent.is_none() && self.chain.previous.get().is_none() {
                 self.chain.previous.set(cx.tree().focused());
             }
             cx.focus(id);
@@ -1014,9 +1038,370 @@ impl MenuBar {
     }
 }
 
+/// The menu bar's height (WIDGETS-MENUBAR-01).
+const BAR_HEIGHT: f32 = 40.0;
+
+/// What the bar's parts share.
+#[derive(Clone)]
+struct Bar {
+    /// The open top menu and whether the keyboard opened it.
+    open: Signal<Option<(usize, bool)>>,
+    current: Signal<usize>,
+    focused: Signal<bool>,
+    count: usize,
+}
+
 impl View for MenuBar {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let _ = (cx, self.menus);
-        todo!("WIDGETS-MENUBAR-01..04")
+        let theme = ThemeHandle::of(cx);
+        let count = self.menus.len();
+        let bar = Bar {
+            open: signal(None),
+            current: signal(0),
+            focused: signal(false),
+            count,
+        };
+        let open = bar.open;
+        let chain = Rc::new(Chain {
+            close: Rc::new(move || {
+                if open.get_untracked().is_some() {
+                    open.set(None);
+                }
+            }),
+            previous: Cell::new(None),
+        });
+        let ids: Rc<RefCell<Vec<Option<ElementId>>>> = Rc::new(RefCell::new(vec![None; count]));
+        let mut children: Vec<AnyView> = self
+            .menus
+            .into_iter()
+            .enumerate()
+            .map(|(i, (label, items))| {
+                AnyView::new(top_menu(
+                    i,
+                    label,
+                    items,
+                    bar.clone(),
+                    Rc::clone(&chain),
+                    Rc::clone(&ids),
+                ))
+            })
+            .collect();
+        // Focus goes back when the bar's menus close (WIDGETS-MENUBAR-02).
+        let target: Rc<Cell<Option<ElementId>>> = Rc::default();
+        let moves = signal(0u32);
+        {
+            let (chain, target) = (Rc::clone(&chain), Rc::clone(&target));
+            let was_open = Cell::new(false);
+            effect(move || {
+                let is_open = open.get().is_some();
+                if was_open.replace(is_open) && !is_open {
+                    if let Some(previous) = chain.previous.take() {
+                        target.set(Some(previous));
+                        untrack(|| moves.update(|m| *m = m.wrapping_add(1)));
+                    }
+                }
+            });
+        }
+        children.push(AnyView::new(Dyn::new(move || {
+            moves.get();
+            Restore {
+                target: Rc::clone(&target),
+                only_if_unfocused: true,
+            }
+        })));
+        let id = cx.render(BarRender, children);
+        cx.set_paint(
+            id,
+            BarPaint {
+                colors: theme.colors(),
+            },
+        );
+        cx.bind(id, theme.colors_prop(), |e, colors| {
+            e.update_paint::<BarPaint>(|p| p.colors = colors);
+        });
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::MenuBar,
+                focusable: count > 0,
+                actions: SemanticsActions {
+                    focus: count > 0,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        if count == 0 {
+            return id;
+        }
+        // One Tab stop that a press doesn't take (WIDGETS-MENUBAR-02, -03).
+        cx.focusable(
+            id,
+            FocusOptions {
+                traversable: true,
+                focus_on_press: false,
+            },
+        );
+        let (current, focused) = (bar.current, bar.focused);
+        cx.on_focus_change(id, move |is| focused.set(is));
+        {
+            let ids = Rc::clone(&ids);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || (focused.get(), current.get()))),
+                move |e, (focused, current)| {
+                    let active = focused
+                        .then(|| ids.borrow().get(current).copied().flatten())
+                        .flatten();
+                    e.update_semantics(|s| s.active_descendant = active);
+                },
+            );
+        }
+        cx.on_key(id, Phase::Bubble, move |k| {
+            let event = &k.event;
+            if !event.pressed || event.modifiers != Modifiers::default() {
+                return Handled::Continue;
+            }
+            let i = current.get_untracked();
+            match &event.key {
+                LogicalKey::Named(NamedKey::ArrowLeft) => current.set((i + count - 1) % count),
+                LogicalKey::Named(NamedKey::ArrowRight) => current.set((i + 1) % count),
+                LogicalKey::Named(NamedKey::ArrowDown | NamedKey::Enter) => {
+                    open.set(Some((i, true)));
+                }
+                LogicalKey::Character(c) if &**c == " " => open.set(Some((i, true))),
+                _ => return Handled::Continue,
+            }
+            Handled::Stop
+        });
+        id
+    }
+}
+
+/// Top-level menu `i`: its label in the bar and its menu below it.
+fn top_menu(
+    i: usize,
+    label: String,
+    items: Vec<MenuItem>,
+    bar: Bar,
+    chain: Rc<Chain>,
+    ids: Rc<RefCell<Vec<Option<ElementId>>>>,
+) -> impl View {
+    let items: Rc<[MenuItem]> = items.into();
+    let open = bar.open;
+    let keyboard = memo(move || open.get().filter(|o| o.0 == i).map(|o| o.1));
+    let count = bar.count;
+    let (current, has_items) = (bar.current, !items.is_empty());
+    let sideways: Rc<dyn Fn(bool)> = Rc::new(move |forward| {
+        let j = if forward {
+            (i + 1) % count
+        } else {
+            (i + count - 1) % count
+        };
+        current.set(j);
+        open.set(Some((j, true)));
+    });
+    OverlayPortal::new(TopLabel {
+        index: i,
+        label,
+        bar,
+        ids,
+    })
+    .visible(move || has_items && keyboard.get().is_some())
+    .anchor(Anchor::below())
+    .on_outside_press(move || {
+        if open.get_untracked().is_some_and(|o| o.0 == i) {
+            open.set(None);
+        }
+    })
+    .overlay(move || {
+        let (items, chain, sideways) = (Rc::clone(&items), Rc::clone(&chain), Rc::clone(&sideways));
+        let by_keyboard = sticky(keyboard);
+        Dyn::new(move || {
+            let by_keyboard = by_keyboard.get();
+            MenuView {
+                items: Rc::clone(&items),
+                chain: Rc::clone(&chain),
+                parent: None,
+                sideways: Some(Rc::clone(&sideways)),
+                take_focus: true,
+                highlight_first: by_keyboard,
+            }
+        })
+    })
+}
+
+/// A top-level item's label in the bar (WIDGETS-MENUBAR-01, -02, -04).
+struct TopLabel {
+    index: usize,
+    label: String,
+    bar: Bar,
+    ids: Rc<RefCell<Vec<Option<ElementId>>>>,
+}
+
+impl View for TopLabel {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let (i, bar) = (self.index, self.bar);
+        let theme = ThemeHandle::of(cx);
+        let text = Text::new(self.label.clone())
+            .style(theme.snapshot().text.label)
+            .color(move || theme.colors().on_surface);
+        let id = cx.render(TopRender, [AnyView::new(text)]);
+        if let Some(slot) = self.ids.borrow_mut().get_mut(i) {
+            *slot = Some(id);
+        }
+        let (open, current, focused) = (bar.open, bar.current, bar.focused);
+        cx.set_paint(
+            id,
+            TopPaint {
+                layer: false,
+                ring: false,
+                colors: theme.colors(),
+            },
+        );
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || {
+                let is_open = open.get().is_some_and(|o| o.0 == i);
+                let is_current = focused.get() && current.get() == i;
+                (is_open || is_current, is_current, theme.colors())
+            })),
+            |e, (layer, ring, colors)| {
+                e.update_paint::<TopPaint>(|p| {
+                    p.layer = layer;
+                    p.ring = ring;
+                    p.colors = colors;
+                });
+            },
+        );
+        cx.set_semantics(
+            id,
+            Semantics {
+                role: Role::MenuItem,
+                name: Some(self.label),
+                actions: SemanticsActions {
+                    click: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        cx.bind(
+            id,
+            Prop::Dynamic(Box::new(move || open.get().is_some_and(|o| o.0 == i))),
+            |e, expanded| {
+                e.update_semantics(|s| s.expanded = Some(expanded));
+            },
+        );
+        cx.on_pointer(id, Phase::Bubble, move |p| match p.event.kind {
+            PointerKind::Down(PointerButton::Primary) => {
+                current.set(i);
+                if open.get_untracked().is_some_and(|o| o.0 == i) {
+                    open.set(None);
+                } else {
+                    open.set(Some((i, false)));
+                }
+                Handled::Stop
+            }
+            PointerKind::Enter => {
+                if open.get_untracked().is_some_and(|o| o.0 != i) {
+                    current.set(i);
+                    open.set(Some((i, false)));
+                }
+                Handled::Continue
+            }
+            _ => Handled::Continue,
+        });
+        id
+    }
+}
+
+/// Top-level items side by side at their natural widths, the bar filling its width.
+#[derive(Clone, PartialEq)]
+struct BarRender;
+
+impl RenderBox for BarRender {
+    fn perform_layout(&mut self, c: BoxConstraints, children: &mut LayoutChildren<'_>) -> Size {
+        let mut x = 0.0;
+        for i in 0..children.len() {
+            let size = children.layout(
+                i,
+                BoxConstraints::new(0.0, f32::INFINITY, BAR_HEIGHT, BAR_HEIGHT),
+            );
+            children.set_offset(i, Vec2::new(x, 0.0));
+            x += size.width;
+        }
+        let width = if c.has_bounded_width() {
+            c.max_width
+        } else {
+            x
+        };
+        c.constrain(Size::new(width, BAR_HEIGHT))
+    }
+}
+
+/// A top-level item: its label centred with 12 px on each side.
+#[derive(Clone, PartialEq)]
+struct TopRender;
+
+impl RenderBox for TopRender {
+    fn perform_layout(&mut self, c: BoxConstraints, children: &mut LayoutChildren<'_>) -> Size {
+        let mut label = Size::ZERO;
+        for i in 0..children.len() {
+            label = children.layout(
+                i,
+                BoxConstraints::loose(Size::new(f32::INFINITY, c.max_height)),
+            );
+        }
+        let size = c.constrain(Size::new(label.width + 2.0 * PAD_H, c.max_height));
+        for i in 0..children.len() {
+            children.set_offset(
+                i,
+                Vec2::new(PAD_H, ((size.height - label.height) / 2.0).max(0.0)),
+            );
+        }
+        size
+    }
+}
+
+/// The bar's surface and bottom line.
+struct BarPaint {
+    colors: ColorScheme,
+}
+
+impl Paint for BarPaint {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        let size = cx.size();
+        let scene = cx.scene();
+        scene.fill_rect(
+            Rect::from_ltrb(0.0, 0.0, size.width, size.height),
+            self.colors.surface,
+        );
+        scene.fill_rect(
+            Rect::from_ltrb(0.0, size.height - 1.0, size.width, size.height),
+            self.colors.outline_variant,
+        );
+    }
+}
+
+/// A top-level item's layer and focus ring.
+struct TopPaint {
+    layer: bool,
+    ring: bool,
+    colors: ColorScheme,
+}
+
+impl Paint for TopPaint {
+    fn paint(&self, cx: &mut PaintCx<'_, '_>) {
+        let size = cx.size();
+        let bounds = Rect::from_ltrb(0.0, 0.0, size.width, size.height);
+        if self.layer {
+            cx.scene()
+                .fill_rect(bounds, self.colors.on_surface.with_alpha(HIGHLIGHT_ALPHA));
+        }
+        if self.ring {
+            cx.scene()
+                .stroke(RoundedRect::from_rect(bounds), 2.0, self.colors.primary);
+        }
     }
 }

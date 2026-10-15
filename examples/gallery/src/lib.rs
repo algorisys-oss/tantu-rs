@@ -15,6 +15,7 @@ use std::time::Duration;
 use tantu::core::Rect;
 use tantu::layout::{BoxConstraints, RenderConstrainedBox};
 use tantu::prelude::*;
+use tantu::reactive::untrack;
 use tantu::scene::{BorderRadius, ImageData, RoundedRect};
 use tantu::view::{Anchor, BuildCx, ElementId, Keyed, OverlayPortal, Paint, PaintCx, Prop};
 
@@ -37,7 +38,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 17] = [
+pub const SINK_CARDS: [(&str, &[&str]); 18] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -56,6 +57,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 17] = [
     ("split", &["split_view"]),
     ("dock", &["dock_area"]),
     ("menus", &["menu_anchor", "context_menu"]),
+    ("bars", &["tool_bar", "status_bar"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -88,20 +90,94 @@ fn nav_key(section: &str) -> String {
     format!("nav-{}", section.to_lowercase().replace(' ', "-"))
 }
 
-/// The gallery's view.
+/// The gallery's view: a menu bar, the header, the sidebar and the section, and a status
+/// bar (GALLERY-01, -31).
 pub fn gallery() -> impl View {
-    let section = signal(SECTIONS[0]);
-    Column::new()
-        .child(Keyed::new("header", header(section)))
-        .child(Expanded::new(
-            Row::new()
-                .cross_axis_alignment(CrossAxisAlignment::Stretch)
-                .child(Keyed::new("sidebar", sidebar(section)))
-                .child(Expanded::new(Keyed::new("content", content(section)))),
+    Builder::new(|cx| {
+        let theme = Theme::signal(cx).unwrap_or_else(|| signal(Theme::light()));
+        let section = signal(SECTIONS[0]);
+        let dark = signal(false);
+        // A message shown in the status bar until the next navigation (Help → About).
+        let note: Signal<Option<String>> = signal(None);
+        effect(move || {
+            theme.set(if dark.get() {
+                Theme::dark()
+            } else {
+                Theme::light()
+            });
+        });
+        effect(move || {
+            section.get();
+            untrack(|| {
+                if note.get().is_some() {
+                    note.set(None);
+                }
+            });
+        });
+        Column::new()
+            .cross_axis_alignment(CrossAxisAlignment::Stretch)
+            .child(Keyed::new("menubar", menu_bar(section, dark, note)))
+            .child(Keyed::new("header", header(section, dark)))
+            .child(Expanded::new(
+                Row::new()
+                    .cross_axis_alignment(CrossAxisAlignment::Stretch)
+                    .child(Keyed::new("sidebar", sidebar(section)))
+                    .child(Expanded::new(Keyed::new("content", content(section)))),
+            ))
+            .child(Keyed::new("statusbar", status_bar(section, dark, note)))
+    })
+}
+
+/// View (dark theme), Go (every section) and Help (GALLERY-31).
+fn menu_bar(
+    section: Signal<&'static str>,
+    dark: Signal<bool>,
+    note: Signal<Option<String>>,
+) -> impl View {
+    MenuBar::new()
+        .menu(
+            "View",
+            [MenuItem::new("Dark theme")
+                .checked(dark)
+                .on_select(move || dark.update(|d| *d = !*d))],
+        )
+        .menu(
+            "Go",
+            SECTIONS
+                .iter()
+                .map(move |name| MenuItem::new(*name).on_select(move || section.set(name))),
+        )
+        .menu(
+            "Help",
+            [MenuItem::new("About Tantu").on_select(move || {
+                note.set(Some("Tantu: compose once, render your way.".to_owned()))
+            })],
+        )
+}
+
+/// The section (or a Help message) and the theme (GALLERY-31).
+fn status_bar(
+    section: Signal<&'static str>,
+    dark: Signal<bool>,
+    note: Signal<Option<String>>,
+) -> impl View {
+    StatusBar::new()
+        .leading(Keyed::new(
+            "status-section",
+            Text::new(move || {
+                note.get()
+                    .unwrap_or_else(|| format!("Section: {}", section.get()))
+            })
+            .style(TextStyle::label()),
+        ))
+        .trailing(Keyed::new(
+            "status-theme",
+            Text::new(move || if dark.get() { "Dark" } else { "Light" }.to_owned())
+                .style(TextStyle::label()),
         ))
 }
 
-fn header(section: Signal<&'static str>) -> impl View {
+fn header(section: Signal<&'static str>, dark: Signal<bool>) -> impl View {
     Padding::new(EdgeInsets::symmetric(16.0, 12.0)).child(
         Row::new()
             .cross_axis_alignment(CrossAxisAlignment::Center)
@@ -112,40 +188,29 @@ fn header(section: Signal<&'static str>) -> impl View {
                 "current",
                 Text::new(move || section.get().to_string()).style(TextStyle::label()),
             ))
-            .child(dark_mode_switch()),
+            .child(dark_mode_switch(dark)),
     )
 }
 
 /// "Dark" and a switch that sets the window's theme to dark or light (GALLERY-05). The theme
 /// signal comes from the runner (or the tester), so the whole window follows.
-fn dark_mode_switch() -> impl View {
-    Builder::new(|cx| {
-        let theme = Theme::signal(cx).unwrap_or_else(|| signal(Theme::light()));
-        let dark = signal(false);
-        effect(move || {
-            theme.set(if dark.get() {
-                Theme::dark()
-            } else {
-                Theme::light()
-            });
-        });
-        Row::new()
-            .cross_axis_alignment(CrossAxisAlignment::Center)
-            .spacing(4.0)
-            .child(Text::new("Dark").style(TextStyle::label()))
-            .child(Keyed::new(
-                "dark",
-                Switch::new(dark).on_change(move |v| dark.set(v)),
-            ))
-    })
+fn dark_mode_switch(dark: Signal<bool>) -> impl View {
+    Row::new()
+        .cross_axis_alignment(CrossAxisAlignment::Center)
+        .spacing(4.0)
+        .child(Text::new("Dark").style(TextStyle::label()))
+        .child(Keyed::new(
+            "dark",
+            Switch::new(dark).on_change(move |v| dark.set(v)),
+        ))
 }
 
+/// The section buttons, scrolling when the window is too short for all of them.
 fn sidebar(section: Signal<&'static str>) -> impl View {
-    SizedBox::width(200.0).child(
+    SizedBox::width(200.0).child(ScrollView::new(
         Padding::all(8.0).child(
             Column::new()
                 .cross_axis_alignment(CrossAxisAlignment::Stretch)
-                // 4 px keeps all thirteen buttons inside a 640 px window.
                 .spacing(4.0)
                 .children(SECTIONS.iter().map(|name| {
                     Keyed::new(
@@ -154,7 +219,7 @@ fn sidebar(section: Signal<&'static str>) -> impl View {
                     )
                 })),
         ),
-    )
+    ))
 }
 
 fn content(section: Signal<&'static str>) -> impl View {
@@ -724,6 +789,7 @@ fn kitchen_sink_section() -> impl View {
             .child(split::sink())
             .child(dock::sink())
             .child(menus::sink())
+            .child(menus::bars_sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

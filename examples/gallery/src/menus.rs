@@ -97,3 +97,57 @@ pub(super) fn sink() -> impl View {
         super::echo(move || format!("Menu: {}", chosen.get())),
     )
 }
+
+/// The bars card: a formatting toolbar and a status bar (GALLERY-32).
+pub(super) fn bars_sink() -> impl View {
+    let (bold, italic, underline) = (signal(false), signal(false), signal(false));
+    let toggle = |flag: Signal<bool>| move || flag.update(|f| *f = !*f);
+    let toolbar = Toolbar::new()
+        .child(Keyed::new(
+            "sink-bold",
+            IconButton::new(Icons::FORMAT_BOLD).on_press(toggle(bold)),
+        ))
+        .child(Keyed::new(
+            "sink-italic",
+            IconButton::new(Icons::FORMAT_ITALIC).on_press(toggle(italic)),
+        ))
+        .child(Keyed::new(
+            "sink-underline",
+            IconButton::new(Icons::FORMAT_UNDERLINED).on_press(toggle(underline)),
+        ))
+        .separator()
+        .child(IconButton::new(Icons::UNDO).on_press(|| {}))
+        .child(IconButton::new(Icons::REDO).on_press(|| {}));
+    let body = Column::new()
+        .cross_axis_alignment(CrossAxisAlignment::Stretch)
+        .spacing(8.0)
+        .child(SizedBox::width(600.0).child(Keyed::new("sink-tool_bar", toolbar)))
+        .child(
+            SizedBox::width(600.0).child(Keyed::new(
+                "sink-status_bar",
+                StatusBar::new()
+                    .leading(Text::new("Ready").style(TextStyle::label()))
+                    .trailing(Text::new("UTF-8").style(TextStyle::label())),
+            )),
+        );
+    super::card(
+        "bars",
+        "Toolbar and status bar",
+        body,
+        super::echo(move || {
+            let on: Vec<&str> = [
+                (bold.get(), "bold"),
+                (italic.get(), "italic"),
+                (underline.get(), "underline"),
+            ]
+            .into_iter()
+            .filter_map(|(on, name)| on.then_some(name))
+            .collect();
+            if on.is_empty() {
+                "Format: plain".to_owned()
+            } else {
+                format!("Format: {}", on.join(" "))
+            }
+        }),
+    )
+}

@@ -56,7 +56,7 @@ pub(super) fn section() -> impl View {
         .child(Text::new(
             "Drag tabs onto strips, group edges or the dock's edges; close them (middle click too); drag dividers. Control+Tab cycles, Control+W closes.",
         ))
-        .child(SizedBox::new(720.0, 400.0).child(Keyed::new(
+        .child(SizedBox::new(720.0, 340.0).child(Keyed::new(
             "dock",
             DockArea::new(layout, move |id: &PanelId| -> AnyView {
                 match id.as_str() {

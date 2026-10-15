@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (popup menus done; the user is away until morning)_
+_Last updated: 2026-10-16 (menu bar, toolbars and status bar done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -30,8 +30,11 @@ dock's edges, with indicators, Escape and a keyboard reorder. **Docking is compl
 The user went away until the morning (2026-10-16) and asked the agent to keep adding
 features, committing and pushing (autonomy rules apply: recommended options, marked for
 review). **Next (PLAN.md order):** menus (native + custom), context menus, toolbars, status
-bar. **Menus part 1 is done** (decision 87): popup and context menus. **Next:** menus part 2
-(`MenuBar`, toolbars, status bar). Commit/push authorization persists.
+bar. **Menus part 1 is done** (decision 87): popup and context menus, and **part 2** (decision
+88): `MenuBar`, `Toolbar`, `StatusBar`, with the gallery window using a menu bar, a status
+bar and a scrolling sidebar. Native OS menus (part 3) wait for the user. **Next:** dialogs,
+native file dialogs, notifications, system tray (PLAN.md order). Commit/push authorization
+persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1083,6 +1086,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     overlays follow their popup in the same frame. Gallery: menus in the Buttons section
     (the sidebar is full) and a "menus" kitchen-sink card. No new crate or edge.
 
+88. **Menu bar, toolbars and status bar** (2026-10-16, spec `docs/specs/widgets/menu-bar.md`;
+    decided by the agent while the user was away, review). `MenuBar` reuses part 1's menus
+    (the menu chain now closes through a callback, a root menu can hand Left/Right to its
+    bar, and the first focus recorded is kept while switching menus): one Tab stop with a
+    current item, a press doesn't take the focus, hover switches open menus, arrows move
+    between menus. Found while testing: a closing menu's content `Dyn` rebuilt when its
+    "opened by keyboard" flag went to `None`, taking the focus on its way out; the flag is
+    now sticky (also for submenus). `Toolbar` (8 px padding, 4 px gaps, 9 px separators,
+    at least 48 px, arrows/Home/End between controls while they stay in Tab order) and
+    `StatusBar` (28 px, leading/trailing items, `Status` role). Roles `MenuBar`, `Toolbar`,
+    `Status`. The gallery window has a menu bar (View → Dark theme, Go → every section,
+    Help → About), a status bar and a scrolling sidebar (closing the "sidebar is full"
+    question); tests open sections through `go`, which reveals the button first; the
+    Docking demo is 340 px tall to fit. Kitchen-sink "bars" card. No new crate or edge.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1606,16 +1624,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `a30d178` | fix: nested overlays follow their popup in the same frame |
 | `5841349` | spec: WIDGETS-MENU-06 states the upward flip near the window's bottom |
 | `6b7d2a8` | test: menu fixtures start-align the anchor; the second right-click lands clear of the menu; the submenu flips upward |
-| _this commit_ | impl: reactive overlay anchors, nested-overlay presses, popup and context menus with submenus, keys and semantics; gallery samples and kitchen-sink card; PLAN.md part 1 ticked |
+| `f43c464` | impl: reactive overlay anchors, nested-overlay presses, popup and context menus with submenus, keys and semantics; gallery samples and kitchen-sink card; PLAN.md part 1 ticked |
+| `2406f28` | spec: menu bar, toolbars and status bar (WIDGETS-MENUBAR-01..04, WIDGETS-TOOLBAR-01..03, WIDGETS-STATUSBAR-01..02, A11Y-TREE-10, GALLERY-31..32) |
+| `5373111` | test: menu bar, toolbars and status bar, stubs + 12 failing tests; gallery tests open sections through `go` |
+| `62300c4` | spec: GALLERY-26's dock is 340 px tall |
+| _this commit_ | impl: MenuBar, Toolbar, StatusBar, sticky keyboard flag for menus; gallery menu bar, status bar, scrolling sidebar, bars card, goldens; PLAN.md part 2 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order: menus part 2 (`MenuBar`, toolbars, status bar); then
-dialogs, multi-window and clipboard, forms, i18n, `Grid` layout. Native OS menus (part 3)
-wait for the user (ADR and platform dependency).
+Continue Phase 4 in PLAN.md order: dialogs (modal dialogs first; native file dialogs,
+notifications and the tray need platform work and probably ADRs), multi-window and
+clipboard, forms, i18n, `Grid` layout. Native OS menus (menus part 3) wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 
@@ -1671,9 +1693,6 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
 - **Native OS menus** (menus part 3, decision 87): a macOS app menu and native menu bars
   and context menus need a platform-crate dependency (e.g. `muda`, which winit-based
   toolkits use) and `Platform` trait additions; that wants an ADR the user should agree.
-- **The gallery sidebar is full** (decision 85): thirteen buttons with 4 px spacing fill
-  the 640 px test window. The next section needs a scrolling sidebar (and the tests'
-  `nav` taps an `ensure_visible` first) or a two-level navigation.
 - **`.agents/` is untracked** in the working tree (a `skills` folder, not project code); decide
   whether to gitignore or commit it.
 - Is `tantu` (and `tantu-*`) available on crates.io? Check, and consider reserving it, before the

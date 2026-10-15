@@ -1,6 +1,6 @@
 # Menus, part 2: menu bar, toolbars and status bar
 
-- **Status:** Agreed (2026-10-16; decided by the agent while the user was away, review)
+- **Status:** Implemented (2026-10-16; decided by the agent while the user was away, review)
 - **Crates:** `tantu-widgets` (`MenuBar`, `Toolbar`, `StatusBar`), `tantu-view` (roles),
   `tantu-a11y` (role mapping), `examples/gallery`
 - **Plan item:** Phase 4, "Menus (native + custom), context menus, toolbars, status bar",

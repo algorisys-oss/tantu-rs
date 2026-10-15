@@ -178,7 +178,7 @@ faster or more portable without changing how apps are written.
   - [x] drag-to-dock: dragging tabs, drop indicators for tab, beside and edge targets (spec `docs/specs/widgets/dock-drag.md`); floating panels wait for multi-window
 - [ ] Menus (native + custom), context menus, toolbars, status bar, in parts:
   - [x] popup menus and context menus: `MenuItem`, `MenuController`, `MenuAnchor`, `ContextMenuRegion`, submenus, keyboard, semantics (spec `docs/specs/widgets/menu.md`)
-  - [ ] `MenuBar`, toolbars and the status bar; the gallery window uses them (spec `docs/specs/widgets/menu-bar.md`)
+  - [x] `MenuBar`, toolbars and the status bar; the gallery window uses them (spec `docs/specs/widgets/menu-bar.md`)
   - [ ] native OS menus (macOS app menu, native menu bars and context menus): needs an ADR and a platform dependency; deferred for the user
 - [ ] Dialogs, native file dialogs, notifications, system tray
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images)
