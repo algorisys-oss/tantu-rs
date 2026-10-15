@@ -135,7 +135,8 @@ impl ContextMenuRegion {
   another item of the parent closes it.
 - **WIDGETS-MENU-06:** A submenu opens beside its item, top edges aligned (the item's
   TOP_RIGHT to the submenu's TOP_LEFT, moved up by the 8 px padding), flipping to the left
-  side when it would leave the window. Submenus nest to any depth.
+  side, or upward with bottom edges aligned (8 px below the item's bottom), when it would
+  leave the window (VIEW-OVERLAY-03). Submenus nest to any depth.
 - **WIDGETS-MENU-07:** A `checked` item shows a check mark (`Icons::CHECK`) in its leading
   slot while true and nothing while false; choosing it calls `on_select` (the app flips the
   value).
