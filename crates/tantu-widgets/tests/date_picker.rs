@@ -518,3 +518,16 @@ fn widgets_date_08_popup() {
     fx.press(Point::new(W - 5.0, H - 5.0));
     assert!(fx.grid().is_none());
 }
+
+#[test]
+fn widgets_date_09_button_toggles_the_popup() {
+    let mut fx = date_field(Some(d(2026, 10, 20)));
+    let button = fx.t.find(&Finder::semantics_label("Choose date"));
+    let at = fx.rect(button).center();
+    fx.press(at);
+    assert!(fx.grid().is_some(), "opened");
+    fx.press(at);
+    assert!(fx.grid().is_none(), "closed by the same button");
+    fx.press(at);
+    assert!(fx.grid().is_some(), "opened again");
+}

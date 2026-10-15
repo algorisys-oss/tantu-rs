@@ -597,3 +597,87 @@ fn a11y_tree_13_combo_roles() {
         );
     }
 }
+
+#[test]
+fn a11y_tree_13_popup_target_enclosing_the_element() {
+    use std::cell::Cell;
+    use std::rc::Rc;
+    use tantu_view::reactive::{Signal, signal};
+    use tantu_view::{OverlayPortal, Prop};
+
+    /// A combo-box leaf whose active descendant is whatever `option` holds.
+    struct Field {
+        option: Rc<Cell<Option<ElementId>>>,
+        version: Signal<u32>,
+    }
+    impl View for Field {
+        fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+            let id = leaf(Some(sem(Role::ComboBox, "field"))).build(cx);
+            let (option, version) = (self.option, self.version);
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || {
+                    version.get();
+                    option.get()
+                })),
+                |e, active| {
+                    e.update_semantics(|s| s.active_descendant = active);
+                },
+            );
+            id
+        }
+    }
+    /// An option in the popup, reporting its element.
+    struct Option_ {
+        out: Rc<Cell<Option<ElementId>>>,
+        version: Signal<u32>,
+    }
+    impl View for Option_ {
+        fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+            let id = leaf(Some(sem(Role::ListBoxOption, "option"))).build(cx);
+            self.out.set(Some(id));
+            let version = self.version;
+            tantu_view::reactive::untrack(|| version.update(|v| *v += 1));
+            id
+        }
+    }
+
+    let option: Rc<Cell<Option<ElementId>>> = Rc::default();
+    let mut tree = {
+        let option = option.clone();
+        ViewTree::new(move || {
+            let version = signal(0u32);
+            let out = option.clone();
+            // The portal's target is a column holding the field and a button.
+            OverlayPortal::new(column(
+                None,
+                vec![
+                    AnyView::new(Field {
+                        option: option.clone(),
+                        version,
+                    }),
+                    AnyView::new(leaf(Some(sem(Role::Button, "button")))),
+                ],
+            ))
+            .visible(true)
+            .overlay(move || Option_ {
+                out: out.clone(),
+                version,
+            })
+        })
+    };
+    frame(&mut tree);
+    frame(&mut tree);
+    let option = option.get().expect("the option built");
+    let update = AccessibilityTree::new("enclosing").update(&tree);
+    let field = update
+        .nodes
+        .iter()
+        .find(|(_, n)| n.label() == Some("field"))
+        .map(|(_, n)| n.clone())
+        .expect("the field");
+    assert_eq!(
+        field.active_descendant(),
+        Some(AccessibilityTree::node_id(option))
+    );
+}
