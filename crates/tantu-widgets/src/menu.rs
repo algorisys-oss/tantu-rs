@@ -985,3 +985,38 @@ impl Paint for ItemPaint {
         }
     }
 }
+
+/// A row of top-level menus (Flutter's `MenuBar`; WIDGETS-MENUBAR-01..04).
+pub struct MenuBar {
+    menus: Vec<(String, Vec<MenuItem>)>,
+}
+
+impl Default for MenuBar {
+    fn default() -> Self {
+        MenuBar::new()
+    }
+}
+
+impl MenuBar {
+    /// An empty menu bar.
+    pub fn new() -> Self {
+        MenuBar { menus: Vec::new() }
+    }
+
+    /// Adds a top-level menu labelled `label`.
+    pub fn menu(
+        mut self,
+        label: impl Into<String>,
+        items: impl IntoIterator<Item = MenuItem>,
+    ) -> Self {
+        self.menus.push((label.into(), items.into_iter().collect()));
+        self
+    }
+}
+
+impl View for MenuBar {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let _ = (cx, self.menus);
+        todo!("WIDGETS-MENUBAR-01..04")
+    }
+}

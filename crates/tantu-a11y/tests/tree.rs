@@ -473,3 +473,29 @@ fn a11y_tree_09_menu_roles() {
         );
     }
 }
+
+#[test]
+fn a11y_tree_10_bar_roles() {
+    let semantics = |role| {
+        Some(Semantics {
+            role,
+            ..Default::default()
+        })
+    };
+    let tree = ViewTree::new(move || {
+        column(
+            semantics(tantu_view::Role::MenuBar),
+            vec![
+                AnyView::new(leaf(semantics(tantu_view::Role::Toolbar))),
+                AnyView::new(leaf(semantics(tantu_view::Role::Status))),
+            ],
+        )
+    });
+    let update = AccessibilityTree::new("bars").update(&tree);
+    for role in [AkRole::MenuBar, AkRole::Toolbar, AkRole::Status] {
+        assert!(
+            update.nodes.iter().any(|(_, n)| n.role() == role),
+            "{role:?} is mapped"
+        );
+    }
+}

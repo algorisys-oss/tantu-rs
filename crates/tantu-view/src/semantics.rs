@@ -71,6 +71,12 @@ pub enum Role {
     MenuItem,
     /// A menu item with a check mark.
     MenuItemCheckBox,
+    /// A row of top-level menus (WIDGETS-MENUBAR-04).
+    MenuBar,
+    /// A row of tool controls (WIDGETS-TOOLBAR-03).
+    Toolbar,
+    /// A status bar, a polite live region (WIDGETS-STATUSBAR-02).
+    Status,
 }
 
 /// A checkable element's state.

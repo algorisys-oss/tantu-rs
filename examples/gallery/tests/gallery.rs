@@ -21,11 +21,17 @@ fn nav(section: &str) -> String {
     format!("nav-{}", section.to_lowercase().replace(' ', "-"))
 }
 
+/// Opens a section from the (scrolling) sidebar: reveals its button, then taps it.
+fn go(tester: &mut WidgetTester, section: &str) {
+    tester.ensure_visible(&Finder::key(nav(section)));
+    tester.tap(&Finder::key(nav(section)));
+}
+
 #[test]
 fn gallery_17_grid_editors() {
     use tantu::view::{LogicalKey, Modifiers, NamedKey};
     let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
-    t.tap(&Finder::key(nav("Data grid")));
+    go(&mut t, "Data grid");
     t.pump();
     assert_eq!(text_of(&t, "grid-edit-error"), "Edit error: none");
     t.tap(&Finder::text("Person 2"));
@@ -83,7 +89,7 @@ fn gallery_17_grid_editors() {
 #[test]
 fn gallery_16_grid_selection() {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Data grid")));
+    go(&mut tester, "Data grid");
     tester.pump();
     assert_eq!(text_of(&tester, "grid-selection"), "Selection: none");
     tester.tap(&Finder::text("Person 2"));
@@ -130,7 +136,7 @@ fn gallery_01_structure_and_sections() {
     assert_eq!(text_of(&tester, "current"), "Buttons");
     tester.find(&Finder::key("press"));
     for section in SECTIONS {
-        tester.tap(&Finder::key(nav(section)));
+        go(&mut tester, section);
         assert_eq!(text_of(&tester, "heading"), section);
         assert_eq!(text_of(&tester, "current"), section);
         if section != "Buttons" {
@@ -149,7 +155,7 @@ fn gallery_02_samples_react() {
     tester.tap(&Finder::key("press"));
     tester.tap(&Finder::key("press"));
     assert_eq!(text_of(&tester, "press-count"), "Pressed 2 times");
-    tester.tap(&Finder::key(nav("Selection")));
+    go(&mut tester, "Selection");
     assert_eq!(text_of(&tester, "checkbox-state"), "Checkbox: off");
     tester.tap(&Finder::key("checkbox"));
     assert_eq!(text_of(&tester, "checkbox-state"), "Checkbox: on");
@@ -166,11 +172,11 @@ fn gallery_02_samples_react() {
 #[test]
 fn gallery_03_text_field_and_list() {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Text field")));
+    go(&mut tester, "Text field");
     assert_eq!(text_of(&tester, "echo"), "You typed: ");
     tester.enter_text(&Finder::key("field"), "hi");
     assert_eq!(text_of(&tester, "echo"), "You typed: hi");
-    tester.tap(&Finder::key(nav("Lists")));
+    go(&mut tester, "Lists");
     tester.pump();
     tester.find(&Finder::text("Row 0"));
     tester.scroll(&Finder::key("list"), Vec2::new(0.0, 3200.0));
@@ -188,7 +194,7 @@ fn gallery_04_goldens() {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/goldens/gallery-buttons.png"
     ));
-    tester.tap(&Finder::key(nav("Selection")));
+    go(&mut tester, "Selection");
     tester.matches_golden(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/goldens/gallery-selection.png"
@@ -224,7 +230,7 @@ fn gallery_05_dark_mode() {
 fn gallery_06_animation_section() {
     use std::time::Duration;
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Animation")));
+    go(&mut tester, "Animation");
     assert_eq!(rect(&tester, "box").width(), 100.0);
     let dot_before = rect(&tester, "dot");
     tester.tap(&Finder::key("grow"));
@@ -246,7 +252,7 @@ fn gallery_06_animation_section() {
 fn gallery_07_switcher() {
     use std::time::Duration;
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Animation")));
+    go(&mut tester, "Animation");
     tester.find(&Finder::key("switcher"));
     assert!(!tester.find_all(&Finder::text("One")).is_empty());
     assert!(tester.find_all(&Finder::text("Two")).is_empty());
@@ -271,7 +277,7 @@ fn gallery_07_switcher() {
 fn gallery_08_contacts_list() {
     use tantu::view::{LogicalKey, Modifiers, NamedKey};
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Lists")));
+    go(&mut tester, "Lists");
     tester.pump();
     tester.find(&Finder::key("contacts"));
     assert_eq!(text_of(&tester, "selected"), "Selected: none");
@@ -309,21 +315,21 @@ fn gallery_09_every_sample_has_a_node() {
         (Role::Button, Some("Press me".to_owned()))
     );
     assert_eq!(role_of(&mut tester, "icon-button").0, Role::Button);
-    tester.tap(&Finder::key(nav("Selection")));
+    go(&mut tester, "Selection");
     assert_eq!(role_of(&mut tester, "checkbox").0, Role::CheckBox);
     assert_eq!(role_of(&mut tester, "switch").0, Role::Switch);
     assert_eq!(role_of(&mut tester, "radio-a").0, Role::RadioButton);
     assert_eq!(role_of(&mut tester, "slider").0, Role::Slider);
-    tester.tap(&Finder::key(nav("Text field")));
+    go(&mut tester, "Text field");
     assert_eq!(role_of(&mut tester, "field").0, Role::TextInput);
     assert_eq!(role_of(&mut tester, "notes").0, Role::MultilineTextInput);
-    tester.tap(&Finder::key(nav("Lists")));
+    go(&mut tester, "Lists");
     assert_eq!(role_of(&mut tester, "list").0, Role::List);
     let update = tester.a11y_tree();
     assert!(update.nodes.iter().any(|(_, n)| n.role() == Role::ListItem));
-    tester.tap(&Finder::key(nav("Media")));
+    go(&mut tester, "Media");
     assert_eq!(role_of(&mut tester, "image").0, Role::Image);
-    tester.tap(&Finder::key(nav("Buttons")));
+    go(&mut tester, "Buttons");
     assert!(tester.perform_action(&Finder::key("press"), SemanticsAction::Click));
     assert_eq!(text_of(&tester, "press-count"), "Pressed 1 times");
 }
@@ -331,7 +337,7 @@ fn gallery_09_every_sample_has_a_node() {
 #[test]
 fn gallery_10_data_grid() {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Data grid")));
+    go(&mut tester, "Data grid");
     // The cells appear one frame after the grid's first paint.
     tester.pump();
     tester.find(&Finder::key("grid"));
@@ -357,7 +363,7 @@ fn gallery_10_data_grid() {
 #[test]
 fn gallery_11_sortable_headers() {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Data grid")));
+    go(&mut tester, "Data grid");
     tester.pump();
     assert_eq!(text_of(&tester, "sort"), "Sort: none");
     tester.tap(&Finder::text("City"));
@@ -371,7 +377,7 @@ fn gallery_11_sortable_headers() {
 #[test]
 fn gallery_15_resize_and_reorder() {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Data grid")));
+    go(&mut tester, "Data grid");
     tester.pump();
     assert_eq!(text_of(&tester, "name-width"), "Name width: 200");
     assert_eq!(
@@ -416,7 +422,7 @@ fn gallery_15_resize_and_reorder() {
 /// Opens the Kitchen sink section and lets its first frames settle.
 fn open_sink() -> WidgetTester {
     let mut tester = WidgetTester::with_size(960.0, 640.0, gallery);
-    tester.tap(&Finder::key(nav("Kitchen sink")));
+    go(&mut tester, "Kitchen sink");
     tester.pump();
     tester.pump();
     tester
@@ -789,7 +795,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
             .map(|i| i - 1)
     );
     let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
-    t.tap(&Finder::key(nav("Tabs")));
+    go(&mut t, "Tabs");
     t.pump();
     t.pump();
     assert_eq!(text_of(&t, "tab-echo"), "Tab: General");
@@ -833,7 +839,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
 #[test]
 fn gallery_23_kitchen_sink_tabs_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 17);
+    assert_eq!(SINK_CARDS.len(), 18);
     assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -865,7 +871,7 @@ fn gallery_24_split_view_section() {
     let position = |name: &str| SECTIONS.iter().position(|s| *s == name);
     assert_eq!(position("Split view"), position("Tabs").map(|i| i - 1));
     let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
-    t.tap(&Finder::key(nav("Split view")));
+    go(&mut t, "Split view");
     t.pump();
     t.pump();
     for key in [
@@ -911,7 +917,7 @@ fn gallery_24_split_view_section() {
 #[test]
 fn gallery_25_kitchen_sink_split_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 17);
+    assert_eq!(SINK_CARDS.len(), 18);
     assert_eq!(index("split"), index("tabs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -968,7 +974,7 @@ fn gallery_26_docking_section() {
     let position = |name: &str| SECTIONS.iter().position(|s| *s == name);
     assert_eq!(position("Docking"), position("Split view").map(|i| i - 1));
     let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
-    t.tap(&Finder::key(nav("Docking")));
+    go(&mut t, "Docking");
     t.pump();
     t.pump();
     t.find(&Finder::key("dock"));
@@ -1006,7 +1012,7 @@ fn gallery_26_docking_section() {
 #[test]
 fn gallery_27_kitchen_sink_dock_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 17);
+    assert_eq!(SINK_CARDS.len(), 18);
     assert_eq!(index("dock"), index("split").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1065,7 +1071,7 @@ fn pointer(t: &mut WidgetTester, kind: PointerKind, at: Point) {
 #[test]
 fn gallery_28_docking_drag() {
     let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
-    t.tap(&Finder::key(nav("Docking")));
+    go(&mut t, "Docking");
     t.pump();
     t.pump();
     // Terminal onto the editor strip, after Readme.
@@ -1163,7 +1169,7 @@ fn key(t: &mut WidgetTester, key: tantu::view::NamedKey) {
 fn gallery_29_menus_in_the_buttons_section() {
     use tantu::view::NamedKey;
     let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
-    t.tap(&Finder::key(nav("Buttons")));
+    go(&mut t, "Buttons");
     t.pump();
     assert_eq!(text_of(&t, "menu-echo"), "Menu: none");
     // Choosing Copy through the anchor.
@@ -1200,7 +1206,7 @@ fn gallery_29_menus_in_the_buttons_section() {
 #[test]
 fn gallery_30_kitchen_sink_menus_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 17);
+    assert_eq!(SINK_CARDS.len(), 18);
     assert_eq!(index("menus"), index("dock").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1216,4 +1222,80 @@ fn gallery_30_kitchen_sink_menus_card() {
     let duplicate = menu_item(&mut t, "Duplicate");
     click(&mut t, duplicate.center(), PointerButton::Primary);
     assert_eq!(text_of(&t, "sink-menus-state"), "Menu: Duplicate");
+}
+
+/// Opens a top-level menu of the gallery's menu bar and chooses `item` in it.
+fn choose(t: &mut WidgetTester, menu: &str, item: &str) {
+    use tantu_test::accesskit::Role;
+    let find = |t: &mut WidgetTester, name: &str| {
+        let id = t
+            .a11y_tree()
+            .nodes
+            .iter()
+            .find(|(_, n)| {
+                matches!(n.role(), Role::MenuItem | Role::MenuItemCheckBox)
+                    && n.label() == Some(name)
+            })
+            .map(|(id, _)| tantu::view::ElementId::from_raw(id.0).expect("element id"))
+            .unwrap_or_else(|| panic!("no menu item {name}"));
+        t.rect(id).center()
+    };
+    let at = find(t, menu);
+    click(t, at, PointerButton::Primary);
+    let at = find(t, item);
+    click(t, at, PointerButton::Primary);
+    t.pump();
+}
+
+#[test]
+fn gallery_31_menu_bar_and_status_bar() {
+    let mut t = WidgetTester::with_size(960.0, 640.0, gallery);
+    t.find(&Finder::key("menubar"));
+    assert_eq!(rect(&t, "statusbar").bottom, 640.0);
+    assert_eq!(text_of(&t, "status-section"), "Section: Buttons");
+    assert_eq!(text_of(&t, "status-theme"), "Light");
+    // Go navigates.
+    choose(&mut t, "Go", "Tabs");
+    assert_eq!(text_of(&t, "heading"), "Tabs");
+    assert_eq!(text_of(&t, "status-section"), "Section: Tabs");
+    // View → Dark theme toggles the theme, like the switch.
+    choose(&mut t, "View", "Dark theme");
+    assert_eq!(text_of(&t, "status-theme"), "Dark");
+    let dark = t.enter(|| t.theme().get().colors.surface);
+    assert_eq!(dark, tantu::theme::Theme::dark().colors.surface);
+    choose(&mut t, "View", "Dark theme");
+    assert_eq!(text_of(&t, "status-theme"), "Light");
+    // Help → About Tantu shows in the status bar until the next navigation.
+    choose(&mut t, "Help", "About Tantu");
+    assert!(text_of(&t, "status-section").starts_with("Tantu"));
+    go(&mut t, "Kitchen sink");
+    assert_eq!(text_of(&t, "status-section"), "Section: Kitchen sink");
+}
+
+#[test]
+fn gallery_32_kitchen_sink_bars_card() {
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 18);
+    assert_eq!(index("bars"), index("menus").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "bars" && widgets == &["tool_bar", "status_bar"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-bars"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-bars-state"), "Format: plain");
+    t.tap(&Finder::key("sink-bold"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-bars-state"), "Format: bold");
+    t.focus(&Finder::key("sink-bold"));
+    t.press_key(
+        tantu::view::LogicalKey::Named(tantu::view::NamedKey::ArrowRight),
+        tantu::view::Modifiers::default(),
+    );
+    t.pump();
+    let italic = t.find(&Finder::key("sink-italic"));
+    let focus = tantu::view::ElementId::from_raw(t.a11y_tree().focus.0);
+    assert_eq!(focus, Some(italic));
 }

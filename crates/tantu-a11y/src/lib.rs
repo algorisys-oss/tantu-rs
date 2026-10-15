@@ -182,6 +182,8 @@ fn node(semantics: &Semantics) -> Node {
         R::Menu => Role::Menu,
         R::MenuItem => Role::MenuItem,
         R::MenuItemCheckBox => Role::MenuItemCheckBox,
+        // Stubs until A11Y-TREE-10.
+        R::MenuBar | R::Toolbar | R::Status => Role::Group,
     };
     let mut node = Node::new(role);
     if let Some(v) = semantics.expanded {

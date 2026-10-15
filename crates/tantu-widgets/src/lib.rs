@@ -25,6 +25,7 @@
 
 #![forbid(unsafe_code)]
 
+mod bars;
 mod basic;
 mod data_grid;
 mod divider;
@@ -54,6 +55,7 @@ mod tooltip;
 mod tree_view;
 mod util;
 
+pub use bars::{StatusBar, Toolbar};
 pub use basic::{Button, Text};
 pub use data_grid::{
     CellValue, DataGrid, DataSource, FnSource, GridColumn, GridEditError, RowFilter, SortState,
@@ -72,7 +74,7 @@ pub use icon::{MATERIAL_ICONS_FAMILY, MATERIAL_ICONS_FONT};
 pub use icons::Icons;
 pub use image::{BoxFit, Image, ImageError, decode_png};
 pub use list_view::ListView;
-pub use menu::{ContextMenuRegion, MenuAnchor, MenuController, MenuItem};
+pub use menu::{ContextMenuRegion, MenuAnchor, MenuBar, MenuController, MenuItem};
 pub use offstage::Offstage;
 pub use opacity::Opacity;
 pub use rich_text::{RichText, TextSpan};
