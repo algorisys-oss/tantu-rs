@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (drag and drop inside the app done; the user is away until morning)_
+_Last updated: 2026-10-16 (handler ownership fixed; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -1257,6 +1257,13 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     `on_will_accept`, `on_accept`, a `candidate` signal). Architecture doc's event
     section mentions drag sessions; no new crate or edge. Gallery: a "dnd" kitchen-sink
     card (chips into Warm/Any bins).
+100. **Handler ownership** (2026-10-16, VIEW-EVENT-10 in `docs/specs/view/events.md`;
+    decided by the agent while the user was away, review). Resolves the open question:
+    every handler registered through `BuildCx` (pointer, key, IME, focus change/within,
+    semantic actions, drag) carries an `Alive` flag cleared by `on_cleanup` in the scope
+    current at registration, so a removed component's (or replaced `Dyn` version's)
+    handlers on elements it doesn't own never run and don't count as having run; dead
+    entries are purged when the next handler registers on the same element.
 
 ## Commit log
 
@@ -1838,7 +1845,10 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `f14fef2` | test: WIDGETS-DND-01, the ghost takes the chip's place |
 | `6b1e7a7` | spec: VIEW-DRAG-05, `DragHandle::position` |
 | `0e80fb2` | test: VIEW-DRAG-05, stub + 1 failing test |
-| _this commit_ | impl: drag sessions in tantu-view, Draggable and DragTarget; gallery dnd card, goldens; architecture doc; PLAN.md ticked |
+| `10a3a7d` | impl: drag sessions in tantu-view, Draggable and DragTarget; gallery dnd card, goldens; architecture doc; PLAN.md ticked (CI green, run 38817343457) |
+| `2531b76` | spec: VIEW-EVENT-10, handlers are dropped with the scope that registered them |
+| `aed20a6` | test: VIEW-EVENT-10, a removed component's handlers on the root still run, failing |
+| _this commit_ | fix: handlers carry their registering scope's alive flag; dispatch skips dead ones |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1879,11 +1889,6 @@ Benchmarks and native 60 fps validation stay **local only** on recorded mid-rang
 - **Reactive text presets:** a theme's `text` is read at build time; changing font sizes live
   would need paragraphs re-keyed (decision 62). Revisit with the theme's second user (Fluent)
   or an accessibility font-scale setting.
-- **Handler ownership:** pointer, key and focus handlers live on the element they are
-  registered on. A component that registers on another element (e.g. its parent, or the root)
-  leaves its handlers there after it is removed, and they may read its disposed signals (a
-  panic per ADR 0007). Proposal: tie each registration to the registering scope (remove it on
-  that scope's cleanup). Found while testing focus; not fixed yet.
 - **Autopilot decisions to review:** decisions 20/21 and ADR 0007 (reactive shape, disposed
   handles panic), 26 (render-soft), 28 (platform), 29 (wgpu), 33 (flex/stack/wrap), 35 and
   ADR 0011 (view layer), 36 (text system, the `tantu-text` → `layout` edge, MSRV 1.88), ADR

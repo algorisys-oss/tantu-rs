@@ -245,12 +245,8 @@ impl BuildCx<'_> {
         handler: impl Fn(&ActionCx<'_>) -> bool + 'static,
     ) {
         if self.tree.contains(element) {
-            self.tree
-                .events
-                .actions
-                .entry(element)
-                .or_default()
-                .push(Rc::new(handler));
+            let handlers = self.tree.events.actions.entry(element).or_default();
+            crate::events::register(handlers, Rc::new(handler) as ActionHandler);
         }
     }
 }
@@ -402,8 +398,7 @@ impl ViewTree {
     fn deliver_action(&self, element: ElementId, action: &SemanticsAction) -> bool {
         let mut next = Some(element);
         while let Some(id) = next {
-            let handlers: Vec<ActionHandler> =
-                self.events.actions.get(&id).cloned().unwrap_or_default();
+            let handlers: Vec<ActionHandler> = crate::events::live(self.events.actions.get(&id));
             if self.enter(|| {
                 handlers.iter().any(|handler| {
                     handler(&ActionCx {

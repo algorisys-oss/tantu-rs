@@ -137,7 +137,7 @@ impl BuildCx<'_> {
     pub fn on_drag(&mut self, element: ElementId, handler: impl Fn(&DragCx<'_>) -> bool + 'static) {
         if self.tree.contains(element) {
             let handlers = self.tree.events.drags.entry(element).or_default();
-            handlers.push(Rc::new(handler));
+            crate::events::register(handlers, Rc::new(handler) as DragHandler);
         }
     }
 }
@@ -150,8 +150,8 @@ impl ViewTree {
 
     /// Calls `target`'s drag handlers with `kind`; true if one answered true.
     fn drag_event(&self, target: ElementId, kind: DragEventKind, position: Point) -> bool {
-        let (Some(handlers), Some(payload)) = (self.events.drags.get(&target), self.drag.payload())
-        else {
+        let handlers = crate::events::live(self.events.drags.get(&target));
+        let Some(payload) = self.drag.payload() else {
             return false;
         };
         let origin = self.origin(target);
@@ -165,20 +165,25 @@ impl ViewTree {
         self.enter(|| handlers.iter().fold(false, |any, h| h(&cx) || any))
     }
 
+    /// Whether `id` has a live drag handler (VIEW-DRAG-02, VIEW-EVENT-10).
+    fn is_drag_target(&self, id: ElementId) -> bool {
+        self.events
+            .drags
+            .get(&id)
+            .is_some_and(|list| list.iter().any(|(_, alive)| alive.get()))
+    }
+
     /// The current target, if it is still in the tree (VIEW-DRAG-04).
     fn live_target(&self) -> Option<(ElementId, bool)> {
         self.events
             .drag_target
-            .filter(|(id, _)| self.contains(*id) && self.events.drags.contains_key(id))
+            .filter(|(id, _)| self.contains(*id) && self.is_drag_target(*id))
     }
 
     /// Delivers enter, leave and over for a pointer at `position` (VIEW-DRAG-02).
     pub(crate) fn drag_over(&mut self, position: Point) {
         let path = self.hit_test(position);
-        let target = path
-            .iter()
-            .copied()
-            .find(|id| self.events.drags.contains_key(id));
+        let target = path.iter().copied().find(|id| self.is_drag_target(*id));
         let current = self.live_target();
         if current.map(|(id, _)| id) != target {
             if let Some((old, _)) = current {

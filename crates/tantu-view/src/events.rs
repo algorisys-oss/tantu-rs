@@ -12,13 +12,51 @@ use crate::{BuildCx, ViewTree};
 
 /// A registered pointer handler.
 type Handler = Rc<dyn Fn(&PointerCx<'_>) -> Handled>;
+
+/// Cleared when the reactive scope current at a handler's registration is disposed, so the
+/// handler is dropped with the component that registered it (VIEW-EVENT-10).
+#[derive(Clone)]
+pub(crate) struct Alive(Rc<std::cell::Cell<bool>>);
+
+impl Alive {
+    /// A flag owned by the current reactive scope.
+    pub(crate) fn here() -> Self {
+        let flag = Rc::new(std::cell::Cell::new(true));
+        let cleared = Rc::clone(&flag);
+        tantu_reactive::on_cleanup(move || cleared.set(false));
+        Alive(flag)
+    }
+
+    pub(crate) fn get(&self) -> bool {
+        self.0.get()
+    }
+}
+
+/// A handler with the flag that says whether its registering scope still exists.
+pub(crate) type Live<H> = (H, Alive);
+
+/// Appends `handler` to `list`, first dropping the handlers whose scopes are gone.
+pub(crate) fn register<H>(list: &mut Vec<(H, Alive)>, handler: H) {
+    list.retain(|(_, alive)| alive.get());
+    list.push((handler, Alive::here()));
+}
+
+/// The live handlers of `list`, cloned.
+pub(crate) fn live<H: Clone>(list: Option<&Vec<(H, Alive)>>) -> Vec<H> {
+    list.map_or_else(Vec::new, |list| {
+        list.iter()
+            .filter(|(_, alive)| alive.get())
+            .map(|(handler, _)| handler.clone())
+            .collect()
+    })
+}
 /// An accessibility action handler (VIEW-SEM-03).
 pub(crate) type ActionHandler = Rc<dyn Fn(&crate::ActionCx<'_>) -> bool>;
 
 /// The tree's pointer state: handlers, cursors, capture and hover.
 #[derive(Default)]
 pub(crate) struct EventState {
-    handlers: HashMap<ElementId, Vec<(Phase, Handler)>>,
+    handlers: HashMap<ElementId, Vec<Live<(Phase, Handler)>>>,
     cursors: HashMap<ElementId, CursorIcon>,
     /// The path (innermost first) holding the pointer, and the button that pressed it.
     captured: Option<(Vec<ElementId>, PointerButton)>,
@@ -27,9 +65,9 @@ pub(crate) struct EventState {
     /// The last pointer position, `None` after the pointer left the window.
     position: Option<Point>,
     /// Accessibility action handlers (VIEW-SEM-03).
-    pub(crate) actions: HashMap<ElementId, Vec<ActionHandler>>,
+    pub(crate) actions: HashMap<ElementId, Vec<(ActionHandler, Alive)>>,
     /// Drag targets' handlers (VIEW-DRAG-02).
-    pub(crate) drags: HashMap<ElementId, Vec<crate::drag::DragHandler>>,
+    pub(crate) drags: HashMap<ElementId, Vec<(crate::drag::DragHandler, Alive)>>,
     /// The drag target under the pointer and whether it accepts the payload.
     pub(crate) drag_target: Option<(ElementId, bool)>,
 }
@@ -154,7 +192,7 @@ impl BuildCx<'_> {
     ) {
         if self.tree.contains(element) {
             let handlers = self.tree.events.handlers.entry(element).or_default();
-            handlers.push((phase, Rc::new(handler)));
+            register(handlers, (phase, Rc::new(handler) as Handler));
         }
     }
 
@@ -338,7 +376,10 @@ impl ViewTree {
                 .and_then(|layout| self.layout_tree().size(layout))
                 .unwrap_or(Size::ZERO),
         };
-        for (_, handler) in handlers.iter().filter(|(p, _)| *p == phase) {
+        let current = handlers
+            .iter()
+            .filter(|((p, _), alive)| *p == phase && alive.get());
+        for ((_, handler), _) in current {
             *ran = true;
             if handler(&cx) == Handled::Stop {
                 return Handled::Stop;

@@ -10,7 +10,7 @@ use tantu_scene::ElementId;
 
 use tantu_core::Rect;
 
-use crate::events::ActionHandler;
+use crate::events::{ActionHandler, Alive, Live, live, register};
 use crate::semantics::{ActionCx, SemanticsAction};
 use crate::shortcuts::{ActionBox, IntentBox};
 use crate::{BuildCx, Handled, Phase, SingleActivator, ViewTree};
@@ -24,11 +24,11 @@ type FocusHandler = Rc<dyn Fn(bool)>;
 #[derive(Default)]
 pub(crate) struct FocusState {
     focusables: HashMap<ElementId, FocusOptions>,
-    keys: HashMap<ElementId, Vec<(Phase, KeyHandler)>>,
-    ime: HashMap<ElementId, Vec<ImeHandler>>,
+    keys: HashMap<ElementId, Vec<Live<(Phase, KeyHandler)>>>,
+    ime: HashMap<ElementId, Vec<(ImeHandler, Alive)>>,
     ime_areas: HashMap<ElementId, ImeAreaProvider>,
-    changes: HashMap<ElementId, Vec<FocusHandler>>,
-    within: HashMap<ElementId, Vec<FocusHandler>>,
+    changes: HashMap<ElementId, Vec<(FocusHandler, Alive)>>,
+    within: HashMap<ElementId, Vec<(FocusHandler, Alive)>>,
     pub(crate) shortcuts: HashMap<ElementId, Vec<(SingleActivator, IntentBox)>>,
     pub(crate) actions: HashMap<ElementId, Vec<(TypeId, ActionBox)>>,
     focused: Option<ElementId>,
@@ -231,7 +231,7 @@ impl BuildCx<'_> {
     ) {
         if self.tree.contains(element) {
             let handlers = self.tree.focus_state.keys.entry(element).or_default();
-            handlers.push((phase, Rc::new(handler)));
+            register(handlers, (phase, Rc::new(handler) as KeyHandler));
         }
     }
 
@@ -240,7 +240,7 @@ impl BuildCx<'_> {
     pub fn on_focus_within(&mut self, element: ElementId, handler: impl Fn(bool) + 'static) {
         if self.tree.contains(element) {
             let handlers = self.tree.focus_state.within.entry(element).or_default();
-            handlers.push(Rc::new(handler));
+            register(handlers, Rc::new(handler) as FocusHandler);
         }
     }
 
@@ -248,7 +248,7 @@ impl BuildCx<'_> {
     pub fn on_ime(&mut self, element: ElementId, handler: impl Fn(&ImeCx<'_>) + 'static) {
         if self.tree.contains(element) {
             let handlers = self.tree.focus_state.ime.entry(element).or_default();
-            handlers.push(Rc::new(handler));
+            register(handlers, Rc::new(handler) as ImeHandler);
         }
     }
 
@@ -267,7 +267,7 @@ impl BuildCx<'_> {
     pub fn on_focus_change(&mut self, element: ElementId, handler: impl Fn(bool) + 'static) {
         if self.tree.contains(element) {
             let handlers = self.tree.focus_state.changes.entry(element).or_default();
-            handlers.push(Rc::new(handler));
+            register(handlers, Rc::new(handler) as FocusHandler);
         }
     }
 }
@@ -332,12 +332,7 @@ impl ViewTree {
         let Some(focused) = self.focus_state.focused else {
             return false;
         };
-        let handlers: Vec<ImeHandler> = self
-            .focus_state
-            .ime
-            .get(&focused)
-            .cloned()
-            .unwrap_or_default();
+        let handlers: Vec<ImeHandler> = live(self.focus_state.ime.get(&focused));
         if handlers.is_empty() {
             return false;
         }
@@ -407,9 +402,7 @@ impl ViewTree {
             }
         }
         let handlers = |id: Option<ElementId>| -> Vec<FocusHandler> {
-            id.and_then(|id| self.focus_state.changes.get(&id))
-                .cloned()
-                .unwrap_or_default()
+            live(id.and_then(|id| self.focus_state.changes.get(&id)))
         };
         let (lost, gained) = (handlers(previous), handlers(next));
         // Subtrees the focus left and entered (VIEW-FOCUS-09).
@@ -418,9 +411,7 @@ impl ViewTree {
         let within = |from: &[ElementId], other: &[ElementId]| -> Vec<FocusHandler> {
             from.iter()
                 .filter(|id| !other.contains(id))
-                .filter_map(|id| self.focus_state.within.get(id))
-                .flatten()
-                .cloned()
+                .flat_map(|id| live(self.focus_state.within.get(id)))
                 .collect()
         };
         let (left, entered) = (within(&old_path, &new_path), within(&new_path, &old_path));
@@ -538,7 +529,10 @@ impl ViewTree {
                     element: id,
                     phase,
                 };
-                for (_, handler) in handlers.iter().filter(|(p, _)| *p == phase) {
+                let current = handlers
+                    .iter()
+                    .filter(|((p, _), alive)| *p == phase && alive.get());
+                for ((_, handler), _) in current {
                     ran = true;
                     if handler(&cx) == Handled::Stop {
                         stopped = true;
@@ -600,8 +594,7 @@ impl ViewTree {
         let mut revealed = false;
         let mut next = self.parent(element);
         while let Some(id) = next {
-            let handlers: Vec<ActionHandler> =
-                self.events.actions.get(&id).cloned().unwrap_or_default();
+            let handlers: Vec<ActionHandler> = live(self.events.actions.get(&id));
             let handled = self.enter(|| {
                 handlers.iter().any(|handler| {
                     handler(&ActionCx {
