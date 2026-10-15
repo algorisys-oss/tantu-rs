@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (docking part 3 drafted for review)_
+_Last updated: 2026-10-16 (docking done; the user is away until morning)_
 
 ## Resume here (2026-10-15)
 
@@ -25,9 +25,12 @@ and a versioned text format (`save`/`load`). **Part 2 is done** (decision 85): `
 draws a layout through one flat `RenderDock` (panels keep their state across tab switches
 and moves), with compact closable tabs, an active group, keyboard shortcuts, dividers,
 semantics, a gallery "Docking" section (Reset/Save/Restore) and a kitchen-sink card.
-**Part 3 is drafted for review**: `docs/specs/widgets/dock-drag.md` (dragging tabs to
-strips, five zones per group and the dock's edges, indicators, Escape, a keyboard reorder),
-with six proposals. **Next:** the user reviews it. Commit/push authorization persists.
+**Part 3 is done** (decision 86): dragging tabs onto strips, five zones per group and the
+dock's edges, with indicators, Escape and a keyboard reorder. **Docking is complete.**
+The user went away until the morning (2026-10-16) and asked the agent to keep adding
+features, committing and pushing (autonomy rules apply: recommended options, marked for
+review). **Next (PLAN.md order):** menus (native + custom), context menus, toolbars, status
+bar. Commit/push authorization persists.
 
 **Environment note (2026-10-15):** VS Code was being killed by `systemd-oomd` (memory pressure
 over 50 %): agents started from VS Code run cargo inside VS Code's cgroup, so a heavy
@@ -1046,6 +1049,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     kitchen-sink card; the sidebar spacing went from 8 to 4 px so thirteen buttons fit the
     640 px test window (every gallery golden regenerated). No new crate or edge.
 
+86. **Drag-to-dock** (2026-10-16, spec `docs/specs/widgets/dock-drag.md`; the user said
+    "continue" on the six proposals): the dock root follows a tab drag in its capture phase
+    (it records where each press lands; a tab's primary press marks it as the candidate;
+    past 4 px the drag starts and every move recomputes the target; the release drops or
+    cancels and stops the tab's own click). Targets come from `dock/drag.rs`, a pure
+    function of the layout, plan, node rects and each strip's published tab places and
+    scroll offset: strip insertion points (drop line), five zones per group content (quarter
+    bands, 16 % fill and outline), 16 px dock-edge bands, nothing over dividers or outside.
+    A target is kept only if `move_panel` would change the layout and isn't the tab's own
+    place (a same-place drop would only activate it; found while testing). The drop
+    activates the panel's group and focuses its strip (a strip built later focuses itself
+    through `focus_request`). Escape and the panel leaving the layout cancel. The dragged
+    tab is dimmed to 38 % with `Opacity`; Control+Shift+Left/Right reorder tabs. Gallery
+    hint updated, GALLERY-28 test and the mid-drag golden. No new public API, crate or edge.
+
 ## Commit log
 
 | Commit | Summary |
@@ -1555,15 +1573,18 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `eb6c6a3` | test: RenderDock and DockArea, stubs + 16 failing tests |
 | `263bcd9` | test: dock tests find tabs by their Tab node (a panel and its label share the tab's title) |
 | `c398d94` | impl: RenderDock and DockArea (plan, keyed strips/panels/dividers, tabs, active group, keys, focus, semantics); gallery Docking section and kitchen-sink card, goldens; README; PLAN.md part 2 ticked |
-| _this commit_ | docs: draft the drag-to-dock spec (docking part 3) for review |
+| `4fb7e9e` | docs: draft the drag-to-dock spec (docking part 3) for review |
+| `8682d37` | spec: drag-to-dock agreed (WIDGETS-DOCKDRAG-01..07, GALLERY-28) |
+| `1a6b5ad` | test: drag-to-dock, 7 failing tests |
+| _this commit_ | impl: drag-to-dock (targets, indicators, drop/cancel, keyboard reorder); gallery hint and mid-drag golden; PLAN.md docking ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Review the drag-to-dock draft (docking part 3) and implement it; then continue Phase 4
-(menus, dialogs, forms).
+Continue Phase 4 in PLAN.md order: menus (native + custom), context menus, toolbars,
+status bar; then dialogs, multi-window and clipboard, forms, i18n, `Grid` layout.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
 Benchmarks and native 60 fps validation stay **local only** on recorded mid-range hardware.
 

@@ -3,6 +3,7 @@
 //! `docs/specs/widgets/dock-layout.md`.
 
 mod area;
+mod drag;
 
 use std::collections::HashSet;
 use std::sync::Arc;

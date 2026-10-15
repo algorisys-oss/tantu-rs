@@ -54,7 +54,7 @@ pub(super) fn section() -> impl View {
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .spacing(8.0)
         .child(Text::new(
-            "Click tabs, close them (middle click works too), drag dividers. Control+Tab cycles the active group; Control+W closes.",
+            "Drag tabs onto strips, group edges or the dock's edges; close them (middle click too); drag dividers. Control+Tab cycles, Control+W closes.",
         ))
         .child(SizedBox::new(720.0, 400.0).child(Keyed::new(
             "dock",

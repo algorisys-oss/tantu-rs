@@ -89,8 +89,8 @@ fn main() -> tantu::Result<()> {
 - **Enterprise widgets:** `DataGrid` (a million rows, frozen columns, sorting, resizing,
   selection, cell editors), `TreeView`, `TabView` (with `TabBar` and `TabBarView`),
   `SplitView` (resizable, collapsible panes) and `DockArea` (IDE-style docking: tab groups
-  in resizable splits, closable tabs, panels that keep their state, a `DockLayout` you can
-  save and restore).
+  in resizable splits, closable tabs dragged onto strips, group edges or the dock's edges, panels
+  that keep their state, a `DockLayout` you can save and restore).
 - **State:** `signal`, `memo`, `effect`; every widget prop takes a value, a closure or a signal.
 - **Input:** pointer events with cursor shapes, keyboard focus and Tab traversal, `Shortcuts`
   and `Actions`, overlays anchored to widgets.
@@ -108,8 +108,8 @@ fn main() -> tantu::Result<()> {
 
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
 window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
-Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (drag-to-dock,
-menus, dialogs, forms), multi-window, clipboard and i18n.
+Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (menus,
+dialogs, forms), multi-window, clipboard and i18n.
 
 The **Tree view** section demonstrates a project explorer and a generated branch with 5,000
 children; the **Kitchen sink** includes the same expandable tree with selection/activation

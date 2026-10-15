@@ -1,6 +1,6 @@
 # Docking, part 3: dragging tabs to dock them
 
-- **Status:** Agreed (2026-10-16, the user said "continue" on the six proposals)
+- **Status:** Implemented (2026-10-16; agreed the same day, the user said "continue" on the six proposals)
 - **Crate:** `tantu-widgets` (`DockArea`), `examples/gallery`
 - **Plan item:** Phase 4, "Docking layout manager", part 3 (drag-to-dock)
 - **Related:** [dock layout model](dock-layout.md) (part 1, `DockTarget`, `move_panel`),

@@ -19,10 +19,15 @@ use tantu_view::{
     SemanticsActions, Show, SingleActivator, View,
 };
 
+use super::DockTarget;
+use super::drag::{
+    DRAG_SLOP, DRAGGED_OPACITY, DragState, Geometry, Indicator, StripPlaces, ZONE_ALPHA,
+};
 use super::{DockGroupId, DockLayout, DockSplitId, DockView, PanelId};
 use crate::split_view::{DividerPaint, KEY_STEP};
 use crate::theme::ThemeHandle;
-use crate::{Icon, Icons, Padding, Row, ScrollController, ScrollView, Text};
+use crate::{Icon, Icons, Opacity, Padding, Row, ScrollController, ScrollView, Text};
+use tantu_view::scene::RoundedRect;
 
 type PanelFn<T> = Rc<dyn Fn(&PanelId) -> T>;
 
@@ -38,6 +43,8 @@ const INDICATOR: f32 = 2.0;
 const GAP: f32 = 1.0;
 /// The groups' minimum on every split axis.
 const MIN_GROUP: f32 = 80.0;
+/// The tab strips' height.
+const STRIP_HEIGHT: f32 = 36.0;
 
 /// Shows a dock layout and lets the user change it (WIDGETS-DOCKAREA-01..09).
 ///
@@ -129,7 +136,20 @@ struct Dock {
     rects: Signal<Vec<Rect>>,
     /// Each group's strip element, for moving focus to it.
     strips: RefCell<HashMap<DockGroupId, ElementId>>,
+    /// Each group's tab places and scroll controller, for drop targets.
+    places: RefCell<HashMap<DockGroupId, StripPlaceSource>>,
+    /// A strip to focus as soon as it is built (after a drop into a new group).
+    focus_request: Cell<Option<DockGroupId>>,
+    /// Where the last press landed (dock coordinates), seen by the root first.
+    down_at: Cell<Point>,
+    /// The tab pressed with the primary button, and where (dock coordinates).
+    pressed: RefCell<Option<(PanelId, Point)>>,
+    /// The drag in progress (WIDGETS-DOCKDRAG-01).
+    drag: Signal<Option<DragState>>,
 }
+
+/// A strip's published tab places and its scroll controller.
+type StripPlaceSource = (Signal<Vec<(f32, f32)>>, ScrollController);
 
 /// Stable layout keys for panels, shared by the plan and the panel hosts.
 type Keys = Rc<RefCell<HashMap<PanelId, u64>>>;
@@ -183,6 +203,70 @@ fn build_plan(keys: &Keys, layout: &DockLayout) -> DockPlan {
 impl Dock {
     fn key(&self, panel: &PanelId) -> u64 {
         panel_key(&self.keys, panel)
+    }
+
+    /// Recomputes the drag's target for the pointer at `at` (dock coordinates).
+    fn update_drag(&self, at: Point) {
+        let Some(panel) = self
+            .drag
+            .with_untracked(|d| d.as_ref().map(|d| d.panel.clone()))
+        else {
+            return;
+        };
+        let target = untrack(|| {
+            let places = |group: DockGroupId| {
+                let places = self.places.borrow();
+                let (slots, controller) = places.get(&group)?;
+                Some(StripPlaces {
+                    slots: slots.get_untracked(),
+                    offset: controller.offset_untracked(),
+                })
+            };
+            let rects = self.rects.get_untracked();
+            let plan = self.plan.get_untracked();
+            self.layout.with_untracked(|layout| {
+                Geometry {
+                    layout,
+                    plan: &plan,
+                    rects: &rects,
+                    strip_height: STRIP_HEIGHT,
+                    gap: GAP,
+                    places: &places,
+                }
+                .target(&panel, at)
+            })
+        });
+        let state = Some(DragState { panel, target });
+        if self.drag.get_untracked() != state {
+            self.drag.set(state);
+        }
+    }
+
+    /// Moves `panel` to `target`, then activates its group and focuses its strip
+    /// (WIDGETS-DOCKDRAG-06).
+    fn drop_panel(
+        &self,
+        panel: &PanelId,
+        target: DockTarget,
+        focus: &FocusTracker,
+        moves: Signal<u32>,
+    ) {
+        self.layout.update(|l| {
+            let _ = l.move_panel(panel, target);
+        });
+        let group = untrack(|| self.layout.with(|l| l.group_of(panel)));
+        self.set_active_group(group);
+        let Some(group) = group else {
+            return;
+        };
+        let strip = self.strips.borrow().get(&group).copied();
+        match strip {
+            Some(strip) => {
+                focus.target.set(Some(strip));
+                moves.update(|m| *m = m.wrapping_add(1));
+            }
+            None => self.focus_request.set(Some(group)),
+        }
     }
 
     /// Activates `panel` in the layout.
@@ -258,6 +342,11 @@ impl View for DockArea {
             plan,
             rects: signal(Vec::new()),
             strips: RefCell::default(),
+            places: RefCell::default(),
+            focus_request: Cell::new(None),
+            down_at: Cell::new(Point::new(0.0, 0.0)),
+            pressed: RefCell::new(None),
+            drag: signal(None),
         });
         // The active group falls back to the first group (WIDGETS-DOCKAREA-04).
         effect(move || {
@@ -371,7 +460,103 @@ impl View for DockArea {
                 e.update_render::<RenderDock>(|r| r.plan = plan);
             },
         );
-        cx.set_paint(id, DockPaint { rects: dock.rects });
+        let theme = ThemeHandle::of(cx);
+        cx.set_paint(
+            id,
+            DockPaint {
+                rects: dock.rects,
+                indicator: None,
+                colors: theme.colors(),
+            },
+        );
+        {
+            let drag = dock.drag;
+            cx.bind(
+                id,
+                Prop::Dynamic(Box::new(move || {
+                    let indicator = drag.with(|d| d.as_ref().and_then(|d| d.target.map(|t| t.1)));
+                    (indicator, theme.colors())
+                })),
+                |e, (indicator, colors)| {
+                    e.update_paint::<DockPaint>(|p| {
+                        p.indicator = indicator;
+                        p.colors = colors;
+                    });
+                },
+            );
+        }
+        // Dragging tabs (WIDGETS-DOCKDRAG-01..06): the root sees the captured path's events
+        // first, in its own coordinates.
+        {
+            let (dock, focus) = (Rc::clone(&dock), focus.clone());
+            cx.on_pointer(id, Phase::Capture, move |p| match p.event.kind {
+                PointerKind::Down(_) => {
+                    *dock.pressed.borrow_mut() = None;
+                    dock.down_at.set(p.local);
+                    Handled::Continue
+                }
+                PointerKind::Move => {
+                    if dock.drag.with_untracked(|d| d.is_some()) {
+                        dock.update_drag(p.local);
+                        return Handled::Stop;
+                    }
+                    let start = dock.pressed.borrow().as_ref().map(|(_, start)| *start);
+                    match start {
+                        Some(start)
+                            if (p.local.x - start.x).hypot(p.local.y - start.y) > DRAG_SLOP =>
+                        {
+                            let panel = dock.pressed.borrow().as_ref().map(|(p, _)| p.clone());
+                            if let Some(panel) = panel {
+                                dock.drag.set(Some(DragState {
+                                    panel,
+                                    target: None,
+                                }));
+                                dock.update_drag(p.local);
+                            }
+                            Handled::Stop
+                        }
+                        _ => Handled::Continue,
+                    }
+                }
+                PointerKind::Up(PointerButton::Primary) => {
+                    *dock.pressed.borrow_mut() = None;
+                    let Some(drag) = dock.drag.get_untracked() else {
+                        return Handled::Continue;
+                    };
+                    dock.drag.set(None);
+                    if let Some((target, _)) = drag.target {
+                        dock.drop_panel(&drag.panel, target, &focus, moves);
+                    }
+                    Handled::Stop
+                }
+                _ => Handled::Continue,
+            });
+        }
+        {
+            let dock = Rc::clone(&dock);
+            cx.on_key(id, Phase::Capture, move |k| {
+                if k.event.pressed
+                    && k.event.key == LogicalKey::Named(NamedKey::Escape)
+                    && dock.drag.with_untracked(|d| d.is_some())
+                {
+                    dock.drag.set(None);
+                    *dock.pressed.borrow_mut() = None;
+                    return Handled::Stop;
+                }
+                Handled::Continue
+            });
+        }
+        // A dragged panel leaving the layout cancels the drag (WIDGETS-DOCKDRAG-06).
+        {
+            let drag = dock.drag;
+            effect(move || {
+                let gone = layout
+                    .with(|l| drag.with(|d| d.as_ref().is_some_and(|d| !l.contains(&d.panel))));
+                if gone {
+                    drag.set(None);
+                }
+            });
+        }
         // Shortcuts from anywhere inside (WIDGETS-DOCKAREA-05).
         for (key, shift, forward) in [
             (NamedKey::Tab, false, true),
@@ -441,9 +626,12 @@ impl View for FocusMove {
     }
 }
 
-/// Records the node rects after layout for the dividers.
+/// Records the node rects after layout, and draws the drop indicator over the children
+/// (WIDGETS-DOCKDRAG-02..04).
 struct DockPaint {
     rects: Signal<Vec<Rect>>,
+    indicator: Option<Indicator>,
+    colors: tantu_theme::ColorScheme,
 }
 
 impl Paint for DockPaint {
@@ -452,6 +640,17 @@ impl Paint for DockPaint {
             if self.rects.get_untracked() != dock.node_rects() {
                 self.rects.set(dock.node_rects().to_vec());
             }
+        }
+        cx.paint_children();
+        let primary = self.colors.primary;
+        match self.indicator {
+            Some(Indicator::Line(rect)) => cx.scene().fill_rect(rect, primary),
+            Some(Indicator::Zone(rect)) => {
+                let scene = cx.scene();
+                scene.fill_rect(rect, primary.with_alpha(ZONE_ALPHA));
+                scene.stroke(RoundedRect::from_rect(rect), 2.0, primary);
+            }
+            None => {}
         }
     }
 }
@@ -613,12 +812,16 @@ impl View for StripView {
         );
         cx.set_parent_data(id, DockSlot::Strip(group.0));
         dock.strips.borrow_mut().insert(group, id);
+        dock.places
+            .borrow_mut()
+            .insert(group, (published, controller));
         {
             let dock = Rc::clone(&dock);
             on_cleanup(move || {
                 let mut strips = dock.strips.borrow_mut();
                 if strips.get(&group) == Some(&id) {
                     strips.remove(&group);
+                    dock.places.borrow_mut().remove(&group);
                 }
             });
         }
@@ -650,6 +853,11 @@ impl View for StripView {
                 focus_on_press: true,
             },
         );
+        // A drop into a new group focuses its strip once it exists (WIDGETS-DOCKDRAG-06).
+        if dock.focus_request.get() == Some(group) {
+            dock.focus_request.set(None);
+            cx.focus(id);
+        }
         {
             let dock = Rc::clone(&dock);
             cx.on_focus_within(id, move |inside| {
@@ -682,14 +890,34 @@ impl View for StripView {
             let dock = Rc::clone(&dock);
             cx.on_key(id, Phase::Capture, move |k| {
                 let event = &k.event;
-                if !event.pressed || event.modifiers != Default::default() {
-                    return Handled::Continue;
-                }
                 let Some((panels, active)) =
                     untrack(|| layout.with(|l| l.group(group).map(|(p, a)| (p.to_vec(), a))))
                 else {
                     return Handled::Continue;
                 };
+                // Control+Shift+Left/Right move the active tab (WIDGETS-DOCKDRAG-07).
+                let chord = tantu_view::Modifiers {
+                    control: true,
+                    shift: true,
+                    ..Default::default()
+                };
+                if event.pressed && event.modifiers == chord {
+                    let index = match &event.key {
+                        LogicalKey::Named(NamedKey::ArrowLeft) if active > 0 => active - 1,
+                        LogicalKey::Named(NamedKey::ArrowRight) if active + 1 < panels.len() => {
+                            active + 1
+                        }
+                        _ => return Handled::Continue,
+                    };
+                    let panel = panels[active].clone();
+                    layout.update(|l| {
+                        let _ = l.move_panel(&panel, DockTarget::Tabs { group, index });
+                    });
+                    return Handled::Stop;
+                }
+                if !event.pressed || event.modifiers != Default::default() {
+                    return Handled::Continue;
+                }
                 let n = panels.len();
                 let next = match &event.key {
                     LogicalKey::Named(NamedKey::ArrowLeft) => (active + n - 1) % n,
@@ -858,7 +1086,15 @@ impl View for DockTab {
                 visible: Rc::new(move || active.get() || hover.get()),
             });
         }
-        let content = Padding::new(EdgeInsets::symmetric(TAB_PADDING, 0.0)).child(row);
+        // The dragged tab is dimmed (WIDGETS-DOCKDRAG-01).
+        let dragged = {
+            let (drag, panel) = (dock.drag, panel.clone());
+            memo(move || drag.with(|d| d.as_ref().is_some_and(|d| d.panel == panel)))
+        };
+        let content = Opacity::new(
+            move || if dragged.get() { DRAGGED_OPACITY } else { 1.0 },
+            Padding::new(EdgeInsets::symmetric(TAB_PADDING, 0.0)).child(row),
+        );
         let id = cx.render(
             RenderConstrainedBox::new(BoxConstraints::UNCONSTRAINED),
             [AnyView::new(content)],
@@ -947,7 +1183,13 @@ impl View for DockTab {
                 && p.local.x <= p.size.width
                 && p.local.y <= p.size.height;
             match p.event.kind {
-                PointerKind::Down(button) => pressed.set(Some(button)),
+                PointerKind::Down(button) => {
+                    pressed.set(Some(button));
+                    // A primary press may become a drag (WIDGETS-DOCKDRAG-01).
+                    if button == PointerButton::Primary {
+                        *dock.pressed.borrow_mut() = Some((panel.clone(), dock.down_at.get()));
+                    }
+                }
                 PointerKind::Up(button) => {
                     if pressed.replace(None) == Some(button) && inside {
                         match button {
