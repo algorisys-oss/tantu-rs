@@ -33,10 +33,7 @@ fn i18n_msg_01_resources() {
     let mut t = Translations::new(locale("en"));
     // A syntax error: reported with its offset, the valid messages kept.
     let errors = t
-        .add(
-            locale("en"),
-            "good = Good\nbad = \n = broken\nalso = Also\n",
-        )
+        .add(locale("en"), "good = Good\nbad = { $\nalso = Also\n")
         .expect_err("a syntax error");
     assert!(!errors.is_empty());
     assert!(errors[0].offset >= "good = Good\n".len(), "{errors:?}");
@@ -129,7 +126,7 @@ fn i18n_msg_05_negotiation() {
     locales.sort();
     assert_eq!(locales, ["de", "de-CH", "en", "fr", "hi"]);
     assert_eq!(
-        t.negotiate(&[locale("fr"), locale("de-AT"), locale("en")]),
+        t.negotiate(&[locale("ja"), locale("de-AT"), locale("en")]),
         locale("de")
     );
     assert_eq!(t.negotiate(&[locale("de-CH")]), locale("de-CH"));
