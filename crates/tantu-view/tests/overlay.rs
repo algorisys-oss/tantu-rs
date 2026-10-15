@@ -788,12 +788,17 @@ fn view_overlay_12_nested_overlays_are_inside() {
             })
             .overlay(move || {
                 let o = o.clone();
-                // The inner overlay's target is inside the outer overlay's content.
-                OverlayPortal::new(Keyed::new("outer-popup", boxed(80.0, 30.0)))
+                // The inner overlay's target is inside the outer overlay's content, next to
+                // another box of that content.
+                let inner_portal = OverlayPortal::new(Keyed::new("outer-popup", boxed(80.0, 30.0)))
                     .visible(inner)
                     .anchor(Anchor::new(Alignment::TOP_RIGHT, Alignment::TOP_LEFT))
                     .on_outside_press(move || o.borrow_mut().push("inner"))
-                    .overlay(|| Keyed::new("inner-popup", boxed(60.0, 30.0)))
+                    .overlay(|| Keyed::new("inner-popup", boxed(60.0, 30.0)));
+                Pair(
+                    AnyView::new(inner_portal),
+                    AnyView::new(Keyed::new("outer-other", boxed(80.0, 30.0))),
+                )
             });
         ClippedStack(vec![AnyView::new(At(0.0, 50.0, portal))])
     });
@@ -820,9 +825,13 @@ fn view_overlay_12_nested_overlays_are_inside() {
     let inner_popup = rect(&tree, find(&tree, "inner-popup").expect("shown"));
     press(&mut tree, inner_popup.center());
     assert!(outside.borrow().is_empty(), "{:?}", outside.borrow());
+    // The inner portal's target counts as inside it (VIEW-OVERLAY-05).
+    let target = rect(&tree, find(&tree, "outer-popup").expect("shown"));
+    press(&mut tree, target.center());
+    assert!(outside.borrow().is_empty(), "{:?}", outside.borrow());
     // Inside the outer popup only: outside the inner one.
-    let outer_popup = rect(&tree, find(&tree, "outer-popup").expect("shown"));
-    press(&mut tree, outer_popup.center());
+    let other = rect(&tree, find(&tree, "outer-other").expect("shown"));
+    press(&mut tree, other.center());
     assert_eq!(*outside.borrow(), ["inner"]);
     // Elsewhere: outside both.
     outside.borrow_mut().clear();
@@ -830,4 +839,13 @@ fn view_overlay_12_nested_overlays_are_inside() {
     let mut seen = outside.borrow().clone();
     seen.sort();
     assert_eq!(seen, ["inner", "outer"]);
+}
+
+/// Two children in a column.
+struct Pair(AnyView, AnyView);
+
+impl View for Pair {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        cx.render(tantu_layout::RenderFlex::column(), [self.0, self.1])
+    }
 }
