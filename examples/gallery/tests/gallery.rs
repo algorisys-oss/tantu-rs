@@ -1423,6 +1423,17 @@ fn type_into(t: &mut WidgetTester, label: &str, text: &str) {
     t.pump();
 }
 
+/// Types `text` into the focused element.
+fn type_keys(t: &mut WidgetTester, text: &str) {
+    for ch in text.chars() {
+        t.press_key(
+            tantu::view::LogicalKey::Character(ch.to_string().into()),
+            tantu::view::Modifiers::default(),
+        );
+    }
+    t.pump();
+}
+
 fn input_focused(t: &mut WidgetTester, label: &str) -> bool {
     let tree = t.a11y_tree();
     tree.nodes
@@ -1543,12 +1554,15 @@ fn gallery_40_masked_phone_in_the_form() {
     assert_eq!(text_of(&t, "mask-echo"), "Phone: none");
     type_into(&mut t, "Phone", "555");
     assert_eq!(text_of(&t, "mask-echo"), "Phone: incomplete");
-    type_into(&mut t, "Phone", "x1234567");
+    // More keys into the focused field (a second click would be a double-click).
+    type_keys(&mut t, "x1234567");
     let value = t
         .a11y_tree()
         .nodes
         .iter()
-        .find(|(_, n)| n.label() == Some("Phone"))
+        .find(|(_, n)| {
+            n.role() == tantu_test::accesskit::Role::TextInput && n.label() == Some("Phone")
+        })
         .and_then(|(_, n)| n.value().map(str::to_owned));
     assert_eq!(value.as_deref(), Some("(555) 123-4567"));
     assert_eq!(text_of(&t, "mask-echo"), "Phone: 5551234567");
@@ -1570,6 +1584,6 @@ fn gallery_41_kitchen_sink_mask_card() {
     assert_eq!(text_of(&t, "sink-mask-state"), "Date: none");
     type_into(&mut t, "Date", "1231");
     assert_eq!(text_of(&t, "sink-mask-state"), "Date: incomplete");
-    type_into(&mut t, "Date", "2026");
+    type_keys(&mut t, "2026");
     assert_eq!(text_of(&t, "sink-mask-state"), "Date: 12/31/2026");
 }
