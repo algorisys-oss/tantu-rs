@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/overlay.md`, rules VIEW-OVERLAY-01..07 and -11.
+//! Tests for `docs/specs/view/overlay.md`, rules VIEW-OVERLAY-01..07, -11 and -12.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -768,4 +768,66 @@ fn view_overlay_11_reactive_anchor() {
     });
     frame(&mut tree);
     assert_eq!(rect(&tree, popup), Rect::from_ltwh(320.0, 50.0, 80.0, 30.0));
+}
+
+#[test]
+fn view_overlay_12_nested_overlays_are_inside() {
+    type Handles = Rc<RefCell<Option<(Signal<bool>, Signal<bool>)>>>;
+    let handles: Handles = Rc::default();
+    let outside: Rc<RefCell<Vec<&'static str>>> = Rc::default();
+    let (h, o) = (handles.clone(), outside.clone());
+    let mut tree = ViewTree::new(move || {
+        let (outer, inner) = (signal(false), signal(false));
+        *h.borrow_mut() = Some((outer, inner));
+        let o = o.clone();
+        let portal = OverlayPortal::new(Keyed::new("target", boxed(100.0, 40.0)))
+            .visible(outer)
+            .on_outside_press({
+                let o = o.clone();
+                move || o.borrow_mut().push("outer")
+            })
+            .overlay(move || {
+                let o = o.clone();
+                // The inner overlay's target is inside the outer overlay's content.
+                OverlayPortal::new(Keyed::new("outer-popup", boxed(80.0, 30.0)))
+                    .visible(inner)
+                    .anchor(Anchor::new(Alignment::TOP_RIGHT, Alignment::TOP_LEFT))
+                    .on_outside_press(move || o.borrow_mut().push("inner"))
+                    .overlay(|| Keyed::new("inner-popup", boxed(60.0, 30.0)))
+            });
+        ClippedStack(vec![AnyView::new(At(0.0, 50.0, portal))])
+    });
+    let (outer, inner) = handles.borrow_mut().take().expect("built");
+    frame(&mut tree);
+    tree.enter(|| {
+        outer.set(true);
+        inner.set(true);
+    });
+    frame(&mut tree);
+    let press = |tree: &mut ViewTree, at: Point| {
+        for kind in [
+            PointerKind::Down(PointerButton::Primary),
+            PointerKind::Up(PointerButton::Primary),
+        ] {
+            tree.dispatch_pointer(PointerEvent {
+                kind,
+                position: at,
+                modifiers: Default::default(),
+            });
+        }
+    };
+    // Inside the inner popup: inside both.
+    let inner_popup = rect(&tree, find(&tree, "inner-popup").expect("shown"));
+    press(&mut tree, inner_popup.center());
+    assert!(outside.borrow().is_empty(), "{:?}", outside.borrow());
+    // Inside the outer popup only: outside the inner one.
+    let outer_popup = rect(&tree, find(&tree, "outer-popup").expect("shown"));
+    press(&mut tree, outer_popup.center());
+    assert_eq!(*outside.borrow(), ["inner"]);
+    // Elsewhere: outside both.
+    outside.borrow_mut().clear();
+    press(&mut tree, Point::new(390.0, 290.0));
+    let mut seen = outside.borrow().clone();
+    seen.sort();
+    assert_eq!(seen, ["inner", "outer"]);
 }
