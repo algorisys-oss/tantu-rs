@@ -16,6 +16,8 @@ workspace = true
 native-dialogs = ["dep:rfd"]
 ## OS notifications through `notify-rust` (ADR 0017).
 notifications = ["dep:notify-rust"]
+## Native menu bars through `muda` on macOS and Windows (ADR 0017 part 2).
+native-menus = ["dep:muda"]
 
 [dependencies]
 tantu-core = { workspace = true }
@@ -39,3 +41,7 @@ notify-rust = { version = "4.17.0", optional = true }
 name = "window"
 harness = false
 
+# Native menu bars (ADR 0017 part 2), opt-in, macOS and Windows only (no GTK on Linux).
+# 0.19.3: 0.20 and later need Rust 1.90, above the MSRV.
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+muda = { version = "0.19.3", optional = true, default-features = false }

@@ -97,7 +97,10 @@ pub use image::{BoxFit, Image, ImageError, decode_png};
 pub use layout_grid::{GridPlacement, LayoutGrid};
 pub use list_view::ListView;
 pub use localizations::Localizations;
-pub use menu::{ContextMenuRegion, MenuAnchor, MenuBar, MenuController, MenuItem};
+pub use menu::{
+    ContextMenuRegion, MenuAnchor, MenuBar, MenuController, MenuItem, NativeMenuEntry,
+    NativeMenuEntryKind, NativeMenuHost, NativeMenus,
+};
 pub use offstage::Offstage;
 pub use opacity::Opacity;
 pub use rich_text::{RichText, TextSpan};

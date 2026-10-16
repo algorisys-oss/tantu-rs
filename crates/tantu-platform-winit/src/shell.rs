@@ -519,6 +519,7 @@ impl PlatformContext for Context<'_> {
         tantu_platform::NativeCapabilities {
             dialogs: cfg!(feature = "native-dialogs"),
             notifications: cfg!(feature = "notifications"),
+            menus: false,
         }
     }
 

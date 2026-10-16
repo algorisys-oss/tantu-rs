@@ -27,6 +27,8 @@ material-icons = ["tantu-widgets/material-icons"]
 native-dialogs = ["winit", "tantu-platform-winit/native-dialogs"]
 ## OS notifications (FACADE-DESK-03, ADR 0017).
 notifications = ["winit", "tantu-platform-winit/notifications"]
+## Native menu bars on macOS and Windows (FACADE-APP-21, ADR 0017).
+native-menus = ["winit", "tantu-platform-winit/native-menus"]
 
 [dependencies]
 tantu-core = { workspace = true }

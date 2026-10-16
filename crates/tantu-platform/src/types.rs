@@ -433,6 +433,11 @@ pub enum WindowEvent {
         /// The button.
         result: crate::MessageResult,
     },
+    /// A native menu item was chosen (PLATFORM-MENU-01).
+    MenuItemActivated {
+        /// The item's id from the `NativeMenu`.
+        id: u64,
+    },
     /// Files were dropped on the window.
     FilesDropped {
         /// The dropped files.

@@ -168,6 +168,14 @@ pub trait PlatformContext {
         false
     }
 
+    /// Shows `menu` as `window`'s menu bar (`None` removes it); macOS has one bar for the
+    /// app, owned by the last window to set it. False when not supported (the default)
+    /// (PLATFORM-MENU-01).
+    fn set_menu_bar(&mut self, window: WindowId, menu: Option<crate::NativeMenu>) -> bool {
+        let _ = (window, menu);
+        todo!("PLATFORM-MENU-01")
+    }
+
     /// What this platform supports (default: nothing).
     fn native_capabilities(&self) -> crate::NativeCapabilities {
         crate::NativeCapabilities::default()

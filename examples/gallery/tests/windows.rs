@@ -110,3 +110,33 @@ fn gallery_53_second_window_shares_dark_mode() {
         "the main window follows the second window's switch"
     );
 }
+
+#[test]
+fn gallery_57_native_menu_bar() {
+    use tantu::platform::NativeMenuItem;
+    let mut handler = gallery::app()
+        .without_system_fonts()
+        .font(FONT.to_vec())
+        .handler(|_: &mut dyn PlatformContext, _: WindowId| {
+            Ok(
+                Box::new(Recorder(Rc::new(RefCell::new(HeadlessRenderer::new(1, 1)))))
+                    as Box<dyn Renderer>,
+            )
+        });
+    let log = FakePlatform::new().run_logged(&mut handler);
+    let bar = log.windows[0]
+        .menu_bars
+        .last()
+        .cloned()
+        .flatten()
+        .expect("the gallery's bar is native under the runner");
+    let labels: Vec<&str> = bar
+        .menus
+        .iter()
+        .map(|m| match m {
+            NativeMenuItem::Submenu { label, .. } => label.as_str(),
+            _ => "?",
+        })
+        .collect();
+    assert_eq!(labels, ["View", "Go", "Help"]);
+}

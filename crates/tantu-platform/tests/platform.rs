@@ -1127,3 +1127,69 @@ fn platform_fake_18_scripted_answers_and_log() {
     assert_eq!(*seen.borrow(), ["requested None None false"]);
     assert!(log.notifications.is_empty());
 }
+
+fn native_menu() -> tantu_platform::NativeMenu {
+    use tantu_platform::NativeMenuItem;
+    tantu_platform::NativeMenu {
+        menus: vec![NativeMenuItem::Submenu {
+            label: "File".into(),
+            enabled: true,
+            items: vec![NativeMenuItem::Item {
+                id: 9,
+                label: "Save".into(),
+                enabled: true,
+                checked: None,
+                shortcut: Some("Ctrl+S".into()),
+            }],
+        }],
+    }
+}
+
+/// Sets a menu bar on the first window and records the answers and activations.
+fn menu_setter(seen: Rc<RefCell<Vec<String>>>) -> impl FnMut(&mut dyn PlatformContext, &Seen) {
+    move |cx, event| match event {
+        Seen::Started => {
+            let w = cx
+                .create_window(&WindowAttributes::new("A"))
+                .expect("a window");
+            let supported = cx.native_capabilities().menus;
+            let set = cx.set_menu_bar(w, Some(native_menu()));
+            seen.borrow_mut().push(format!("menus {supported} {set}"));
+        }
+        Seen::Event(_, WindowEvent::MenuItemActivated { id }) => {
+            seen.borrow_mut().push(format!("activated {id}"));
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn platform_menu_01_menu_bars() {
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(menu_setter(seen.clone()));
+    FakePlatform::new().run_logged(&mut handler);
+    assert_eq!(*seen.borrow(), ["menus true true"]);
+    // Without support: the defaults.
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(menu_setter(seen.clone()));
+    FakePlatform::new()
+        .without_native_menus()
+        .run_logged(&mut handler);
+    assert_eq!(*seen.borrow(), ["menus false false"]);
+}
+
+#[test]
+fn platform_fake_19_records_menu_bars() {
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(menu_setter(seen.clone()));
+    let log = FakePlatform::new()
+        .event(0, WindowEvent::MenuItemActivated { id: 9 })
+        .run_logged(&mut handler);
+    assert_eq!(*seen.borrow(), ["menus true true", "activated 9"]);
+    assert_eq!(log.windows[0].menu_bars, [Some(native_menu())]);
+    let mut handler = Recorder::with(menu_setter(Rc::default()));
+    let log = FakePlatform::new()
+        .without_native_menus()
+        .run_logged(&mut handler);
+    assert!(log.windows[0].menu_bars.is_empty());
+}

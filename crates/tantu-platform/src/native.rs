@@ -141,6 +141,44 @@ pub struct NativeCapabilities {
     pub dialogs: bool,
     /// Notifications.
     pub notifications: bool,
+    /// Native menu bars (PLATFORM-MENU-01).
+    pub menus: bool,
+}
+
+/// One entry of a native menu (PLATFORM-MENU-01).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum NativeMenuItem {
+    /// A command; `id` comes back in `WindowEvent::MenuItemActivated`.
+    Item {
+        /// The app's id for it.
+        id: u64,
+        /// The text.
+        label: String,
+        /// Whether it can be chosen.
+        enabled: bool,
+        /// `Some` for a check item.
+        checked: Option<bool>,
+        /// Shortcut text, e.g. "Ctrl+S" (shown, and on macOS bound).
+        shortcut: Option<String>,
+    },
+    /// A submenu.
+    Submenu {
+        /// The text.
+        label: String,
+        /// Whether it can be opened.
+        enabled: bool,
+        /// Its entries.
+        items: Vec<NativeMenuItem>,
+    },
+    /// A separator line.
+    Separator,
+}
+
+/// A menu bar: its top-level menus (submenus), in order.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct NativeMenu {
+    /// The top-level menus.
+    pub menus: Vec<NativeMenuItem>,
 }
 
 /// Identifies one dialog request.

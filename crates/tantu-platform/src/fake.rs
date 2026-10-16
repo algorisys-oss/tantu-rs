@@ -76,6 +76,8 @@ pub struct FakeWindow {
     pub accessibility_updates: Vec<accesskit::TreeUpdate>,
     /// Every cursor set with `set_cursor`, in order, repeats included (PLATFORM-FAKE-14).
     pub cursors: Vec<CursorIcon>,
+    /// Every `set_menu_bar` call for the window, in order (PLATFORM-FAKE-19).
+    pub menu_bars: Vec<Option<crate::NativeMenu>>,
 }
 
 /// A platform without a display: runs a handler against a script of events.
@@ -107,6 +109,11 @@ impl FakePlatform {
     pub fn message_answer(mut self, result: crate::MessageResult) -> Self {
         self.message_answers.push(result);
         self
+    }
+
+    /// A platform without native menus (PLATFORM-FAKE-19).
+    pub fn without_native_menus(self) -> Self {
+        todo!("PLATFORM-FAKE-19")
     }
 
     /// A platform without native dialogs or notifications (the trait's defaults).
@@ -382,6 +389,7 @@ impl PlatformContext for FakeContext {
             ime_area: None,
             accessibility_updates: Vec::new(),
             cursors: Vec::new(),
+            menu_bars: Vec::new(),
         });
         self.mark_pending(index);
         Ok(id)
@@ -477,6 +485,7 @@ impl PlatformContext for FakeContext {
         crate::NativeCapabilities {
             dialogs: self.native,
             notifications: self.native,
+            menus: self.native,
         }
     }
 

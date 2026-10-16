@@ -1028,9 +1028,50 @@ impl Paint for ItemPaint {
     }
 }
 
-/// A row of top-level menus (Flutter's `MenuBar`; WIDGETS-MENUBAR-01..04).
+/// A menu bar entry as a [`NativeMenuHost`] sees it (WIDGETS-MENUBAR-05).
+#[derive(Clone)]
+pub struct NativeMenuEntry {
+    /// The text.
+    pub label: String,
+    /// An item, a submenu or a separator.
+    pub kind: NativeMenuEntryKind,
+    /// Whether it can be chosen.
+    pub enabled: bool,
+    /// `Some` for a check item.
+    pub checked: Option<bool>,
+    /// The shortcut text.
+    pub shortcut: Option<String>,
+    /// What choosing it does.
+    pub on_select: Option<Rc<dyn Fn()>>,
+}
+
+/// What a [`NativeMenuEntry`] is.
+#[derive(Clone)]
+pub enum NativeMenuEntryKind {
+    /// A command.
+    Item,
+    /// A submenu with its entries.
+    Submenu(Vec<NativeMenuEntry>),
+    /// A separator.
+    Separator,
+}
+
+/// Where a native [`MenuBar`] sends its menus; the app runner provides one (wrapped in
+/// [`NativeMenus`]) where the platform has native menus (WIDGETS-MENUBAR-05).
+pub trait NativeMenuHost {
+    /// Replaces the window's menu bar with `menus` (top-level submenus); false: not
+    /// supported, so the bar draws itself.
+    fn set_menus(&self, menus: Vec<NativeMenuEntry>) -> bool;
+}
+
+/// The inherited [`NativeMenuHost`].
+#[derive(Clone)]
+pub struct NativeMenus(pub Rc<dyn NativeMenuHost>);
+
+/// A row of top-level menus (Flutter's `MenuBar`; WIDGETS-MENUBAR-01..05).
 pub struct MenuBar {
     menus: Vec<(String, Vec<MenuItem>)>,
+    native: bool,
 }
 
 impl Default for MenuBar {
@@ -1042,7 +1083,16 @@ impl Default for MenuBar {
 impl MenuBar {
     /// An empty menu bar.
     pub fn new() -> Self {
-        MenuBar { menus: Vec::new() }
+        MenuBar {
+            menus: Vec::new(),
+            native: false,
+        }
+    }
+
+    /// Shows the menus natively where the runner can (macOS, and Windows, with the
+    /// `native-menus` feature); elsewhere the bar is drawn (WIDGETS-MENUBAR-05).
+    pub fn native(self, native: bool) -> Self {
+        MenuBar { native, ..self }
     }
 
     /// Adds a top-level menu labelled `label`.

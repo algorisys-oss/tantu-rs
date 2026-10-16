@@ -78,10 +78,97 @@ pub(crate) fn notification(
     n
 }
 
+/// What a native menu event names (PLATFORM-WINIT-21).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(not(feature = "native-menus"), allow(dead_code))]
+pub(crate) enum MenuTarget {
+    /// The item `id` of the window's bar.
+    Item(tantu_platform::WindowId, u64),
+    /// The macOS application menu's Quit.
+    Quit,
+}
+
+/// The `muda` id of the window's item `id`.
+#[cfg_attr(not(feature = "native-menus"), allow(dead_code))]
+pub(crate) fn menu_id(window: tantu_platform::WindowId, id: u64) -> String {
+    let _ = (window, id);
+    todo!("PLATFORM-WINIT-21")
+}
+
+/// The target a `muda` id names, if it is one of ours.
+#[cfg_attr(not(feature = "native-menus"), allow(dead_code))]
+pub(crate) fn parse_menu_id(id: &str) -> Option<MenuTarget> {
+    let _ = id;
+    todo!("PLATFORM-WINIT-21")
+}
+
+/// The `muda` menu for a window's bar; on macOS with the application menu first.
+#[cfg(all(
+    feature = "native-menus",
+    any(target_os = "macos", target_os = "windows")
+))]
+pub(crate) fn build_menu(
+    menu: &tantu_platform::NativeMenu,
+    window: tantu_platform::WindowId,
+    app_name: &str,
+) -> muda::Menu {
+    let _ = (menu, window, app_name);
+    todo!("PLATFORM-WINIT-21")
+}
+
 #[cfg(test)]
 mod tests {
-    #[cfg(any(feature = "native-dialogs", feature = "notifications"))]
     use super::*;
+
+    #[test]
+    fn platform_winit_21_menu_ids_and_mapping() {
+        use tantu_platform::WindowId;
+        let w = WindowId::from_raw(3);
+        assert_eq!(parse_menu_id(&menu_id(w, 7)), Some(MenuTarget::Item(w, 7)));
+        assert_eq!(parse_menu_id("tantu:quit"), Some(MenuTarget::Quit));
+        assert_eq!(parse_menu_id("other"), None);
+        assert_eq!(parse_menu_id("tantu:x:1"), None);
+        // Building a real menu needs the main thread on macOS; Windows checks it here.
+        #[cfg(all(feature = "native-menus", target_os = "windows"))]
+        {
+            use tantu_platform::{NativeMenu, NativeMenuItem};
+            let menu = NativeMenu {
+                menus: vec![NativeMenuItem::Submenu {
+                    label: "File".into(),
+                    enabled: true,
+                    items: vec![
+                        NativeMenuItem::Item {
+                            id: 1,
+                            label: "Save".into(),
+                            enabled: true,
+                            checked: None,
+                            shortcut: Some("Ctrl+S".into()),
+                        },
+                        NativeMenuItem::Separator,
+                        NativeMenuItem::Item {
+                            id: 2,
+                            label: "Wrap".into(),
+                            enabled: false,
+                            checked: Some(true),
+                            shortcut: Some("not a shortcut".into()),
+                        },
+                    ],
+                }],
+            };
+            let built = build_menu(&menu, w, "App");
+            let items = built.items();
+            assert_eq!(items.len(), 1, "no application menu on Windows");
+            let file = items[0].as_submenu().expect("a submenu");
+            assert_eq!(file.text(), "File");
+            let entries = file.items();
+            assert_eq!(entries.len(), 3);
+            let save = entries[0].as_menuitem().expect("an item");
+            assert_eq!(save.text(), "Save");
+            assert_eq!(save.id().0, menu_id(w, 1));
+            let wrap = entries[2].as_check_menuitem().expect("a check item");
+            assert!(wrap.is_checked() && !wrap.is_enabled());
+        }
+    }
 
     #[test]
     fn platform_winit_20_dialog_and_notification_mapping() {
