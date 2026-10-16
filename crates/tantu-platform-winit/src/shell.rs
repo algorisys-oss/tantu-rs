@@ -224,6 +224,93 @@ impl tantu_platform::Clipboard for OsClipboard {
             }
         }
     }
+
+    fn read_image(&self) -> Option<tantu_platform::ClipboardImage> {
+        match self.0.borrow_mut().get_image() {
+            Ok(image) => Some(tantu_platform::ClipboardImage {
+                width: u32::try_from(image.width).ok()?,
+                height: u32::try_from(image.height).ok()?,
+                rgba: image.bytes.into_owned(),
+            }),
+            Err(error) => {
+                tracing::debug!(%error, "couldn't read an image from the clipboard");
+                None
+            }
+        }
+    }
+
+    fn write_image(&self, image: &tantu_platform::ClipboardImage) -> bool {
+        let data = arboard::ImageData {
+            width: image.width as usize,
+            height: image.height as usize,
+            bytes: std::borrow::Cow::Borrowed(&image.rgba),
+        };
+        logged(self.0.borrow_mut().set_image(data), "an image")
+    }
+
+    fn write_html(&self, html: &str, alt_text: &str) -> bool {
+        logged(self.0.borrow_mut().set_html(html, Some(alt_text)), "HTML")
+    }
+
+    fn read_html(&self) -> Option<String> {
+        match self.0.borrow_mut().get().html() {
+            Ok(html) if !html.is_empty() => Some(html),
+            Ok(_) => None,
+            Err(error) => {
+                tracing::debug!(%error, "couldn't read HTML from the clipboard");
+                None
+            }
+        }
+    }
+
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    fn read_primary(&self) -> Option<String> {
+        use arboard::{GetExtLinux, LinuxClipboardKind};
+        match self
+            .0
+            .borrow_mut()
+            .get()
+            .clipboard(LinuxClipboardKind::Primary)
+            .text()
+        {
+            Ok(text) if !text.is_empty() => Some(text),
+            Ok(_) => None,
+            Err(error) => {
+                tracing::debug!(%error, "couldn't read the primary selection");
+                None
+            }
+        }
+    }
+
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "android"))
+    ))]
+    fn write_primary(&self, text: &str) -> bool {
+        use arboard::{LinuxClipboardKind, SetExtLinux};
+        logged(
+            self.0
+                .borrow_mut()
+                .set()
+                .clipboard(LinuxClipboardKind::Primary)
+                .text(text),
+            "the primary selection",
+        )
+    }
+}
+
+/// `true` when a clipboard write worked; failures are logged (PLATFORM-WINIT-19).
+fn logged(result: Result<(), arboard::Error>, what: &str) -> bool {
+    match result {
+        Ok(()) => true,
+        Err(error) => {
+            tracing::debug!(%error, "couldn't write {what} to the clipboard");
+            false
+        }
+    }
 }
 
 /// `PlatformContext` for one callback.

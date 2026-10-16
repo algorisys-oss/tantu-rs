@@ -947,7 +947,10 @@ fn facade_app_19_file_drops_reach_the_tree() {
 
 /// On a press: puts an image, HTML and a primary selection on the clipboard and records
 /// the image read back.
-struct RichClipboardUser(Rc<RefCell<Vec<Option<(u32, u32)>>>>);
+struct RichClipboardUser(ImageSizes);
+
+/// The image sizes read back, in order.
+type ImageSizes = Rc<RefCell<Vec<Option<(u32, u32)>>>>;
 
 impl View for RichClipboardUser {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
@@ -973,7 +976,7 @@ impl View for RichClipboardUser {
 
 #[test]
 fn facade_app_20_runner_bridges_images_html_and_primary() {
-    let seen: Rc<RefCell<Vec<Option<(u32, u32)>>>> = Rc::default();
+    let seen: ImageSizes = Rc::default();
     let s = seen.clone();
     let app = App::new().window(Window::new("A").size(200.0, 100.0), move || {
         RichClipboardUser(s.clone())

@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (multi-window and OS file drops done; rich clipboard drafted for review)_
+_Last updated: 2026-10-16 (multi-window, OS file drops and the rich clipboard done)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -31,11 +31,7 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 
 **Waiting for the user's decisions** (the rest of Phase 4 needs them):
 1. (done: multi-window)
-2. **Rich clipboard — drafted, waiting for review:** Draft spec
-   `docs/specs/platform/clipboard-rich.md` (images, HTML with a plain-text alternative,
-   the Linux primary selection with text-field middle-click paste). Correction: the
-   `image` crate is **already** compiled (arboard's default `image-data` feature, kept by
-   decision 90), so no new dependency is needed. Six proposals; say "continue" to accept.
+2. (done: the rich clipboard, decision 105; no new dependency was needed)
 3. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
 4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
@@ -1369,6 +1365,24 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     (28 cards; the hover tint is primary at 16 % over the surface since the scheme has no
     `primary_container`, review). Not done: exact positions and moves (winit 0.31, still a
     beta), text/URL drops, dragging files out.
+105. **Clipboard images, HTML and the primary selection** (2026-10-16, spec
+    `docs/specs/platform/clipboard-rich.md`; the user said "continue" on the draft's six
+    proposals). No new dependency: `image` 0.25 was already compiled through arboard's
+    default `image-data` feature (HANDOFF had wrongly listed it as needing a decision).
+    `tantu_platform::ClipboardImage` (the platform crate depends on core only) and
+    `read_image`/`write_image`/`write_html`/`read_html`/`read_primary`/`write_primary` on
+    both `Clipboard` traits, with defaults (none/false; `write_html` falls back to the
+    text). The fake and memory clipboards keep the kinds side by side (HTML also sets the
+    text); `FakeLog` reports the image, HTML and primary selection. The winit shell maps
+    them to arboard, with the primary selection on Linux/BSD (`LinuxClipboardKind::Primary`)
+    and failures logged. The runner converts `ImageData` ↔ `ClipboardImage`. `TextField`
+    publishes user selections (keys with Shift, select-all, drag release, double-click)
+    and pastes the primary selection on a middle click (one undo step). Tester:
+    `clipboard_image`/`set_clipboard_image`/`primary_selection`/`set_primary_selection`.
+    Gallery: a "clipboard" kitchen-sink card (29 cards). The real-window test
+    (PLATFORM-WINIT-19, opt-in, not in CI) passed locally: image, HTML and primary
+    selection round trips on Linux. Not done: encoded image bytes,
+    file lists, change notifications, Wayland's native data-control protocol.
 
 ## Commit log
 
@@ -1982,7 +1996,11 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `fecdeb1` | test: files dropped from the OS, stubs + 9 tests (7 failing) |
 | `0f7e45a` | spec: GALLERY-54's hover color is primary at 16 % over the surface |
 | `66ae5d6` | impl: OS file drops (platform events, winit batching, view delivery, FileDropTarget, tester, runner); gallery files card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
-| _this commit_ | docs: draft rich clipboard spec (images, HTML, primary selection) for review; PLAN.md link |
+| `6f27c81` | docs: draft rich clipboard spec (images, HTML, primary selection) for review; PLAN.md link |
+| `2a3f9df` | spec: rich clipboard agreed |
+| `40e0ae6` | test: rich clipboard, stubs + 8 failing tests |
+| `de5ea06` | spec: GALLERY-55 names its sample keys and first echo |
+| _this commit_ | impl: clipboard images, HTML and the primary selection (platform, fake, winit/arboard, view, runner, tester, TextField); gallery clipboard card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -1990,8 +2008,8 @@ that with the real hash from `git log`.
 ## Next steps
 
 Phase 4's milestone is done (`examples/enterprise-dashboard`), and so are multi-window
-and OS file drops. Remaining Phase 4 items need the user's decisions (see "Waiting for
-the user's decisions"): the rich/image clipboard. RTL caret movement in
+and OS file drops. The rich clipboard is done too. The remaining Phase 4 items need the user's decisions
+(see "Waiting for the user's decisions"): native menus, dialogs, notifications and the tray. RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

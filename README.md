@@ -84,7 +84,7 @@ fn main() -> tantu::Result<()> {
 - **Layout:** `Row`, `Column`, `Expanded`, `Flexible`, `Spacer`, `Padding`, `Align`, `Center`,
   `SizedBox`, `ConstrainedBox`, `LimitedBox`, `Stack`, `Positioned`, `LayoutBuilder`.
 - **Widgets:** `Text`, `RichText`, `Button`, `IconButton`, `Icon` (Material Icons), `Image`
-  (PNG), `Checkbox`, `Radio`, `Switch`, `Slider`, `Divider`, `TextField` (with undo, IME and copy/paste),
+  (PNG), `Checkbox`, `Radio`, `Switch`, `Slider`, `Divider`, `TextField` (with undo, IME, copy/paste and the Linux primary selection),
   `Tooltip`.
 - **Enterprise widgets:** `DataGrid` (a million rows, frozen columns, sorting, resizing,
   selection, cell editors), `TreeView`, `TabView` (with `TabBar` and `TabBarView`),
@@ -92,6 +92,7 @@ fn main() -> tantu::Result<()> {
   in resizable splits, closable tabs dragged onto strips, group edges or the dock's edges, panels
   that keep their state, a `DockLayout` you can save and restore).
 - **State:** `signal`, `memo`, `effect`; every widget prop takes a value, a closure or a signal.
+- **Clipboard:** text, images and HTML (with a plain-text alternative) through `cx.clipboard()`.
 - **Windows:** `App::provide` for app-owned state every window inherits, and `Windows` to
   open, retitle and close windows at run time (`Window::on_close_request` can keep one open).
 - **Input:** pointer events with cursor shapes, keyboard focus and Tab traversal, `Shortcuts`

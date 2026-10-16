@@ -185,7 +185,7 @@ faster or more portable without changing how apps are written.
   - [ ] native file dialogs, notifications and the system tray: need platform dependencies and an ADR; deferred for the user
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images), in parts:
   - [x] plain-text clipboard through the platform, view and tester; `TextField` copy, cut and paste (spec `docs/specs/platform/clipboard.md`)
-  - [ ] rich text and image clipboard, primary selection (spec `docs/specs/platform/clipboard-rich.md`)
+  - [x] rich text and image clipboard, primary selection (spec `docs/specs/platform/clipboard-rich.md`)
   - [x] multi-window: one runtime per app, `App::provide`, `Windows`/`WindowHandle` (spec `docs/specs/facade/windows.md`, ADR 0016)
   - [x] drag and drop inside the app: drag sessions in the view layer, `Draggable`, `DragTarget` (spec `docs/specs/widgets/drag-and-drop.md`)
   - [x] drag and drop with the OS: files dropped on windows, `FileDropTarget` (spec `docs/specs/platform/file-drop.md`)

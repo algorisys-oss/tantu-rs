@@ -126,7 +126,10 @@ impl FakePlatform {
     /// Runs like [`Platform::run`] and returns the log.
     pub fn run_logged(self, handler: &mut dyn PlatformHandler) -> FakeLog {
         let start = std::time::Instant::now();
-        let clipboard = Rc::new(FakeClipboard(RefCell::new(self.clipboard)));
+        let clipboard = Rc::new(FakeClipboard {
+            text: RefCell::new(self.clipboard),
+            ..FakeClipboard::default()
+        });
         let mut cx = FakeContext {
             log: FakeLog::default(),
             scale_factor: self.scale_factor,
@@ -176,6 +179,9 @@ impl FakePlatform {
             cx.redraw_round(handler);
         }
         cx.log.clipboard_text = clipboard.read_text();
+        cx.log.clipboard_image = clipboard.read_image();
+        cx.log.clipboard_html = clipboard.read_html();
+        cx.log.primary_selection = clipboard.read_primary();
         cx.log
     }
 }
@@ -207,16 +213,57 @@ struct FakeContext {
     clipboard: Rc<FakeClipboard>,
 }
 
-/// The fake platform's clipboard: plain text in memory.
-struct FakeClipboard(RefCell<Option<String>>);
+/// The fake platform's clipboard, in memory: text, an image, HTML and the primary
+/// selection side by side; writing HTML also sets the text to its alternative
+/// (PLATFORM-FAKE-15, -17).
+#[derive(Default)]
+struct FakeClipboard {
+    text: RefCell<Option<String>>,
+    image: RefCell<Option<crate::ClipboardImage>>,
+    html: RefCell<Option<String>>,
+    primary: RefCell<Option<String>>,
+}
+
+/// Empty text counts as none.
+fn non_empty(text: &str) -> Option<String> {
+    (!text.is_empty()).then(|| text.to_owned())
+}
 
 impl crate::Clipboard for FakeClipboard {
     fn read_text(&self) -> Option<String> {
-        self.0.borrow().clone()
+        self.text.borrow().clone()
     }
 
     fn write_text(&self, text: &str) -> bool {
-        *self.0.borrow_mut() = (!text.is_empty()).then(|| text.to_owned());
+        *self.text.borrow_mut() = non_empty(text);
+        true
+    }
+
+    fn read_image(&self) -> Option<crate::ClipboardImage> {
+        self.image.borrow().clone()
+    }
+
+    fn write_image(&self, image: &crate::ClipboardImage) -> bool {
+        *self.image.borrow_mut() = Some(image.clone());
+        true
+    }
+
+    fn write_html(&self, html: &str, alt_text: &str) -> bool {
+        *self.html.borrow_mut() = non_empty(html);
+        *self.text.borrow_mut() = non_empty(alt_text);
+        true
+    }
+
+    fn read_html(&self) -> Option<String> {
+        self.html.borrow().clone()
+    }
+
+    fn read_primary(&self) -> Option<String> {
+        self.primary.borrow().clone()
+    }
+
+    fn write_primary(&self, text: &str) -> bool {
+        *self.primary.borrow_mut() = non_empty(text);
         true
     }
 }

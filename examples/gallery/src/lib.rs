@@ -41,7 +41,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 28] = [
+pub const SINK_CARDS: [(&str, &[&str]); 29] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -71,6 +71,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 28] = [
     ("dnd", &["draggable", "drag_target"]),
     ("i18n", &["localizations"]),
     ("files", &["file_drop_target"]),
+    ("clipboard", &["copy_image", "paste_image", "copy_html"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -936,6 +937,7 @@ fn kitchen_sink_section() -> impl View {
                 i18n::sink(loc)
             }))
             .child(files_sink())
+            .child(clipboard_sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())
@@ -1159,6 +1161,79 @@ fn files_sink() -> impl View {
             }
         }),
     )
+}
+
+/// The clipboard card (GALLERY-55): copy the gallery's gradient, paste an image back, copy
+/// HTML with a plain-text alternative.
+fn clipboard_sink() -> impl View {
+    Builder::new(|cx: &mut BuildCx<'_>| {
+        let clipboard = cx.clipboard();
+        let state = signal("Nothing copied yet".to_owned());
+        let pasted: Signal<Option<ImageData>> = signal(None);
+        let size = |image: &ImageData| format!("{} × {}", image.width(), image.height());
+        let copy_image = {
+            let clipboard = Rc::clone(&clipboard);
+            move || match gradient(64, 64) {
+                Ok(image) if clipboard.write_image(&image) => {
+                    state.set(format!("Copied image {}", size(&image)));
+                }
+                _ => state.set("Couldn't copy the image".to_owned()),
+            }
+        };
+        let paste_image = {
+            let clipboard = Rc::clone(&clipboard);
+            move || match clipboard.read_image() {
+                Some(image) => {
+                    state.set(format!("Pasted image {}", size(&image)));
+                    pasted.set(Some(image));
+                }
+                None => state.set("No image on the clipboard".to_owned()),
+            }
+        };
+        let copy_html = move || {
+            if clipboard.write_html("<b>Tantu</b>", "Tantu") {
+                state.set("Copied HTML".to_owned());
+            }
+        };
+        let buttons = Row::new()
+            .spacing(12.0)
+            .child(Keyed::new(
+                "sink-copy_image",
+                Button::new("Copy image").on_press(copy_image),
+            ))
+            .child(Keyed::new(
+                "sink-paste_image",
+                Button::new("Paste image").on_press(paste_image),
+            ))
+            .child(Keyed::new(
+                "sink-copy_html",
+                Button::new("Copy as HTML").on_press(copy_html),
+            ));
+        // The pasted image, at most 96 px tall.
+        let shown = Dyn::new(move || -> AnyView {
+            match pasted.get() {
+                Some(image) => {
+                    let scale = (96.0 / image.height() as f32).min(1.0);
+                    let (w, h) = (image.width() as f32 * scale, image.height() as f32 * scale);
+                    AnyView::new(Keyed::new(
+                        "sink-clipboard-image",
+                        Image::new(image).size(w, h).fit(BoxFit::Contain),
+                    ))
+                }
+                None => AnyView::new(SizedBox::new(0.0, 0.0)),
+            }
+        });
+        card(
+            "clipboard",
+            "Clipboard",
+            Column::new()
+                .cross_axis_alignment(CrossAxisAlignment::Start)
+                .spacing(8.0)
+                .child(buttons)
+                .child(shown),
+            echo(move || state.get()),
+        )
+    })
 }
 
 /// A `size` box filled with a reactive color, rounded, holding `child`.

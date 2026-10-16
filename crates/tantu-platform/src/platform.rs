@@ -70,31 +70,31 @@ pub trait Clipboard {
     fn write_text(&self, text: &str) -> bool;
     /// The clipboard's image, if it holds one. Default: none.
     fn read_image(&self) -> Option<ClipboardImage> {
-        todo!("PLATFORM-CLIP-02")
+        None
     }
     /// Puts an image on the clipboard. Default: unsupported (false).
     fn write_image(&self, image: &ClipboardImage) -> bool {
         let _ = image;
-        todo!("PLATFORM-CLIP-02")
+        false
     }
     /// Puts HTML on the clipboard, with `alt_text` for apps that take plain text. Default:
     /// writes `alt_text` only.
     fn write_html(&self, html: &str, alt_text: &str) -> bool {
-        let _ = (html, alt_text);
-        todo!("PLATFORM-CLIP-02")
+        let _ = html;
+        self.write_text(alt_text)
     }
     /// The clipboard's HTML, if it holds any. Default: none.
     fn read_html(&self) -> Option<String> {
-        todo!("PLATFORM-CLIP-02")
+        None
     }
     /// The primary selection (X11 and Wayland); `None` where there is none. Default: none.
     fn read_primary(&self) -> Option<String> {
-        todo!("PLATFORM-CLIP-02")
+        None
     }
     /// Sets the primary selection; false where there is none. Default: false.
     fn write_primary(&self, text: &str) -> bool {
         let _ = text;
-        todo!("PLATFORM-CLIP-02")
+        false
     }
 }
 

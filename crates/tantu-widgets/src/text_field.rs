@@ -14,8 +14,8 @@ use tantu_view::reactive::{Scope, Signal, Timer, effect, signal, timer};
 use tantu_view::scene::{BorderRadius, Clip, RoundedRect};
 use tantu_view::text::TextStyle;
 use tantu_view::{
-    AnyView, BuildCx, CursorIcon, ElementId, FocusOptions, Handled, ImeEvent, IntoProp, LogicalKey,
-    NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics,
+    AnyView, BuildCx, Clipboard, CursorIcon, ElementId, FocusOptions, Handled, ImeEvent, IntoProp,
+    LogicalKey, NamedKey, Paint, PaintCx, Phase, PointerButton, PointerKind, Prop, Role, Semantics,
     SemanticsAction, SemanticsActions, SingleActivator, View,
 };
 
@@ -554,9 +554,11 @@ impl View for FieldBox {
         }
         {
             let enabled = Rc::clone(&enabled);
+            let primary = cx.clipboard();
             cx.action(id, move |_: &SelectAllIntent| {
                 if enabled() {
                     controller.edit(|v| v.select_all());
+                    publish_primary(controller, primary.as_ref());
                 }
             });
         }
@@ -588,6 +590,7 @@ impl View for FieldBox {
                 self.on_submit.clone(),
             );
             let (geometry, single_line) = (Rc::clone(&self.geometry), self.single_line);
+            let primary = cx.clipboard();
             cx.on_key(id, Phase::Bubble, move |k| {
                 let event = k.event;
                 if !event.pressed || !enabled() {
@@ -657,6 +660,10 @@ impl View for FieldBox {
                     }
                     _ => return Handled::Continue,
                 }
+                // Selecting with the keys publishes the selection (WIDGETS-TEXTFIELD-13).
+                if select {
+                    publish_primary(controller, primary.as_ref());
+                }
                 Handled::Stop
             });
         }
@@ -670,6 +677,8 @@ impl View for FieldBox {
             let last_press = Cell::new(Point::ZERO);
             let interval: Cell<Option<Timer>> = Cell::new(None);
             let word_anchor: Cell<Option<TextRange>> = Cell::new(None);
+            let (primary, on_change) = (cx.clipboard(), self.on_change.clone());
+            let single_line = self.single_line;
             cx.on_pointer(id, Phase::Bubble, move |p| {
                 let local = Point::new(
                     p.local.x - PADDING.left + shift.get(),
@@ -698,6 +707,7 @@ impl View for FieldBox {
                             word_anchor.set(Some(word));
                             anchor.set(word.start);
                             controller.select(TextSelection::new(word.start, word.end));
+                            publish_primary(controller, primary.as_ref());
                         } else {
                             word_anchor.set(None);
                             anchor.set(offset);
@@ -725,6 +735,22 @@ impl View for FieldBox {
                     }
                     PointerKind::Up(PointerButton::Primary) if dragging.get() => {
                         dragging.set(false);
+                        publish_primary(controller, primary.as_ref());
+                        Handled::Stop
+                    }
+                    // A middle click pastes the primary selection there (WIDGETS-TEXTFIELD-13).
+                    PointerKind::Down(PointerButton::Middle) if enabled() => {
+                        let Some(text) = primary.read_primary() else {
+                            return Handled::Continue;
+                        };
+                        let text = if single_line {
+                            text.replace("\r\n", " ").replace(['\n', '\r'], " ")
+                        } else {
+                            text
+                        };
+                        let offset = geometry.borrow().hit_test(local);
+                        controller.select(TextSelection::collapsed(offset));
+                        apply(controller, &on_change, |v| v.insert(&text));
                         Handled::Stop
                     }
                     _ => Handled::Continue,
@@ -1074,5 +1100,14 @@ impl Paint for EditorPaint {
         }
         cx.scene().pop();
         *self.geometry.borrow_mut() = geometry;
+    }
+}
+
+/// Writes a non-empty selection to the primary selection (WIDGETS-TEXTFIELD-13; a no-op
+/// where there is none).
+fn publish_primary(controller: TextEditingController, clipboard: &dyn Clipboard) {
+    let value = controller.value();
+    if !value.selection.is_collapsed() {
+        clipboard.write_primary(value.selected_text());
     }
 }

@@ -396,6 +396,36 @@ impl tantu_view::Clipboard for PlatformClipboard {
     fn write_text(&self, text: &str) -> bool {
         self.0.write_text(text)
     }
+
+    // Images cross as the platform's `ClipboardImage` (FACADE-APP-20).
+    fn read_image(&self) -> Option<tantu_scene::ImageData> {
+        let image = self.0.read_image()?;
+        tantu_scene::ImageData::rgba8(image.width, image.height, image.rgba).ok()
+    }
+
+    fn write_image(&self, image: &tantu_scene::ImageData) -> bool {
+        self.0.write_image(&tantu_platform::ClipboardImage {
+            width: image.width(),
+            height: image.height(),
+            rgba: image.pixels().to_vec(),
+        })
+    }
+
+    fn write_html(&self, html: &str, alt_text: &str) -> bool {
+        self.0.write_html(html, alt_text)
+    }
+
+    fn read_html(&self) -> Option<String> {
+        self.0.read_html()
+    }
+
+    fn read_primary(&self) -> Option<String> {
+        self.0.read_primary()
+    }
+
+    fn write_primary(&self, text: &str) -> bool {
+        self.0.write_primary(text)
+    }
 }
 
 /// The view's cursor as the platform's.
