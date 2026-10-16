@@ -179,10 +179,11 @@ faster or more portable without changing how apps are written.
 - [ ] Menus (native + custom), context menus, toolbars, status bar, in parts:
   - [x] popup menus and context menus: `MenuItem`, `MenuController`, `MenuAnchor`, `ContextMenuRegion`, submenus, keyboard, semantics (spec `docs/specs/widgets/menu.md`)
   - [x] `MenuBar`, toolbars and the status bar; the gallery window uses them (spec `docs/specs/widgets/menu-bar.md`)
-  - [ ] native OS menus (macOS app menu, native menu bars and context menus): needs an ADR and a platform dependency; deferred for the user
+  - [ ] native OS menus (macOS app menu, native menu bars on macOS and Windows with `muda`; ADR 0017 part 2)
 - [ ] Dialogs, native file dialogs, notifications, system tray, in parts:
   - [x] modal dialogs: `Dialog`, `DialogController`, `AlertDialog`, barrier, focus trap and restore (spec `docs/specs/widgets/dialog.md`)
-  - [ ] native file dialogs, notifications and the system tray: need platform dependencies and an ADR; deferred for the user
+  - [ ] native file and message dialogs, notifications (`rfd`, `notify-rust`, opt-in features; spec `docs/specs/platform/native-dialogs.md`, ADR 0017; draft for review)
+  - [ ] the system tray (`tray-icon` on macOS and Windows; ADR 0017 part 3)
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images), in parts:
   - [x] plain-text clipboard through the platform, view and tester; `TextField` copy, cut and paste (spec `docs/specs/platform/clipboard.md`)
   - [x] rich text and image clipboard, primary selection (spec `docs/specs/platform/clipboard-rich.md`)

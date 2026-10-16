@@ -25,6 +25,7 @@ instead.
 | [0014](0014-overlay-inheritance-through-the-portal.md) | Overlay inherited-value lookup follows the portal target; structural ancestry stays in the root layer | Accepted (representation marked review) |
 | [0015](0015-internationalization-crate.md) | `tantu-i18n` over Fluent and ICU4X; the locale is reactive and inherited | Accepted (on the user's request to implement; review) |
 | [0016](0016-one-reactive-runtime-per-app.md) | One reactive runtime per app, shared by its windows; an app scope | Accepted |
+| [0017](0017-native-desktop-integration.md) | Native dialogs, notifications, menus and tray: opt-in features, platform requests with event results, no GTK on Linux | Proposed |
 
 ## Writing a new ADR
 

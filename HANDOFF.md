@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (multi-window, OS file drops and the rich clipboard done)_
+_Last updated: 2026-10-16 (multi-window, file drops, rich clipboard done; native desktop integration drafted for review)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -32,7 +32,13 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 **Waiting for the user's decisions** (the rest of Phase 4 needs them):
 1. (done: multi-window)
 2. (done: the rich clipboard, decision 105; no new dependency was needed)
-3. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
+3. **Native menus, file dialogs, notifications, tray — drafted, waiting for review:** ADR
+   0017 (Proposed: opt-in features `native-dialogs` (`rfd`), `notifications`
+   (`notify-rust`), `native-menus` (`muda`), `tray` (`tray-icon`); platform requests with
+   results as events; no GTK on Linux, so native menus and the tray are macOS/Windows
+   only; three parts) and the Draft spec `docs/specs/platform/native-dialogs.md` for part
+   1 (file and message dialogs, notifications, a `Desktop` handle). Six proposals; say
+   "continue" to accept (the ADR becomes Accepted).
 4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
 ## Earlier (2026-10-15)
@@ -2000,7 +2006,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `2a3f9df` | spec: rich clipboard agreed |
 | `40e0ae6` | test: rich clipboard, stubs + 8 failing tests |
 | `de5ea06` | spec: GALLERY-55 names its sample keys and first echo |
-| _this commit_ | impl: clipboard images, HTML and the primary selection (platform, fake, winit/arboard, view, runner, tester, TextField); gallery clipboard card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
+| `2ccc2da` | impl: clipboard images, HTML and the primary selection (platform, fake, winit/arboard, view, runner, tester, TextField); gallery clipboard card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
+| _this commit_ | docs: draft ADR 0017 (native desktop integration) and the native dialogs/notifications spec for review; PLAN.md items split |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
