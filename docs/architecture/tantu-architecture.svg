@@ -102,7 +102,7 @@
 
   <!-- App code -->
   <rect class="pipe" x="470" y="120" width="460" height="90" rx="10"/>
-  <text class="t" x="700" y="150">App code · gallery · data-grid-stress</text>
+  <text class="t" x="700" y="150">App code · gallery · dashboard · grid stress</text>
   <text class="b" x="700" y="172">widgets built with plain Rust builders; state in signals; themed</text>
   <text class="c" x="700" y="194">user crate · tantu-widgets → tantu-theme, tantu-i18n (inherited signals)</text>
 

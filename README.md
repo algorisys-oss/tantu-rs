@@ -109,7 +109,9 @@ fn main() -> tantu::Result<()> {
   compares goldens without a window.
 
 `cargo run -p gallery` opens the widget gallery (`examples/gallery`), every widget in one
-window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller.
+window with a dark-mode switch; `examples/counter` and `examples/layout-demo` are smaller, and
+`cargo run -p enterprise-dashboard` puts the enterprise widgets together: an order grid, a
+form, KPI tiles and a chart in a dockable layout, in English or German.
 Things still to come are listed in [PLAN.md](PLAN.md): the other enterprise widgets (forms,
 native file dialogs), multi-window, clipboard and i18n.
 

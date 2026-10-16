@@ -80,7 +80,7 @@ within the cross-backend tolerance. Future backends (a browser backend on WebGPU
 painter for hosting Tantu inside eframe/egui) are held to the same check. The crate depends on no
 rasterizer, so using it doesn't pull in tiny-skia or wgpu.
 
-The `gallery` and `data-grid-stress` examples use only the `tantu` facade at runtime.
+The `gallery`, `data-grid-stress` and `enterprise-dashboard` examples use only the `tantu` facade at runtime.
 The stress example composes DataGrid controllers and a scoped reactive ticker to exercise
 a million generated rows; its cadence statistics live in the example and add no library
 profiling stage or renderer dependency. `tantu-test` is a dev dependency for both examples.

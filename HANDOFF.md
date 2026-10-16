@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (i18n: translations and locale formatting done; the user is away for five hours)_
+_Last updated: 2026-10-16 (i18n done; the enterprise dashboard milestone done; the user is away for five hours)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -22,7 +22,9 @@ LAYOUT-LGRID-04 stretch, VIEW-DRAG-05, WIDGETS-COMBO-03).
 
 **Later on 2026-10-16** the user asked to implement translations and locale formatting,
 then went away for five hours asking the agent to complete pending items: **i18n is
-complete** (decision 101, ADR 0015 accepted on that request, review).
+complete** (decision 101, ADR 0015 accepted on that request, review), and the **Phase 4
+milestone `examples/enterprise-dashboard` is done** (decision 102, review):
+`cargo run -p enterprise-dashboard`.
 
 **Waiting for the user's decisions** (the rest of Phase 4 needs them):
 1. **Multi-window**: each window's `ViewTree` has its own reactive `Runtime`, so signals
@@ -1319,6 +1321,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     Not done: localized typed input (fields keep ISO `YYYY-MM-DD`/`HH:MM`), currencies,
     units, non-Gregorian calendars, reading the OS locale, and right-aligning text fields'
     paragraphs under RTL (a combo box's text and its arrow overlap in Hebrew).
+102. **Enterprise dashboard, the Phase 4 milestone** (2026-10-16, spec
+    `docs/specs/examples/enterprise-dashboard.md`; decided by the agent while the user was
+    away, review). `examples/enterprise-dashboard` (facade only): 10 000 generated orders
+    (seeded generator) in a client-sorted, row-selecting `DataGrid` whose amounts, dates,
+    regions and statuses are formatted by the `Localization`; a `Form` editing the
+    selected order (required customer, positive amount with a digits-and-dot filter,
+    `DatePickerField`, region `ComboBox`), edits stored as overrides that bump a revision;
+    KPI tiles in a `LayoutGrid` and a custom-painted bar chart per region following the
+    edits; an activity log; all in a `DockArea` (Orders + Activity | Details over Revenue)
+    with a `MenuBar` (Reset layout; English/Deutsch; About), a `Toolbar` and a
+    `StatusBar`. Found while implementing: the grid drops its selection when a save bumps
+    the revision, so the selected order is an app signal the grid's selection sets (spec
+    open question 4). The chart is part of the example, not a widget. Phase 4's remaining
+    items (multi-window, rich/image clipboard, OS drag and drop, native menus/dialogs/tray)
+    wait for the user.
 
 ## Commit log
 
@@ -1915,16 +1932,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `f2b2252` | spec: widget strings follow a locale switch; reactive icon semantics labels |
 | `e1a8602` | test: GALLERY-50 accepts the section name in the sidebar and the header |
 | `f685b7b` | test: GALLERY-38 reads the Fruit combo box by name |
-| _this commit_ | impl: tantu-i18n (locales, Fluent messages, ICU4X formatting), Localizations, translated widget strings, localized calendar; gallery languages and i18n card, goldens; PLAN.md i18n ticked |
+| `d25f7f3` | impl: tantu-i18n (locales, Fluent messages, ICU4X formatting), Localizations, translated widget strings, localized calendar; gallery languages and i18n card, goldens; PLAN.md i18n ticked |
+| `c3b34a3` | spec: enterprise dashboard example, the Phase 4 milestone (DASH-01..06) |
+| `078b9a5` | test: enterprise dashboard, stubs + 6 failing tests |
+| `116f82f` | spec: the dashboard keeps the last selected order in an app signal; Implemented |
+| _this commit_ | impl: enterprise dashboard (orders grid, details form, KPI tiles and chart, activity log, dock, menus, English/German), golden; README, architecture doc and diagram; PLAN.md milestone ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order (Forms, `LayoutGrid` and i18n are done): the
-`examples/enterprise-dashboard` milestone; the remaining clipboard/multi-window parts and
-OS drag and drop (file and text drops through the platform; winit delivers dropped files). RTL caret movement in
+Phase 4's milestone is done (`examples/enterprise-dashboard`). Remaining Phase 4 items
+need the user's decisions (see "Waiting for the user's decisions"): multi-window, the
+rich/image clipboard, OS drag and drop (file and text drops through the platform; winit delivers dropped files). RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
