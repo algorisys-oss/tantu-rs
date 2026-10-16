@@ -97,7 +97,10 @@ impl Desktop {
 - **PLATFORM-FAKE-18:** The fake platform records every request and notification in the
   log and answers each dialog from a script (`FakePlatform::file_dialog_answer(paths)`,
   `message_answer(result)`, in order; unanswered dialogs get an empty path list or
-  `Cancel`), delivering the result as the next step's event.
+  `Cancel`), delivering each result after the next script step's own event (a
+  `FakeStep::Idle` suffices), in request order; a window closed by then gets nothing
+  (clarified while writing the tests, review). `without_native_dialogs()` gives the
+  trait's defaults.
 - **PLATFORM-WINIT-20:** With `native-dialogs`, the shell runs `rfd`'s async dialogs
   (parented to the window) without blocking the event loop and delivers the result
   through the event-loop proxy; with `notifications`, `notify` shows a `notify-rust`
