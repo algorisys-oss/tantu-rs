@@ -839,7 +839,7 @@ fn gallery_22_tabs_section_keeps_pages_and_skips_archived() {
 #[test]
 fn gallery_23_kitchen_sink_tabs_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("tabs"), index("tree").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -917,7 +917,7 @@ fn gallery_24_split_view_section() {
 #[test]
 fn gallery_25_kitchen_sink_split_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("split"), index("tabs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1012,7 +1012,7 @@ fn gallery_26_docking_section() {
 #[test]
 fn gallery_27_kitchen_sink_dock_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("dock"), index("split").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1206,7 +1206,7 @@ fn gallery_29_menus_in_the_buttons_section() {
 #[test]
 fn gallery_30_kitchen_sink_menus_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("menus"), index("dock").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1275,7 +1275,7 @@ fn gallery_31_menu_bar_and_status_bar() {
 #[test]
 fn gallery_32_kitchen_sink_bars_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("bars"), index("menus").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1345,7 +1345,7 @@ fn gallery_33_dialog_in_the_buttons_section() {
 fn gallery_34_kitchen_sink_dialogs_card() {
     use tantu::view::NamedKey;
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("dialogs"), index("bars").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1475,7 +1475,7 @@ fn gallery_36_form_in_the_text_field_section() {
 #[test]
 fn gallery_37_kitchen_sink_form_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("form"), index("dialogs").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1533,7 +1533,7 @@ fn gallery_38_combo_box_in_the_selection_section() {
 fn gallery_39_kitchen_sink_combo_card() {
     use tantu::view::NamedKey;
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("combo"), index("form").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1573,7 +1573,7 @@ fn gallery_40_masked_phone_in_the_form() {
 #[test]
 fn gallery_41_kitchen_sink_mask_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("mask"), index("combo").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1626,7 +1626,7 @@ fn gallery_42_date_field_in_the_selection_section() {
 #[test]
 fn gallery_43_kitchen_sink_date_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("date"), index("mask").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1677,7 +1677,7 @@ fn gallery_44_time_field_in_the_selection_section() {
 fn gallery_45_kitchen_sink_time_card() {
     use tantu::view::NamedKey;
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("time"), index("date").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1723,7 +1723,7 @@ fn gallery_46_right_to_left_switch() {
 #[test]
 fn gallery_47_kitchen_sink_dashboard_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("dashboard"), index("time").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1762,7 +1762,7 @@ fn gallery_48_right_to_left_inside_widgets() {
 #[test]
 fn gallery_49_kitchen_sink_drag_and_drop_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("dnd"), index("dashboard").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1825,7 +1825,7 @@ fn gallery_50_language_switch() {
 #[test]
 fn gallery_51_kitchen_sink_i18n_card() {
     let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
-    assert_eq!(SINK_CARDS.len(), 27);
+    assert_eq!(SINK_CARDS.len(), 28);
     assert_eq!(index("i18n"), index("dnd").map(|i| i + 1));
     assert!(
         SINK_CARDS
@@ -1857,4 +1857,29 @@ fn gallery_52_kitchen_sink_formats() {
         text_of(&t, "sink-i18n-format"),
         "1.234.567,89 · 16. Oktober 2026 · 21:05"
     );
+}
+
+#[test]
+fn gallery_54_kitchen_sink_files_card() {
+    use std::path::PathBuf;
+    let index = |key: &str| SINK_CARDS.iter().position(|(k, _)| *k == key);
+    assert_eq!(SINK_CARDS.len(), 28);
+    assert_eq!(index("files"), index("i18n").map(|i| i + 1));
+    assert!(
+        SINK_CARDS
+            .iter()
+            .any(|(key, widgets)| *key == "files" && widgets == &["file_drop_target"])
+    );
+    let mut t = open_sink();
+    t.ensure_visible(&Finder::key("sink-files"));
+    t.pump();
+    assert_eq!(text_of(&t, "sink-files-state"), "Dropped: none");
+    let area = t
+        .rect(t.find(&Finder::key("sink-file_drop_target")))
+        .center();
+    t.drop_files(
+        &[PathBuf::from("/tmp/a.txt"), PathBuf::from("/tmp/b.png")],
+        Some(area),
+    );
+    assert_eq!(text_of(&t, "sink-files-state"), "Dropped: a.txt, b.png");
 }

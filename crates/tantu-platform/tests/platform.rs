@@ -884,3 +884,60 @@ fn platform_fake_15_initial_and_final_clipboard() {
         None
     );
 }
+
+/// The file events of a drag of two files over the first window, then a drop.
+fn file_drop_events() -> Vec<WindowEvent> {
+    let paths = vec![
+        std::path::PathBuf::from("/tmp/a.txt"),
+        std::path::PathBuf::from("/tmp/b.png"),
+    ];
+    vec![
+        WindowEvent::FilesHovered {
+            paths: paths.clone(),
+            position: Some(Point::new(4.0, 5.0)),
+        },
+        WindowEvent::FilesHoverCancelled,
+        WindowEvent::FilesHovered {
+            paths: paths.clone(),
+            position: None,
+        },
+        WindowEvent::FilesDropped {
+            paths,
+            position: None,
+        },
+    ]
+}
+
+#[test]
+fn platform_drop_01_file_events() {
+    // One event per gesture carries every path; positions are optional.
+    let events = file_drop_events();
+    let WindowEvent::FilesDropped { paths, position } = &events[3] else {
+        panic!("a drop");
+    };
+    assert_eq!(paths.len(), 2);
+    assert_eq!(*position, None);
+    assert_ne!(events[0], events[2], "the position is part of the event");
+}
+
+#[test]
+fn platform_fake_16_scripted_file_drops() {
+    let seen: Rc<RefCell<Vec<WindowEvent>>> = Rc::default();
+    let s = seen.clone();
+    let mut handler = Recorder::with(move |cx, event| match event {
+        Seen::Started => {
+            cx.create_window(&WindowAttributes::new("A"))
+                .expect("a window");
+        }
+        Seen::Event(_, e) if !matches!(e, WindowEvent::RedrawRequested) => {
+            s.borrow_mut().push(e.clone());
+        }
+        _ => {}
+    });
+    let mut platform = FakePlatform::new();
+    for event in file_drop_events() {
+        platform = platform.event(0, event);
+    }
+    platform.run_logged(&mut handler);
+    assert_eq!(*seen.borrow(), file_drop_events());
+}

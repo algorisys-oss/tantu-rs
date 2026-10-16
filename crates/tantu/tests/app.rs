@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15, -17 and -18.
+//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15, -17, -18 and -19.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -904,4 +904,43 @@ fn facade_app_18_runner_installs_the_platform_clipboard() {
     let (log, _) = run(app, platform, &Recorders::default());
     assert_eq!(*seen.borrow(), [Some("from the platform".to_owned())]);
     assert_eq!(log.clipboard_text.as_deref(), Some("from the app"));
+}
+
+#[test]
+fn facade_app_19_file_drops_reach_the_tree() {
+    use std::path::PathBuf;
+    let dropped: Rc<RefCell<Vec<Vec<PathBuf>>>> = Rc::default();
+    let app = {
+        let dropped = dropped.clone();
+        App::new().window(Window::new("A").size(200.0, 100.0), move || {
+            let hovering = signal(false);
+            let dropped = dropped.clone();
+            FileDropTarget::new(Text::new(move || {
+                if hovering.get() { "over" } else { "-" }.to_owned()
+            }))
+            .hovering(hovering)
+            .on_drop(move |paths| dropped.borrow_mut().push(paths.to_vec()))
+        })
+    };
+    let paths = vec![PathBuf::from("/tmp/a.txt")];
+    let platform = FakePlatform::new()
+        .event(
+            0,
+            WindowEvent::FilesHovered {
+                paths: paths.clone(),
+                position: None,
+            },
+        )
+        .event(
+            0,
+            WindowEvent::FilesDropped {
+                paths: paths.clone(),
+                position: None,
+            },
+        );
+    let recorders = Recorders::default();
+    let (log, _) = run(with_font(app), platform, &recorders);
+    assert_eq!(*dropped.borrow(), [paths]);
+    // The first frame, one while hovering ("over"), one after the drop ("-").
+    assert_eq!(log.windows[0].redraws, 3);
 }

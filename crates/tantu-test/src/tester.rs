@@ -257,7 +257,11 @@ impl WidgetTester {
 
     /// Hovers then drops `paths` from the OS at `at` (or with no position), pumping after
     /// each (TEST-WT-20).
-    pub fn drop_files(&mut self, paths: &[std::path::PathBuf], at: Option<tantu_view::core::Point>) {
+    pub fn drop_files(
+        &mut self,
+        paths: &[std::path::PathBuf],
+        at: Option<tantu_view::core::Point>,
+    ) {
         let _ = (paths, at);
         todo!("TEST-WT-20")
     }

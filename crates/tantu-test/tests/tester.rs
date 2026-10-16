@@ -549,3 +549,38 @@ fn test_wt_19_clipboard() {
     clipboard.write_text("from a view");
     assert_eq!(tester.clipboard_text().as_deref(), Some("from a view"));
 }
+
+/// A 100 × 100 file-drop target logging what it receives.
+struct DropLog(Rc<RefCell<Vec<String>>>);
+
+impl tantu_view::View for DropLog {
+    fn build(self, cx: &mut tantu_view::BuildCx<'_>) -> tantu_view::ElementId {
+        let id = cx.render(RenderConstrainedBox::sized(Some(100.0), Some(100.0)), []);
+        let log = self.0;
+        cx.on_file_drop(id, move |event| {
+            let entry = match event {
+                tantu_view::FileDropEvent::Hovered(p) => format!("hover {}", p.len()),
+                tantu_view::FileDropEvent::Cancelled => "cancel".to_owned(),
+                tantu_view::FileDropEvent::Dropped(p) => format!("drop {}", p.len()),
+            };
+            log.borrow_mut().push(entry);
+        });
+        id
+    }
+}
+
+#[test]
+fn test_wt_20_drop_files() {
+    let log: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut t = {
+        let log = log.clone();
+        WidgetTester::with_size(300.0, 200.0, move || DropLog(log))
+    };
+    let paths = [
+        std::path::PathBuf::from("/tmp/a.txt"),
+        std::path::PathBuf::from("/tmp/b.png"),
+    ];
+    t.drop_files(&paths, Some(Point::new(50.0, 50.0)));
+    t.drop_files(&paths[..1], None);
+    assert_eq!(*log.borrow(), ["hover 2", "drop 2", "hover 1", "drop 1"]);
+}
