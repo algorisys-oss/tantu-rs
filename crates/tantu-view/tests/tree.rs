@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/view/tree.md`, rules VIEW-TREE-01..12.
+//! Tests for `docs/specs/view/tree.md`, rules VIEW-TREE-01..13.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -437,4 +437,44 @@ impl View for ColInto {
         self.1.set(Some(id));
         id
     }
+}
+
+#[test]
+fn view_tree_13_trees_share_a_runtime() {
+    use tantu_reactive::Runtime;
+    use tantu_text::TextStyles;
+    let runtime = Rc::new(Runtime::new());
+    let before = runtime.node_count();
+    let made: Rc<Cell<Option<Signal<u32>>>> = Rc::default();
+    let a = {
+        let made = made.clone();
+        ViewTree::with_runtime(runtime.clone(), TextStyles::new(), move || {
+            made.set(Some(signal(7)));
+            leaf(10.0, 10.0)
+        })
+    };
+    let s = made.get().expect("A's content ran");
+    // B, on the same runtime, reads A's signal.
+    let read: Rc<Cell<u32>> = Rc::default();
+    let b = {
+        let read = read.clone();
+        ViewTree::with_runtime(runtime.clone(), TextStyles::new(), move || {
+            effect(move || read.set(s.get()));
+            leaf(10.0, 10.0)
+        })
+    };
+    assert_eq!(read.get(), 7);
+    runtime.enter(|| s.set(9));
+    assert_eq!(read.get(), 9, "B's effect follows A's signal");
+    // Dropping A disposes A's nodes only.
+    drop(a);
+    assert_eq!(runtime.enter(|| s.try_get()), None);
+    drop(b);
+    assert_eq!(
+        runtime.node_count(),
+        before,
+        "both trees' nodes are gone, the runtime remains"
+    );
+    let fresh = runtime.enter(|| signal(1));
+    assert_eq!(runtime.enter(|| fresh.get()), 1);
 }

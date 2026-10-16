@@ -35,8 +35,10 @@
 #![forbid(unsafe_code)]
 
 mod app;
+mod windows;
 
 pub use app::{App, AppHandler, Error, Result, Window};
+pub use windows::{WindowHandle, Windows};
 
 /// `tantu-core`: geometry, color, ids.
 pub use tantu_core as core;
@@ -61,7 +63,7 @@ pub use tantu_widgets as widgets;
 
 /// What app code imports: `use tantu::prelude::*;`
 pub mod prelude {
-    pub use crate::{App, Result, Window};
+    pub use crate::{App, Result, Window, WindowHandle, Windows};
     pub use tantu_core::{Color, EdgeInsets, Point, Size};
     pub use tantu_i18n::{Args, DateLength, Locale, Localization, Translations};
     pub use tantu_layout::{

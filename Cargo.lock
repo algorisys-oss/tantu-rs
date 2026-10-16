@@ -1162,6 +1162,7 @@ name = "gallery"
 version = "0.0.0"
 dependencies = [
  "tantu",
+ "tantu-render-headless",
  "tantu-test",
 ]
 

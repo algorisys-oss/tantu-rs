@@ -17,3 +17,4 @@ tantu = { workspace = true }
 
 [dev-dependencies]
 tantu-test = { workspace = true }
+tantu-render-headless = { workspace = true }

@@ -100,6 +100,13 @@ impl Window {
         }
     }
 
+    /// Called when the user asks to close the window; returning `false` keeps it open
+    /// (FACADE-WIN-04). The default allows closing.
+    pub fn on_close_request(self, f: impl FnMut() -> bool + 'static) -> Self {
+        let _ = f;
+        todo!("FACADE-WIN-04")
+    }
+
     /// Whether the user can resize the window.
     pub fn resizable(self, resizable: bool) -> Self {
         Window {
@@ -143,6 +150,14 @@ impl App {
         let mut app = self;
         app.windows.push((window, content));
         app
+    }
+
+    /// Builds a value once, in the app scope, before the first window opens, and provides it
+    /// as an inherited value at the root of every window (`cx.inherit::<T>()`). Signals
+    /// created in `init` live as long as the app (FACADE-WIN-02).
+    pub fn provide<T: Clone + 'static>(self, init: impl FnOnce() -> T + 'static) -> Self {
+        let _ = init;
+        todo!("FACADE-WIN-02")
     }
 
     /// Registers a font file (e.g. bundled with the app).

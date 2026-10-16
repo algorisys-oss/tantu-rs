@@ -102,6 +102,21 @@ fn nav_key(section: &str) -> String {
     format!("nav-{}", section.to_lowercase().replace(' ', "-"))
 }
 
+/// State the gallery's windows share (GALLERY-53): app-owned signals, provided by
+/// [`app`] to every window.
+#[derive(Clone, Copy)]
+pub struct GalleryState {
+    /// Whether the windows use the dark theme.
+    pub dark: Signal<bool>,
+    /// The main window's current section.
+    pub section: Signal<&'static str>,
+}
+
+/// The gallery app: its main window and the shared [`GalleryState`] (GALLERY-53).
+pub fn app() -> App {
+    todo!("GALLERY-53")
+}
+
 /// The gallery's view: a menu bar, the header, the sidebar and the section, and a status
 /// bar (GALLERY-01, -31).
 pub fn gallery() -> impl View {

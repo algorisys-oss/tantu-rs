@@ -319,6 +319,19 @@ impl ViewTree {
         tree
     }
 
+    /// Like [`with_text_styles`](Self::with_text_styles), on `runtime`, which other trees may
+    /// share (ADR 0016). The root scope is created at the runtime's top level; dropping the
+    /// tree disposes it and the tree's own runtime-level nodes, never the runtime
+    /// (VIEW-TREE-13).
+    pub fn with_runtime<V: View>(
+        runtime: Rc<Runtime>,
+        styles: TextStyles,
+        app: impl FnOnce() -> V,
+    ) -> Self {
+        let _ = (runtime, styles, app);
+        todo!("VIEW-TREE-13")
+    }
+
     /// The tree's style table ([`new`](Self::new) creates an empty one of its own).
     pub fn text_styles(&self) -> &TextStyles {
         &self.text_styles
