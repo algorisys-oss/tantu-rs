@@ -202,7 +202,7 @@ faster or more portable without changing how apps are written.
   - [x] locale-aware formatting of numbers, dates and times; the calendar's names and first weekday (spec `docs/specs/i18n/formatting.md`)
 - [x] `Grid` layout (possibly via taffy) for dashboard-style screens: `LayoutGrid` with fixed, flexible and auto tracks, in-house (spec `docs/specs/widgets/layout-grid.md`)
 - [x] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)
-- [ ] **Milestone:** `examples/enterprise-dashboard` (docking + grid + forms + charts area)
+- [ ] **Milestone:** `examples/enterprise-dashboard` (docking + grid + forms + charts area) (spec `docs/specs/examples/enterprise-dashboard.md`)
 
 ### Phase 5 — Polish, performance and tooling (weeks 27+)
 - [ ] Damage tracking and partial repaint; layer caching; GPU texture atlas tuning
