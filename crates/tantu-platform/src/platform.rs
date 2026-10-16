@@ -139,6 +139,35 @@ pub trait PlatformContext {
     /// (PLATFORM-CLIP-01).
     fn clipboard(&mut self) -> Option<std::rc::Rc<dyn Clipboard>>;
 
+    /// Opens a file dialog for `window`; the result arrives later as
+    /// `WindowEvent::FileDialogClosed` (PLATFORM-NATIVE-01). `None`: not supported (the
+    /// default).
+    fn file_dialog(
+        &mut self,
+        window: WindowId,
+        request: crate::FileDialogRequest,
+    ) -> Option<crate::DialogId> {
+        let _ = (window, request);
+        todo!("PLATFORM-NATIVE-01")
+    }
+
+    /// Opens a message dialog for `window`; the result arrives later as
+    /// `WindowEvent::MessageDialogClosed`. `None`: not supported (the default).
+    fn message_dialog(
+        &mut self,
+        window: WindowId,
+        request: crate::MessageRequest,
+    ) -> Option<crate::DialogId> {
+        let _ = (window, request);
+        todo!("PLATFORM-NATIVE-01")
+    }
+
+    /// Shows a notification; false when not supported (the default) or it failed.
+    fn notify(&mut self, notification: &crate::Notification) -> bool {
+        let _ = notification;
+        todo!("PLATFORM-NATIVE-01")
+    }
+
     /// Ends the event loop after the current callback returns. [`Platform::run`] then returns.
     fn exit(&mut self);
 

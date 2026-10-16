@@ -42,12 +42,17 @@
 #![forbid(unsafe_code)]
 
 mod fake;
+mod native;
 mod platform;
 mod types;
 
 /// The AccessKit data crate, whose `TreeUpdate` and `ActionRequest` cross the platform trait.
 pub use accesskit;
 pub use fake::{FakeLog, FakePlatform, FakeStep, FakeWindow};
+pub use native::{
+    DialogId, FileDialogKind, FileDialogRequest, MessageButtons, MessageLevel, MessageRequest,
+    MessageResult, Notification,
+};
 pub use platform::{
     Clipboard, ClipboardImage, Platform, PlatformContext, PlatformError, PlatformHandler,
     SurfaceTarget, WindowHandles,

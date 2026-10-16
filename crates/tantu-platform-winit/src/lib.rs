@@ -34,6 +34,7 @@
 #![forbid(unsafe_code)]
 
 mod conv;
+mod native;
 mod shell;
 
 pub use shell::WinitPlatform;

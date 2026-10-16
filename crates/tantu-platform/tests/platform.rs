@@ -1006,3 +1006,124 @@ fn platform_fake_17_rich_clipboard() {
     assert_eq!(log.primary_selection.as_deref(), Some("sel"));
     assert_eq!(log.clipboard_text.as_deref(), Some("T"));
 }
+
+/// Requests a file and a message dialog and a notification on the first press, and records
+/// every dialog result it receives.
+fn dialog_requester(
+    seen: Rc<RefCell<Vec<String>>>,
+) -> impl FnMut(&mut dyn PlatformContext, &Seen) + 'static {
+    move |cx, event| match event {
+        Seen::Started => {
+            cx.create_window(&WindowAttributes::new("A"))
+                .expect("a window");
+        }
+        Seen::Event(
+            w,
+            WindowEvent::PointerButton {
+                state: ButtonState::Pressed,
+                ..
+            },
+        ) => {
+            use tantu_platform::{
+                FileDialogKind, FileDialogRequest, MessageButtons, MessageLevel, MessageRequest,
+                Notification,
+            };
+            let file = cx.file_dialog(*w, FileDialogRequest::new(FileDialogKind::Open));
+            let message = cx.message_dialog(
+                *w,
+                MessageRequest {
+                    level: MessageLevel::Info,
+                    title: "T".into(),
+                    description: "D".into(),
+                    buttons: MessageButtons::YesNo,
+                },
+            );
+            let notified = cx.notify(&Notification {
+                title: "N".into(),
+                body: "B".into(),
+            });
+            seen.borrow_mut()
+                .push(format!("requested {file:?} {message:?} {notified}"));
+        }
+        Seen::Event(_, WindowEvent::FileDialogClosed { id, paths }) => {
+            seen.borrow_mut().push(format!("file {} {paths:?}", id.0));
+        }
+        Seen::Event(_, WindowEvent::MessageDialogClosed { id, result }) => {
+            seen.borrow_mut()
+                .push(format!("message {} {result:?}", id.0));
+        }
+        Seen::Event(w, WindowEvent::CloseRequested) => cx.close_window(*w),
+        _ => {}
+    }
+}
+
+fn press() -> WindowEvent {
+    WindowEvent::PointerButton {
+        pointer: PointerId::Mouse,
+        button: PointerButton::Primary,
+        state: ButtonState::Pressed,
+        position: Point::new(1.0, 1.0),
+    }
+}
+
+#[test]
+fn platform_native_01_requests_and_results() {
+    // Ids are fresh, and each result arrives once, after the request returned.
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(dialog_requester(seen.clone()));
+    FakePlatform::new()
+        .event(0, press())
+        .step(FakeStep::Idle)
+        .step(FakeStep::Idle)
+        .run_logged(&mut handler);
+    assert_eq!(
+        *seen.borrow(),
+        [
+            "requested Some(DialogId(1)) Some(DialogId(2)) true",
+            "file 1 []",
+            "message 2 Cancel",
+        ]
+    );
+}
+
+#[test]
+fn platform_fake_18_scripted_answers_and_log() {
+    use std::path::PathBuf;
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(dialog_requester(seen.clone()));
+    let log = FakePlatform::new()
+        .file_dialog_answer(vec![PathBuf::from("/tmp/a.txt")])
+        .message_answer(tantu_platform::MessageResult::Yes)
+        .event(0, press())
+        .step(FakeStep::Idle)
+        .run_logged(&mut handler);
+    assert_eq!(
+        *seen.borrow(),
+        [
+            "requested Some(DialogId(1)) Some(DialogId(2)) true",
+            r#"file 1 ["/tmp/a.txt"]"#,
+            "message 2 Yes",
+        ]
+    );
+    assert_eq!(log.file_dialogs.len(), 1);
+    assert_eq!(log.message_dialogs[0].1.title, "T");
+    assert_eq!(log.notifications[0].title, "N");
+    // A window closed before the answer gets nothing.
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(dialog_requester(seen.clone()));
+    FakePlatform::new()
+        .event(0, press())
+        .event(0, WindowEvent::CloseRequested)
+        .run_logged(&mut handler);
+    assert_eq!(seen.borrow().len(), 1, "{:?}", seen.borrow());
+    // Without native dialogs: the trait's defaults.
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(dialog_requester(seen.clone()));
+    let log = FakePlatform::new()
+        .without_native_dialogs()
+        .event(0, press())
+        .step(FakeStep::Idle)
+        .run_logged(&mut handler);
+    assert_eq!(*seen.borrow(), ["requested None None false"]);
+    assert!(log.notifications.is_empty());
+}

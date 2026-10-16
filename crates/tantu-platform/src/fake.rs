@@ -45,6 +45,12 @@ pub struct FakeLog {
     pub clipboard_html: Option<String>,
     /// The fake primary selection when the run ended (PLATFORM-FAKE-17).
     pub primary_selection: Option<String>,
+    /// Every file dialog requested, with its window (PLATFORM-FAKE-18).
+    pub file_dialogs: Vec<(WindowId, crate::FileDialogRequest)>,
+    /// Every message dialog requested, with its window.
+    pub message_dialogs: Vec<(WindowId, crate::MessageRequest)>,
+    /// Every notification shown.
+    pub notifications: Vec<crate::Notification>,
 }
 
 /// A window of a [`FakePlatform`], as last seen.
@@ -86,6 +92,23 @@ pub struct FakePlatform {
 }
 
 impl FakePlatform {
+    /// Answers the next unanswered file dialog with `paths` (PLATFORM-FAKE-18).
+    pub fn file_dialog_answer(self, paths: Vec<std::path::PathBuf>) -> Self {
+        let _ = paths;
+        todo!("PLATFORM-FAKE-18")
+    }
+
+    /// Answers the next unanswered message dialog with `result`.
+    pub fn message_answer(self, result: crate::MessageResult) -> Self {
+        let _ = result;
+        todo!("PLATFORM-FAKE-18")
+    }
+
+    /// A platform without native dialogs or notifications (the trait's defaults).
+    pub fn without_native_dialogs(self) -> Self {
+        todo!("PLATFORM-FAKE-18")
+    }
+
     /// An empty script; new windows get scale factor 1.
     pub fn new() -> FakePlatform {
         FakePlatform {

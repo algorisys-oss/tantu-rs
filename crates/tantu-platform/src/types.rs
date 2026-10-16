@@ -419,6 +419,20 @@ pub enum WindowEvent {
     },
     /// The file drag left the window or was cancelled.
     FilesHoverCancelled,
+    /// A file dialog closed: the chosen paths, empty when cancelled (PLATFORM-NATIVE-01).
+    FileDialogClosed {
+        /// The request.
+        id: crate::DialogId,
+        /// What was chosen.
+        paths: Vec<std::path::PathBuf>,
+    },
+    /// A message dialog closed.
+    MessageDialogClosed {
+        /// The request.
+        id: crate::DialogId,
+        /// The button.
+        result: crate::MessageResult,
+    },
     /// Files were dropped on the window.
     FilesDropped {
         /// The dropped files.

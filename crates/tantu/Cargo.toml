@@ -23,6 +23,10 @@ winit = ["dep:tantu-platform-winit"]
 default-theme = []
 ## Material Icons and the `Icons` table (tantu-widgets).
 material-icons = ["tantu-widgets/material-icons"]
+## Native file and message dialogs (FACADE-DESK-03, ADR 0017).
+native-dialogs = ["winit", "tantu-platform-winit/native-dialogs"]
+## OS notifications (FACADE-DESK-03, ADR 0017).
+notifications = ["winit", "tantu-platform-winit/notifications"]
 
 [dependencies]
 tantu-core = { workspace = true }
