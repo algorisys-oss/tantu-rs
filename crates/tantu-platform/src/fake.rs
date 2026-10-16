@@ -227,8 +227,8 @@ impl FakePlatform {
                     cx.log.steps_delivered += 1;
                 }
                 FakeStep::App(event) => {
-                    let _ = event;
-                    todo!("PLATFORM-FAKE-20")
+                    cx.log.steps_delivered += 1;
+                    handler.app_event(&mut cx, event);
                 }
             }
             cx.deliver(handler, due);
@@ -507,12 +507,19 @@ impl PlatformContext for FakeContext {
         true
     }
 
+    fn set_tray(&mut self, tray: Option<crate::Tray>) -> bool {
+        if self.menus {
+            self.log.trays.push(tray);
+        }
+        self.menus
+    }
+
     fn native_capabilities(&self) -> crate::NativeCapabilities {
         crate::NativeCapabilities {
             dialogs: self.native,
             notifications: self.native,
             menus: self.menus,
-            tray: false,
+            tray: self.menus,
         }
     }
 

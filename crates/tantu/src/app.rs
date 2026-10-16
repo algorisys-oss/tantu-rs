@@ -292,6 +292,7 @@ impl App {
             desktop,
             dialogs: std::collections::HashMap::new(),
             menus: Rc::default(),
+            tray: crate::tray::TrayHandle(Rc::default()),
         }
     }
 }
@@ -310,6 +311,8 @@ struct Background {
     desktop: Desktop,
     /// The native menu host, where the platform has native menus (FACADE-APP-21).
     menu_host: Option<tantu_widgets::NativeMenus>,
+    /// The app's tray, where the platform has one (FACADE-TRAY-01).
+    tray: Option<crate::tray::TrayHandle>,
 }
 
 impl View for Background {
@@ -322,6 +325,9 @@ impl View for Background {
         cx.provide(self.desktop);
         if let Some(host) = self.menu_host {
             cx.provide(host);
+        }
+        if let Some(tray) = self.tray {
+            cx.provide(tray);
         }
         #[cfg(feature = "default-theme")]
         let theme: Option<Signal<Theme>> = Some(tantu_reactive::signal(Theme::light()));
@@ -505,6 +511,8 @@ pub struct AppHandler {
     dialogs: std::collections::HashMap<tantu_platform::DialogId, (u64, DialogDone)>,
     /// Native menu bars, by window token (FACADE-APP-21).
     menus: Menus,
+    /// The app's tray (FACADE-TRAY-01).
+    tray: crate::tray::TrayHandle,
 }
 
 /// A window's native menu bar as the runner tracks it (FACADE-APP-21).
@@ -622,6 +630,7 @@ impl AppHandler {
                 menus: Rc::clone(&self.menus),
             }))
         });
+        let tray = desktop.capabilities.tray.then(|| self.tray.clone());
         let (color, providers) = (window.background, self.providers.clone());
         let mut tree =
             ViewTree::with_runtime(self.runtime.clone(), self.text.styles(), move || {
@@ -632,6 +641,7 @@ impl AppHandler {
                     windows,
                     desktop,
                     menu_host,
+                    tray,
                 }
             });
         // The platform's clipboard for the window's views (FACADE-APP-18).
@@ -692,6 +702,7 @@ impl AppHandler {
                 .unwrap_or_default();
             if (requests.is_empty() && desktop_requests.is_empty()) || self.error.is_some() {
                 self.install_menus(cx);
+                self.install_tray(cx);
                 return;
             }
             for request in desktop_requests {
@@ -718,6 +729,32 @@ impl AppHandler {
                 if self.error.is_some() {
                     return;
                 }
+            }
+        }
+    }
+
+    /// Shows, replaces or removes the tray as the views asked (FACADE-TRAY-01, -02).
+    fn install_tray(&mut self, cx: &mut dyn PlatformContext) {
+        let mut state = self.tray.0.borrow_mut();
+        let Some(change) = state.pending.take() else {
+            return;
+        };
+        match change {
+            Some(request) => {
+                let mut actions = std::collections::HashMap::new();
+                let tray = tantu_platform::Tray {
+                    image: request.image,
+                    tooltip: request.tooltip,
+                    menu: native_menu_items(request.entries, &mut 0, &mut actions),
+                };
+                cx.set_tray(Some(tray));
+                state.actions = actions;
+                state.on_click = request.on_click;
+            }
+            None => {
+                cx.set_tray(None);
+                state.actions.clear();
+                state.on_click = None;
             }
         }
     }
@@ -1144,6 +1181,25 @@ impl PlatformHandler for AppHandler {
                     state.sync_cursor(cx);
                 }
             }
+        }
+        self.apply_requests(cx);
+        self.request_frames(cx);
+    }
+
+    fn app_event(&mut self, cx: &mut dyn PlatformContext, event: tantu_platform::AppEvent) {
+        // FACADE-TRAY-01: the tray's actions, with the runtime current.
+        let action = {
+            let state = self.tray.0.borrow();
+            match event {
+                tantu_platform::AppEvent::TrayMenuItemActivated { id } => {
+                    state.actions.get(&id).cloned()
+                }
+                tantu_platform::AppEvent::TrayClicked => state.on_click.clone(),
+                _ => None,
+            }
+        };
+        if let Some(action) = action {
+            self.runtime.enter(|| action());
         }
         self.apply_requests(cx);
         self.request_frames(cx);

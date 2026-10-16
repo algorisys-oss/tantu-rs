@@ -13,9 +13,14 @@ publish = false
 workspace = true
 
 [dependencies]
-# Native dialogs and notifications for the "desktop" card (GALLERY-56) and the native
-# menu bar on macOS and Windows (GALLERY-57); ADR 0017.
-tantu = { workspace = true, features = ["native-dialogs", "notifications", "native-menus"] }
+# Native dialogs and notifications for the "desktop" card (GALLERY-56), the native menu
+# bar (GALLERY-57) and the tray (GALLERY-58) on macOS and Windows; ADR 0017.
+tantu = { workspace = true, features = [
+    "native-dialogs",
+    "notifications",
+    "native-menus",
+    "tray",
+] }
 
 [dev-dependencies]
 tantu-test = { workspace = true }

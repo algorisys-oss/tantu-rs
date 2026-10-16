@@ -155,7 +155,7 @@ faster or more portable without changing how apps are written.
   - [x] the platform side: AccessKit events and tree updates through the platform trait, the winit adapter, the runner (spec `docs/specs/a11y/platform.md`)
 - [x] `examples/gallery` (spec `docs/specs/examples/gallery.md`)
 
-### Phase 4 — Enterprise features (weeks 17–26)
+### Phase 4 — Enterprise features (weeks 17–26) — done 2026-10-16 (native menus, dialogs and the tray still to be checked by the user on macOS and Windows)
 - [x] `DataGrid`: virtualized rows **and** columns, frozen columns, sort/filter, resize/reorder, cell editors, selection models, 1M-row data source trait, in parts:
   - [x] data source, columns, header, row and column virtualization, scrolling on both axes, roles, the gallery section and the scrolling benchmark (1.30 ms per scroll step at 1280 × 720) (specs `docs/specs/layout/grid.md`, `docs/specs/widgets/data-grid.md`)
   - [x] frozen columns (pinned at the left, painted over the scrolling ones) (WIDGETS-GRID-09 in `docs/specs/widgets/data-grid.md`)
@@ -180,11 +180,11 @@ faster or more portable without changing how apps are written.
   - [x] popup menus and context menus: `MenuItem`, `MenuController`, `MenuAnchor`, `ContextMenuRegion`, submenus, keyboard, semantics (spec `docs/specs/widgets/menu.md`)
   - [x] `MenuBar`, toolbars and the status bar; the gallery window uses them (spec `docs/specs/widgets/menu-bar.md`)
   - [x] native OS menus (macOS app menu, native menu bars on macOS and Windows with `muda`; ADR 0017 part 2; spec `docs/specs/platform/native-menus.md`)
-- [ ] Dialogs, native file dialogs, notifications, system tray, in parts:
+- [x] Dialogs, native file dialogs, notifications, system tray, in parts:
   - [x] modal dialogs: `Dialog`, `DialogController`, `AlertDialog`, barrier, focus trap and restore (spec `docs/specs/widgets/dialog.md`)
   - [x] native file and message dialogs, notifications (`rfd`, `notify-rust`, opt-in features; spec `docs/specs/platform/native-dialogs.md`, ADR 0017)
-  - [ ] the system tray (`tray-icon` on macOS and Windows; ADR 0017 part 3; spec `docs/specs/platform/tray.md`)
-- [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images), in parts:
+  - [x] the system tray (`tray-icon` on macOS and Windows; ADR 0017 part 3; spec `docs/specs/platform/tray.md`)
+- [x] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images), in parts:
   - [x] plain-text clipboard through the platform, view and tester; `TextField` copy, cut and paste (spec `docs/specs/platform/clipboard.md`)
   - [x] rich text and image clipboard, primary selection (spec `docs/specs/platform/clipboard-rich.md`)
   - [x] multi-window: one runtime per app, `App::provide`, `Windows`/`WindowHandle` (spec `docs/specs/facade/windows.md`, ADR 0016)

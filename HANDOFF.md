@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (native menu bars done; the tray drafted for review)_
+_Last updated: 2026-10-16 (the tray done: Phase 4 is complete)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -36,9 +36,9 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
    dialogs and notifications, is done (decision 106), and so is part 2, native menu bars
    (decision 107). **Please check the gallery on a Mac and on Windows**: the menu bar
    should be the native one (macOS: at the top of the screen, with the application menu).
-   Part 3, the tray, is drafted (`docs/specs/platform/tray.md`, six proposals): a
-   declarative `SystemTray` view, `tray-icon` 0.24.2 (Rust 1.73, the same `muda` 0.19),
-   app-level events through a new `PlatformHandler::app_event`. Say "continue" to accept.
+   Part 3, the tray, is done too (decision 108). **Phase 4 is complete.** Please check
+   the gallery on a Mac and on Windows: native menu bar, tray icon (Dark theme, New
+   window, Close gallery), and Kitchen sink → Desktop (dialogs, notification).
 4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
 ## Earlier (2026-10-15)
@@ -1423,6 +1423,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     The gallery's bar is native under the runner (GALLERY-53's test drives the drawn bar).
     Checked by `cargo check`/`clippy` for the Windows and macOS targets here and by CI;
     **not run on a real Mac or Windows machine yet**.
+108. **The system tray** (2026-10-16, spec `docs/specs/platform/tray.md`, ADR 0017 part 3;
+    the user said "continue" on the six proposals). `tray-icon` 0.24.2 (Rust 1.73, sharing
+    the pinned `muda` 0.19; 0.25+ need Rust 1.90) behind the opt-in `tray` feature, macOS
+    and Windows only. `Tray`/`TrayImage`, `PlatformContext::set_tray`,
+    `NativeCapabilities::tray`, and app-level events through a new
+    `PlatformHandler::app_event` (default: ignored) with `AppEvent::TrayMenuItemActivated`
+    and `TrayClicked`; `FakeStep::App` and `FakeLog::trays`. The facade's `SystemTray`
+    view (image, reactive tooltip, a menu of `MenuItem`s through the new public
+    `native_menu_entries`, `on_click`) is the tray while it is built: the runner installs
+    it after the event, re-sends on changes, removes it with the view, and the newest one
+    replaces older ones. The winit shell builds the icon and its `muda` menu
+    (`tantu:tray:<id>` ids), forwards left-click releases and menu items as app events.
+    The gallery's main window shows a tray (Dark theme, New window, Close gallery) under
+    the runner only. Checked by cross-target `cargo check`/`clippy` here and by CI; not on
+    a real Mac or Windows machine. **Phase 4 is complete** with this item.
 
 ## Commit log
 
@@ -2056,7 +2071,10 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `184f6f8` | test: GALLERY-53 drives the drawn menu bar |
 | `ef98c77` | spec: native menu bars Implemented; notes |
 | `bf0d58a` | impl: native menu bars (MenuBar::native, the runner's host, muda on macOS/Windows with the application menu); gallery native bar; PLAN.md Menus ticked |
-| _this commit_ | docs: draft system tray spec (ADR 0017 part 3) for review |
+| `a7c64fe` | docs: draft system tray spec (ADR 0017 part 3) for review |
+| `1a635ca` | spec: the system tray agreed |
+| `b10560a` | test: the system tray, stubs + 8 tests (7 failing); tray-icon as an opt-in dependency |
+| _this commit_ | impl: the system tray (SystemTray, app events, tray-icon on macOS/Windows); gallery tray; PLAN.md Phase 4 done |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -2064,8 +2082,9 @@ that with the real hash from `git log`.
 ## Next steps
 
 Phase 4's milestone is done (`examples/enterprise-dashboard`), and so are multi-window
-and OS file drops. The rich clipboard, native dialogs/notifications and native menu bars are done too. Next
-(ADR 0017 part 3): the tray, macOS and Windows only. RTL caret movement in
+and OS file drops. The rich clipboard, native dialogs/notifications, native menu bars and the tray are done:
+**Phase 4 is complete** (2026-10-16). Next is Phase 5 (polish, performance and tooling),
+once the user has checked the native integrations on macOS and Windows. RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

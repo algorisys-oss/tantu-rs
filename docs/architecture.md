@@ -153,8 +153,9 @@ window surface that the GPU backend draws into. Nothing outside `tantu-platform-
 Native integrations are opt-in features of `tantu-platform-winit`, forwarded by the facade
 ([ADR-0017](adr/0017-native-desktop-integration.md)): `native-dialogs` (`rfd`) and
 `notifications` (`notify-rust`) everywhere, `native-menus` (`muda`) and `tray`
-(`tray-icon`) on macOS and Windows. Their results come back as window events, and apps reach
-them through the facade's `Desktop` handle.
+(`tray-icon`) on macOS and Windows. Their results come back as window events (the tray's as
+app-level events through `PlatformHandler::app_event`), and apps reach them through the
+facade's `Desktop` handle, `MenuBar::native` and the `SystemTray` view.
 
 ## Facade and testing
 

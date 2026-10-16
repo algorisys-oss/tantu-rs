@@ -20,6 +20,12 @@ enum UserEvent {
     Access(accesskit_winit::Event),
     #[cfg_attr(not(feature = "native-dialogs"), allow(dead_code))]
     Window(WindowId, WindowEvent),
+    /// A tray event (PLATFORM-WINIT-22).
+    #[cfg_attr(
+        not(all(feature = "tray", any(target_os = "macos", target_os = "windows"))),
+        allow(dead_code)
+    )]
+    App(tantu_platform::AppEvent),
     /// A native menu item's `muda` id (PLATFORM-WINIT-21).
     #[cfg_attr(
         not(all(
@@ -98,6 +104,15 @@ impl ApplicationHandler<UserEvent> for Shell<'_> {
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: UserEvent) {
         let event = match event {
             UserEvent::Access(event) => event,
+            UserEvent::App(event) => {
+                let mut cx = Context {
+                    event_loop,
+                    windows: &mut self.windows,
+                    proxy: &self.proxy,
+                };
+                self.handler.app_event(&mut cx, event);
+                return;
+            }
             // A native menu item (PLATFORM-WINIT-21).
             UserEvent::Menu(id) => {
                 let targets: Vec<(WindowId, WindowEvent)> = match crate::native::parse_menu_id(&id)
@@ -113,7 +128,18 @@ impl ApplicationHandler<UserEvent> for Shell<'_> {
                         .map(|w| (*w, WindowEvent::CloseRequested))
                         .collect(),
                     // Tray items are app events (PLATFORM-WINIT-22).
-                    Some(crate::native::MenuTarget::Tray(_)) => Vec::new(),
+                    Some(crate::native::MenuTarget::Tray(id)) => {
+                        let mut cx = Context {
+                            event_loop,
+                            windows: &mut self.windows,
+                            proxy: &self.proxy,
+                        };
+                        self.handler.app_event(
+                            &mut cx,
+                            tantu_platform::AppEvent::TrayMenuItemActivated { id },
+                        );
+                        return;
+                    }
                     None => Vec::new(),
                 };
                 for (window, event) in targets {
@@ -267,6 +293,15 @@ struct Windows {
         allow(dead_code)
     )]
     menu_events: bool,
+    /// The app's tray icon, kept alive while shown (PLATFORM-WINIT-22).
+    #[cfg(all(feature = "tray", any(target_os = "macos", target_os = "windows")))]
+    tray: Option<tray_icon::TrayIcon>,
+    /// Whether tray clicks forward to the loop yet.
+    #[cfg_attr(
+        not(all(feature = "tray", any(target_os = "macos", target_os = "windows"))),
+        allow(dead_code)
+    )]
+    tray_events: bool,
     /// The first window's title, the app's name in notifications.
     #[cfg_attr(not(feature = "notifications"), allow(dead_code))]
     app_name: Option<String>,
@@ -401,6 +436,25 @@ struct Context<'a> {
 }
 
 impl Context<'_> {
+    /// Forwards `muda`'s menu events (menu bars and the tray menu) to the loop, once
+    /// (PLATFORM-WINIT-21, -22).
+    #[cfg(all(
+        any(feature = "native-menus", feature = "tray"),
+        any(target_os = "macos", target_os = "windows")
+    ))]
+    fn forward_menu_events(&mut self) {
+        if self.windows.menu_events {
+            return;
+        }
+        let proxy = std::sync::Mutex::new(self.proxy.clone());
+        muda::MenuEvent::set_event_handler(Some(move |event: muda::MenuEvent| {
+            if let Ok(proxy) = proxy.lock() {
+                let _ = proxy.send_event(UserEvent::Menu(event.id.0));
+            }
+        }));
+        self.windows.menu_events = true;
+    }
+
     /// A fresh dialog id (PLATFORM-WINIT-20).
     #[cfg(feature = "native-dialogs")]
     fn next_dialog(&mut self) -> tantu_platform::DialogId {
@@ -579,16 +633,7 @@ impl PlatformContext for Context<'_> {
         any(target_os = "macos", target_os = "windows")
     ))]
     fn set_menu_bar(&mut self, window: WindowId, menu: Option<tantu_platform::NativeMenu>) -> bool {
-        if !self.windows.menu_events {
-            // muda's events come from its own callbacks; forward them to the loop.
-            let proxy = std::sync::Mutex::new(self.proxy.clone());
-            muda::MenuEvent::set_event_handler(Some(move |event: muda::MenuEvent| {
-                if let Ok(proxy) = proxy.lock() {
-                    let _ = proxy.send_event(UserEvent::Menu(event.id.0));
-                }
-            }));
-            self.windows.menu_events = true;
-        }
+        self.forward_menu_events();
         let app_name = self
             .windows
             .app_name
@@ -601,6 +646,54 @@ impl PlatformContext for Context<'_> {
         install_menu(entry, built)
     }
 
+    #[cfg(all(feature = "tray", any(target_os = "macos", target_os = "windows")))]
+    fn set_tray(&mut self, tray: Option<tantu_platform::Tray>) -> bool {
+        self.forward_menu_events();
+        if !self.windows.tray_events {
+            let proxy = std::sync::Mutex::new(self.proxy.clone());
+            tray_icon::TrayIconEvent::set_event_handler(Some(
+                move |event: tray_icon::TrayIconEvent| {
+                    use tray_icon::{MouseButton, MouseButtonState, TrayIconEvent};
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        if let Ok(proxy) = proxy.lock() {
+                            let _ = proxy
+                                .send_event(UserEvent::App(tantu_platform::AppEvent::TrayClicked));
+                        }
+                    }
+                },
+            ));
+            self.windows.tray_events = true;
+        }
+        // Replacing drops the old icon first.
+        self.windows.tray = None;
+        let Some(tray) = tray else {
+            return true;
+        };
+        let mut builder = tray_icon::TrayIconBuilder::new()
+            .with_menu(Box::new(crate::native::build_tray_menu(&tray.menu)));
+        if let Some(icon) = crate::native::tray_image(&tray.image) {
+            builder = builder.with_icon(icon);
+        }
+        if let Some(tooltip) = &tray.tooltip {
+            builder = builder.with_tooltip(tooltip);
+        }
+        match builder.build() {
+            Ok(icon) => {
+                self.windows.tray = Some(icon);
+                true
+            }
+            Err(error) => {
+                tracing::debug!(%error, "couldn't show the tray icon");
+                false
+            }
+        }
+    }
+
     fn native_capabilities(&self) -> tantu_platform::NativeCapabilities {
         tantu_platform::NativeCapabilities {
             dialogs: cfg!(feature = "native-dialogs"),
@@ -609,7 +702,10 @@ impl PlatformContext for Context<'_> {
                 feature = "native-menus",
                 any(target_os = "macos", target_os = "windows")
             )),
-            tray: false,
+            tray: cfg!(all(
+                feature = "tray",
+                any(target_os = "macos", target_os = "windows")
+            )),
         }
     }
 

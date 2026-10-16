@@ -102,22 +102,25 @@ pub(crate) enum MenuTarget {
     allow(dead_code)
 )]
 pub(crate) fn tray_menu_id(id: u64) -> String {
-    let _ = id;
-    todo!("PLATFORM-WINIT-22")
+    format!("tantu:tray:{id}")
 }
 
 /// The tray's `muda` menu.
 #[cfg(all(feature = "tray", any(target_os = "macos", target_os = "windows")))]
 pub(crate) fn build_tray_menu(items: &[tantu_platform::NativeMenuItem]) -> muda::Menu {
-    let _ = items;
-    todo!("PLATFORM-WINIT-22")
+    let menu = muda::Menu::new();
+    for item in items {
+        append_menu_item(item, &tray_menu_id, &mut |child| {
+            let _ = menu.append(child);
+        });
+    }
+    menu
 }
 
 /// The tray icon's image.
 #[cfg(all(feature = "tray", any(target_os = "macos", target_os = "windows")))]
 pub(crate) fn tray_image(image: &tantu_platform::TrayImage) -> Option<tray_icon::Icon> {
-    let _ = image;
-    todo!("PLATFORM-WINIT-22")
+    tray_icon::Icon::from_rgba(image.rgba.clone(), image.width, image.height).ok()
 }
 
 /// The `muda` id of the window's item `id`.
@@ -155,6 +158,9 @@ pub(crate) fn parse_menu_id(id: &str) -> Option<MenuTarget> {
         return Some(MenuTarget::Quit);
     }
     let rest = id.strip_prefix("tantu:")?;
+    if let Some(item) = rest.strip_prefix("tray:") {
+        return Some(MenuTarget::Tray(item.parse().ok()?));
+    }
     let (window, item) = rest.split_once(':')?;
     Some(MenuTarget::Item(
         tantu_platform::WindowId::from_raw(window.parse().ok()?),
@@ -194,21 +200,22 @@ pub(crate) fn build_menu(
     #[cfg(not(target_os = "macos"))]
     let _ = app_name;
     for item in &menu.menus {
-        append_menu_item(item, window, &mut |child| {
+        append_menu_item(item, &|id| menu_id(window, id), &mut |child| {
             let _ = bar.append(child);
         });
     }
     bar
 }
 
-/// Builds `item` and hands it to `add` (a menu's or submenu's `append`).
+/// Builds `item`, naming items with `ids`, and hands it to `add` (a menu's or submenu's
+/// `append`).
 #[cfg(all(
-    feature = "native-menus",
+    any(feature = "native-menus", feature = "tray"),
     any(target_os = "macos", target_os = "windows")
 ))]
 fn append_menu_item(
     item: &tantu_platform::NativeMenuItem,
-    window: tantu_platform::WindowId,
+    ids: &dyn Fn(u64) -> String,
     add: &mut dyn FnMut(&dyn muda::IsMenuItem),
 ) {
     use tantu_platform::NativeMenuItem;
@@ -224,7 +231,7 @@ fn append_menu_item(
             let accelerator = shortcut
                 .as_deref()
                 .and_then(|s| s.parse::<muda::accelerator::Accelerator>().ok());
-            let id = menu_id(window, *id);
+            let id = ids(*id);
             match checked {
                 Some(checked) => add(&muda::CheckMenuItem::with_id(
                     id,
@@ -243,7 +250,7 @@ fn append_menu_item(
         } => {
             let submenu = muda::Submenu::new(label, *enabled);
             for child in items {
-                append_menu_item(child, window, &mut |c| {
+                append_menu_item(child, ids, &mut |c| {
                     let _ = submenu.append(c);
                 });
             }

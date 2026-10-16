@@ -180,7 +180,7 @@ pub trait PlatformContext {
     /// supported (the default) (PLATFORM-TRAY-01).
     fn set_tray(&mut self, tray: Option<crate::Tray>) -> bool {
         let _ = tray;
-        todo!("PLATFORM-TRAY-01")
+        false
     }
 
     /// What this platform supports (default: nothing).

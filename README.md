@@ -93,8 +93,9 @@ fn main() -> tantu::Result<()> {
   that keep their state, a `DockLayout` you can save and restore).
 - **State:** `signal`, `memo`, `effect`; every widget prop takes a value, a closure or a signal.
 - **Clipboard:** text, images and HTML (with a plain-text alternative) through `cx.clipboard()`.
-- **Desktop:** native file and message dialogs and OS notifications through `Desktop`, behind
-  the opt-in features `native-dialogs` and `notifications`.
+- **Desktop:** native file and message dialogs and OS notifications through `Desktop`, and a
+  `SystemTray` icon with a menu (macOS and Windows), behind the opt-in features
+  `native-dialogs`, `notifications` and `tray`.
 - **Windows:** `App::provide` for app-owned state every window inherits, and `Windows` to
   open, retitle and close windows at run time (`Window::on_close_request` can keep one open).
 - **Input:** pointer events with cursor shapes, keyboard focus and Tab traversal, `Shortcuts`

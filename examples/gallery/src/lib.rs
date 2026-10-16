@@ -189,7 +189,11 @@ pub fn gallery() -> impl View {
             .child(Keyed::new(
                 "statusbar",
                 status_bar(section, dark, note, loc),
-            ));
+            ))
+            .child(match windows {
+                Some(windows) => AnyView::new(gallery_tray(windows, state)),
+                None => AnyView::new(SizedBox::new(0.0, 0.0)),
+            });
         Localizations::new(loc, window)
     })
 }
@@ -290,6 +294,29 @@ fn labeled_switch(label: &'static str, key: &'static str, value: Signal<bool>) -
             key,
             Switch::new(value).on_change(move |v| value.set(v)),
         ))
+}
+
+/// The gallery's tray icon (GALLERY-58): the dark-mode flag, a new window and closing the
+/// gallery. Only under the runner, which opened this window.
+fn gallery_tray(windows: Windows, state: GalleryState) -> impl View {
+    let dark = state.dark;
+    let main = windows.current();
+    let image = gradient(32, 32).unwrap_or_else(|_| {
+        ImageData::rgba8(1, 1, vec![0x67, 0x50, 0xA4, 0xFF]).expect("a 1 × 1 image")
+    });
+    SystemTray::new(image).tooltip("Tantu gallery").menu([
+        MenuItem::new("Dark theme")
+            .checked(dark)
+            .on_select(move || dark.update(|d| *d = !*d)),
+        MenuItem::new("New window").on_select(move || {
+            windows.open(
+                Window::new("Gallery · second window").size(360.0, 200.0),
+                move || second_window(state),
+            );
+        }),
+        MenuItem::divider(),
+        MenuItem::new("Close gallery").on_select(move || main.close()),
+    ])
 }
 
 /// The gallery's second window (GALLERY-53): the main window's section and a dark-mode
