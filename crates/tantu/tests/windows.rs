@@ -295,7 +295,10 @@ fn facade_win_04_closing() {
     // A's effect saw itself open each time it ran (`is_open` reads the open list, so it
     // re-runs when B closes); it is disposed with A, so no `false` ever arrives.
     let states = states.borrow();
-    assert!(!states.is_empty() && states.iter().all(|open| *open), "{states:?}");
+    assert!(
+        !states.is_empty() && states.iter().all(|open| *open),
+        "{states:?}"
+    );
 }
 
 #[test]

@@ -1,6 +1,7 @@
 //! [`App`], [`Window`], [`AppHandler`] and [`Error`]: the app runner. Spec:
 //! `docs/specs/facade/app.md`.
 
+use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
 
@@ -12,14 +13,16 @@ use tantu_platform::{
     AccessibilityEvent, ButtonState, Platform, PlatformContext, PlatformError, PlatformHandler,
     PointerButton, ScrollDelta, WindowAttributes, WindowEvent, WindowId,
 };
-use tantu_reactive::{Signal, Wake};
+use tantu_reactive::{Runtime, Scope, Signal, Wake};
 use tantu_scene::{RenderError, Renderer, Resources, Scene};
-use tantu_text::{FontFamily, TextStyles, TextSystem};
+use tantu_text::{FontFamily, TextSystem};
 use tantu_theme::{Theme, ThemeProvider};
 use tantu_view::{
     AnyView, BuildCx, ElementId, Paint, PaintCx, PointerEvent, PointerKind, Prop, SystemText, View,
     ViewTree,
 };
+
+use crate::windows::{Content, Queue, Request, Windows};
 
 /// Logical pixels scrolled per wheel line (FACADE-APP-05; Chromium's value).
 const PIXELS_PER_LINE: f32 = 40.0;
@@ -65,6 +68,18 @@ pub struct Window {
     attributes: WindowAttributes,
     /// The background color; `None` follows the theme's `surface` (FACADE-APP-13).
     background: Option<Color>,
+    /// Asked when the user wants to close the window (FACADE-WIN-04).
+    on_close: Option<CloseHook>,
+}
+
+/// A window's close veto.
+#[derive(Clone)]
+struct CloseHook(Rc<RefCell<dyn FnMut() -> bool>>);
+
+impl fmt::Debug for CloseHook {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("CloseHook")
+    }
 }
 
 impl Window {
@@ -73,6 +88,7 @@ impl Window {
         Window {
             attributes: WindowAttributes::new(title),
             background: None,
+            on_close: None,
         }
     }
 
@@ -103,8 +119,10 @@ impl Window {
     /// Called when the user asks to close the window; returning `false` keeps it open
     /// (FACADE-WIN-04). The default allows closing.
     pub fn on_close_request(self, f: impl FnMut() -> bool + 'static) -> Self {
-        let _ = f;
-        todo!("FACADE-WIN-04")
+        Window {
+            on_close: Some(CloseHook(Rc::new(RefCell::new(f)))),
+            ..self
+        }
     }
 
     /// Whether the user can resize the window.
@@ -116,14 +134,18 @@ impl Window {
     }
 }
 
-/// Builds a window's view tree with the app's style table.
-type Content = Box<dyn FnOnce(TextStyles) -> ViewTree>;
+/// Provides one app-owned value at a window's root (FACADE-WIN-02).
+type Provider = Rc<dyn Fn(&mut BuildCx<'_>)>;
+
+/// Builds an app-owned value, in the app scope, and its provider.
+type Init = Box<dyn FnOnce() -> Provider>;
 
 /// An app: fonts and windows, then [`run`](App::run).
 pub struct App {
     windows: Vec<(Window, Content)>,
     fonts: Vec<Vec<u8>>,
     system_fonts: bool,
+    inits: Vec<Init>,
 }
 
 impl App {
@@ -134,19 +156,14 @@ impl App {
             windows: Vec::new(),
             fonts: Vec::new(),
             system_fonts: true,
+            inits: Vec::new(),
         }
     }
 
     /// Opens `window` showing the view `content` builds. `content` runs once, when the window
-    /// opens, with the window's reactive runtime current.
+    /// opens, with the app's reactive runtime current and the window's root scope as owner.
     pub fn window<V: View>(self, window: Window, content: impl FnOnce() -> V + 'static) -> Self {
-        let background = window.background;
-        let content: Content = Box::new(move |styles| {
-            ViewTree::with_text_styles(styles, move || Background {
-                color: background,
-                content: AnyView::new(content()),
-            })
-        });
+        let content: Content = Box::new(move || AnyView::new(content()));
         let mut app = self;
         app.windows.push((window, content));
         app
@@ -156,8 +173,13 @@ impl App {
     /// as an inherited value at the root of every window (`cx.inherit::<T>()`). Signals
     /// created in `init` live as long as the app (FACADE-WIN-02).
     pub fn provide<T: Clone + 'static>(self, init: impl FnOnce() -> T + 'static) -> Self {
-        let _ = init;
-        todo!("FACADE-WIN-02")
+        let init: Init = Box::new(move || {
+            let value = init();
+            Rc::new(move |cx: &mut BuildCx<'_>| cx.provide(value.clone())) as Provider
+        });
+        let mut app = self;
+        app.inits.push(init);
+        app
     }
 
     /// Registers a font file (e.g. bundled with the app).
@@ -237,15 +259,34 @@ impl App {
             .first()
             .map(|(window, _)| window.attributes.title.clone())
             .unwrap_or_default();
+        // One runtime for every window, and the app scope (FACADE-WIN-01, -02; ADR 0016).
+        let runtime = Rc::new(Runtime::new());
+        let (app_scope, queue, open) = runtime.enter(|| {
+            let scope = Scope::new();
+            let (queue, open) = scope.run(|| {
+                (
+                    tantu_reactive::signal(Rc::new(Queue::default())),
+                    tantu_reactive::signal(Vec::<u64>::new()),
+                )
+            });
+            (scope, queue, open)
+        });
         AppHandler {
             app_name,
             text,
             resources: Resources::new(),
             pending: self.windows,
+            inits: self.inits,
+            providers: Rc::from(Vec::new()),
             windows: Vec::new(),
             factory: Box::new(renderer),
             error: None,
             wake: None,
+            runtime,
+            app_scope,
+            queue,
+            open,
+            ticked: false,
         }
     }
 }
@@ -257,10 +298,18 @@ impl App {
 struct Background {
     color: Option<Color>,
     content: AnyView,
+    /// The app-provided values and the app's windows (FACADE-WIN-02, -03).
+    providers: Rc<[Provider]>,
+    windows: Windows,
 }
 
 impl View for Background {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        // On the root, so the whole window inherits them.
+        for provide in self.providers.iter() {
+            provide(cx);
+        }
+        cx.provide(self.windows);
         #[cfg(feature = "default-theme")]
         let theme: Option<Signal<Theme>> = Some(tantu_reactive::signal(Theme::light()));
         #[cfg(not(feature = "default-theme"))]
@@ -305,6 +354,10 @@ impl Paint for BackgroundPaint {
 struct WindowState {
     modifiers: tantu_view::Modifiers,
     id: WindowId,
+    /// The app's name for it (FACADE-WIN-03).
+    token: u64,
+    /// The close veto (FACADE-WIN-04).
+    on_close: Option<CloseHook>,
     tree: ViewTree,
     renderer: Box<dyn Renderer>,
     scene: Scene,
@@ -389,6 +442,20 @@ pub struct AppHandler {
     wake: Option<std::time::Instant>,
     /// The accessibility tree's window name: the first window's title (FACADE-APP-15).
     app_name: String,
+    /// App-state builders, run in the app scope at start (FACADE-WIN-02).
+    inits: Vec<Init>,
+    /// The app-provided values every window inherits.
+    providers: Rc<[Provider]>,
+    /// The runtime every window's tree shares (FACADE-WIN-01).
+    runtime: Rc<Runtime>,
+    /// Owns app state for the whole run (FACADE-WIN-02).
+    app_scope: Scope,
+    /// Requests from views (FACADE-WIN-03).
+    queue: Signal<Rc<Queue>>,
+    /// The tokens of the open windows.
+    open: Signal<Vec<u64>>,
+    /// Whether the runtime was ticked since the last `idle` (FACADE-WIN-06).
+    ticked: bool,
 }
 
 impl AppHandler {
@@ -408,13 +475,30 @@ impl AppHandler {
         cx.exit();
     }
 
-    /// Opens one window: platform window, view tree, renderer (FACADE-APP-01).
-    fn open(&mut self, cx: &mut dyn PlatformContext, window: Window, content: Content) {
+    /// Opens one window: platform window, view tree, renderer (FACADE-APP-01, FACADE-WIN-03).
+    fn open(&mut self, cx: &mut dyn PlatformContext, window: Window, content: Content, token: u64) {
         let id = match cx.create_window(&window.attributes) {
             Ok(id) => id,
             Err(error) => return self.fail(cx, Error::Platform(error)),
         };
-        let mut tree = content(self.text.styles());
+        // Open from the moment its content builds, so it counts itself.
+        let open = self.open;
+        self.runtime.enter(|| open.update(|o| o.push(token)));
+        let windows = Windows {
+            queue: self.queue,
+            open,
+            current: token,
+        };
+        let (color, providers) = (window.background, self.providers.clone());
+        let mut tree =
+            ViewTree::with_runtime(self.runtime.clone(), self.text.styles(), move || {
+                Background {
+                    color,
+                    content: content(),
+                    providers,
+                    windows,
+                }
+            });
         // The platform's clipboard for the window's views (FACADE-APP-18).
         if let Some(clipboard) = cx.clipboard() {
             tree.set_clipboard(Rc::new(PlatformClipboard(clipboard)));
@@ -428,6 +512,8 @@ impl AppHandler {
         self.windows.push(WindowState {
             modifiers: tantu_view::Modifiers::default(),
             id,
+            token,
+            on_close: window.on_close,
             tree,
             renderer,
             scene: Scene::new(),
@@ -438,15 +524,76 @@ impl AppHandler {
         });
     }
 
+    /// Closes the window at `index`: platform window, tree (its root scope), the open list;
+    /// the last one ends the run (FACADE-APP-06, FACADE-WIN-04).
+    fn close(&mut self, cx: &mut dyn PlatformContext, index: usize) {
+        let state = self.windows.remove(index);
+        cx.close_window(state.id);
+        let token = state.token;
+        drop(state);
+        let open = self.open;
+        self.runtime
+            .enter(|| open.update(|o| o.retain(|t| *t != token)));
+        if self.windows.is_empty() {
+            cx.exit();
+        }
+    }
+
+    /// Applies what views asked for since the last call (FACADE-WIN-03..05).
+    fn apply_requests(&mut self, cx: &mut dyn PlatformContext) {
+        loop {
+            let queue = self.queue;
+            let requests = self
+                .runtime
+                .enter(|| queue.try_with(|queue| queue.take()))
+                .unwrap_or_default();
+            if requests.is_empty() || self.error.is_some() {
+                return;
+            }
+            for request in requests {
+                match request {
+                    Request::Open {
+                        token,
+                        window,
+                        content,
+                    } => self.open(cx, window, content, token),
+                    Request::Close(token) => {
+                        if let Some(index) = self.windows.iter().position(|w| w.token == token) {
+                            self.close(cx, index);
+                        }
+                    }
+                    Request::Title(token, title) => {
+                        if let Some(state) = self.windows.iter().find(|w| w.token == token) {
+                            cx.set_title(state.id, &title);
+                        }
+                    }
+                }
+                if self.error.is_some() {
+                    return;
+                }
+            }
+        }
+    }
+
+    /// Ticks the app's runtime unless it was ticked since the last `idle` (FACADE-WIN-06).
+    /// The caller asks for the frames that changed.
+    fn tick(&mut self, cx: &mut dyn PlatformContext) {
+        if !self.ticked {
+            self.ticked = true;
+            self.runtime.tick(cx.now());
+        }
+    }
+
     /// Runs a frame and renders it (FACADE-APP-02, -07).
     fn redraw(&mut self, cx: &mut dyn PlatformContext, index: usize) {
+        // Timers and tickers run first, so what they change is in this frame (FACADE-APP-14,
+        // FACADE-WIN-06).
+        self.tick(cx);
         let state = &mut self.windows[index];
         let (Some(size), Some(scale)) = (cx.inner_size(state.id), cx.scale_factor(state.id)) else {
             return;
         };
         let constraints = BoxConstraints::tight(size.to_logical(scale));
-        // Timers and tickers run first, so what they change is in this frame (FACADE-APP-14).
-        state.tree.tick(cx.now());
         let mut text = SystemText {
             system: &mut self.text,
             resources: &mut self.resources,
@@ -628,12 +775,24 @@ impl PlatformHandler for AppHandler {
             cx.exit();
             return;
         }
+        // App state first, in the app scope (FACADE-WIN-02).
+        let (runtime, scope) = (self.runtime.clone(), self.app_scope);
+        let providers: Vec<Provider> = std::mem::take(&mut self.inits)
+            .into_iter()
+            .map(|init| runtime.enter(|| scope.run(init)))
+            .collect();
+        self.providers = Rc::from(providers);
         for (window, content) in std::mem::take(&mut self.pending) {
-            self.open(cx, window, content);
+            let queue = self.queue;
+            let token = self
+                .runtime
+                .enter(|| queue.with_untracked(|queue| queue.token()));
+            self.open(cx, window, content, token);
             if self.error.is_some() {
                 return;
             }
         }
+        self.apply_requests(cx);
     }
 
     fn window_event(&mut self, cx: &mut dyn PlatformContext, window: WindowId, event: WindowEvent) {
@@ -642,20 +801,33 @@ impl PlatformHandler for AppHandler {
         };
         match event {
             WindowEvent::CloseRequested => {
-                // Dropping the tree disposes its scope (FACADE-APP-06).
-                cx.close_window(window);
-                self.windows.remove(index);
-                if self.windows.is_empty() {
-                    cx.exit();
+                // The window's veto first (FACADE-WIN-04); dropping the tree disposes its
+                // scope (FACADE-APP-06).
+                let allowed = match self.windows[index].on_close.clone() {
+                    Some(CloseHook(hook)) => self.runtime.enter(|| (hook.borrow_mut())()),
+                    None => true,
+                };
+                if allowed {
+                    self.close(cx, index);
                 }
-                return;
             }
             WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged(_) => {
                 let state = &mut self.windows[index];
                 fit(state.renderer.as_mut(), cx, window);
                 cx.request_redraw(window);
             }
-            WindowEvent::RedrawRequested => self.redraw(cx, index),
+            WindowEvent::RedrawRequested => {
+                self.redraw(cx, index);
+                // Only this window, if its own frame left it dirty: other windows may be due
+                // in this round already, and `idle` asks for the rest (FACADE-WIN-06).
+                self.apply_requests(cx);
+                if let Some(state) = self.windows.get(index) {
+                    if state.id == window && state.tree.needs_frame() {
+                        cx.request_redraw(window);
+                    }
+                }
+                return;
+            }
             WindowEvent::ModifiersChanged(m) => {
                 self.windows[index].modifiers = tantu_view::Modifiers {
                     shift: m.shift,
@@ -699,24 +871,39 @@ impl PlatformHandler for AppHandler {
                 }
             }
         }
+        self.apply_requests(cx);
         self.request_frames(cx);
     }
 
     fn idle(&mut self, cx: &mut dyn PlatformContext) {
-        // Wake-ups (FACADE-APP-14): a due tree gets a redraw (which ticks it); the earliest
-        // future deadline goes to the platform, and a changed or passed deadline clears it.
+        // FACADE-WIN-06: a due runtime is ticked here, once for the app, and only the trees
+        // that changed are redrawn; otherwise the first redraw after this idle ticks.
         let now = cx.now();
-        let mut earliest: Option<std::time::Instant> = None;
-        for state in &self.windows {
-            match state.tree.next_wake() {
-                Some(Wake::Now) => cx.request_redraw(state.id),
-                Some(Wake::At(deadline)) if deadline <= now => cx.request_redraw(state.id),
-                Some(Wake::At(deadline)) => {
-                    earliest = Some(earliest.map_or(deadline, |e| e.min(deadline)));
-                }
-                None => {}
-            }
+        let due = match self.runtime.next_wake() {
+            Some(Wake::Now) => true,
+            Some(Wake::At(deadline)) => deadline <= now,
+            None => false,
+        };
+        self.ticked = false;
+        if due {
+            self.tick(cx);
         }
+        self.apply_requests(cx);
+        // Wake-ups (FACADE-APP-14): an active ticker keeps frames coming; the next deadline
+        // goes to the platform, and a changed or passed deadline clears it.
+        let earliest = match self.runtime.next_wake() {
+            Some(Wake::Now) => {
+                if !self.windows.iter().any(|w| w.tree.needs_frame()) {
+                    if let Some(first) = self.windows.first() {
+                        cx.request_redraw(first.id);
+                    }
+                }
+                None
+            }
+            // A deadline that passed was handled by the tick above.
+            Some(Wake::At(deadline)) => (deadline > now).then_some(deadline),
+            None => None,
+        };
         if earliest != self.wake {
             cx.wake_at(earliest);
             self.wake = earliest;

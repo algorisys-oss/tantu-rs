@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (Phase 4 milestone done; multi-window drafted for review)_
+_Last updated: 2026-10-16 (Phase 4 milestone done; multi-window done)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -26,13 +26,11 @@ complete** (decision 101, ADR 0015 accepted on that request, review), and the **
 milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 `cargo run -p enterprise-dashboard`.
 
+**Multi-window is done** (decision 103, ADR 0016 accepted on the user's "continue"):
+`gallery`'s View → New window opens a second window sharing the dark-mode switch.
+
 **Waiting for the user's decisions** (the rest of Phase 4 needs them):
-1. **Multi-window — drafted, waiting for review:** ADR 0016 (Proposed: one runtime per
-   app, an app scope, one tick per frame round) and the Draft spec
-   `docs/specs/facade/windows.md` (`App::provide`, an inherited `Windows` handle with
-   `open`, `WindowHandle::close`/`set_title`, `Window::on_close_request`, a gallery "New
-   window" sharing the dark-mode switch) with six proposals. Say "continue" to accept
-   them (the ADR becomes Accepted), or change any.
+1. (done: multi-window)
 2. **Image clipboard**: arboard's `image-data` feature pulls the `image` crate.
 3. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
 4. **OS file drops**: winit 0.30 reports dropped files without a position, so targets
@@ -1339,6 +1337,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     open question 4). The chart is part of the example, not a widget. Phase 4's remaining
     items (multi-window, rich/image clipboard, OS drag and drop, native menus/dialogs/tray)
     wait for the user.
+103. **Multiple windows** (2026-10-16, spec `docs/specs/facade/windows.md`, ADR 0016; the
+    user said "continue" on the draft's six proposals). One reactive runtime per app,
+    shared by every window's tree (`ViewTree::with_runtime`; a tree's nodes live in its
+    own scope, so dropping it never disposes the runtime). An app scope holds
+    `App::provide`d state, inherited at every window's root. `Windows` (a `Copy` handle
+    inherited at each window's root; `Windows::of` is `None` under `WidgetTester`) queues
+    `open` requests the runner applies after the event, building the new window's content
+    in its own root scope; `WindowHandle` has `close`, `is_open` (tracked) and
+    `set_title`; `Window::on_close_request` vetoes the user's close; the last window
+    closing ends the run. The runner ticks the runtime at most once between idles (at idle
+    when due, else before the first redraw), and after a redraw asks for a frame only for
+    that window, so a ticker in one window redraws only the windows that read it.
+    Gallery: `gallery::app()` provides a `GalleryState`; View → New window. Architecture
+    doc and diagram updated. Not done: owned/modal child windows, window positions,
+    moving elements between windows (dock floating panels), a multi-window tester.
 
 ## Commit log
 
@@ -1940,16 +1953,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `078b9a5` | test: enterprise dashboard, stubs + 6 failing tests |
 | `116f82f` | spec: the dashboard keeps the last selected order in an app signal; Implemented |
 | `5874871` | impl: enterprise dashboard (orders grid, details form, KPI tiles and chart, activity log, dock, menus, English/German), golden; README, architecture doc and diagram; PLAN.md milestone ticked |
-| _this commit_ | docs: draft multi-window spec and ADR 0016 (one runtime per app) for review; PLAN.md link |
+| `54d452f` | docs: draft multi-window spec and ADR 0016 (one runtime per app) for review; PLAN.md link |
+| `22b9505` | spec: multiple windows agreed (FACADE-WIN-01..07, VIEW-TREE-13, GALLERY-53); ADR 0016 accepted; architecture doc and diagram |
+| `2af7349` | test: multiple windows, stubs + 9 failing tests |
+| `7beb32d` | test: FACADE-WIN-04's window sees itself open on every run of its effect |
+| `79e5b4a` | spec: multiple windows Implemented; notes found while implementing |
+| _this commit_ | impl: one runtime per app, App::provide, Windows/WindowHandle, close veto, one tick per round; gallery New window; README; PLAN.md multi-window ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Phase 4's milestone is done (`examples/enterprise-dashboard`). Remaining Phase 4 items
-need the user's decisions (see "Waiting for the user's decisions"): multi-window, the
-rich/image clipboard, OS drag and drop (file and text drops through the platform; winit delivers dropped files). RTL caret movement in
+Phase 4's milestone is done (`examples/enterprise-dashboard`), and so is multi-window.
+Remaining Phase 4 items need the user's decisions (see "Waiting for the user's
+decisions"): the rich/image clipboard, OS drag and drop (file and text drops through the platform; winit delivers dropped files). RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

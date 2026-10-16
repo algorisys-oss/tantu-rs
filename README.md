@@ -30,8 +30,8 @@ By Algorisys Technologies.
 - **Scales to large apps.** Retained element tree with fine-grained reactive signals, so only what
   changed is rebuilt, re-laid out or repainted. Virtualized lists and a data grid (a million
   rows, frozen, sortable, resizable and reorderable columns), accessibility (AccessKit) and
-  text shaping with IME and right-to-left support today; planned: docking, multi-window,
-  i18n.
+  text shaping with IME and right-to-left support, docking, several windows sharing state
+  and i18n today.
 
 ## Using Tantu in your app
 
@@ -92,6 +92,8 @@ fn main() -> tantu::Result<()> {
   in resizable splits, closable tabs dragged onto strips, group edges or the dock's edges, panels
   that keep their state, a `DockLayout` you can save and restore).
 - **State:** `signal`, `memo`, `effect`; every widget prop takes a value, a closure or a signal.
+- **Windows:** `App::provide` for app-owned state every window inherits, and `Windows` to
+  open, retitle and close windows at run time (`Window::on_close_request` can keep one open).
 - **Input:** pointer events with cursor shapes, keyboard focus and Tab traversal, `Shortcuts`
   and `Actions`, overlays anchored to widgets, popup and context menus (`MenuAnchor`,
   `ContextMenuRegion`) with submenus, check marks and shortcut hints, a `MenuBar`, `Toolbar`

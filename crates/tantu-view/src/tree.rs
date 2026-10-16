@@ -259,6 +259,9 @@ pub struct ViewTree {
     pub(crate) clipboard: Rc<crate::clipboard::ClipboardSlot>,
     /// The tree's drag session (VIEW-DRAG-01).
     pub(crate) drag: Rc<crate::drag::DragSlot>,
+    /// Owns everything the tree created in its runtime (the drag signals and the root
+    /// scope); disposed on drop, which leaves a shared runtime alive (VIEW-TREE-13).
+    own: Option<Scope>,
 }
 
 impl ViewTree {
@@ -271,11 +274,22 @@ impl ViewTree {
     /// Like [`new`](Self::new), with `styles` as the tree's style table (pass the text
     /// system's, so keys built here mean the same styles when measured and painted).
     pub fn with_text_styles<V: View>(styles: TextStyles, app: impl FnOnce() -> V) -> Self {
+        ViewTree::with_runtime(Rc::new(Runtime::new()), styles, app)
+    }
+
+    /// Like [`with_text_styles`](Self::with_text_styles), on `runtime`, which other trees may
+    /// share (ADR 0016). The tree's nodes are owned by a scope at the runtime's top level;
+    /// dropping the tree disposes it, never the runtime (VIEW-TREE-13).
+    pub fn with_runtime<V: View>(
+        runtime: Rc<Runtime>,
+        styles: TextStyles,
+        app: impl FnOnce() -> V,
+    ) -> Self {
         let mut tree = ViewTree {
             elements: Arena::new(),
             layout: LayoutTree::new(),
             root: None,
-            runtime: Rc::new(Runtime::new()),
+            runtime,
             shared: Rc::default(),
             layout_builders: Vec::new(),
             events: EventState::default(),
@@ -285,51 +299,43 @@ impl ViewTree {
             overlays: OverlayState::default(),
             clipboard: Rc::default(),
             drag: Rc::default(),
+            own: None,
         };
         let runtime = tree.runtime.clone();
+        let own = runtime.enter(Scope::new);
+        tree.own = Some(own);
         runtime.enter(|| {
-            // The drag session's reactive flag belongs to no element (VIEW-DRAG-01).
-            let _ = tree.drag.active.set(tantu_reactive::signal(false));
-            let _ = tree
-                .drag
-                .position
-                .set(tantu_reactive::signal(tantu_core::Point::ZERO));
-            let scope = Scope::new();
-            let layout = tree.layout.insert(RootBox);
-            let root = ElementId::from(tree.elements.insert(Element {
-                parent: None,
-                inherited_parent: None,
-                children: Vec::new(),
-                scope,
-                kind: Kind::Render(layout, Box::new(NoPaint)),
-                inherited: Vec::new(),
-                semantics: None,
-                offstage: false,
-            }));
-            tree.root = Some(root);
-            scope.run(|| {
-                let view = app();
-                view.build(&mut BuildCx {
-                    tree: &mut tree,
-                    parent: root,
+            own.run(|| {
+                // The drag session's reactive flag belongs to no element (VIEW-DRAG-01).
+                let _ = tree.drag.active.set(tantu_reactive::signal(false));
+                let _ = tree
+                    .drag
+                    .position
+                    .set(tantu_reactive::signal(tantu_core::Point::ZERO));
+                let scope = Scope::new();
+                let layout = tree.layout.insert(RootBox);
+                let root = ElementId::from(tree.elements.insert(Element {
+                    parent: None,
+                    inherited_parent: None,
+                    children: Vec::new(),
+                    scope,
+                    kind: Kind::Render(layout, Box::new(NoPaint)),
+                    inherited: Vec::new(),
+                    semantics: None,
+                    offstage: false,
+                }));
+                tree.root = Some(root);
+                scope.run(|| {
+                    let view = app();
+                    view.build(&mut BuildCx {
+                        tree: &mut tree,
+                        parent: root,
+                    });
                 });
-            });
-            tree.sync_layout_children(root);
+                tree.sync_layout_children(root);
+            })
         });
         tree
-    }
-
-    /// Like [`with_text_styles`](Self::with_text_styles), on `runtime`, which other trees may
-    /// share (ADR 0016). The root scope is created at the runtime's top level; dropping the
-    /// tree disposes it and the tree's own runtime-level nodes, never the runtime
-    /// (VIEW-TREE-13).
-    pub fn with_runtime<V: View>(
-        runtime: Rc<Runtime>,
-        styles: TextStyles,
-        app: impl FnOnce() -> V,
-    ) -> Self {
-        let _ = (runtime, styles, app);
-        todo!("VIEW-TREE-13")
     }
 
     /// The tree's style table ([`new`](Self::new) creates an empty one of its own).
@@ -662,8 +668,9 @@ impl ViewTree {
 
 impl Drop for ViewTree {
     fn drop(&mut self) {
-        if let Some(scope) = self.root.and_then(|root| self.scope(root)) {
-            self.runtime.enter(|| scope.dispose());
+        // The tree's own scope holds its root scope and runtime-level nodes (VIEW-TREE-13).
+        if let Some(own) = self.own {
+            self.runtime.enter(|| own.dispose());
         }
     }
 }

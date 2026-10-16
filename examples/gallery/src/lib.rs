@@ -114,7 +114,12 @@ pub struct GalleryState {
 
 /// The gallery app: its main window and the shared [`GalleryState`] (GALLERY-53).
 pub fn app() -> App {
-    todo!("GALLERY-53")
+    App::new()
+        .provide(|| GalleryState {
+            dark: signal(false),
+            section: signal(SECTIONS[0]),
+        })
+        .window(Window::new("Tantu · Gallery").size(960.0, 640.0), gallery)
 }
 
 /// The gallery's view: a menu bar, the header, the sidebar and the section, and a status
@@ -122,8 +127,15 @@ pub fn app() -> App {
 pub fn gallery() -> impl View {
     Builder::new(|cx| {
         let theme = Theme::signal(cx).unwrap_or_else(|| signal(Theme::light()));
-        let section = signal(SECTIONS[0]);
-        let dark = signal(false);
+        // App-owned under the runner (GALLERY-53), else this window's own.
+        let state = cx
+            .inherit::<GalleryState>()
+            .unwrap_or_else(|| GalleryState {
+                dark: signal(false),
+                section: signal(SECTIONS[0]),
+            });
+        let (section, dark) = (state.section, state.dark);
+        let windows = Windows::of(cx);
         let rtl = signal(false);
         // The gallery's languages (GALLERY-50).
         let loc = i18n::localization(cx);
@@ -146,7 +158,10 @@ pub fn gallery() -> impl View {
         });
         let window = Column::new()
             .cross_axis_alignment(CrossAxisAlignment::Stretch)
-            .child(Keyed::new("menubar", menu_bar(section, dark, note)))
+            .child(Keyed::new(
+                "menubar",
+                menu_bar(section, dark, note, windows.map(|w| (w, state))),
+            ))
             // Everything between the bars follows the RTL switch (GALLERY-46).
             .child(Expanded::new(
                 SizedBox::expand().child(Directionality::new(
@@ -176,19 +191,29 @@ pub fn gallery() -> impl View {
     })
 }
 
-/// View (dark theme), Go (every section) and Help (GALLERY-31).
+/// View (dark theme, and a new window under the runner), Go (every section) and Help
+/// (GALLERY-31, -53).
 fn menu_bar(
     section: Signal<&'static str>,
     dark: Signal<bool>,
     note: Signal<Option<String>>,
+    windows: Option<(Windows, GalleryState)>,
 ) -> impl View {
+    let mut view = vec![
+        MenuItem::new("Dark theme")
+            .checked(dark)
+            .on_select(move || dark.update(|d| *d = !*d)),
+    ];
+    if let Some((windows, state)) = windows {
+        view.push(MenuItem::new("New window").on_select(move || {
+            windows.open(
+                Window::new("Gallery · second window").size(360.0, 200.0),
+                move || second_window(state),
+            );
+        }));
+    }
     MenuBar::new()
-        .menu(
-            "View",
-            [MenuItem::new("Dark theme")
-                .checked(dark)
-                .on_select(move || dark.update(|d| *d = !*d))],
-        )
+        .menu("View", view)
         .menu(
             "Go",
             SECTIONS
@@ -260,6 +285,32 @@ fn labeled_switch(label: &'static str, key: &'static str, value: Signal<bool>) -
             key,
             Switch::new(value).on_change(move |v| value.set(v)),
         ))
+}
+
+/// The gallery's second window (GALLERY-53): the main window's section and a dark-mode
+/// switch on the same app-owned flag, so both windows change together.
+fn second_window(state: GalleryState) -> impl View {
+    Builder::new(move |cx: &mut BuildCx<'_>| {
+        let theme = Theme::signal(cx).unwrap_or_else(|| signal(Theme::light()));
+        let (section, dark) = (state.section, state.dark);
+        effect(move || {
+            theme.set(if dark.get() {
+                Theme::dark()
+            } else {
+                Theme::light()
+            });
+        });
+        Padding::all(16.0).child(
+            Column::new()
+                .cross_axis_alignment(CrossAxisAlignment::Start)
+                .spacing(12.0)
+                .child(Keyed::new(
+                    "second-section",
+                    Text::new(move || format!("Section: {}", section.get())),
+                ))
+                .child(Keyed::new("second-dark", dark_mode_switch(dark))),
+        )
+    })
 }
 
 /// "Dark" and a switch that sets the window's theme to dark or light (GALLERY-05). The theme
