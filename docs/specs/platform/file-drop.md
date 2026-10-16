@@ -114,8 +114,9 @@ impl WidgetTester {
   `Cancelled` or `Dropped`, and calls `on_drop` with the paths. It paints nothing itself
   (apps highlight with the signal).
 - **TEST-WT-20:** `WidgetTester::drop_files` sends a hover and a drop, pumping after each.
-- **GALLERY-54:** A "files" kitchen-sink card holds a 120 px tall drop area that turns
-  `primary_container` while files hover and lists the dropped file names in
+- **GALLERY-54:** A "files" kitchen-sink card holds a 480 × 120 px drop area filled
+  `surface_container_highest` that turns `primary` at 16 % over the surface while files
+  hover (the scheme has no `primary_container`; amended while implementing, review) and lists the dropped file names in
   `sink-files-state` ("Dropped: a.txt, b.png"), after the "i18n" card; `SINK_CARDS`
   then has 28 entries (earlier rules' card counts follow), the card listing
   `file_drop_target`.
