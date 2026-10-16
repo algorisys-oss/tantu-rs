@@ -254,3 +254,41 @@ fn render_headless_10_send_and_object_safe() {
     let scene = scene_with(|b| b.fill_rect(r(0.0, 0.0, 1.0, 1.0), Color::BLACK));
     assert!(boxed.render(&scene, &Resources::new()).is_ok());
 }
+
+#[test]
+fn render_headless_11_reports_the_damaged_area() {
+    use tantu_scene::ElementId;
+    let res = Resources::new();
+    let mut renderer = HeadlessRenderer::new(100, 50);
+    renderer.resize(200, 100, 2.0);
+    let boxes = |odd: u64| {
+        let mut scene = Scene::new();
+        let mut b = scene.begin(Size::new(100.0, 50.0));
+        for n in 1..=2u64 {
+            b.set_element(ElementId::from_raw(n));
+            let color = if n == odd { Color::WHITE } else { Color::BLACK };
+            b.fill_rect(Rect::from_ltwh(10.0 * n as f32, 10.0, 5.0, 5.0), color);
+        }
+        b.finish().expect("balanced");
+        scene
+    };
+    // Full damage: the whole frame, in device pixels.
+    let first = boxes(0);
+    assert_eq!(
+        renderer
+            .render(&first, &res)
+            .expect("render")
+            .repainted_pixels,
+        200 * 100
+    );
+    // One 5 × 5 box at scale 2.
+    let mut second = boxes(1);
+    second.diff_damage(&first);
+    assert_eq!(
+        renderer
+            .render(&second, &res)
+            .expect("render")
+            .repainted_pixels,
+        10 * 10
+    );
+}

@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15, -17 and -18..20.
+//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15, -17 and -18..22.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -992,4 +992,32 @@ fn facade_app_20_runner_bridges_images_html_and_primary() {
     assert_eq!(log.clipboard_html.as_deref(), Some("<b>T</b>"));
     assert_eq!(log.clipboard_text.as_deref(), Some("T"));
     assert_eq!(log.primary_selection.as_deref(), Some("sel"));
+}
+
+#[test]
+fn facade_app_22_damage_between_frames() {
+    use tantu::scene::Damage;
+    let probe = Recorders::default();
+    run(counter_app(), FakePlatform::new(), &probe);
+    let center = button_center(probe.get(0).borrow().last_frame().expect("a frame"));
+    let recorders = Recorders::default();
+    let platform = FakePlatform::new()
+        .event(0, button(ButtonState::Pressed, center.x, center.y))
+        .event(0, button(ButtonState::Released, center.x, center.y))
+        .event(0, WindowEvent::Resized(PhysicalSize::new(320, 240)));
+    run(counter_app(), platform, &recorders);
+    let renderer = recorders.get(0);
+    let frames = renderer.borrow_mut().take_frames();
+    assert!(frames.len() >= 4, "{} frames", frames.len());
+    let full = |i: usize| matches!(frames[i].scene.damage(), Damage::Full);
+    // The first frame is full; the press and the release change part of the window.
+    assert!(full(0), "the first frame");
+    for i in 1..frames.len() - 1 {
+        match frames[i].scene.damage() {
+            Damage::Rects(rects) => assert!(!rects.is_empty(), "frame {i} changed something"),
+            Damage::Full => panic!("frame {i} should be partial"),
+        }
+    }
+    // The resize repaints everything.
+    assert!(full(frames.len() - 1), "after the resize");
 }
