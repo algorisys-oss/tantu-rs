@@ -1,6 +1,6 @@
 # Native menu bars (macOS and Windows)
 
-- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals, pinning `muda` 0.19.3)
+- **Status:** Implemented (2026-10-16; the user said "continue" on the six proposals, pinning `muda` 0.19.3)
 - **Crates:** `tantu-platform` (menu description, events, fake), `tantu-platform-winit`
   (`muda`, feature `native-menus`, macOS and Windows only), `tantu-widgets` (`MenuBar`
   hands its menus to a host), `tantu` (the runner is the host), `examples/gallery`
@@ -122,3 +122,18 @@ Proposals from the agent, for review:
 6. **Not testable in CI by clicking**; the `muda` mapping is unit-tested on the macOS and
    Windows runners (which build the feature), and the user checks the gallery on a Mac
    and on Windows.
+
+Found while implementing (review):
+
+7. **One `unsafe` exception in `tantu-platform-winit`**: `muda`'s Windows install
+   (`init_for_hwnd`/`remove_for_hwnd`) takes a raw window handle and is `unsafe`. The
+   crate root goes from `forbid(unsafe_code)` to `deny(unsafe_code)` with an `allow` on
+   that one function, with SAFETY comments (AGENTS.md allows `unsafe` in
+   `tantu-platform-*`).
+8. **GALLERY-53's test drives the drawn bar** (`FakePlatform::without_native_menus`),
+   since under the runner the gallery's bar is now native.
+9. **Checked by cross-compiling, not by running**: `cargo check`/`clippy` for
+   `x86_64-pc-windows-msvc` and `x86_64-apple-darwin` pass locally (macOS without
+   `notifications`, whose backend needs a native C toolchain); CI builds and tests on
+   both. Clicking real menus is the user's check.
+
