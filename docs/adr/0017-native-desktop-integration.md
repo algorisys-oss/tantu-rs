@@ -1,6 +1,6 @@
 # 0017. Native desktop integration: dialogs, notifications, menus and the tray
 
-- **Status:** Proposed (2026-10-16; drafted by the agent for the user's review)
+- **Status:** Accepted (2026-10-16; the user said "continue" on the draft)
 - **Date:** 2026-10-16
 - **Related:** [ADR 0004](0004-platform-trait-with-winit-by-default.md),
   [native dialogs and notifications spec](../specs/platform/native-dialogs.md),

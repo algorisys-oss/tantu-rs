@@ -217,7 +217,7 @@
   <text class="t" x="195" y="818">tantu-platform-winit</text>
   <text class="b" x="195" y="840">Windows · macOS</text>
   <text class="b" x="195" y="860">Linux (Wayland + X11)</text>
-  <text class="c" x="195" y="880">winit (default shell)</text>
+  <text class="c" x="195" y="880">winit · opt-in rfd, notify-rust, muda, tray-icon</text>
 
   <!-- ============ Legend ============ -->
   <g transform="translate(30,1160)">

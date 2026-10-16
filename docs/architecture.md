@@ -150,6 +150,11 @@ screen-reader actions back as events.
 dialogs, menus, tray and the AccessKit adapter. `tantu-platform-winit` is the default
 implementation and covers Windows, macOS and Linux (Wayland and X11). The platform provides the
 window surface that the GPU backend draws into. Nothing outside `tantu-platform-*` depends on winit.
+Native integrations are opt-in features of `tantu-platform-winit`, forwarded by the facade
+([ADR-0017](adr/0017-native-desktop-integration.md)): `native-dialogs` (`rfd`) and
+`notifications` (`notify-rust`) everywhere, `native-menus` (`muda`) and `tray`
+(`tray-icon`) on macOS and Windows. Their results come back as window events, and apps reach
+them through the facade's `Desktop` handle.
 
 ## Facade and testing
 
@@ -194,6 +199,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Overlay inherited-value lookup follows the portal target while structural ancestry remains under the root layer | [ADR-0014](adr/0014-overlay-inheritance-through-the-portal.md) |
 | Localization in `tantu-i18n` over Fluent and ICU4X; the locale is reactive and inherited; widgets depend on it | [ADR-0015](adr/0015-internationalization-crate.md) |
 | One reactive runtime per app, shared by its windows; app state in an app scope | [ADR-0016](adr/0016-one-reactive-runtime-per-app.md) |
+| Native dialogs, notifications, menus and tray as opt-in features of the winit shell; requests through the platform, results as events; no GTK on Linux | [ADR-0017](adr/0017-native-desktop-integration.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).
