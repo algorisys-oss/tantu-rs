@@ -1,6 +1,6 @@
 # Multiple windows
 
-- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals)
+- **Status:** Implemented (2026-10-16; the user said "continue" on the six proposals)
 - **Crates:** `tantu-reactive` (shared runtime ticking), `tantu-view` (a tree on a given
   runtime), `tantu` (the runner, `App::provide`, `Windows`), `examples/gallery`
 - **Plan item:** Phase 4, "Multi-window, drag & drop, clipboard", part "multi-window"
@@ -146,3 +146,12 @@ Proposals from the agent, for review:
 6. **Testing through `FakePlatform`** and the runner (`App::handler`), not a multi-window
    `WidgetTester`, which stays one tree. Facade tests check events, frames and windows
    in the fake log; the gallery test drives the second window through the runner.
+
+Found while implementing (review):
+
+7. **After a redraw the runner asks for a frame only for that window**, if its own frame
+   left it dirty; other windows a tick changed are picked up at `idle`. Asking for every
+   dirty window after each redraw drew a window that was already due in the same round
+   twice.
+8. **`WindowHandle::is_open` reads the whole open list**, so an effect reading it re-runs
+   whenever any window opens or closes (with the same answer for its own window).
