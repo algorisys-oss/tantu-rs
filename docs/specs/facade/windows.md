@@ -1,6 +1,6 @@
 # Multiple windows
 
-- **Status:** Draft (2026-10-16; drafted by the agent for the user's review)
+- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals)
 - **Crates:** `tantu-reactive` (shared runtime ticking), `tantu-view` (a tree on a given
   runtime), `tantu` (the runner, `App::provide`, `Windows`), `examples/gallery`
 - **Plan item:** Phase 4, "Multi-window, drag & drop, clipboard", part "multi-window"
@@ -47,13 +47,15 @@ impl App {
     pub fn provide<T: Clone + 'static>(self, init: impl FnOnce() -> T + 'static) -> Self;
 }
 
-/// Opens and closes the app's windows from views. Provided at the root of every window;
-/// `Windows::of(cx)`. A `Copy` handle; calls from handlers take effect after the event.
+/// Opens and closes the app's windows from views. Provided at the root of every window
+/// the runner opens. A `Copy` handle; requests take effect after the current event.
 #[derive(Clone, Copy)]
 pub struct Windows { /* signals */ }
 
 impl Windows {
-    pub fn of(cx: &BuildCx<'_>) -> Windows;
+    /// The app's windows, or `None` outside a window opened by the runner (a
+    /// `WidgetTester` tree, a bare `ViewTree`).
+    pub fn of(cx: &BuildCx<'_>) -> Option<Windows>;
     /// Opens `window` showing `content`, built in the new window's own root scope.
     pub fn open<V: View>(self, window: Window, content: impl FnOnce() -> V + 'static)
         -> WindowHandle;
@@ -102,18 +104,23 @@ impl Window {
   state or another window's elements.
 - **FACADE-WIN-05:** `WindowHandle::set_title` changes the platform window's title; a
   handle to a closed window ignores every call.
-- **FACADE-WIN-06:** Timers and tickers run once per due time for the whole app: the
-  runner ticks the runtime once before redrawing, and redraws only the windows whose trees
-  need a frame; the platform wake-up is the runtime's next wake.
+- **FACADE-WIN-06:** The runner ticks the app's runtime at most once between two `idle`
+  calls: at `idle` when a timer is due or a ticker runs (then it asks for frames only for
+  the trees that changed), otherwise before the first redraw after an `idle`. A ticker
+  started in one window doesn't redraw the others; the platform wake-up is the runtime's
+  next wake. (This replaces FACADE-APP-14's "each tree before its frame"; its single-window
+  behavior is unchanged.)
 - **FACADE-WIN-07:** Platform events go only to their window's tree; a signal written by
   one window's handler redraws every window showing it (and only those).
 - **VIEW-TREE-13:** `ViewTree::with_runtime` builds on the given runtime; dropping the tree
   disposes its root scope and its own runtime-level nodes (the drag session's signals),
   leaving the runtime and other trees' nodes alive.
-- **GALLERY-53:** The gallery's View menu has "New window", opening a second window that
-  shows the current section's name and the dark-mode switch bound to the same signal as
-  the main window's; toggling it in either window changes both. The gallery's dark-mode
-  signal moves to `App::provide`.
+- **GALLERY-53:** `gallery::app()` builds the gallery's `App`, providing a `GalleryState`
+  (the dark-mode flag and the current section, app-owned signals). The View menu has "New
+  window", opening a 360 × 200 window titled "Gallery · second window" with a `Text` keyed
+  `second-section` ("Section: Buttons") and a dark-mode switch keyed `second-dark`, bound to
+  the same flag as the main window's: toggling it in either window changes both windows'
+  themes. Without the runner (`WidgetTester`), the item is absent and the flag is local.
 
 ## Performance and allocation
 

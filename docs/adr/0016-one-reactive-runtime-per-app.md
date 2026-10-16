@@ -1,6 +1,6 @@
 # 0016. One reactive runtime per app, shared by its windows
 
-- **Status:** Proposed (2026-10-16; drafted by the agent for the user's review)
+- **Status:** Accepted (2026-10-16; the user said "continue" on the draft)
 - **Date:** 2026-10-16
 - **Supersedes:** the "one runtime per window" part of [ADR 0011](0011-view-layer.md) and
   decision 20 ("an explicit `Runtime` per app/window") in HANDOFF.md

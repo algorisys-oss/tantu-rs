@@ -39,7 +39,7 @@ inkscape "$PWD/docs/architecture/tantu-architecture.svg" \
 |---|---|---|
 | App code | user crate, `tantu-widgets`, `tantu-theme`, `tantu-i18n` | Functions returning `impl View`, built with builders; state kept in signals. Widgets read the theme's tokens through an inherited `Signal<Theme>` ([ADR-0012](adr/0012-theme-tokens-through-inherited-signals.md)) and the locale, messages and formats through an inherited `Localization` ([ADR-0015](adr/0015-internationalization-crate.md)) |
 | View tree | `tantu-view` | Cheap, one-shot descriptions of the UI, consumed when they build their elements; components are functions that run once ([ADR-0011](adr/0011-view-layer.md)) |
-| Element tree | `tantu-view` | Retained nodes in an arena (`ViewTree`, one per window). Render elements own a layout node and a paint behavior; region elements hold dynamic content. Each has a stable identity and a reactive scope |
+| Element tree | `tantu-view` | Retained nodes in an arena (`ViewTree`, one per window; every window's tree shares the app's reactive runtime, [ADR-0016](adr/0016-one-reactive-runtime-per-app.md)). Render elements own a layout node and a paint behavior; region elements hold dynamic content. Each has a stable identity and a reactive scope |
 | Render tree | `tantu-layout` (layout tree) + `tantu-view` (paint, hit-test) | `RenderBox`-style layout objects in a `LayoutTree` arena owned by `tantu-layout`; `tantu-view` keeps them in step with elements and paints and hit-tests from their geometry ([ADR-0009](adr/0009-layout-tree-in-tantu-layout.md)) |
 | Scene | `tantu-scene` | Flat, serializable, versioned list of draw commands. Each command carries an element id and z-index |
 | Renderer | `tantu-scene` (trait), `tantu-render-*` | Draws a Scene. Never calls back into the UI |
@@ -192,6 +192,7 @@ diagram. The allowed dependencies are listed in the `AGENTS.md` workspace table.
 | Semantics on elements; `tantu-a11y` builds AccessKit trees, delivered through the platform trait | [ADR-0013](adr/0013-accessibility-pipeline.md) |
 | Overlay inherited-value lookup follows the portal target while structural ancestry remains under the root layer | [ADR-0014](adr/0014-overlay-inheritance-through-the-portal.md) |
 | Localization in `tantu-i18n` over Fluent and ICU4X; the locale is reactive and inherited; widgets depend on it | [ADR-0015](adr/0015-internationalization-crate.md) |
+| One reactive runtime per app, shared by its windows; app state in an app scope | [ADR-0016](adr/0016-one-reactive-runtime-per-app.md) |
 | Clay techniques used internally only (measure cache, ids on commands, culling, anchored overlays) | `PLAN.md`, `HANDOFF.md` |
 
 The full list, with statuses, is in [`adr/README.md`](adr/README.md).

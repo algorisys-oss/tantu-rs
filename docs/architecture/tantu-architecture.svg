@@ -179,7 +179,7 @@
   <text class="t" x="1235" y="278">Reactive runtime</text>
   <text class="b" x="1235" y="300">Signal · Memo · Effect · batch · scoped disposal</text>
   <text class="b" x="1235" y="320">glitch-free; closures capture Copy handles</text>
-  <text class="b" x="1235" y="340">no whole-subtree setState rebuilds</text>
+  <text class="b" x="1235" y="340">one runtime per app, shared by its windows</text>
   <text class="c" x="1235" y="360">tantu-reactive</text>
 
   <!-- Layout -->
