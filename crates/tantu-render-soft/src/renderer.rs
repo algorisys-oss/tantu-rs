@@ -57,6 +57,13 @@ pub struct SoftRenderer {
     blur: blur::Scratch,
     /// Glyph coverage masks (shared code with the wgpu renderer).
     glyphs: GlyphRasterizer,
+    /// Size and scale factor (bits) of the last frame drawn completely, when the target still
+    /// holds it, so the next frame may repaint only its damage (RENDER-SOFT-29).
+    last_frame: Option<(u32, u32, u32)>,
+    /// The damaged area of a partial repaint, as a mask under every clip.
+    damage_mask: Option<Mask>,
+    /// The damaged device rects of a partial repaint.
+    damage_rects: Vec<tiny_skia::IntRect>,
 }
 
 /// Something pushed and not yet popped while drawing a frame.
@@ -82,6 +89,9 @@ impl SoftRenderer {
             clips: Vec::new(),
             blur: blur::Scratch::default(),
             glyphs: GlyphRasterizer::new(),
+            last_frame: None,
+            damage_mask: None,
+            damage_rects: Vec::new(),
         }
     }
 
@@ -125,6 +135,8 @@ impl SoftRenderer {
 
 impl Renderer for SoftRenderer {
     fn resize(&mut self, width: u32, height: u32, scale_factor: f32) {
+        // The next frame repaints everything (RENDER-SOFT-29).
+        self.last_frame = None;
         self.scale_factor = if scale_factor.is_finite() && scale_factor > 0.0 {
             scale_factor
         } else {
@@ -152,9 +164,76 @@ impl Renderer for SoftRenderer {
             RenderReport::for_scene(scene, resources, &|kind| handlers.contains_key(&kind));
         self.prune_images(resources);
         let Some(target) = self.target.as_mut() else {
+            self.last_frame = None;
             return Err(RenderError::OutOfMemory);
         };
-        target.fill(tiny_skia::Color::TRANSPARENT);
+        // Repaint only the damage when the target holds the last frame at this size and
+        // scale (RENDER-SOFT-29, -30); otherwise everything.
+        let key = (self.width, self.height, self.scale_factor.to_bits());
+        let partial = match scene.damage() {
+            tantu_scene::Damage::Rects(rects) if self.last_frame == Some(key) => Some(rects),
+            _ => None,
+        };
+        let mut base = None;
+        match partial {
+            Some(rects) => {
+                device_rects(
+                    rects,
+                    self.scale_factor,
+                    self.width,
+                    self.height,
+                    &mut self.damage_rects,
+                );
+                if self.damage_rects.is_empty() {
+                    report.repainted_pixels = 0;
+                    return Ok(report);
+                }
+                let mask = match self.damage_mask.take() {
+                    Some(mask) if (mask.width(), mask.height()) == (self.width, self.height) => {
+                        Some(mask)
+                    }
+                    _ => Mask::new(self.width, self.height),
+                };
+                let Some(mut mask) = mask else {
+                    self.last_frame = None;
+                    return Err(RenderError::OutOfMemory);
+                };
+                let data = mask.data_mut();
+                data.fill(0);
+                let mut clear = tiny_skia::Paint::default();
+                clear.set_color(tiny_skia::Color::TRANSPARENT);
+                clear.blend_mode = BlendMode::Source;
+                clear.anti_alias = false;
+                for rect in &self.damage_rects {
+                    for y in rect.top()..rect.bottom() {
+                        let row = (y as usize) * (self.width as usize);
+                        data[row + rect.left() as usize..row + rect.right() as usize].fill(255);
+                    }
+                    target.fill_rect(rect.to_rect(), &clear, Transform::identity(), None);
+                }
+                report.repainted_pixels = data.iter().filter(|&&v| v == 255).count() as u64;
+                self.damage_mask = Some(mask);
+                base = self.damage_mask.as_ref();
+            }
+            None => {
+                target.fill(tiny_skia::Color::TRANSPARENT);
+                report.repainted_pixels = u64::from(self.width) * u64::from(self.height);
+                // A full repaint draws through a fully open mask too: tiny-skia blends
+                // masked draws in another pipeline, and partial repaints must match full ones
+                // pixel for pixel (RENDER-SOFT-30).
+                let mask = match self.damage_mask.take() {
+                    Some(mask) if (mask.width(), mask.height()) == (self.width, self.height) => {
+                        Some(mask)
+                    }
+                    _ => Mask::new(self.width, self.height),
+                };
+                if let Some(mut mask) = mask {
+                    mask.data_mut().fill(255);
+                    self.damage_mask = Some(mask);
+                    base = self.damage_mask.as_ref();
+                }
+            }
+        }
 
         let mut frame = FrameState {
             target,
@@ -170,6 +249,15 @@ impl Renderer for SoftRenderer {
             scopes: Vec::new(),
             clip_depth: 0,
             layer_depth: 0,
+            base,
+            partial: partial.is_some(),
+        };
+        // During a partial repaint, draws whose bounds miss every damaged rect are skipped:
+        // the base mask would discard all of their pixels anyway.
+        let damage: &[tiny_skia::IntRect] = if partial.is_some() {
+            &self.damage_rects
+        } else {
+            &[]
         };
         // Depth inside a scope hidden by a non-finite transform or clip (SCENE-RENDER-04).
         let mut hidden = 0usize;
@@ -193,6 +281,8 @@ impl Renderer for SoftRenderer {
                 Command::PushLayer(layer) => frame.push_layer(*layer),
                 Command::PopClip | Command::PopTransform | Command::PopLayer => frame.pop(),
                 draw if !is_drawable(draw, scene) => {}
+                draw if !damage.is_empty()
+                    && misses(damage, frame.transform, frame.scale, scene, draw) => {}
                 Command::Fill { shape, color } => frame.fill(shape, *color),
                 Command::Stroke {
                     shape,
@@ -221,8 +311,67 @@ impl Renderer for SoftRenderer {
         while !frame.scopes.is_empty() {
             frame.pop();
         }
+        self.last_frame = Some(key);
         Ok(report)
     }
+}
+
+/// Whether `draw`'s bounds (the ones damage is computed from, SCENE-DAMAGE-03) miss every
+/// damaged device rect. Conservative: unknown bounds never miss.
+fn misses(
+    damage: &[tiny_skia::IntRect],
+    transform: Affine,
+    scale: f32,
+    scene: &Scene,
+    draw: &Command,
+) -> bool {
+    let local = match draw {
+        Command::Fill { shape, .. } => shape.rect,
+        Command::Stroke { shape, width, .. } => shape.rect.inflate(width.abs() / 2.0),
+        Command::BoxShadow(shadow) => {
+            let sigma = shadow.blur_radius.max(0.0) * 0.577_35 + 0.5;
+            shadow
+                .shape
+                .rect
+                .translate(shadow.offset)
+                .inflate(shadow.spread_radius + 3.0 * sigma)
+        }
+        Command::Image(image) => image.dest,
+        Command::GlyphRun(run) => {
+            let glyphs = scene.glyphs(run);
+            let Some(first) = glyphs.first() else {
+                return false;
+            };
+            let (mut left, mut top, mut right, mut bottom) = (first.x, first.y, first.x, first.y);
+            for glyph in glyphs {
+                left = left.min(glyph.x);
+                top = top.min(glyph.y);
+                right = right.max(glyph.x);
+                bottom = bottom.max(glyph.y);
+            }
+            Rect::from_ltrb(left, top, right, bottom)
+                .translate(tantu_core::Vec2::new(run.origin.x, run.origin.y))
+                .inflate(run.font_size.abs())
+        }
+        _ => return false,
+    };
+    let bounds = transform.transform_rect_bbox(local);
+    // One device pixel of slack for anti-aliasing.
+    let (l, t, r, b) = (
+        bounds.left * scale - 1.0,
+        bounds.top * scale - 1.0,
+        bounds.right * scale + 1.0,
+        bounds.bottom * scale + 1.0,
+    );
+    if !(l.is_finite() && t.is_finite() && r.is_finite() && b.is_finite()) {
+        return false;
+    }
+    damage.iter().all(|d| {
+        r <= d.left() as f32
+            || l >= d.right() as f32
+            || b <= d.top() as f32
+            || t >= d.bottom() as f32
+    })
 }
 
 impl fmt::Debug for SoftRenderer {
@@ -253,6 +402,12 @@ struct FrameState<'a> {
     scopes: Vec<Scope>,
     clip_depth: usize,
     layer_depth: usize,
+    /// The damaged area under every clip during a partial repaint, or a fully open mask
+    /// during a full one (RENDER-SOFT-29, -30).
+    base: Option<&'a Mask>,
+    /// Whether this is a partial repaint (custom handlers see the base mask as a clip only
+    /// then).
+    partial: bool,
 }
 
 impl FrameState<'_> {
@@ -325,7 +480,11 @@ impl FrameState<'_> {
 
     /// The pixmap commands currently draw into and the current clip mask.
     fn surface(&mut self) -> (&mut Pixmap, Option<&Mask>) {
-        let clip = self.clip_depth.checked_sub(1).map(|i| &self.clips[i]);
+        let clip = self
+            .clip_depth
+            .checked_sub(1)
+            .map(|i| &self.clips[i])
+            .or(self.base);
         let target = match self.layer_depth.checked_sub(1) {
             Some(i) => &mut self.layers[i],
             None => &mut *self.target,
@@ -357,7 +516,7 @@ impl FrameState<'_> {
         let ts = self.device_transform();
         let (outer, rest) = self.clips.split_at_mut(depth);
         let mask = &mut rest[0];
-        match outer.last() {
+        match outer.last().or(self.base) {
             Some(parent) => mask.data_mut().copy_from_slice(parent.data()),
             None => mask.data_mut().fill(255),
         }
@@ -556,7 +715,11 @@ impl FrameState<'_> {
         };
         let paint = solid_paint(shadow.color);
         let scratch = &mut *self.blur;
-        let clip = self.clip_depth.checked_sub(1).map(|i| &self.clips[i]);
+        let clip = self
+            .clip_depth
+            .checked_sub(1)
+            .map(|i| &self.clips[i])
+            .or(self.base);
         let target = match self.layer_depth.checked_sub(1) {
             Some(i) => &mut self.layers[i],
             None => &mut *self.target,
@@ -615,6 +778,7 @@ impl FrameState<'_> {
             clips,
             clip_depth,
             layer_depth,
+            base,
             ..
         } = self;
         let Some(pixmap) = images.get(&draw.image) else {
@@ -630,7 +794,7 @@ impl FrameState<'_> {
             ),
             ..Paint::default()
         };
-        let clip = clip_depth.checked_sub(1).map(|i| &clips[i]);
+        let clip = clip_depth.checked_sub(1).map(|i| &clips[i]).or(*base);
         let target = match layer_depth.checked_sub(1) {
             Some(i) => &mut layers[i],
             None => &mut **target,
@@ -653,12 +817,16 @@ impl FrameState<'_> {
             clips,
             clip_depth,
             layer_depth,
+            base,
+            partial,
             ..
         } = self;
         let Some(handler) = handlers.get_mut(&kind) else {
             return;
         };
-        let clip = clip_depth.checked_sub(1).map(|i| &clips[i]);
+        // The open mask of a full repaint isn't a clip to a handler (RENDER-SOFT-22).
+        let base = if *partial { *base } else { None };
+        let clip = clip_depth.checked_sub(1).map(|i| &clips[i]).or(base);
         let pixmap = match layer_depth.checked_sub(1) {
             Some(i) => &mut layers[i],
             None => &mut **target,
@@ -670,6 +838,30 @@ impl FrameState<'_> {
             bounds,
             data,
         });
+    }
+}
+
+/// The damage rects in device pixels, rounded outward and clamped to the target
+/// (RENDER-SOFT-29).
+fn device_rects(
+    rects: &[tantu_core::Rect],
+    scale: f32,
+    width: u32,
+    height: u32,
+    out: &mut Vec<tiny_skia::IntRect>,
+) {
+    out.clear();
+    let (w, h) = (width as f32, height as f32);
+    for r in rects {
+        let left = (r.left * scale).floor().clamp(0.0, w);
+        let top = (r.top * scale).floor().clamp(0.0, h);
+        let right = (r.right * scale).ceil().clamp(0.0, w);
+        let bottom = (r.bottom * scale).ceil().clamp(0.0, h);
+        if let Some(rect) =
+            tiny_skia::IntRect::from_ltrb(left as i32, top as i32, right as i32, bottom as i32)
+        {
+            out.push(rect);
+        }
     }
 }
 

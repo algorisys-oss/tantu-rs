@@ -31,6 +31,7 @@
 #![forbid(unsafe_code)]
 
 pub mod command;
+mod damage;
 pub mod handles;
 pub mod renderer;
 pub mod resources;

@@ -96,6 +96,11 @@ pub struct Scene {
     damage: DamageState,
     damage_rects: Vec<Rect>,
     scratch: Scratch,
+    /// `diff_damage`'s buffers, created by its first call (SCENE-DAMAGE-05).
+    pub(crate) damage_scratch: Option<Box<crate::damage::DamageScratch>>,
+    /// Bumped by every `begin`, so `diff_damage` knows whether groups it computed for this
+    /// Scene still describe it.
+    pub(crate) generation: u64,
 }
 
 impl Scene {
@@ -116,6 +121,8 @@ impl Scene {
                 units: Vec::new(),
                 sorted: Vec::new(),
             },
+            damage_scratch: None,
+            generation: 0,
         }
     }
 
@@ -169,15 +176,22 @@ impl Scene {
         }
     }
 
-    /// Sets this frame's damage from what changed since `previous` (SCENE-DAMAGE-01..05),
-    /// replacing any damage recorded while building. A different size gives full damage.
-    pub fn diff_damage(&mut self, previous: &Scene) {
-        let _ = previous;
-        todo!("SCENE-DAMAGE-01")
+    /// Marks the whole frame damaged (after building).
+    pub(crate) fn set_full_damage(&mut self) {
+        self.damage = DamageState::All;
+        self.damage_rects.clear();
+    }
+
+    /// Sets the damage to `rects` (after building; empty means nothing changed).
+    pub(crate) fn set_damage_rects(&mut self, rects: &[Rect]) {
+        self.damage = DamageState::Rects;
+        self.damage_rects.clear();
+        self.damage_rects.extend_from_slice(rects);
     }
 
     /// Empties every buffer, keeping its capacity.
     fn clear(&mut self) {
+        self.generation = self.generation.wrapping_add(1);
         self.entries.clear();
         self.glyphs.clear();
         self.data.clear();

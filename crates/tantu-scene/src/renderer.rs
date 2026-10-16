@@ -31,7 +31,11 @@ pub struct RenderReport {
 impl RenderReport {
     /// True if every count is 0.
     pub fn is_clean(&self) -> bool {
-        *self == RenderReport::default()
+        // Repainted pixels are a measurement, not a problem (SCENE-RENDER-09).
+        RenderReport {
+            repainted_pixels: 0,
+            ..*self
+        } == RenderReport::default()
     }
 
     /// The report every renderer gives for `scene` with `resources`, before any

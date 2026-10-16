@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (Phase 4 complete; Phase 5 started: damage tracking drafted for review)_
+_Last updated: 2026-10-16 (Phase 4 complete; Phase 5 item 1 part 1, damage and partial software repaint, done)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -1438,6 +1438,26 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     The gallery's main window shows a tray (Dark theme, New window, Close gallery) under
     the runner only. Checked by cross-target `cargo check`/`clippy` here and by CI; not on
     a real Mac or Windows machine. **Phase 4 is complete** with this item.
+109. **Damage from Scene diffs and partial software repaint** (2026-10-16, spec
+    `docs/specs/scene/damage.md`; the user said "continue" on the six proposals; two
+    amendments found while writing the tests are marked review). `Scene::diff_damage`
+    groups draws by element id, hashes each group's commands with their context
+    (transform, clip, layer, z) using an in-house Fx-style hasher, and damages the union of
+    a changed group's old and new window bounds. Unchanged groups whose predecessor among
+    the unchanged ones moved are damaged too, so swaps repaint. Rects are coalesced; more than
+    256 changed groups, more than 16 rects or more than 60 % of the frame give `Full`. Each
+    Scene caches its own groups (by a generation bumped on `clear`), so the next frame's diff
+    walks only the new Scene. `RenderReport::repainted_pixels` is a measurement that
+    `is_clean` ignores. The software renderer keeps its pixmap, clears and repaints only the
+    damaged device rects through a base mask, and skips draws whose bounds miss the damage.
+    Full frames also draw through an all-open mask, because tiny-skia's masked pipeline
+    differs by about 1 level on anti-aliased edges; this keeps partial and full repaints
+    pixel-identical over every conformance Scene, one draw changed at a time. The headless
+    renderer reports the damaged area. The runner keeps each window's previous Scene and
+    repaints fully on the first frame, after a resize or scale change, and after a lost
+    target. Measured with 10 000 elements: diff 0.47 ms, full software paint 16.3 ms,
+    partial paint 0.58 ms. The wgpu renderer still repaints fully, which the contract
+    allows (part 2). No new crate, edge or dependency.
 
 ## Commit log
 
@@ -2075,7 +2095,15 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `1a635ca` | spec: the system tray agreed |
 | `b10560a` | test: the system tray, stubs + 8 tests (7 failing); tray-icon as an opt-in dependency |
 | `a4523a0` | impl: the system tray (SystemTray, app events, tray-icon on macOS/Windows); gallery tray; PLAN.md Phase 4 done |
-| _this commit_ | docs: draft damage tracking and partial repaint spec (Phase 5, item 1 part 1) for review; PLAN.md item split |
+| `7744b2b` | docs: draft damage tracking and partial repaint spec (Phase 5, item 1 part 1) for review; PLAN.md item split |
+| `bc37fb1` | spec: damage from Scene diffs and partial repaint in the software renderer agreed |
+| `8f02f9d` | spec: SCENE-RENDER-09, is_clean ignores repainted_pixels |
+| `a722f9c` | spec: SCENE-DAMAGE-02 damages unchanged groups whose relative paint order changed |
+| `682f3dd` | test: damage and partial repaint, stubs + 11 failing tests |
+| `6078dec` | test: RENDER-HEADLESS-04 compares the shared counts |
+| `2feec19` | test: RENDER-SOFT-30 recolors one draw command at a time |
+| `39a008a` | test: damage tests pass clippy |
+| _this commit_ | impl: Scene::diff_damage, repainted_pixels, partial repaint in the software renderer, headless damage area, the runner's previous Scene; PLAN.md part 1 ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -2085,8 +2113,9 @@ that with the real hash from `git log`.
 Phase 4's milestone is done (`examples/enterprise-dashboard`), and so are multi-window
 and OS file drops. The rich clipboard, native dialogs/notifications, native menu bars and the tray are done:
 **Phase 4 is complete** (2026-10-16). **Phase 5 has started**: the first item is split in
-four (PLAN.md), and part 1, damage from Scene diffs plus partial repaint in the software
-renderer, is drafted (`docs/specs/scene/damage.md`, six proposals; say "continue"). RTL caret movement in
+four (PLAN.md), and part 1 is done: damage from Scene diffs plus partial repaint in the
+software renderer (decision 109). **Next:** part 2, partial repaint in the wgpu renderer
+(a retained target texture copied to the surface) and compositor damage; draft a spec. RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

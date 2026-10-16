@@ -207,7 +207,7 @@ faster or more portable without changing how apps are written.
 
 ### Phase 5 — Polish, performance and tooling (weeks 27+)
 - [ ] Damage tracking and partial repaint; layer caching; GPU texture atlas tuning, in parts:
-  - [ ] damage from Scene diffs by element id; partial repaint in the software renderer (spec `docs/specs/scene/damage.md`)
+  - [x] damage from Scene diffs by element id; partial repaint in the software renderer (spec `docs/specs/scene/damage.md`)
   - [ ] partial repaint in the wgpu renderer (a retained target) and compositor damage
   - [ ] layer caching
   - [ ] glyph-atlas and texture-atlas tuning

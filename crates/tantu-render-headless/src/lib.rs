@@ -75,6 +75,30 @@ pub struct HeadlessRenderer {
 }
 
 impl HeadlessRenderer {
+    /// The device pixels the Scene's damage covers: the whole target for full damage, else
+    /// each rect scaled, rounded outward and clamped (RENDER-HEADLESS-11).
+    fn damaged_pixels(&self, scene: &Scene) -> u64 {
+        let full = u64::from(self.width) * u64::from(self.height);
+        match scene.damage() {
+            tantu_scene::Damage::Full => full,
+            tantu_scene::Damage::Rects(rects) => {
+                let s = self.scale_factor;
+                let (w, h) = (self.width as f32, self.height as f32);
+                rects
+                    .iter()
+                    .map(|r| {
+                        let left = (r.left * s).floor().clamp(0.0, w);
+                        let top = (r.top * s).floor().clamp(0.0, h);
+                        let right = (r.right * s).ceil().clamp(0.0, w);
+                        let bottom = (r.bottom * s).ceil().clamp(0.0, h);
+                        ((right - left).max(0.0) * (bottom - top).max(0.0)) as u64
+                    })
+                    .sum::<u64>()
+                    .min(full)
+            }
+        }
+    }
+
     /// A renderer with a `width × height` physical-pixel target, scale factor 1, no frames.
     pub fn new(width: u32, height: u32) -> HeadlessRenderer {
         HeadlessRenderer {
@@ -151,7 +175,10 @@ impl Renderer for HeadlessRenderer {
         let report = if self.width == 0 || self.height == 0 {
             RenderReport::default()
         } else {
-            RenderReport::for_scene(scene, resources, &|kind| self.custom.contains(&kind))
+            let mut report =
+                RenderReport::for_scene(scene, resources, &|kind| self.custom.contains(&kind));
+            report.repainted_pixels = self.damaged_pixels(scene);
+            report
         };
         self.frames.push(RecordedFrame {
             scene: scene.clone(),

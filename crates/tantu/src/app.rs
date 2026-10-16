@@ -380,6 +380,11 @@ struct WindowState {
     tree: ViewTree,
     renderer: Box<dyn Renderer>,
     scene: Scene,
+    /// The last rendered frame, to diff the next one against (FACADE-APP-22).
+    previous: Scene,
+    /// Whether the next frame must repaint everything (first frame, resize, scale change,
+    /// lost target).
+    repaint_all: bool,
     /// The IME area last told to the platform (FACADE-APP-12).
     ime_area: Option<Rect>,
     /// The accessibility tree builder while assistive technology is active (FACADE-APP-15).
@@ -662,6 +667,8 @@ impl AppHandler {
             tree,
             renderer,
             scene: Scene::new(),
+            previous: Scene::new(),
+            repaint_all: true,
             ime_area: None,
             a11y: None,
             cursor: tantu_platform::CursorIcon::Default,
@@ -866,13 +873,21 @@ impl AppHandler {
         }
         // A frame can move content under a still pointer (FACADE-APP-17).
         state.sync_cursor(cx);
+        // Damage against the last frame, unless everything must repaint (FACADE-APP-22).
+        if !std::mem::take(&mut state.repaint_all) {
+            state.scene.diff_damage(&state.previous);
+        }
         match state.renderer.render(&state.scene, &self.resources) {
             Ok(report) => {
                 if !report.is_clean() {
                     tracing::debug!(?report, "frame rendered with problems");
                 }
+                std::mem::swap(&mut state.scene, &mut state.previous);
             }
-            Err(RenderError::TargetLost) => cx.request_redraw(state.id),
+            Err(RenderError::TargetLost) => {
+                state.repaint_all = true;
+                cx.request_redraw(state.id);
+            }
             Err(error) => return self.fail(cx, Error::Render(error)),
         }
         // Every frame of an active window sends its tree (FACADE-APP-15).
@@ -1060,6 +1075,7 @@ impl PlatformHandler for AppHandler {
             }
             WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged(_) => {
                 let state = &mut self.windows[index];
+                state.repaint_all = true;
                 fit(state.renderer.as_mut(), cx, window);
                 cx.request_redraw(window);
             }

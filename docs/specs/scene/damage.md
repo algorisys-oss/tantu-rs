@@ -1,6 +1,6 @@
 # Damage tracking and partial repaint (part 1)
 
-- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals)
+- **Status:** Implemented (2026-10-16; agreed when the user said "continue" on the six proposals)
 - **Crates:** `tantu-scene` (damage from two Scenes, report counts), `tantu-render-soft`
   (partial repaint), `tantu-render-headless`, `tantu` (the runner keeps the previous Scene)
 - **Plan item:** Phase 5, "Damage tracking and partial repaint; layer caching; GPU texture
@@ -98,6 +98,14 @@ impl RenderReport {
 Diffing walks both Scenes once (hash per group, kept in reusable buffers); it is measured
 against the 10 k-object paint in the layout benchmark and must stay under 10 % of a
 frame's paint time there.
+
+Measured (2026-10-16, release, 10 000 elements of one fill each on a 1280 × 720 frame,
+one element changing per frame): recording 62 µs, diffing 0.47 ms (each Scene's groups
+are cached in it, so a frame walks only itself), a full software repaint 16.3 ms, and the
+partial repaint 0.58 ms. Diffing is 2.9 % of the full paint. The software renderer also
+skips, during a partial repaint, draws whose bounds (SCENE-DAMAGE-03, one device pixel of
+slack) miss every damaged rect; without that, the partial repaint took 14.5 ms because
+every command was still rasterized through the mask.
 
 ## Open questions
 
