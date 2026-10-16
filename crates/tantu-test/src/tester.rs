@@ -507,6 +507,28 @@ impl WidgetTester {
         self.clipboard.read_text()
     }
 
+    /// The tester's clipboard image (TEST-WT-21).
+    pub fn clipboard_image(&self) -> Option<tantu_view::scene::ImageData> {
+        todo!("TEST-WT-21")
+    }
+
+    /// Puts an image on the tester's clipboard (TEST-WT-21).
+    pub fn set_clipboard_image(&mut self, image: tantu_view::scene::ImageData) {
+        let _ = image;
+        todo!("TEST-WT-21")
+    }
+
+    /// The tester's primary selection (TEST-WT-21).
+    pub fn primary_selection(&self) -> Option<String> {
+        todo!("TEST-WT-21")
+    }
+
+    /// Sets the tester's primary selection (TEST-WT-21).
+    pub fn set_primary_selection(&mut self, text: &str) {
+        let _ = text;
+        todo!("TEST-WT-21")
+    }
+
     /// Writes the tester's clipboard (TEST-WT-19).
     pub fn set_clipboard_text(&mut self, text: &str) {
         use tantu_view::Clipboard;

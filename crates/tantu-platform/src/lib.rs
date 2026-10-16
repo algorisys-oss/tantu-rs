@@ -49,8 +49,8 @@ mod types;
 pub use accesskit;
 pub use fake::{FakeLog, FakePlatform, FakeStep, FakeWindow};
 pub use platform::{
-    Clipboard, Platform, PlatformContext, PlatformError, PlatformHandler, SurfaceTarget,
-    WindowHandles,
+    Clipboard, ClipboardImage, Platform, PlatformContext, PlatformError, PlatformHandler,
+    SurfaceTarget, WindowHandles,
 };
 /// The `raw-window-handle` version surface targets implement.
 pub use raw_window_handle;

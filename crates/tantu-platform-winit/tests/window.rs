@@ -1,4 +1,4 @@
-//! Rules PLATFORM-WINIT-01..04 and -14..17 against a real window (spec `docs/specs/platform-winit/shell.md`,
+//! Rules PLATFORM-WINIT-01..04 and -14..17 and -19 against a real window (spec `docs/specs/platform-winit/shell.md`,
 //! "Testing"). winit needs the main thread, so this target runs without the test harness. It runs
 //! only with `TANTU_WINDOW_TESTS=1`; otherwise it reports that it was skipped.
 
@@ -36,6 +36,16 @@ struct Run {
     cursor_set: bool,
     /// The clipboard round trip, if a clipboard opened (PLATFORM-WINIT-17).
     clipboard: Option<(bool, Option<String>)>,
+    /// The image, HTML and primary round trips, if a clipboard opened (PLATFORM-WINIT-19).
+    rich: Option<RichRoundTrip>,
+}
+
+/// What the rich clipboard round trip wrote and read back.
+#[derive(Debug, Default)]
+struct RichRoundTrip {
+    image: (bool, Option<tantu_platform::ClipboardImage>),
+    html: (bool, Option<String>, Option<String>),
+    primary: (bool, Option<String>),
 }
 
 impl PlatformHandler for Run {
@@ -75,6 +85,26 @@ impl PlatformHandler for Run {
         if let Some(clipboard) = cx.clipboard() {
             let written = clipboard.write_text("tantu clipboard test");
             self.clipboard = Some((written, clipboard.read_text()));
+            let image = tantu_platform::ClipboardImage {
+                width: 2,
+                height: 1,
+                rgba: vec![255, 0, 0, 255, 0, 0, 255, 255],
+            };
+            let image = (clipboard.write_image(&image), clipboard.read_image());
+            let html = (
+                clipboard.write_html("<b>tantu</b>", "tantu"),
+                clipboard.read_html(),
+                clipboard.read_text(),
+            );
+            let primary = (
+                clipboard.write_primary("tantu primary"),
+                clipboard.read_primary(),
+            );
+            self.rich = Some(RichRoundTrip {
+                image,
+                html,
+                primary,
+            });
         }
     }
 
@@ -125,6 +155,32 @@ fn platform_winit_17_clipboard(run: &Run) {
     // returns the text.
     if let Some((true, read)) = &run.clipboard {
         assert_eq!(read.as_deref(), Some("tantu clipboard test"));
+    }
+}
+
+fn platform_winit_19_rich_clipboard(run: &Run) {
+    let Some(rich) = &run.rich else {
+        return;
+    };
+    // What was written reads back (a display may refuse a kind; then nothing is checked).
+    if let (true, read) = &rich.image {
+        let read = read.as_ref().expect("the image reads back");
+        assert_eq!((read.width, read.height), (2, 1));
+        assert_eq!(read.rgba, [255, 0, 0, 255, 0, 0, 255, 255]);
+    }
+    if let (true, html, text) = &rich.html {
+        assert!(
+            html.as_deref().is_some_and(|h| h.contains("<b>tantu</b>")),
+            "{html:?}"
+        );
+        assert_eq!(text.as_deref(), Some("tantu"));
+    }
+    match &rich.primary {
+        (true, read) => assert_eq!(read.as_deref(), Some("tantu primary")),
+        (false, read) => {
+            assert!(!cfg!(target_os = "linux") || read.is_none());
+            assert!(cfg!(target_os = "linux") || read.is_none());
+        }
     }
 }
 
@@ -207,6 +263,7 @@ fn main() -> ExitCode {
     platform_winit_15_adapter(&run);
     platform_winit_16_set_cursor(&run);
     platform_winit_17_clipboard(&run);
+    platform_winit_19_rich_clipboard(&run);
     println!("window tests passed");
     ExitCode::SUCCESS
 }

@@ -49,12 +49,53 @@ impl<T> WindowHandles for T where
 /// A shared handle to a window's handles. Keeps the native window alive while held.
 pub type SurfaceTarget = Arc<dyn WindowHandles>;
 
-/// The OS clipboard (plain text) (PLATFORM-CLIP-01).
+/// A clipboard image: straight-alpha RGBA8 rows, top to bottom (PLATFORM-CLIP-02).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClipboardImage {
+    /// Width in pixels.
+    pub width: u32,
+    /// Height in pixels.
+    pub height: u32,
+    /// `width · height · 4` bytes.
+    pub rgba: Vec<u8>,
+}
+
+/// The OS clipboard: plain text (PLATFORM-CLIP-01), and images, HTML and the primary
+/// selection (PLATFORM-CLIP-02), whose methods have defaults so implementations that only
+/// handle text keep working.
 pub trait Clipboard {
     /// The clipboard's text, or `None` when it is empty, holds no text or can't be read.
     fn read_text(&self) -> Option<String>;
     /// Replaces the clipboard's content with `text`; false when it couldn't be written.
     fn write_text(&self, text: &str) -> bool;
+    /// The clipboard's image, if it holds one. Default: none.
+    fn read_image(&self) -> Option<ClipboardImage> {
+        todo!("PLATFORM-CLIP-02")
+    }
+    /// Puts an image on the clipboard. Default: unsupported (false).
+    fn write_image(&self, image: &ClipboardImage) -> bool {
+        let _ = image;
+        todo!("PLATFORM-CLIP-02")
+    }
+    /// Puts HTML on the clipboard, with `alt_text` for apps that take plain text. Default:
+    /// writes `alt_text` only.
+    fn write_html(&self, html: &str, alt_text: &str) -> bool {
+        let _ = (html, alt_text);
+        todo!("PLATFORM-CLIP-02")
+    }
+    /// The clipboard's HTML, if it holds any. Default: none.
+    fn read_html(&self) -> Option<String> {
+        todo!("PLATFORM-CLIP-02")
+    }
+    /// The primary selection (X11 and Wayland); `None` where there is none. Default: none.
+    fn read_primary(&self) -> Option<String> {
+        todo!("PLATFORM-CLIP-02")
+    }
+    /// Sets the primary selection; false where there is none. Default: false.
+    fn write_primary(&self, text: &str) -> bool {
+        let _ = text;
+        todo!("PLATFORM-CLIP-02")
+    }
 }
 
 /// What a handler can ask the platform to do while it is called.

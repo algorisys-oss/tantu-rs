@@ -584,3 +584,31 @@ fn test_wt_20_drop_files() {
     t.drop_files(&paths[..1], None);
     assert_eq!(*log.borrow(), ["hover 2", "drop 2", "hover 1", "drop 1"]);
 }
+
+#[test]
+fn test_wt_21_clipboard_image_and_primary() {
+    use tantu_view::Clipboard;
+    type Out = Rc<RefCell<Option<Rc<dyn Clipboard>>>>;
+    let out: Out = Rc::default();
+    let mut tester = {
+        let out = out.clone();
+        WidgetTester::with_size(100.0, 100.0, move || {
+            Builder::new(move |cx| {
+                *out.borrow_mut() = Some(cx.clipboard());
+                SizedBox::new(10.0, 10.0)
+            })
+        })
+    };
+    let clipboard = out.borrow_mut().take().expect("built");
+    let image = tantu_view::scene::ImageData::rgba8(1, 1, vec![1, 2, 3, 255]).expect("1 × 1");
+    assert_eq!(tester.clipboard_image(), None);
+    tester.set_clipboard_image(image.clone());
+    assert_eq!(clipboard.read_image(), Some(image.clone()));
+    assert_eq!(tester.primary_selection(), None);
+    tester.set_primary_selection("picked");
+    assert_eq!(clipboard.read_primary().as_deref(), Some("picked"));
+    clipboard.write_primary("from a view");
+    assert_eq!(tester.primary_selection().as_deref(), Some("from a view"));
+    clipboard.write_image(&image);
+    assert_eq!(tester.clipboard_image(), Some(image));
+}

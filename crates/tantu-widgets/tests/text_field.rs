@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..12.
+//! Tests for `docs/specs/widgets/text-field.md`, rules WIDGETS-TEXTFIELD-01..13.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -728,4 +728,52 @@ fn widgets_textfield_12_copy_cut_paste() {
     tester.enter(|| c.select(TextSelection::new(0, 4)));
     tester.press_key(LogicalKey::Character("v".into()), primary());
     assert_eq!(tester.enter(|| c.text()), "text");
+}
+
+#[test]
+fn widgets_textfield_13_primary_selection() {
+    let (mut tester, c) = field("hello world", |f| f);
+    tester.focus(&Finder::key("f"));
+    // A selection the app makes isn't published.
+    tester.enter(|| c.select(TextSelection::new(0, 5)));
+    tester.pump();
+    assert_eq!(tester.primary_selection(), None);
+    // Selecting with the keys is.
+    tester.enter(|| c.select(TextSelection::collapsed(0)));
+    let shift = Modifiers {
+        shift: true,
+        ..Modifiers::default()
+    };
+    tester.press_key(LogicalKey::Named(NamedKey::End), shift);
+    tester.pump();
+    assert_eq!(tester.primary_selection().as_deref(), Some("hello world"));
+    // So is select-all.
+    tester.enter(|| c.set_text("abc"));
+    tester.pump();
+    tester.press_key(LogicalKey::Character("a".into()), primary());
+    tester.pump();
+    assert_eq!(tester.primary_selection().as_deref(), Some("abc"));
+    // A middle click pastes the primary selection where it lands, as one undo step.
+    tester.enter(|| c.set_text("hello world"));
+    tester.set_primary_selection("XY");
+    let rect = tester.rect(tester.find(&Finder::key("f")));
+    let start = Point::new(rect.left + 1.0, rect.center().y);
+    let middle = |tester: &mut WidgetTester, kind| {
+        tester.pointer(PointerEvent {
+            kind,
+            position: start,
+            modifiers: Modifiers::default(),
+        });
+        tester.pump();
+    };
+    middle(&mut tester, PointerKind::Down(PointerButton::Middle));
+    middle(&mut tester, PointerKind::Up(PointerButton::Middle));
+    assert_eq!(tester.enter(|| c.text()), "XYhello world");
+    tester.press_key(LogicalKey::Character("z".into()), primary());
+    assert_eq!(tester.enter(|| c.text()), "hello world");
+    // Without a primary selection a middle click changes nothing.
+    tester.set_primary_selection("");
+    middle(&mut tester, PointerKind::Down(PointerButton::Middle));
+    middle(&mut tester, PointerKind::Up(PointerButton::Middle));
+    assert_eq!(tester.enter(|| c.text()), "hello world");
 }

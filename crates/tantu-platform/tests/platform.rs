@@ -941,3 +941,68 @@ fn platform_fake_16_scripted_file_drops() {
     platform.run_logged(&mut handler);
     assert_eq!(*seen.borrow(), file_drop_events());
 }
+
+/// A clipboard implementing only the text methods.
+struct TextOnly(RefCell<Option<String>>);
+
+impl tantu_platform::Clipboard for TextOnly {
+    fn read_text(&self) -> Option<String> {
+        self.0.borrow().clone()
+    }
+
+    fn write_text(&self, text: &str) -> bool {
+        *self.0.borrow_mut() = Some(text.to_owned());
+        true
+    }
+}
+
+fn image() -> tantu_platform::ClipboardImage {
+    tantu_platform::ClipboardImage {
+        width: 2,
+        height: 1,
+        rgba: vec![255, 0, 0, 255, 0, 0, 255, 255],
+    }
+}
+
+#[test]
+fn platform_clip_02_defaults() {
+    use tantu_platform::Clipboard as _;
+    let text_only = TextOnly(RefCell::new(None));
+    assert_eq!(text_only.read_image(), None);
+    assert!(!text_only.write_image(&image()));
+    assert_eq!(text_only.read_html(), None);
+    assert!(
+        text_only.write_html("<b>x</b>", "x"),
+        "falls back to the text"
+    );
+    assert_eq!(text_only.read_text().as_deref(), Some("x"));
+    assert_eq!(text_only.read_primary(), None);
+    assert!(!text_only.write_primary("p"));
+}
+
+#[test]
+fn platform_fake_17_rich_clipboard() {
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let s = seen.clone();
+    let mut handler = Recorder::with(move |cx, event| {
+        if let Seen::Started = event {
+            let clipboard = cx.clipboard().expect("a clipboard");
+            assert!(clipboard.write_image(&image()));
+            assert_eq!(clipboard.read_image(), Some(image()));
+            assert!(clipboard.write_html("<b>T</b>", "T"));
+            assert_eq!(clipboard.read_html().as_deref(), Some("<b>T</b>"));
+            assert!(clipboard.write_primary("sel"));
+            s.borrow_mut().push(format!(
+                "{:?} {:?}",
+                clipboard.read_text(),
+                clipboard.read_primary()
+            ));
+        }
+    });
+    let log = FakePlatform::new().run_logged(&mut handler);
+    assert_eq!(*seen.borrow(), [r#"Some("T") Some("sel")"#]);
+    assert_eq!(log.clipboard_image, Some(image()));
+    assert_eq!(log.clipboard_html.as_deref(), Some("<b>T</b>"));
+    assert_eq!(log.primary_selection.as_deref(), Some("sel"));
+    assert_eq!(log.clipboard_text.as_deref(), Some("T"));
+}

@@ -1,4 +1,4 @@
-//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15, -17, -18 and -19.
+//! Tests for `docs/specs/facade/app.md`, rules FACADE-APP-01..15, -17 and -18..20.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -943,4 +943,50 @@ fn facade_app_19_file_drops_reach_the_tree() {
     assert_eq!(*dropped.borrow(), [paths]);
     // The first frame, one while hovering ("over"), one after the drop ("-").
     assert_eq!(log.windows[0].redraws, 3);
+}
+
+/// On a press: puts an image, HTML and a primary selection on the clipboard and records
+/// the image read back.
+struct RichClipboardUser(Rc<RefCell<Vec<Option<(u32, u32)>>>>);
+
+impl View for RichClipboardUser {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(RenderConstrainedBox::expand(), []);
+        let clipboard = cx.clipboard();
+        let seen = self.0;
+        cx.on_pointer(id, Phase::Bubble, move |p| {
+            if let PointerKind::Down(_) = p.event.kind {
+                let image =
+                    tantu::scene::ImageData::rgba8(2, 1, vec![255, 0, 0, 255, 0, 0, 255, 255])
+                        .expect("a 2 × 1 image");
+                clipboard.write_image(&image);
+                seen.borrow_mut()
+                    .push(clipboard.read_image().map(|i| (i.width(), i.height())));
+                clipboard.write_html("<b>T</b>", "T");
+                clipboard.write_primary("sel");
+            }
+            Handled::Continue
+        });
+        id
+    }
+}
+
+#[test]
+fn facade_app_20_runner_bridges_images_html_and_primary() {
+    let seen: Rc<RefCell<Vec<Option<(u32, u32)>>>> = Rc::default();
+    let s = seen.clone();
+    let app = App::new().window(Window::new("A").size(200.0, 100.0), move || {
+        RichClipboardUser(s.clone())
+    });
+    let platform = FakePlatform::new()
+        .event(0, button(ButtonState::Pressed, 5.0, 5.0))
+        .event(0, button(ButtonState::Released, 5.0, 5.0));
+    let (log, _) = run(app, platform, &Recorders::default());
+    assert_eq!(*seen.borrow(), [Some((2, 1))]);
+    let image = log.clipboard_image.expect("the platform got the image");
+    assert_eq!((image.width, image.height), (2, 1));
+    assert_eq!(image.rgba, [255, 0, 0, 255, 0, 0, 255, 255]);
+    assert_eq!(log.clipboard_html.as_deref(), Some("<b>T</b>"));
+    assert_eq!(log.clipboard_text.as_deref(), Some("T"));
+    assert_eq!(log.primary_selection.as_deref(), Some("sel"));
 }

@@ -39,6 +39,12 @@ pub struct FakeLog {
     pub wakes: Vec<Option<std::time::Duration>>,
     /// The clipboard's text when the run ended (PLATFORM-FAKE-15).
     pub clipboard_text: Option<String>,
+    /// The fake clipboard's image when the run ended (PLATFORM-FAKE-17).
+    pub clipboard_image: Option<crate::ClipboardImage>,
+    /// The fake clipboard's HTML when the run ended (PLATFORM-FAKE-17).
+    pub clipboard_html: Option<String>,
+    /// The fake primary selection when the run ended (PLATFORM-FAKE-17).
+    pub primary_selection: Option<String>,
 }
 
 /// A window of a [`FakePlatform`], as last seen.
