@@ -56,39 +56,56 @@ fn render_soft_29_partial_repaint() {
     assert_eq!(report.repainted_pixels, 2 * 60 * 60);
 }
 
-/// Records `scene` again, recoloring `element`'s draws.
-fn replay(scene: &Scene, element: Option<ElementId>) -> Scene {
-    let recolor = |entry: &Entry, color: Color| {
-        if entry.element == element {
-            Color::new(1.0 - color.r, 1.0 - color.g, 0.5, 1.0)
-        } else {
-            color
-        }
-    };
+/// Records `scene` again with every draw command as its own element (ids from 1, in order),
+/// recoloring draw number `changed` (none when it is 0).
+fn replay(scene: &Scene, changed: u64) -> Scene {
     let mut out = Scene::new();
     let mut b: SceneBuilder<'_> = out.begin(scene.size());
+    let mut draw = 0u64;
     for entry in scene.entries() {
-        b.set_element(entry.element);
+        let is_draw = !matches!(
+            entry.command,
+            Command::PushClip(_)
+                | Command::PushTransform(_)
+                | Command::PushLayer(_)
+                | Command::PopClip
+                | Command::PopTransform
+                | Command::PopLayer
+        );
+        if is_draw {
+            draw += 1;
+            b.set_element(ElementId::from_raw(draw));
+        } else {
+            b.set_element(entry.element);
+        }
         b.set_z_index(entry.z_index);
+        let this = is_draw && draw == changed;
+        let recolor = |color: Color| {
+            if this {
+                Color::new(1.0 - color.r, 1.0 - color.g, 0.5, 1.0)
+            } else {
+                color
+            }
+        };
         match &entry.command {
             Command::PushClip(clip) => b.push_clip(*clip),
             Command::PushTransform(t) => b.push_transform(*t),
             Command::PushLayer(layer) => b.push_layer(*layer),
             Command::PopClip | Command::PopTransform | Command::PopLayer => b.pop(),
-            Command::Fill { shape, color } => b.fill(*shape, recolor(entry, *color)),
+            Command::Fill { shape, color } => b.fill(*shape, recolor(*color)),
             Command::Stroke {
                 shape,
                 width,
                 color,
-            } => b.stroke(*shape, *width, recolor(entry, *color)),
+            } => b.stroke(*shape, *width, recolor(*color)),
             Command::BoxShadow(shadow) => {
                 let mut shadow = *shadow;
-                shadow.color = recolor(entry, shadow.color);
+                shadow.color = recolor(shadow.color);
                 b.box_shadow(shadow);
             }
             Command::Image(image) => {
                 let mut image = *image;
-                if entry.element == element {
+                if this {
                     image.opacity *= 0.5;
                 }
                 b.image(image);
@@ -96,7 +113,7 @@ fn replay(scene: &Scene, element: Option<ElementId>) -> Scene {
             Command::GlyphRun(run) => b.glyph_run(
                 run.font,
                 run.font_size,
-                recolor(entry, run.color),
+                recolor(run.color),
                 run.origin,
                 scene.glyphs(run),
             ),
@@ -113,29 +130,32 @@ fn replay(scene: &Scene, element: Option<ElementId>) -> Scene {
 fn render_soft_30_partial_equals_full() {
     let mut checked = 0;
     for reference in reference_scenes() {
-        let (scene, res) = reference.record();
+        let (recorded, res) = reference.record();
         let (w, h) = reference.target_size();
         let scale = reference.scale_factor();
-        let mut elements: Vec<Option<ElementId>> = Vec::new();
-        for entry in scene.entries() {
-            if !elements.contains(&entry.element) {
-                elements.push(entry.element);
-            }
-        }
-        for element in elements {
+        let base = replay(&recorded, 0);
+        let draws = base
+            .entries()
+            .iter()
+            .filter_map(|e| e.element)
+            .map(|id| id.to_raw())
+            .max()
+            .unwrap_or(0);
+        for changed in 1..=draws {
             let mut partial = SoftRenderer::new(w, h);
             partial.resize(w, h, scale);
-            partial.render(&scene, &res).expect("render");
-            let mut next = replay(&scene, element);
-            next.diff_damage(&scene);
+            partial.render(&base, &res).expect("render");
+            let mut next = replay(&recorded, changed);
+            next.diff_damage(&base);
             partial.render(&next, &res).expect("render");
             let mut full = SoftRenderer::new(w, h);
             full.resize(w, h, scale);
-            full.render(&replay(&scene, element), &res).expect("render");
+            full.render(&replay(&recorded, changed), &res)
+                .expect("render");
             assert_eq!(
                 partial.snapshot(),
                 full.snapshot(),
-                "{} with element {element:?} changed",
+                "{} with draw {changed} changed",
                 reference.name()
             );
             checked += 1;
