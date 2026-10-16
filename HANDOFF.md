@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (Phase 4 milestone done; multi-window done)_
+_Last updated: 2026-10-16 (multi-window done; OS file drops drafted for review)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -33,8 +33,12 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 1. (done: multi-window)
 2. **Image clipboard**: arboard's `image-data` feature pulls the `image` crate.
 3. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
-4. **OS file drops**: winit 0.30 reports dropped files without a position, so targets
-   can't be hit-tested; either window-level file drops or wait for a winit with positions.
+4. **OS file drops — drafted, waiting for review:** Draft spec
+   `docs/specs/platform/file-drop.md`. winit 0.30 reports drops without a position (0.31,
+   which has them, is still a beta), so the proposal delivers one event per gesture with
+   all paths and an optional position (the last known pointer, else the window's outermost
+   `FileDropTarget`), and upgrades when 0.31 is released. Five proposals; say "continue"
+   to accept them.
 
 ## Earlier (2026-10-15)
 
@@ -1958,7 +1962,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `2af7349` | test: multiple windows, stubs + 9 failing tests |
 | `7beb32d` | test: FACADE-WIN-04's window sees itself open on every run of its effect |
 | `79e5b4a` | spec: multiple windows Implemented; notes found while implementing |
-| _this commit_ | impl: one runtime per app, App::provide, Windows/WindowHandle, close veto, one tick per round; gallery New window; README; PLAN.md multi-window ticked |
+| `5130762` | impl: one runtime per app, App::provide, Windows/WindowHandle, close veto, one tick per round; gallery New window; README; PLAN.md multi-window ticked |
+| _this commit_ | docs: draft OS file-drop spec for review; PLAN.md link |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
