@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (multi-window and OS file drops done)_
+_Last updated: 2026-10-16 (multi-window and OS file drops done; rich clipboard drafted for review)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -31,7 +31,11 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 
 **Waiting for the user's decisions** (the rest of Phase 4 needs them):
 1. (done: multi-window)
-2. **Image clipboard**: arboard's `image-data` feature pulls the `image` crate.
+2. **Rich clipboard — drafted, waiting for review:** Draft spec
+   `docs/specs/platform/clipboard-rich.md` (images, HTML with a plain-text alternative,
+   the Linux primary selection with text-field middle-click paste). Correction: the
+   `image` crate is **already** compiled (arboard's default `image-data` feature, kept by
+   decision 90), so no new dependency is needed. Six proposals; say "continue" to accept.
 3. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
 4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
@@ -1977,7 +1981,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `1254fd9` | spec: GALLERY-54's card follows i18n and makes 28 kitchen-sink cards |
 | `fecdeb1` | test: files dropped from the OS, stubs + 9 tests (7 failing) |
 | `0f7e45a` | spec: GALLERY-54's hover color is primary at 16 % over the surface |
-| _this commit_ | impl: OS file drops (platform events, winit batching, view delivery, FileDropTarget, tester, runner); gallery files card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
+| `66ae5d6` | impl: OS file drops (platform events, winit batching, view delivery, FileDropTarget, tester, runner); gallery files card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
+| _this commit_ | docs: draft rich clipboard spec (images, HTML, primary selection) for review; PLAN.md link |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
