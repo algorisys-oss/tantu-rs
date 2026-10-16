@@ -35,6 +35,7 @@ mod directionality;
 mod divider;
 mod dock;
 mod drag_and_drop;
+mod file_drop;
 mod focus_scope;
 mod form;
 mod formatter;
@@ -80,6 +81,7 @@ pub use dock::{
     DockTarget, DockView, PanelId,
 };
 pub use drag_and_drop::{DragTarget, Draggable};
+pub use file_drop::FileDropTarget;
 pub use focus_scope::FocusScope;
 pub use form::{AutovalidateMode, Form, FormController, TextFormField, Validator, validators};
 pub use formatter::{

@@ -409,4 +409,21 @@ pub enum WindowEvent {
     Ime(ImeEvent),
     /// Assistive technology activity (PLATFORM-A11Y-01).
     Accessibility(AccessibilityEvent),
+    /// Files dragged from the OS are over the window: one event with every path
+    /// (PLATFORM-DROP-01).
+    FilesHovered {
+        /// The dragged files.
+        paths: Vec<std::path::PathBuf>,
+        /// Where, when the platform knows (logical pixels).
+        position: Option<Point>,
+    },
+    /// The file drag left the window or was cancelled.
+    FilesHoverCancelled,
+    /// Files were dropped on the window.
+    FilesDropped {
+        /// The dropped files.
+        paths: Vec<std::path::PathBuf>,
+        /// Where, when the platform knows (logical pixels).
+        position: Option<Point>,
+    },
 }

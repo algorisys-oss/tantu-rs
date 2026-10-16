@@ -255,6 +255,13 @@ impl WidgetTester {
         self.tree.cursor()
     }
 
+    /// Hovers then drops `paths` from the OS at `at` (or with no position), pumping after
+    /// each (TEST-WT-20).
+    pub fn drop_files(&mut self, paths: &[std::path::PathBuf], at: Option<tantu_view::core::Point>) {
+        let _ = (paths, at);
+        todo!("TEST-WT-20")
+    }
+
     /// A primary press at the center of the single element `finder` matches, a move by
     /// `delta`, and a release there, pumping after each. Panics if it matches no element or
     /// several.

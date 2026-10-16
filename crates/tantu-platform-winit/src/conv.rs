@@ -231,6 +231,32 @@ pub(crate) fn window_event(
     })
 }
 
+/// Collects winit's per-file drop events of one gesture into one platform event
+/// (PLATFORM-WINIT-18).
+#[derive(Debug, Default)]
+pub(crate) struct DropBatch {
+    _pending: (),
+}
+
+impl DropBatch {
+    /// Feeds a winit event. Returns the platform events to send now (a finished batch, a
+    /// cancel) and whether `event` was a file event (and so is not converted further).
+    /// `position` is the window's pointer when it is inside the window.
+    pub(crate) fn feed(
+        &mut self,
+        event: &winit::event::WindowEvent,
+        position: Option<Point>,
+    ) -> (Vec<WindowEvent>, bool) {
+        let _ = (event, position);
+        todo!("PLATFORM-WINIT-18")
+    }
+
+    /// The pending batch as one event, if any (at the end of an event batch).
+    pub(crate) fn flush(&mut self) -> Option<WindowEvent> {
+        todo!("PLATFORM-WINIT-18")
+    }
+}
+
 /// winit's IME event as the platform's (PLATFORM-WINIT-13).
 pub(crate) fn ime_event(ime: winit::event::Ime) -> ImeEvent {
     use winit::event::Ime;
@@ -613,5 +639,63 @@ mod tests {
         for (ours, theirs) in cases {
             assert_eq!(cursor(ours), theirs, "{ours:?}");
         }
+    }
+
+    #[test]
+    fn platform_winit_18_file_drops_are_batched() {
+        use std::path::PathBuf;
+        let (a, b) = (PathBuf::from("/tmp/a.txt"), PathBuf::from("/tmp/b.png"));
+        let at = Some(Point::new(5.0, 6.0));
+        let mut batch = DropBatch::default();
+        // Hover events of one gesture are absorbed and sent as one, before the next event.
+        assert_eq!(batch.feed(&W::HoveredFile(a.clone()), at), (vec![], true));
+        assert_eq!(batch.feed(&W::HoveredFile(b.clone()), at), (vec![], true));
+        let both = vec![a.clone(), b.clone()];
+        assert_eq!(
+            batch.feed(&W::DroppedFile(a.clone()), at),
+            (
+                vec![WindowEvent::FilesHovered {
+                    paths: both.clone(),
+                    position: at
+                }],
+                true
+            )
+        );
+        assert_eq!(batch.feed(&W::DroppedFile(b.clone()), at), (vec![], true));
+        // Any other event sends the pending drop first and isn't absorbed.
+        assert_eq!(
+            batch.feed(&W::Focused(true), None),
+            (
+                vec![WindowEvent::FilesDropped {
+                    paths: both.clone(),
+                    position: at
+                }],
+                false
+            )
+        );
+        assert_eq!(batch.flush(), None);
+        // The end of an event batch flushes; a cancel follows a pending hover.
+        batch.feed(&W::HoveredFile(a.clone()), None);
+        assert_eq!(
+            batch.flush(),
+            Some(WindowEvent::FilesHovered {
+                paths: vec![a.clone()],
+                position: None
+            })
+        );
+        batch.feed(&W::HoveredFile(b.clone()), None);
+        assert_eq!(
+            batch.feed(&W::HoveredFileCancelled, None),
+            (
+                vec![
+                    WindowEvent::FilesHovered {
+                        paths: vec![b.clone()],
+                        position: None
+                    },
+                    WindowEvent::FilesHoverCancelled
+                ],
+                true
+            )
+        );
     }
 }
