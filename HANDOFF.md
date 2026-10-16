@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (native dialogs and notifications done; native menus and the tray next)_
+_Last updated: 2026-10-16 (native dialogs and notifications done; native menus drafted for review)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -33,9 +33,11 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 1. (done: multi-window)
 2. (done: the rich clipboard, decision 105; no new dependency was needed)
 3. **Native desktop integration (ADR 0017, accepted):** part 1, native file and message
-   dialogs and notifications, is done (decision 106). Parts 2 (native menus with `muda`,
-   macOS/Windows) and 3 (the tray with `tray-icon`, macOS/Windows) are next; each needs
-   its own spec. Neither can be exercised by CI beyond compiling (no clicks on OS menus).
+   dialogs and notifications, is done (decision 106). **Part 2, native menus, is drafted**
+   (`docs/specs/platform/native-menus.md`, six proposals): `MenuBar::native(true)` hands
+   its menus to a runner-provided host on macOS/Windows. Decision needed in proposal 5:
+   `muda` 0.20+ and `tray-icon` 0.26 need Rust 1.90 (MSRV is 1.88); the draft pins `muda`
+   0.19.3. Part 3 (the tray) follows.
 4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
 ## Earlier (2026-10-15)
@@ -2029,7 +2031,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `126fbb3` | test: native dialogs and notifications, stubs + 7 tests (6 failing); rfd and notify-rust as opt-in dependencies |
 | `db0d230` | spec: PlatformContext::native_capabilities |
 | `7cfc985` | test: FACADE-DESK-01's close case closes right after the press |
-| _this commit_ | impl: native file and message dialogs (rfd) and notifications (notify-rust), Desktop, fake answers; gallery desktop card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
+| `24c726a` | impl: native file and message dialogs (rfd) and notifications (notify-rust), Desktop, fake answers; gallery desktop card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
+| _this commit_ | docs: draft native menu bars spec (ADR 0017 part 2) for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
