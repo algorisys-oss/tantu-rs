@@ -74,7 +74,8 @@ fn gallery_53_second_window_shares_dark_mode() {
                 Ok(Box::new(Recorder(shared)) as Box<dyn Renderer>)
             }
         });
-    let mut platform = FakePlatform::new();
+    // The drawn menu bar, which the keys below drive (native menus are GALLERY-57).
+    let mut platform = FakePlatform::new().without_native_menus();
     // View → New window, by keyboard: Tab to the menu bar, Down opens View, Down, Enter.
     for k in [
         Key::Named(NamedKey::Tab),
