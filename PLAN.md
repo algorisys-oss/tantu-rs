@@ -188,7 +188,7 @@ faster or more portable without changing how apps are written.
   - [ ] rich text and image clipboard, primary selection (separate spec)
   - [x] multi-window: one runtime per app, `App::provide`, `Windows`/`WindowHandle` (spec `docs/specs/facade/windows.md`, ADR 0016)
   - [x] drag and drop inside the app: drag sessions in the view layer, `Draggable`, `DragTarget` (spec `docs/specs/widgets/drag-and-drop.md`)
-  - [ ] drag and drop with the OS: files dropped on windows, `FileDropTarget` (spec `docs/specs/platform/file-drop.md`)
+  - [x] drag and drop with the OS: files dropped on windows, `FileDropTarget` (spec `docs/specs/platform/file-drop.md`)
 - [x] Forms: validation, field binding, masked input, date/time pickers, combo box with search, in parts:
   - [x] validation and field binding: `Form`, `FormController`, `TextFormField`, validators, error semantics (spec `docs/specs/widgets/form.md`)
   - [x] combo box with search: `ComboBox` (spec `docs/specs/widgets/combo-box.md`)

@@ -70,6 +70,10 @@ pub(crate) struct EventState {
     pub(crate) drags: HashMap<ElementId, Vec<(crate::drag::DragHandler, Alive)>>,
     /// The drag target under the pointer and whether it accepts the payload.
     pub(crate) drag_target: Option<(ElementId, bool)>,
+    /// File-drop targets' handlers (VIEW-FILEDROP-01).
+    pub(crate) file_drops: HashMap<ElementId, Vec<(crate::file_drop::FileDropHandler, Alive)>>,
+    /// The target files from the OS are hovering over (VIEW-FILEDROP-02).
+    pub(crate) file_target: Option<ElementId>,
 }
 
 impl EventState {
@@ -79,6 +83,7 @@ impl EventState {
         self.cursors.remove(&id);
         self.actions.remove(&id);
         self.drags.remove(&id);
+        self.file_drops.remove(&id);
     }
 
     /// The last pointer position in the window, if the pointer is in it.

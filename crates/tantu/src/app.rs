@@ -844,6 +844,34 @@ impl PlatformHandler for AppHandler {
             WindowEvent::Ime(ref ime) => {
                 self.windows[index].tree.dispatch_ime(ime_event(ime));
             }
+            WindowEvent::FilesHovered {
+                ref paths,
+                position,
+            } => {
+                // FACADE-APP-19: file drops go to the window's tree.
+                self.windows[index]
+                    .tree
+                    .dispatch_file_drop(tantu_view::FileDrop::Hovered {
+                        paths: paths.clone(),
+                        position,
+                    });
+            }
+            WindowEvent::FilesHoverCancelled => {
+                self.windows[index]
+                    .tree
+                    .dispatch_file_drop(tantu_view::FileDrop::Cancelled);
+            }
+            WindowEvent::FilesDropped {
+                ref paths,
+                position,
+            } => {
+                self.windows[index]
+                    .tree
+                    .dispatch_file_drop(tantu_view::FileDrop::Dropped {
+                        paths: paths.clone(),
+                        position,
+                    });
+            }
             WindowEvent::Accessibility(ref event) => {
                 // FACADE-APP-15: a tree on activation, actions to the view, silence after.
                 let state = &mut self.windows[index];

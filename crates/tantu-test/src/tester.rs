@@ -262,8 +262,16 @@ impl WidgetTester {
         paths: &[std::path::PathBuf],
         at: Option<tantu_view::core::Point>,
     ) {
-        let _ = (paths, at);
-        todo!("TEST-WT-20")
+        self.tree.dispatch_file_drop(tantu_view::FileDrop::Hovered {
+            paths: paths.to_vec(),
+            position: at,
+        });
+        self.pump();
+        self.tree.dispatch_file_drop(tantu_view::FileDrop::Dropped {
+            paths: paths.to_vec(),
+            position: at,
+        });
+        self.pump();
     }
 
     /// A primary press at the center of the single element `finder` matches, a move by

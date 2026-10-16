@@ -118,19 +118,44 @@ impl ApplicationHandler<AccessEvent> for Shell<'_> {
         };
         // The adapter sees every event first (PLATFORM-WINIT-15).
         entry.adapter.process_event(&entry.window, &event);
-        let scale = entry.window.scale_factor() as f32;
-        let Some(event) = conv::window_event(event, scale, &mut entry.pointer) else {
-            return;
-        };
-        let mut cx = Context {
-            event_loop,
-            windows: &mut self.windows,
-            proxy: &self.proxy,
-        };
-        self.handler.window_event(&mut cx, id, event);
+        match event {
+            winit::event::WindowEvent::CursorEntered { .. } => entry.inside = true,
+            winit::event::WindowEvent::CursorLeft { .. } => entry.inside = false,
+            _ => {}
+        }
+        // File events are batched per gesture (PLATFORM-WINIT-18).
+        let position = entry.inside.then_some(entry.pointer);
+        let (mut events, absorbed) = entry.drops.feed(&event, position);
+        if !absorbed {
+            let scale = entry.window.scale_factor() as f32;
+            events.extend(conv::window_event(event, scale, &mut entry.pointer));
+        }
+        for event in events {
+            let mut cx = Context {
+                event_loop,
+                windows: &mut self.windows,
+                proxy: &self.proxy,
+            };
+            self.handler.window_event(&mut cx, id, event);
+        }
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        // A file batch ends with the event batch (PLATFORM-WINIT-18).
+        let pending: Vec<(WindowId, WindowEvent)> = self
+            .windows
+            .entries
+            .iter_mut()
+            .filter_map(|(id, entry)| entry.drops.flush().map(|event| (*id, event)))
+            .collect();
+        for (id, event) in pending {
+            let mut cx = Context {
+                event_loop,
+                windows: &mut self.windows,
+                proxy: &self.proxy,
+            };
+            self.handler.window_event(&mut cx, id, event);
+        }
         let mut cx = Context {
             event_loop,
             windows: &mut self.windows,
@@ -151,6 +176,10 @@ struct Entry {
     window: Arc<Window>,
     /// Last cursor position, in logical pixels.
     pointer: Point,
+    /// Whether the cursor is inside the window (for file-drop positions).
+    inside: bool,
+    /// File events of the current gesture (PLATFORM-WINIT-18).
+    drops: conv::DropBatch,
     /// The window's AccessKit adapter (PLATFORM-WINIT-15).
     adapter: accesskit_winit::Adapter,
 }
@@ -227,6 +256,8 @@ impl PlatformContext for Context<'_> {
             Entry {
                 window: Arc::new(window),
                 pointer: Point::ZERO,
+                inside: false,
+                drops: conv::DropBatch::default(),
                 adapter,
             },
         );

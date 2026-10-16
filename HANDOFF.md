@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (multi-window done; OS file drops drafted for review)_
+_Last updated: 2026-10-16 (multi-window and OS file drops done)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -33,12 +33,7 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 1. (done: multi-window)
 2. **Image clipboard**: arboard's `image-data` feature pulls the `image` crate.
 3. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
-4. **OS file drops — drafted, waiting for review:** Draft spec
-   `docs/specs/platform/file-drop.md`. winit 0.30 reports drops without a position (0.31,
-   which has them, is still a beta), so the proposal delivers one event per gesture with
-   all paths and an optional position (the last known pointer, else the window's outermost
-   `FileDropTarget`), and upgrades when 0.31 is released. Five proposals; say "continue"
-   to accept them.
+4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
 ## Earlier (2026-10-15)
 
@@ -1356,6 +1351,20 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     Gallery: `gallery::app()` provides a `GalleryState`; View → New window. Architecture
     doc and diagram updated. Not done: owned/modal child windows, window positions,
     moving elements between windows (dock floating panels), a multi-window tester.
+104. **Files dropped from the OS** (2026-10-16, spec `docs/specs/platform/file-drop.md`;
+    the user said "continue" on the draft's five proposals). `WindowEvent::FilesHovered`,
+    `FilesHoverCancelled` and `FilesDropped` carry every path of a gesture and an optional
+    logical position; the winit shell batches winit 0.30's per-file events (a kind change,
+    any other event or the end of the event batch ends a batch) and uses the window's last
+    pointer position while the pointer is inside, else none. The view tree delivers to the
+    innermost live target under the position, else the outermost onstage target in tree
+    order; a hover gesture keeps its target (cancelling the old one on a change) and the
+    drop goes to it. `BuildCx::on_file_drop`, `ViewTree::dispatch_file_drop`,
+    `FileDropTarget` (paints nothing; `hovering` signal, `on_drop`),
+    `WidgetTester::drop_files`, the runner forwarding, and a "files" kitchen-sink card
+    (28 cards; the hover tint is primary at 16 % over the surface since the scheme has no
+    `primary_container`, review). Not done: exact positions and moves (winit 0.31, still a
+    beta), text/URL drops, dragging files out.
 
 ## Commit log
 
@@ -1963,16 +1972,21 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `7beb32d` | test: FACADE-WIN-04's window sees itself open on every run of its effect |
 | `79e5b4a` | spec: multiple windows Implemented; notes found while implementing |
 | `5130762` | impl: one runtime per app, App::provide, Windows/WindowHandle, close veto, one tick per round; gallery New window; README; PLAN.md multi-window ticked |
-| _this commit_ | docs: draft OS file-drop spec for review; PLAN.md link |
+| `9e20811` | docs: draft OS file-drop spec for review; PLAN.md link |
+| `d53ddd0` | spec: files dropped from the OS agreed |
+| `1254fd9` | spec: GALLERY-54's card follows i18n and makes 28 kitchen-sink cards |
+| `fecdeb1` | test: files dropped from the OS, stubs + 9 tests (7 failing) |
+| `0f7e45a` | spec: GALLERY-54's hover color is primary at 16 % over the surface |
+| _this commit_ | impl: OS file drops (platform events, winit batching, view delivery, FileDropTarget, tester, runner); gallery files card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Phase 4's milestone is done (`examples/enterprise-dashboard`), and so is multi-window.
-Remaining Phase 4 items need the user's decisions (see "Waiting for the user's
-decisions"): the rich/image clipboard, OS drag and drop (file and text drops through the platform; winit delivers dropped files). RTL caret movement in
+Phase 4's milestone is done (`examples/enterprise-dashboard`), and so are multi-window
+and OS file drops. Remaining Phase 4 items need the user's decisions (see "Waiting for
+the user's decisions"): the rich/image clipboard. RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

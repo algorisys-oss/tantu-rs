@@ -50,15 +50,94 @@ impl BuildCx<'_> {
         element: ElementId,
         handler: impl Fn(&FileDropEvent<'_>) + 'static,
     ) {
-        let _ = (element, handler);
-        todo!("VIEW-FILEDROP-01")
+        if self.tree.contains(element) {
+            let handlers = self.tree.events.file_drops.entry(element).or_default();
+            crate::events::register(handlers, Rc::new(handler) as FileDropHandler);
+        }
     }
 }
 
 impl ViewTree {
     /// Delivers a platform file drop to its target (VIEW-FILEDROP-01, -02).
     pub fn dispatch_file_drop(&mut self, event: FileDrop) {
-        let _ = event;
-        todo!("VIEW-FILEDROP-01")
+        let current = self.live_file_target();
+        match event {
+            FileDrop::Hovered { paths, position } => {
+                let target = self.file_target_at(position);
+                if current != target {
+                    if let Some(old) = current {
+                        self.file_event(old, &FileDropEvent::Cancelled);
+                    }
+                }
+                self.events.file_target = target;
+                if let Some(id) = target {
+                    self.file_event(id, &FileDropEvent::Hovered(&paths));
+                }
+            }
+            FileDrop::Cancelled => {
+                self.events.file_target = None;
+                if let Some(old) = current {
+                    self.file_event(old, &FileDropEvent::Cancelled);
+                }
+            }
+            FileDrop::Dropped { paths, position } => {
+                self.events.file_target = None;
+                // The hovered target takes the drop; without a hover, pick one as for a
+                // hover (VIEW-FILEDROP-02).
+                if let Some(id) = current.or_else(|| self.file_target_at(position)) {
+                    self.file_event(id, &FileDropEvent::Dropped(&paths));
+                }
+            }
+        }
+    }
+
+    /// Whether `id` has a live file-drop handler (VIEW-EVENT-10).
+    fn is_file_target(&self, id: ElementId) -> bool {
+        self.events
+            .file_drops
+            .get(&id)
+            .is_some_and(|list| list.iter().any(|(_, alive)| alive.get()))
+    }
+
+    /// The hovered target, if it is still a live, onstage target.
+    fn live_file_target(&self) -> Option<ElementId> {
+        self.events
+            .file_target
+            .filter(|id| self.contains(*id) && self.is_file_target(*id) && !self.is_offstage(*id))
+    }
+
+    /// The innermost target under `position`, else the outermost target in tree order
+    /// (VIEW-FILEDROP-01).
+    fn file_target_at(&self, position: Option<Point>) -> Option<ElementId> {
+        position
+            .and_then(|p| {
+                self.hit_test(p)
+                    .into_iter()
+                    .find(|id| self.is_file_target(*id))
+            })
+            .or_else(|| self.outermost_file_target(self.root()))
+    }
+
+    /// The first target in a preorder walk from `id`, skipping offstage subtrees.
+    fn outermost_file_target(&self, id: ElementId) -> Option<ElementId> {
+        if self.element(id).is_none_or(|e| e.offstage) {
+            return None;
+        }
+        if self.is_file_target(id) {
+            return Some(id);
+        }
+        self.children(id)
+            .iter()
+            .find_map(|child| self.outermost_file_target(*child))
+    }
+
+    /// Calls `target`'s handlers with `event`, the runtime current.
+    fn file_event(&self, target: ElementId, event: &FileDropEvent<'_>) {
+        let handlers = crate::events::live(self.events.file_drops.get(&target));
+        self.enter(|| {
+            for handler in &handlers {
+                handler(event);
+            }
+        });
     }
 }

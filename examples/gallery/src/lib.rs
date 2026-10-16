@@ -41,7 +41,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 27] = [
+pub const SINK_CARDS: [(&str, &[&str]); 28] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -70,6 +70,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 27] = [
     ("dashboard", &["layout_grid"]),
     ("dnd", &["draggable", "drag_target"]),
     ("i18n", &["localizations"]),
+    ("files", &["file_drop_target"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -934,6 +935,7 @@ fn kitchen_sink_section() -> impl View {
                 let loc = Localization::of(cx).unwrap_or_else(|| i18n::localization(cx));
                 i18n::sink(loc)
             }))
+            .child(files_sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())
@@ -1097,6 +1099,87 @@ fn dnd_sink() -> impl View {
 /// A reactive-text echo for a card.
 fn echo(text: impl Fn() -> String + 'static) -> Option<AnyView> {
     Some(AnyView::new(Text::new(text)))
+}
+
+/// The files card (GALLERY-54): a drop area for files from the OS, highlighted while files
+/// hover over it, and the names of the last dropped files.
+fn files_sink() -> impl View {
+    let hovering = signal(false);
+    let dropped: Signal<Vec<String>> = signal(Vec::new());
+    let area = Builder::new(move |cx: &mut BuildCx<'_>| {
+        let theme = Theme::signal(cx).unwrap_or_else(|| signal(Theme::light()));
+        let color = move || {
+            theme.with(|t| {
+                if hovering.get() {
+                    // Primary at 16 % over the surface (GALLERY-54).
+                    let (p, s) = (t.colors.primary, t.colors.surface);
+                    let mix = |a: f32, b: f32| b + (a - b) * 0.16;
+                    Color {
+                        r: mix(p.r, s.r),
+                        g: mix(p.g, s.g),
+                        b: mix(p.b, s.b),
+                        a: 1.0,
+                    }
+                } else {
+                    t.colors.surface_container_highest
+                }
+            })
+        };
+        Keyed::new(
+            "sink-file_drop_target",
+            FileDropTarget::new(FillBox {
+                size: Size::new(480.0, 120.0),
+                color: color.into_prop(),
+                child: AnyView::new(Center::new().child(Text::new("Drop files here"))),
+            })
+            .hovering(hovering)
+            .on_drop(move |paths| {
+                dropped.set(
+                    paths
+                        .iter()
+                        .map(|p| {
+                            p.file_name()
+                                .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
+                        })
+                        .collect(),
+                );
+            }),
+        )
+    });
+    card(
+        "files",
+        "Files from the OS",
+        area,
+        echo(move || {
+            let names = dropped.get();
+            if names.is_empty() {
+                "Dropped: none".to_owned()
+            } else {
+                format!("Dropped: {}", names.join(", "))
+            }
+        }),
+    )
+}
+
+/// A `size` box filled with a reactive color, rounded, holding `child`.
+struct FillBox {
+    size: Size,
+    color: Prop<Color>,
+    child: AnyView,
+}
+
+impl View for FillBox {
+    fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        let id = cx.render(
+            RenderConstrainedBox::new(BoxConstraints::tight(self.size)),
+            [self.child],
+        );
+        cx.set_paint(id, ColorBoxPaint(PRIMARY));
+        cx.bind(id, self.color, |e, color| {
+            e.update_paint::<ColorBoxPaint>(|p| p.0 = color);
+        });
+        id
+    }
 }
 
 /// A filled, rounded `width` × 40 box (the gallery's `ColorBox`).

@@ -235,7 +235,8 @@ pub(crate) fn window_event(
 /// (PLATFORM-WINIT-18).
 #[derive(Debug, Default)]
 pub(crate) struct DropBatch {
-    _pending: (),
+    /// The batch so far: dropped (else hovered), the paths, the first event's position.
+    pending: Option<(bool, Vec<std::path::PathBuf>, Option<Point>)>,
 }
 
 impl DropBatch {
@@ -247,13 +248,37 @@ impl DropBatch {
         event: &winit::event::WindowEvent,
         position: Option<Point>,
     ) -> (Vec<WindowEvent>, bool) {
-        let _ = (event, position);
-        todo!("PLATFORM-WINIT-18")
+        use winit::event::WindowEvent as W;
+        let (dropped, path) = match event {
+            W::HoveredFile(path) => (false, path),
+            W::DroppedFile(path) => (true, path),
+            W::HoveredFileCancelled => {
+                let mut out: Vec<WindowEvent> = self.flush().into_iter().collect();
+                out.push(WindowEvent::FilesHoverCancelled);
+                return (out, true);
+            }
+            _ => return (self.flush().into_iter().collect(), false),
+        };
+        // A change of kind ends the batch so far (the hover before its drop).
+        let out = match &self.pending {
+            Some((kind, _, _)) if *kind != dropped => self.flush().into_iter().collect(),
+            _ => Vec::new(),
+        };
+        let (_, paths, _) = self
+            .pending
+            .get_or_insert_with(|| (dropped, Vec::new(), position));
+        paths.push(path.clone());
+        (out, true)
     }
 
     /// The pending batch as one event, if any (at the end of an event batch).
     pub(crate) fn flush(&mut self) -> Option<WindowEvent> {
-        todo!("PLATFORM-WINIT-18")
+        let (dropped, paths, position) = self.pending.take()?;
+        Some(if dropped {
+            WindowEvent::FilesDropped { paths, position }
+        } else {
+            WindowEvent::FilesHovered { paths, position }
+        })
     }
 }
 
