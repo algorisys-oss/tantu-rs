@@ -1,6 +1,6 @@
 # Enterprise dashboard example (the Phase 4 milestone)
 
-- **Status:** Agreed (2026-10-16; the user, leaving for five hours, asked the agent to
+- **Status:** Implemented (2026-10-16; the user, leaving for five hours, asked the agent to
   complete pending items; decided by the agent, review)
 - **Crate:** `examples/enterprise-dashboard`
 - **Plan item:** Phase 4, "**Milestone:** `examples/enterprise-dashboard` (docking + grid +
@@ -88,3 +88,7 @@ Decided by the agent (2026-10-16), for review:
 2. **Edits as overrides** on generated data (as the gallery's editable grid), so the data
    stays deterministic and Reset edits is trivial.
 3. **English and German** only.
+4. **The form keeps the order the grid last selected** (found while implementing): a save
+   bumps the source's revision, and the grid drops its selection on a model change
+   (decision 75), so the selected order lives in an app signal the grid's selection only
+   sets. The grid's highlight goes after a save; the form, toolbar and status bar stay.
