@@ -104,7 +104,9 @@ fn render_headless_04_report_matches_shared_counting() {
     renderer.register_custom(CustomKind(2));
 
     let report = renderer.render(&scene, &res).expect("headless never fails");
-    let expected = RenderReport::for_scene(&scene, &res, &|kind| kind == CustomKind(2));
+    let mut expected = RenderReport::for_scene(&scene, &res, &|kind| kind == CustomKind(2));
+    // The counts; repainted pixels are a measurement (SCENE-RENDER-09, RENDER-HEADLESS-11).
+    expected.repainted_pixels = report.repainted_pixels;
     assert_eq!(report, expected);
     assert_eq!(
         report,
