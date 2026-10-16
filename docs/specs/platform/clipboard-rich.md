@@ -104,8 +104,10 @@ impl WidgetTester {
   image" (the gallery's generated gradient, 64 × 64) and "Paste image" (shows the
   clipboard image below, scaled to at most 96 px tall) and "Copy as HTML" (a bold
   "Tantu" with the plain text "Tantu"); its echo `sink-clipboard-state` reports the last
-  action ("Copied image 64 × 64", "Pasted image 64 × 64", "No image on the clipboard",
-  "Copied HTML").
+  action ("Nothing copied yet" at first, then "Copied image 64 × 64", "Pasted image
+  64 × 64", "No image on the clipboard", "Copied HTML"). The buttons are keyed
+  `sink-copy_image`, `sink-paste_image` and `sink-copy_html` (the card's `SINK_CARDS`
+  samples), the pasted image `sink-clipboard-image` (added while implementing, review).
 
 ## Performance and allocation
 
