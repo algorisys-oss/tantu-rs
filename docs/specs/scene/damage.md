@@ -1,6 +1,6 @@
 # Damage tracking and partial repaint (part 1)
 
-- **Status:** Draft (2026-10-16; drafted by the agent for the user's review)
+- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals)
 - **Crates:** `tantu-scene` (damage from two Scenes, report counts), `tantu-render-soft`
   (partial repaint), `tantu-render-headless`, `tantu` (the runner keeps the previous Scene)
 - **Plan item:** Phase 5, "Damage tracking and partial repaint; layer caching; GPU texture
