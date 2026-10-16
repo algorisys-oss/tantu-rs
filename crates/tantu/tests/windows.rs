@@ -292,8 +292,10 @@ fn facade_win_04_closing() {
     assert!(log.windows[0].closed, "A closed itself");
     assert!(log.exited, "the last window closing ends the run");
     assert!(handler.finish().is_ok());
-    // A's effect saw itself open; it is disposed with A, so no `false` arrives.
-    assert_eq!(*states.borrow(), [true]);
+    // A's effect saw itself open each time it ran (`is_open` reads the open list, so it
+    // re-runs when B closes); it is disposed with A, so no `false` ever arrives.
+    let states = states.borrow();
+    assert!(!states.is_empty() && states.iter().all(|open| *open), "{states:?}");
 }
 
 #[test]
