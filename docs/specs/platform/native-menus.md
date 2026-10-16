@@ -1,6 +1,6 @@
 # Native menu bars (macOS and Windows)
 
-- **Status:** Draft (2026-10-16; drafted by the agent for the user's review)
+- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals, pinning `muda` 0.19.3)
 - **Crates:** `tantu-platform` (menu description, events, fake), `tantu-platform-winit`
   (`muda`, feature `native-menus`, macOS and Windows only), `tantu-widgets` (`MenuBar`
   hands its menus to a host), `tantu` (the runner is the host), `examples/gallery`
