@@ -1,6 +1,6 @@
 # Clipboard: images, HTML and the primary selection
 
-- **Status:** Draft (2026-10-16; drafted by the agent for the user's review)
+- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals)
 - **Crates:** `tantu-platform` (trait, fake), `tantu-platform-winit` (arboard),
   `tantu-view` (trait, memory clipboard), `tantu` (runner bridge), `tantu-widgets`
   (`TextField`), `tantu-test`, `examples/gallery`
