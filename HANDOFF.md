@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (i18n done; the enterprise dashboard milestone done; the user is away for five hours)_
+_Last updated: 2026-10-16 (Phase 4 milestone done; multi-window drafted for review)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -27,9 +27,12 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 `cargo run -p enterprise-dashboard`.
 
 **Waiting for the user's decisions** (the rest of Phase 4 needs them):
-1. **Multi-window**: each window's `ViewTree` has its own reactive `Runtime`, so signals
-   can't be shared between windows. Proposal: one runtime per app shared by its windows'
-   trees (an ADR superseding part of decision 20), then `App`-level `open_window`.
+1. **Multi-window — drafted, waiting for review:** ADR 0016 (Proposed: one runtime per
+   app, an app scope, one tick per frame round) and the Draft spec
+   `docs/specs/facade/windows.md` (`App::provide`, an inherited `Windows` handle with
+   `open`, `WindowHandle::close`/`set_title`, `Window::on_close_request`, a gallery "New
+   window" sharing the dark-mode switch) with six proposals. Say "continue" to accept
+   them (the ADR becomes Accepted), or change any.
 2. **Image clipboard**: arboard's `image-data` feature pulls the `image` crate.
 3. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
 4. **OS file drops**: winit 0.30 reports dropped files without a position, so targets
@@ -1936,7 +1939,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `c3b34a3` | spec: enterprise dashboard example, the Phase 4 milestone (DASH-01..06) |
 | `078b9a5` | test: enterprise dashboard, stubs + 6 failing tests |
 | `116f82f` | spec: the dashboard keeps the last selected order in an app signal; Implemented |
-| _this commit_ | impl: enterprise dashboard (orders grid, details form, KPI tiles and chart, activity log, dock, menus, English/German), golden; README, architecture doc and diagram; PLAN.md milestone ticked |
+| `5874871` | impl: enterprise dashboard (orders grid, details form, KPI tiles and chart, activity log, dock, menus, English/German), golden; README, architecture doc and diagram; PLAN.md milestone ticked |
+| _this commit_ | docs: draft multi-window spec and ADR 0016 (one runtime per app) for review; PLAN.md link |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

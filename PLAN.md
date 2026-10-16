@@ -186,7 +186,7 @@ faster or more portable without changing how apps are written.
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images), in parts:
   - [x] plain-text clipboard through the platform, view and tester; `TextField` copy, cut and paste (spec `docs/specs/platform/clipboard.md`)
   - [ ] rich text and image clipboard, primary selection (separate spec)
-  - [ ] multi-window (separate spec)
+  - [ ] multi-window: one runtime per app, `App::provide`, `Windows`/`WindowHandle` (spec `docs/specs/facade/windows.md`, ADR 0016; draft for review)
   - [x] drag and drop inside the app: drag sessions in the view layer, `Draggable`, `DragTarget` (spec `docs/specs/widgets/drag-and-drop.md`)
   - [ ] drag and drop with the OS: file and text drops through the platform (separate spec)
 - [x] Forms: validation, field binding, masked input, date/time pickers, combo box with search, in parts:
