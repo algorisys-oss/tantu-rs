@@ -115,6 +115,8 @@ fn render_soft_04_report_counts_glyph_runs_as_missing_fonts() {
     let report = renderer.render(&s, &res).unwrap();
     let mut expected = RenderReport::for_scene(&s, &res, &|k| k == CustomKind(1));
     expected.missing_fonts += 2;
+    // The counts; repainted pixels are a measurement (SCENE-RENDER-09).
+    expected.repainted_pixels = report.repainted_pixels;
     assert_eq!(report, expected);
     assert_eq!(
         report,
@@ -122,7 +124,8 @@ fn render_soft_04_report_counts_glyph_runs_as_missing_fonts() {
             missing_images: 1,
             missing_fonts: 3,
             unhandled_custom: 1,
-            invalid_commands: 2
+            invalid_commands: 2,
+            repainted_pixels: report.repainted_pixels
         }
     );
     // Glyph runs draw nothing.

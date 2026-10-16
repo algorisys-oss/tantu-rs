@@ -14,7 +14,8 @@ fn scene_render_01_report_is_clean() {
             missing_images: 0,
             missing_fonts: 0,
             unhandled_custom: 0,
-            invalid_commands: 0
+            invalid_commands: 0,
+            repainted_pixels: 0
         }
     );
     assert!(report.is_clean());
@@ -349,7 +350,8 @@ fn scene_render_06_missing_resources_and_unhandled_custom() {
             missing_images: 2,
             missing_fonts: 1,
             unhandled_custom: 2,
-            invalid_commands: 0
+            invalid_commands: 0,
+            repainted_pixels: 0
         }
     );
     // Everything present and handled: clean.

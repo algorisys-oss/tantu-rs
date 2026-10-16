@@ -169,6 +169,13 @@ impl Scene {
         }
     }
 
+    /// Sets this frame's damage from what changed since `previous` (SCENE-DAMAGE-01..05),
+    /// replacing any damage recorded while building. A different size gives full damage.
+    pub fn diff_damage(&mut self, previous: &Scene) {
+        let _ = previous;
+        todo!("SCENE-DAMAGE-01")
+    }
+
     /// Empties every buffer, keeping its capacity.
     fn clear(&mut self) {
         self.entries.clear();

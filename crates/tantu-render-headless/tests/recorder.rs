@@ -112,7 +112,8 @@ fn render_headless_04_report_matches_shared_counting() {
             missing_images: 1,
             missing_fonts: 0,
             unhandled_custom: 1,
-            invalid_commands: 1
+            invalid_commands: 1,
+            repainted_pixels: report.repainted_pixels
         }
     );
     assert_eq!(renderer.last_frame().map(|f| f.report), Some(report));

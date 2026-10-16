@@ -61,7 +61,11 @@ impl RenderReport {
   one group). A group whose sequence of (command, accumulated transform, clip, layer
   opacity and overlay, glyph or custom data) differs between the Scenes is damaged: the
   union of its commands' bounds in both Scenes. Unchanged groups add nothing, wherever
-  their commands sit in the list.
+  their commands sit in the list, unless their paint order relative to the other
+  unchanged groups changed: a group whose predecessor among the unchanged groups differs
+  between the Scenes is damaged too, so swapping two overlapping elements repaints them
+  (inserting or removing other elements doesn't count; found while writing the tests,
+  review).
 - **SCENE-DAMAGE-03:** A command's bounds are its shape's (fills, strokes widened by half
   the stroke width), a shadow's blurred and spread rect, an image's destination, a custom
   command's bounds, or for a glyph run the box around its glyph positions widened by the

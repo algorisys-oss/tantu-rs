@@ -22,6 +22,10 @@ pub struct RenderReport {
     pub unhandled_custom: u32,
     /// Draw commands skipped because of non-finite values.
     pub invalid_commands: u32,
+    /// Device pixels the renderer repainted this frame, 0 when the backend doesn't count
+    /// (SCENE-RENDER-09). A measurement, not a problem: [`is_clean`](Self::is_clean) ignores
+    /// it.
+    pub repainted_pixels: u64,
 }
 
 impl RenderReport {
