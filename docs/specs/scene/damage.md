@@ -74,7 +74,8 @@ impl RenderReport {
   change the entries; it allocates nothing once its buffers are warm (it keeps them in
   the Scene).
 - **SCENE-RENDER-09:** `RenderReport::repainted_pixels` counts the device pixels a
-  renderer repainted; renderers that don't track it report 0.
+  renderer repainted; renderers that don't track it report 0. It is a measurement, not a
+  problem: `is_clean` ignores it (found while writing the tests, review).
 - **RENDER-SOFT-29:** The software renderer keeps its pixmap between frames. With
   `Damage::Rects` on a frame of the same size and scale as the last one, it clears and
   repaints only the damaged rects (in device pixels, rounded outward), drawing every
