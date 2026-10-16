@@ -80,7 +80,13 @@ pub(crate) fn notification(
 
 /// What a native menu event names (PLATFORM-WINIT-21).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(not(feature = "native-menus"), allow(dead_code))]
+#[cfg_attr(
+    not(all(
+        feature = "native-menus",
+        any(target_os = "macos", target_os = "windows")
+    )),
+    allow(dead_code)
+)]
 pub(crate) enum MenuTarget {
     /// The item `id` of the window's bar.
     Item(tantu_platform::WindowId, u64),
@@ -89,17 +95,45 @@ pub(crate) enum MenuTarget {
 }
 
 /// The `muda` id of the window's item `id`.
-#[cfg_attr(not(feature = "native-menus"), allow(dead_code))]
+#[cfg_attr(
+    not(all(
+        feature = "native-menus",
+        any(target_os = "macos", target_os = "windows")
+    )),
+    allow(dead_code)
+)]
 pub(crate) fn menu_id(window: tantu_platform::WindowId, id: u64) -> String {
-    let _ = (window, id);
-    todo!("PLATFORM-WINIT-21")
+    format!("tantu:{}:{id}", window.to_raw())
 }
 
+/// The macOS application menu's Quit item's id.
+#[cfg_attr(
+    not(all(
+        feature = "native-menus",
+        any(target_os = "macos", target_os = "windows")
+    )),
+    allow(dead_code)
+)]
+pub(crate) const QUIT_ID: &str = "tantu:quit";
+
 /// The target a `muda` id names, if it is one of ours.
-#[cfg_attr(not(feature = "native-menus"), allow(dead_code))]
+#[cfg_attr(
+    not(all(
+        feature = "native-menus",
+        any(target_os = "macos", target_os = "windows")
+    )),
+    allow(dead_code)
+)]
 pub(crate) fn parse_menu_id(id: &str) -> Option<MenuTarget> {
-    let _ = id;
-    todo!("PLATFORM-WINIT-21")
+    if id == QUIT_ID {
+        return Some(MenuTarget::Quit);
+    }
+    let rest = id.strip_prefix("tantu:")?;
+    let (window, item) = rest.split_once(':')?;
+    Some(MenuTarget::Item(
+        tantu_platform::WindowId::from_raw(window.parse().ok()?),
+        item.parse().ok()?,
+    ))
 }
 
 /// The `muda` menu for a window's bar; on macOS with the application menu first.
@@ -112,8 +146,85 @@ pub(crate) fn build_menu(
     window: tantu_platform::WindowId,
     app_name: &str,
 ) -> muda::Menu {
-    let _ = (menu, window, app_name);
-    todo!("PLATFORM-WINIT-21")
+    let bar = muda::Menu::new();
+    #[cfg(target_os = "macos")]
+    {
+        // The application menu comes first on macOS; Quit closes windows instead of ending
+        // the process, so close vetoes apply.
+        use muda::PredefinedMenuItem as P;
+        let quit = muda::MenuItem::with_id(
+            QUIT_ID,
+            format!("Quit {app_name}"),
+            true,
+            "CmdOrCtrl+Q".parse().ok(),
+        );
+        let app = muda::Submenu::new(app_name, true);
+        let about = P::about(Some(&format!("About {app_name}")), None);
+        let (hide, others, all) = (P::hide(None), P::hide_others(None), P::show_all(None));
+        let (s1, s2) = (P::separator(), P::separator());
+        let _ = app.append_items(&[&about, &s1, &hide, &others, &all, &s2, &quit]);
+        let _ = bar.append(&app);
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = app_name;
+    for item in &menu.menus {
+        append_menu_item(item, window, &mut |child| {
+            let _ = bar.append(child);
+        });
+    }
+    bar
+}
+
+/// Builds `item` and hands it to `add` (a menu's or submenu's `append`).
+#[cfg(all(
+    feature = "native-menus",
+    any(target_os = "macos", target_os = "windows")
+))]
+fn append_menu_item(
+    item: &tantu_platform::NativeMenuItem,
+    window: tantu_platform::WindowId,
+    add: &mut dyn FnMut(&dyn muda::IsMenuItem),
+) {
+    use tantu_platform::NativeMenuItem;
+    match item {
+        NativeMenuItem::Item {
+            id,
+            label,
+            enabled,
+            checked,
+            shortcut,
+        } => {
+            // Shortcut text that isn't an accelerator is left out.
+            let accelerator = shortcut
+                .as_deref()
+                .and_then(|s| s.parse::<muda::accelerator::Accelerator>().ok());
+            let id = menu_id(window, *id);
+            match checked {
+                Some(checked) => add(&muda::CheckMenuItem::with_id(
+                    id,
+                    label,
+                    *enabled,
+                    *checked,
+                    accelerator,
+                )),
+                None => add(&muda::MenuItem::with_id(id, label, *enabled, accelerator)),
+            }
+        }
+        NativeMenuItem::Submenu {
+            label,
+            enabled,
+            items,
+        } => {
+            let submenu = muda::Submenu::new(label, *enabled);
+            for child in items {
+                append_menu_item(child, window, &mut |c| {
+                    let _ = submenu.append(c);
+                });
+            }
+            add(&submenu);
+        }
+        NativeMenuItem::Separator => add(&muda::PredefinedMenuItem::separator()),
+    }
 }
 
 #[cfg(test)]

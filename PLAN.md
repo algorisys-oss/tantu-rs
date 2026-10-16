@@ -176,10 +176,10 @@ faster or more portable without changing how apps are written.
   - [x] the dock layout model: splits and tab groups, panel ids, operations in a normal form, a versioned text format for persisting (spec `docs/specs/widgets/dock-layout.md`)
   - [x] `DockArea`: drawing a layout with nested splits and dynamic tab strips (close buttons, activation), panel content kept alive across moves, keyboard and semantics (spec `docs/specs/widgets/dock-area.md`)
   - [x] drag-to-dock: dragging tabs, drop indicators for tab, beside and edge targets (spec `docs/specs/widgets/dock-drag.md`); floating panels wait for multi-window
-- [ ] Menus (native + custom), context menus, toolbars, status bar, in parts:
+- [x] Menus (native + custom), context menus, toolbars, status bar, in parts:
   - [x] popup menus and context menus: `MenuItem`, `MenuController`, `MenuAnchor`, `ContextMenuRegion`, submenus, keyboard, semantics (spec `docs/specs/widgets/menu.md`)
   - [x] `MenuBar`, toolbars and the status bar; the gallery window uses them (spec `docs/specs/widgets/menu-bar.md`)
-  - [ ] native OS menus (macOS app menu, native menu bars on macOS and Windows with `muda`; ADR 0017 part 2; spec `docs/specs/platform/native-menus.md`)
+  - [x] native OS menus (macOS app menu, native menu bars on macOS and Windows with `muda`; ADR 0017 part 2; spec `docs/specs/platform/native-menus.md`)
 - [ ] Dialogs, native file dialogs, notifications, system tray, in parts:
   - [x] modal dialogs: `Dialog`, `DialogController`, `AlertDialog`, barrier, focus trap and restore (spec `docs/specs/widgets/dialog.md`)
   - [x] native file and message dialogs, notifications (`rfd`, `notify-rust`, opt-in features; spec `docs/specs/platform/native-dialogs.md`, ADR 0017)

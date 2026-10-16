@@ -291,6 +291,7 @@ impl App {
             ticked: false,
             desktop,
             dialogs: std::collections::HashMap::new(),
+            menus: Rc::default(),
         }
     }
 }
@@ -307,6 +308,8 @@ struct Background {
     providers: Rc<[Provider]>,
     windows: Windows,
     desktop: Desktop,
+    /// The native menu host, where the platform has native menus (FACADE-APP-21).
+    menu_host: Option<tantu_widgets::NativeMenus>,
 }
 
 impl View for Background {
@@ -317,6 +320,9 @@ impl View for Background {
         }
         cx.provide(self.windows);
         cx.provide(self.desktop);
+        if let Some(host) = self.menu_host {
+            cx.provide(host);
+        }
         #[cfg(feature = "default-theme")]
         let theme: Option<Signal<Theme>> = Some(tantu_reactive::signal(Theme::light()));
         #[cfg(not(feature = "default-theme"))]
@@ -497,6 +503,75 @@ pub struct AppHandler {
     desktop: Signal<Rc<DesktopQueue>>,
     /// Open dialogs' continuations, by id, with their window's token.
     dialogs: std::collections::HashMap<tantu_platform::DialogId, (u64, DialogDone)>,
+    /// Native menu bars, by window token (FACADE-APP-21).
+    menus: Menus,
+}
+
+/// A window's native menu bar as the runner tracks it (FACADE-APP-21).
+#[derive(Default)]
+struct WindowMenu {
+    /// Menus sent by the window's `MenuBar` and not installed yet.
+    pending: Option<Vec<tantu_widgets::NativeMenuEntry>>,
+    /// What is installed, to re-send when the window gains focus.
+    installed: Option<tantu_platform::NativeMenu>,
+    /// The installed items' actions, by id.
+    actions: std::collections::HashMap<u64, Rc<dyn Fn()>>,
+}
+
+/// Every window's menu bar, by window token.
+type Menus = Rc<RefCell<std::collections::HashMap<u64, WindowMenu>>>;
+
+/// The runner as a window's `NativeMenuHost` (FACADE-APP-21): it keeps the menus until
+/// the runner installs them after the event.
+struct MenuHost {
+    token: u64,
+    menus: Menus,
+}
+
+impl tantu_widgets::NativeMenuHost for MenuHost {
+    fn set_menus(&self, menus: Vec<tantu_widgets::NativeMenuEntry>) -> bool {
+        self.menus
+            .borrow_mut()
+            .entry(self.token)
+            .or_default()
+            .pending = Some(menus);
+        true
+    }
+}
+
+/// The platform's description of `entries`, numbering items from `next` and keeping their
+/// actions.
+fn native_menu_items(
+    entries: Vec<tantu_widgets::NativeMenuEntry>,
+    next: &mut u64,
+    actions: &mut std::collections::HashMap<u64, Rc<dyn Fn()>>,
+) -> Vec<tantu_platform::NativeMenuItem> {
+    use tantu_platform::NativeMenuItem;
+    use tantu_widgets::NativeMenuEntryKind;
+    entries
+        .into_iter()
+        .map(|entry| match entry.kind {
+            NativeMenuEntryKind::Separator => NativeMenuItem::Separator,
+            NativeMenuEntryKind::Submenu(children) => NativeMenuItem::Submenu {
+                label: entry.label,
+                enabled: entry.enabled,
+                items: native_menu_items(children, next, actions),
+            },
+            NativeMenuEntryKind::Item => {
+                *next += 1;
+                if let Some(action) = entry.on_select {
+                    actions.insert(*next, action);
+                }
+                NativeMenuItem::Item {
+                    id: *next,
+                    label: entry.label,
+                    enabled: entry.enabled,
+                    checked: entry.checked,
+                    shortcut: entry.shortcut,
+                }
+            }
+        })
+        .collect()
 }
 
 /// A native dialog's continuation (FACADE-DESK-01).
@@ -541,6 +616,12 @@ impl AppHandler {
             window: token,
             capabilities: cx.native_capabilities(),
         };
+        let menu_host = desktop.capabilities.menus.then(|| {
+            tantu_widgets::NativeMenus(Rc::new(MenuHost {
+                token,
+                menus: Rc::clone(&self.menus),
+            }))
+        });
         let (color, providers) = (window.background, self.providers.clone());
         let mut tree =
             ViewTree::with_runtime(self.runtime.clone(), self.text.styles(), move || {
@@ -550,6 +631,7 @@ impl AppHandler {
                     providers,
                     windows,
                     desktop,
+                    menu_host,
                 }
             });
         // The platform's clipboard for the window's views (FACADE-APP-18).
@@ -584,8 +666,9 @@ impl AppHandler {
         cx.close_window(state.id);
         let token = state.token;
         drop(state);
-        // Its dialogs' answers will never be wanted (FACADE-DESK-01).
+        // Its dialogs' answers and its menu bar go with it (FACADE-DESK-01, FACADE-APP-21).
         self.dialogs.retain(|_, (owner, _)| *owner != token);
+        self.menus.borrow_mut().remove(&token);
         let open = self.open;
         self.runtime
             .enter(|| open.update(|o| o.retain(|t| *t != token)));
@@ -608,6 +691,7 @@ impl AppHandler {
                 .enter(|| desktop.try_with(|queue| queue.take()))
                 .unwrap_or_default();
             if (requests.is_empty() && desktop_requests.is_empty()) || self.error.is_some() {
+                self.install_menus(cx);
                 return;
             }
             for request in desktop_requests {
@@ -635,6 +719,26 @@ impl AppHandler {
                     return;
                 }
             }
+        }
+    }
+
+    /// Installs the menu bars views sent since the last call (FACADE-APP-21).
+    fn install_menus(&mut self, cx: &mut dyn PlatformContext) {
+        let mut menus = self.menus.borrow_mut();
+        for state in &self.windows {
+            let Some(menu) = menus.get_mut(&state.token) else {
+                continue;
+            };
+            let Some(entries) = menu.pending.take() else {
+                continue;
+            };
+            let mut actions = std::collections::HashMap::new();
+            let native = tantu_platform::NativeMenu {
+                menus: native_menu_items(entries, &mut 0, &mut actions),
+            };
+            cx.set_menu_bar(state.id, Some(native.clone()));
+            menu.installed = Some(native);
+            menu.actions = actions;
         }
     }
 
@@ -967,6 +1071,30 @@ impl PlatformHandler for AppHandler {
                 if let Some((_, DialogDone::File(done))) = self.dialogs.remove(&id) {
                     let paths = paths.clone();
                     self.runtime.enter(|| done(paths));
+                }
+            }
+            WindowEvent::MenuItemActivated { id } => {
+                // FACADE-APP-21: the item's action, with the runtime current.
+                let token = self.windows[index].token;
+                let action = self
+                    .menus
+                    .borrow()
+                    .get(&token)
+                    .and_then(|menu| menu.actions.get(&id).cloned());
+                if let Some(action) = action {
+                    self.runtime.enter(|| action());
+                }
+            }
+            WindowEvent::Focused(true) => {
+                // macOS has one bar for the app: the focused window's (FACADE-APP-21).
+                let state = &self.windows[index];
+                let installed = self
+                    .menus
+                    .borrow()
+                    .get(&state.token)
+                    .and_then(|menu| menu.installed.clone());
+                if let Some(menu) = installed {
+                    cx.set_menu_bar(state.id, Some(menu));
                 }
             }
             WindowEvent::MessageDialogClosed { id, result } => {

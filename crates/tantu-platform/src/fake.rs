@@ -96,6 +96,8 @@ pub struct FakePlatform {
     message_answers: Vec<crate::MessageResult>,
     /// Whether dialogs and notifications are supported.
     native: bool,
+    /// Whether native menu bars are supported (PLATFORM-FAKE-19).
+    menus: bool,
 }
 
 impl FakePlatform {
@@ -113,13 +115,17 @@ impl FakePlatform {
 
     /// A platform without native menus (PLATFORM-FAKE-19).
     pub fn without_native_menus(self) -> Self {
-        todo!("PLATFORM-FAKE-19")
+        FakePlatform {
+            menus: false,
+            ..self
+        }
     }
 
     /// A platform without native dialogs or notifications (the trait's defaults).
     pub fn without_native_dialogs(self) -> Self {
         FakePlatform {
             native: false,
+            menus: false,
             ..self
         }
     }
@@ -133,6 +139,7 @@ impl FakePlatform {
             file_answers: Vec::new(),
             message_answers: Vec::new(),
             native: true,
+            menus: true,
         }
     }
 
@@ -179,6 +186,7 @@ impl FakePlatform {
             now: start,
             clipboard: Rc::clone(&clipboard),
             native: self.native,
+            menus: self.menus,
             file_answers: self.file_answers.into(),
             message_answers: self.message_answers.into(),
             next_dialog: 0,
@@ -263,6 +271,8 @@ struct FakeContext {
     clipboard: Rc<FakeClipboard>,
     /// Whether dialogs and notifications are supported (PLATFORM-FAKE-18).
     native: bool,
+    /// Whether native menu bars are supported (PLATFORM-FAKE-19).
+    menus: bool,
     /// Scripted answers, in order.
     file_answers: std::collections::VecDeque<Vec<std::path::PathBuf>>,
     message_answers: std::collections::VecDeque<crate::MessageResult>,
@@ -481,11 +491,19 @@ impl PlatformContext for FakeContext {
         self.native
     }
 
+    fn set_menu_bar(&mut self, window: WindowId, menu: Option<crate::NativeMenu>) -> bool {
+        let Some(index) = self.open_index(window).filter(|_| self.menus) else {
+            return false;
+        };
+        self.log.windows[index].menu_bars.push(menu);
+        true
+    }
+
     fn native_capabilities(&self) -> crate::NativeCapabilities {
         crate::NativeCapabilities {
             dialogs: self.native,
             notifications: self.native,
-            menus: self.native,
+            menus: self.menus,
         }
     }
 

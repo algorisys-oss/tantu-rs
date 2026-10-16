@@ -215,7 +215,9 @@ fn menu_bar(
             );
         }));
     }
+    // Native on macOS and Windows under the runner; drawn elsewhere (GALLERY-57).
     MenuBar::new()
+        .native(true)
         .menu("View", view)
         .menu(
             "Go",

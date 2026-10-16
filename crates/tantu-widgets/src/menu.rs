@@ -1119,8 +1119,58 @@ struct Bar {
     count: usize,
 }
 
+/// The host's view of `items` (WIDGETS-MENUBAR-05); reads their states, tracked.
+fn native_entries(items: &[MenuItem]) -> Vec<NativeMenuEntry> {
+    items
+        .iter()
+        .map(|item| NativeMenuEntry {
+            label: item.label.clone(),
+            kind: match &item.kind {
+                ItemKind::Action => NativeMenuEntryKind::Item,
+                ItemKind::Divider => NativeMenuEntryKind::Separator,
+                ItemKind::Submenu(children) => {
+                    NativeMenuEntryKind::Submenu(native_entries(children))
+                }
+            },
+            enabled: (item.enabled)(),
+            checked: item.checked.as_ref().map(|checked| checked()),
+            shortcut: item.shortcut.clone(),
+            on_select: item.on_select.clone(),
+        })
+        .collect()
+}
+
 impl View for MenuBar {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
+        // A native bar hands its menus to the host and takes no space (WIDGETS-MENUBAR-05).
+        if let Some(NativeMenus(host)) = self.native.then(|| cx.inherit::<NativeMenus>()).flatten()
+        {
+            let tops = self.menus.clone();
+            let accepted = Rc::new(Cell::new(false));
+            {
+                let accepted = Rc::clone(&accepted);
+                effect(move || {
+                    let entries = tops
+                        .iter()
+                        .map(|(label, items)| NativeMenuEntry {
+                            label: label.clone(),
+                            kind: NativeMenuEntryKind::Submenu(native_entries(items)),
+                            enabled: true,
+                            checked: None,
+                            shortcut: None,
+                            on_select: None,
+                        })
+                        .collect();
+                    accepted.set(untrack(|| host.set_menus(entries)));
+                });
+            }
+            if accepted.get() {
+                return cx.render(
+                    RenderConstrainedBox::new(BoxConstraints::tight(Size::ZERO)),
+                    [],
+                );
+            }
+        }
         let theme = ThemeHandle::of(cx);
         let count = self.menus.len();
         let bar = Bar {

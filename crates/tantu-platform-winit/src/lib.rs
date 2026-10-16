@@ -31,7 +31,9 @@
 //! # Ok::<(), tantu_platform::PlatformError>(())
 //! ```
 
-#![forbid(unsafe_code)]
+// `deny`, not `forbid`: the one exception is installing a native menu on a Win32 window
+// (`muda`'s `init_for_hwnd` takes a raw handle), allowed on that function alone.
+#![deny(unsafe_code)]
 
 mod conv;
 mod native;

@@ -20,6 +20,15 @@ enum UserEvent {
     Access(accesskit_winit::Event),
     #[cfg_attr(not(feature = "native-dialogs"), allow(dead_code))]
     Window(WindowId, WindowEvent),
+    /// A native menu item's `muda` id (PLATFORM-WINIT-21).
+    #[cfg_attr(
+        not(all(
+            feature = "native-menus",
+            any(target_os = "macos", target_os = "windows")
+        )),
+        allow(dead_code)
+    )]
+    Menu(String),
 }
 
 impl From<accesskit_winit::Event> for UserEvent {
@@ -89,6 +98,34 @@ impl ApplicationHandler<UserEvent> for Shell<'_> {
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: UserEvent) {
         let event = match event {
             UserEvent::Access(event) => event,
+            // A native menu item (PLATFORM-WINIT-21).
+            UserEvent::Menu(id) => {
+                let targets: Vec<(WindowId, WindowEvent)> = match crate::native::parse_menu_id(&id)
+                {
+                    Some(crate::native::MenuTarget::Item(window, id)) => {
+                        vec![(window, WindowEvent::MenuItemActivated { id })]
+                    }
+                    // Quit asks every window to close, so vetoes apply.
+                    Some(crate::native::MenuTarget::Quit) => self
+                        .windows
+                        .entries
+                        .keys()
+                        .map(|w| (*w, WindowEvent::CloseRequested))
+                        .collect(),
+                    None => Vec::new(),
+                };
+                for (window, event) in targets {
+                    if self.windows.entries.contains_key(&window) {
+                        let mut cx = Context {
+                            event_loop,
+                            windows: &mut self.windows,
+                            proxy: &self.proxy,
+                        };
+                        self.handler.window_event(&mut cx, window, event);
+                    }
+                }
+                return;
+            }
             // A dialog result, for a window still open (PLATFORM-WINIT-20).
             UserEvent::Window(id, event) => {
                 if self.windows.entries.contains_key(&id) {
@@ -202,6 +239,12 @@ struct Entry {
     drops: conv::DropBatch,
     /// The window's AccessKit adapter (PLATFORM-WINIT-15).
     adapter: accesskit_winit::Adapter,
+    /// The window's native menu bar, kept alive while shown (PLATFORM-WINIT-21).
+    #[cfg(all(
+        feature = "native-menus",
+        any(target_os = "macos", target_os = "windows")
+    ))]
+    menu: Option<muda::Menu>,
 }
 
 /// The windows Tantu created, by Tantu id and by winit id.
@@ -213,6 +256,15 @@ struct Windows {
     /// The last native dialog id handed out (PLATFORM-WINIT-20).
     #[cfg_attr(not(feature = "native-dialogs"), allow(dead_code))]
     dialogs: u64,
+    /// Whether `muda`'s event handler forwards to the loop yet (PLATFORM-WINIT-21).
+    #[cfg_attr(
+        not(all(
+            feature = "native-menus",
+            any(target_os = "macos", target_os = "windows")
+        )),
+        allow(dead_code)
+    )]
+    menu_events: bool,
     /// The first window's title, the app's name in notifications.
     #[cfg_attr(not(feature = "notifications"), allow(dead_code))]
     app_name: Option<String>,
@@ -384,6 +436,11 @@ impl PlatformContext for Context<'_> {
                 inside: false,
                 drops: conv::DropBatch::default(),
                 adapter,
+                #[cfg(all(
+                    feature = "native-menus",
+                    any(target_os = "macos", target_os = "windows")
+                ))]
+                menu: None,
             },
         );
         Ok(id)
@@ -515,11 +572,41 @@ impl PlatformContext for Context<'_> {
         }
     }
 
+    #[cfg(all(
+        feature = "native-menus",
+        any(target_os = "macos", target_os = "windows")
+    ))]
+    fn set_menu_bar(&mut self, window: WindowId, menu: Option<tantu_platform::NativeMenu>) -> bool {
+        if !self.windows.menu_events {
+            // muda's events come from its own callbacks; forward them to the loop.
+            let proxy = std::sync::Mutex::new(self.proxy.clone());
+            muda::MenuEvent::set_event_handler(Some(move |event: muda::MenuEvent| {
+                if let Ok(proxy) = proxy.lock() {
+                    let _ = proxy.send_event(UserEvent::Menu(event.id.0));
+                }
+            }));
+            self.windows.menu_events = true;
+        }
+        let app_name = self
+            .windows
+            .app_name
+            .clone()
+            .unwrap_or_else(|| "Tantu".to_owned());
+        let Some(entry) = self.windows.entries.get_mut(&window) else {
+            return false;
+        };
+        let built = menu.map(|m| crate::native::build_menu(&m, window, &app_name));
+        install_menu(entry, built)
+    }
+
     fn native_capabilities(&self) -> tantu_platform::NativeCapabilities {
         tantu_platform::NativeCapabilities {
             dialogs: cfg!(feature = "native-dialogs"),
             notifications: cfg!(feature = "notifications"),
-            menus: false,
+            menus: cfg!(all(
+                feature = "native-menus",
+                any(target_os = "macos", target_os = "windows")
+            )),
         }
     }
 
@@ -587,4 +674,44 @@ impl PlatformContext for Context<'_> {
             None => winit::event_loop::ControlFlow::Wait,
         });
     }
+}
+
+/// Shows `menu` as the window's bar (macOS: the app's bar), replacing the previous one
+/// (PLATFORM-WINIT-21).
+#[cfg(all(feature = "native-menus", target_os = "macos"))]
+fn install_menu(entry: &mut Entry, menu: Option<muda::Menu>) -> bool {
+    match &menu {
+        Some(menu) => menu.init_for_nsapp(),
+        None => {
+            if let Some(old) = &entry.menu {
+                old.remove_for_nsapp();
+            }
+        }
+    }
+    entry.menu = menu;
+    true
+}
+
+/// Shows `menu` as the window's bar, replacing the previous one (PLATFORM-WINIT-21).
+#[cfg(all(feature = "native-menus", target_os = "windows"))]
+#[allow(unsafe_code)]
+fn install_menu(entry: &mut Entry, menu: Option<muda::Menu>) -> bool {
+    use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    let hwnd = match entry.window.window_handle().map(|h| h.as_raw()) {
+        Ok(RawWindowHandle::Win32(handle)) => handle.hwnd.get(),
+        _ => return false,
+    };
+    if let Some(old) = entry.menu.take() {
+        // SAFETY: `hwnd` is this live winit window's handle, which the old menu was
+        // installed on.
+        let _ = unsafe { old.remove_for_hwnd(hwnd) };
+    }
+    let Some(menu) = menu else {
+        return true;
+    };
+    // SAFETY: `hwnd` is this live winit window's handle; the menu is kept in the entry,
+    // so it outlives its use by the window until replaced or the window closes.
+    let installed = unsafe { menu.init_for_hwnd(hwnd) }.is_ok();
+    entry.menu = Some(menu);
+    installed
 }

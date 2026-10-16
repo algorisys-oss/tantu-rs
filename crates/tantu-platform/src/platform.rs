@@ -173,7 +173,7 @@ pub trait PlatformContext {
     /// (PLATFORM-MENU-01).
     fn set_menu_bar(&mut self, window: WindowId, menu: Option<crate::NativeMenu>) -> bool {
         let _ = (window, menu);
-        todo!("PLATFORM-MENU-01")
+        false
     }
 
     /// What this platform supports (default: nothing).

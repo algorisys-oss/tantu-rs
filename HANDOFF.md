@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (native dialogs and notifications done; native menus drafted for review)_
+_Last updated: 2026-10-16 (native menu bars done; the tray is the last Phase 4 item)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -33,11 +33,11 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 1. (done: multi-window)
 2. (done: the rich clipboard, decision 105; no new dependency was needed)
 3. **Native desktop integration (ADR 0017, accepted):** part 1, native file and message
-   dialogs and notifications, is done (decision 106). **Part 2, native menus, is drafted**
-   (`docs/specs/platform/native-menus.md`, six proposals): `MenuBar::native(true)` hands
-   its menus to a runner-provided host on macOS/Windows. Decision needed in proposal 5:
-   `muda` 0.20+ and `tray-icon` 0.26 need Rust 1.90 (MSRV is 1.88); the draft pins `muda`
-   0.19.3. Part 3 (the tray) follows.
+   dialogs and notifications, is done (decision 106), and so is part 2, native menu bars
+   (decision 107). **Please check the gallery on a Mac and on Windows**: the menu bar
+   should be the native one (macOS: at the top of the screen, with the application menu).
+   Part 3, the tray, is the last Phase 4 item (`tray-icon` 0.26 needs Rust 1.90; a
+   version within the MSRV is needed, or the MSRV raised).
 4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
 ## Earlier (2026-10-15)
@@ -1406,6 +1406,22 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     Gallery: a "desktop" card (30 cards), the gallery enabling both features. Not checked
     by clicking real OS dialogs (CI can't); `cargo run -p gallery` → Kitchen sink →
     Desktop to try them.
+107. **Native menu bars** (2026-10-16, spec `docs/specs/platform/native-menus.md`, ADR 0017
+    part 2; the user said "continue" on the six proposals, pinning `muda` 0.19.3 since 0.20+
+    needs Rust 1.90). `NativeMenu`/`NativeMenuItem`, `PlatformContext::set_menu_bar`,
+    `WindowEvent::MenuItemActivated`, `NativeCapabilities::menus`. `MenuBar::native(true)`
+    hands its menus (tracked labels, enabled and checked states, shortcut text, actions) to
+    an inherited `NativeMenus` host and then takes no space; the runner is the host where
+    the platform supports menus, numbers the items per window, installs bars after the
+    event, re-sends a window's bar when it gains focus (macOS has one bar for the app) and
+    maps activations to `on_select`. The winit shell builds `muda` menus (macOS: the
+    application menu first, Quit closing windows so vetoes apply), installs them with
+    `init_for_nsapp`/`init_for_hwnd`, and forwards `muda`'s events through the proxy; the
+    `native-menus` feature compiles `muda` only for macOS and Windows. The crate root went
+    from `forbid` to `deny(unsafe_code)` with one allowed function (the Win32 install).
+    The gallery's bar is native under the runner (GALLERY-53's test drives the drawn bar).
+    Checked by `cargo check`/`clippy` for the Windows and macOS targets here and by CI;
+    **not run on a real Mac or Windows machine yet**.
 
 ## Commit log
 
@@ -2032,7 +2048,13 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `db0d230` | spec: PlatformContext::native_capabilities |
 | `7cfc985` | test: FACADE-DESK-01's close case closes right after the press |
 | `24c726a` | impl: native file and message dialogs (rfd) and notifications (notify-rust), Desktop, fake answers; gallery desktop card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
-| _this commit_ | docs: draft native menu bars spec (ADR 0017 part 2) for review |
+| `4ecb78f` | docs: draft native menu bars spec (ADR 0017 part 2) for review |
+| `841c95f` | spec: native menu bars agreed; muda pinned to 0.19.3 |
+| `f0e3de5` | test: native menu bars, stubs + 6 failing tests; muda as an opt-in dependency |
+| `64414c8` | test: WIDGETS-MENUBAR-05's declining case puts the bar in a column |
+| `184f6f8` | test: GALLERY-53 drives the drawn menu bar |
+| `ef98c77` | spec: native menu bars Implemented; notes |
+| _this commit_ | impl: native menu bars (MenuBar::native, the runner's host, muda on macOS/Windows with the application menu); gallery native bar; PLAN.md Menus ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -2040,8 +2062,8 @@ that with the real hash from `git log`.
 ## Next steps
 
 Phase 4's milestone is done (`examples/enterprise-dashboard`), and so are multi-window
-and OS file drops. The rich clipboard and native dialogs/notifications are done too. Next (ADR 0017): native
-menus (part 2) and the tray (part 3), macOS and Windows only. RTL caret movement in
+and OS file drops. The rich clipboard, native dialogs/notifications and native menu bars are done too. Next
+(ADR 0017 part 3): the tray, macOS and Windows only. RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.
