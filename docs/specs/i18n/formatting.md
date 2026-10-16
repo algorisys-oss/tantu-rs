@@ -1,6 +1,6 @@
 # i18n, part 3: locale-aware number and date formatting
 
-- **Status:** Agreed (2026-10-16; the user asked to implement translations and locale
+- **Status:** Implemented (2026-10-16; the user asked to implement translations and locale
   formatting; the proposals are taken and marked review)
 - **Crates:** `tantu-i18n` (formatting on `Localization`; `Date`, `Time`, `Weekday` moved
   here), `tantu-widgets` (re-exports; the calendar's names and first weekday),

@@ -1,8 +1,10 @@
 //! [`SplitView`] and [`SplitPane`]: resizable panes. Spec: `docs/specs/widgets/split-view.md`.
 
+use crate::localizations::string;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
+use tantu_i18n::{Args, Localization};
 
 use tantu_theme::ColorScheme;
 use tantu_view::core::{EdgeInsets, Point, Rect};
@@ -342,7 +344,8 @@ type Press = (f32, Vec<f32>);
 struct Handle {
     model: Rc<Model>,
     index: usize,
-    label: String,
+    /// The accessible name, following the locale (WIDGETS-I18N-02).
+    label: Rc<dyn Fn() -> String>,
     thickness: f32,
 }
 
@@ -405,7 +408,6 @@ impl View for Handle {
             id,
             Semantics {
                 role: Role::Splitter,
-                name: Some(label),
                 focusable: true,
                 actions: SemanticsActions {
                     focus: true,
@@ -416,6 +418,9 @@ impl View for Handle {
                 ..Default::default()
             },
         );
+        cx.bind(id, Prop::Dynamic(Box::new(move || label())), |e, name| {
+            e.update_semantics(|s| s.name = Some(name));
+        });
         {
             let model = Rc::clone(&model);
             cx.bind(
@@ -557,11 +562,23 @@ impl View for SplitView {
                 None => pane.content,
             })
             .collect();
+        let loc = Localization::of(cx);
         for (index, label) in labels.iter().enumerate().take(n.saturating_sub(1)) {
-            let label = match label {
-                Some(label) => format!("Resize {label}"),
-                None => format!("Resize pane {}", index + 1),
-            };
+            let label = label.clone();
+            let label: Rc<dyn Fn() -> String> = Rc::new(move || match &label {
+                Some(label) => {
+                    let args = Args::new().set("pane", label.as_str());
+                    string(loc, "tantu-split-resize", Some(&args), || {
+                        format!("Resize {label}")
+                    })
+                }
+                None => {
+                    let args = Args::new().set("number", index + 1);
+                    string(loc, "tantu-split-resize-pane", Some(&args), || {
+                        format!("Resize pane {}", index + 1)
+                    })
+                }
+            });
             children.push(AnyView::new(Handle {
                 model: Rc::clone(&model),
                 index,

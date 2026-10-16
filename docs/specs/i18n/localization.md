@@ -1,6 +1,6 @@
 # i18n, part 2: locales and Fluent messages
 
-- **Status:** Agreed (2026-10-16; the user asked to implement translations and locale
+- **Status:** Implemented (2026-10-16; the user asked to implement translations and locale
   formatting; the proposals below are taken and marked review)
 - **Crates:** `tantu-i18n` (new: `Locale`, `Translations`, `Localization`, `Args`),
   `tantu-widgets` (`Localizations`, built-in widget strings), `tantu` (re-exports),

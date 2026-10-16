@@ -1,11 +1,13 @@
 //! [`DockArea`]: shows a [`DockLayout`] and lets the user change it. Spec:
 //! `docs/specs/widgets/dock-area.md`.
 
+use crate::localizations::string;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
+use tantu_i18n::{Args, Localization};
 
 use tantu_view::core::{EdgeInsets, Point, Rect, Size, Vec2};
 use tantu_view::layout::{
@@ -1298,9 +1300,16 @@ impl View for CloseButton {
         );
         {
             let (title, panel) = (Rc::clone(&dock.title), panel.clone());
+            let loc = Localization::of(cx);
             cx.bind(
                 id,
-                Prop::Dynamic(Box::new(move || format!("Close {}", title(&panel)))),
+                Prop::Dynamic(Box::new(move || {
+                    let title = title(&panel);
+                    let args = Args::new().set("title", title.as_str());
+                    string(loc, "tantu-dock-close", Some(&args), || {
+                        format!("Close {title}")
+                    })
+                })),
                 |e, name| {
                     e.update_semantics(|s| s.name = Some(name));
                 },
@@ -1426,7 +1435,7 @@ impl DividerView {
     }
 
     /// "Resize <title>", after the active panel of the first group before the boundary.
-    fn label(dock: &Dock, split: u64, index: usize) -> String {
+    fn label(dock: &Dock, loc: Option<Localization>, split: u64, index: usize) -> String {
         fn first_group<'a>(view: &'a DockView<'a>) -> Option<(&'a [PanelId], usize)> {
             match view {
                 DockView::Tabs { panels, active, .. } => Some((panels, *active)),
@@ -1447,11 +1456,17 @@ impl DividerView {
                     return None;
                 };
                 let (panels, active) = first_group(children.get(index)?)?;
-                panels
-                    .get(active)
-                    .map(|p| format!("Resize {}", (dock.title)(p)))
+                panels.get(active).map(|p| (dock.title)(p))
             })
-            .unwrap_or_else(|| "Resize".to_owned())
+            .map_or_else(
+                || string(loc, "tantu-dock-resize", None, || "Resize".to_owned()),
+                |title| {
+                    let args = Args::new().set("title", title.as_str());
+                    string(loc, "tantu-dock-resize", Some(&args), || {
+                        format!("Resize {title}")
+                    })
+                },
+            )
     }
 }
 
@@ -1521,6 +1536,7 @@ impl View for DividerView {
         );
         {
             let dock = Rc::clone(&dock);
+            let loc = Localization::of(cx);
             cx.bind(
                 id,
                 Prop::Dynamic(Box::new(move || {
@@ -1536,7 +1552,7 @@ impl View for DividerView {
                             (0.0, 0.0)
                         }
                     });
-                    (DividerView::label(&dock, split, index), numeric)
+                    (DividerView::label(&dock, loc, split, index), numeric)
                 })),
                 |e, (name, numeric)| {
                     e.update_semantics(|s| {

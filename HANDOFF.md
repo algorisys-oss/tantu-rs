@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (handler ownership fixed; the user is away until morning)_
+_Last updated: 2026-10-16 (i18n: translations and locale formatting done; the user is away for five hours)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -20,16 +20,17 @@ Decisions 92–100; every push passed CI. Spec amendments found while implementi
 marked "review" in the specs (A11Y-TREE-13 enclosing popup targets, WIDGETS-DATE-09,
 LAYOUT-LGRID-04 stretch, VIEW-DRAG-05, WIDGETS-COMBO-03).
 
+**Later on 2026-10-16** the user asked to implement translations and locale formatting,
+then went away for five hours asking the agent to complete pending items: **i18n is
+complete** (decision 101, ADR 0015 accepted on that request, review).
+
 **Waiting for the user's decisions** (the rest of Phase 4 needs them):
-1. **Fluent localisation and locale formats** (i18n parts 2–3): a new crate (e.g.
-   `tantu-i18n`) with `fluent-bundle` (and ICU data or a smaller formatter) changes the
-   AGENTS.md crate table, which needs a proposal first.
-2. **Multi-window**: each window's `ViewTree` has its own reactive `Runtime`, so signals
+1. **Multi-window**: each window's `ViewTree` has its own reactive `Runtime`, so signals
    can't be shared between windows. Proposal: one runtime per app shared by its windows'
    trees (an ADR superseding part of decision 20), then `App`-level `open_window`.
-3. **Image clipboard**: arboard's `image-data` feature pulls the `image` crate.
-4. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
-5. **OS file drops**: winit 0.30 reports dropped files without a position, so targets
+2. **Image clipboard**: arboard's `image-data` feature pulls the `image` crate.
+3. **Native menus, file dialogs, notifications, tray**: platform dependencies and an ADR.
+4. **OS file drops**: winit 0.30 reports dropped files without a position, so targets
    can't be hit-tested; either window-level file drops or wait for a winit with positions.
 
 ## Earlier (2026-10-15)
@@ -1291,6 +1292,33 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     current at registration, so a removed component's (or replaced `Dyn` version's)
     handlers on elements it doesn't own never run and don't count as having run; dead
     entries are purged when the next handler registers on the same element.
+101. **Translations and locale formatting** (2026-10-16, specs
+    `docs/specs/i18n/localization.md` and `docs/specs/i18n/formatting.md`, ADR 0015; the
+    user asked to implement them; the proposals were taken and are marked review). New
+    crate **`tantu-i18n`** (depends on `tantu-view`; `tantu-widgets` depends on it; AGENTS.md
+    table, architecture doc and diagram updated) with `fluent-bundle` 0.16,
+    `fluent-langneg` 0.13.1 (0.14 would pull a second, 1.x ICU), `fluent-syntax`,
+    `intl-memoizer` and ICU4X 2.3 (`icu_locale_core`, `icu_decimal`, `icu_datetime`,
+    `icu_calendar`, `icu_time`; the version parley already uses, compiled data). `Locale`
+    (BCP 47, script direction), `Translations` (Fluent resources per locale, errors with
+    offsets, later resources override, negotiation), `Localization` (a `Copy` handle: the
+    locale as a signal, `text`/`text_with`/`message` with arguments and plurals, numbers in
+    messages formatted by ICU through Fluent's formatter hook and memoizer, no bidi
+    isolation marks, the lookup chain locale → parents → fallback), formatting of integers,
+    decimals (half-even), dates (four lengths), times, date-times, month and weekday names,
+    month-year and the first weekday, all tracked reads. `Date`/`Time`/`Weekday` moved to
+    `tantu-i18n` (re-exported from `tantu-widgets`). `Localizations` provides the
+    localization and a `Directionality` from the locale. Built-in widget strings (combo,
+    date and time fields, calendar buttons, split and dock dividers, dock close buttons) are
+    message ids with English defaults that follow a locale switch;
+    `IconButton`/`Icon::semantics_label` became reactive props (backward compatible). The
+    calendar uses the locale's names, formats and first weekday. Gallery: a Language combo
+    box (English, Deutsch, Français, עברית) translating the title, sidebar, current section
+    and status bar, Hebrew mirroring the window (the gallery embeds Noto Sans Hebrew, 27 KB,
+    through `ensure_font`), and an "i18n" kitchen-sink card (plural counter, formats).
+    Not done: localized typed input (fields keep ISO `YYYY-MM-DD`/`HH:MM`), currencies,
+    units, non-Gregorian calendars, reading the OS locale, and right-aligning text fields'
+    paragraphs under RTL (a combo box's text and its arrow overlap in Hebrew).
 
 ## Commit log
 
@@ -1877,17 +1905,26 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `aed20a6` | test: VIEW-EVENT-10, a removed component's handlers on the root still run, failing |
 | `7586a4b` | fix: handlers carry their registering scope's alive flag; dispatch skips dead ones |
 | `beba483` | docs: HANDOFF.md resume point for the morning |
-| _this commit_ | docs: HANDOFF.md commit log rows |
+| `ae2f21f` | docs: HANDOFF.md commit log rows |
+| `59542eb` | spec: i18n parts 2 and 3 (I18N-LOCALE-01, I18N-MSG-01..05, I18N-FMT-01..06, WIDGETS-I18N-01..03, GALLERY-50..52); ADR 0015, AGENTS.md table, architecture doc and diagram |
+| `1e85b76` | spec: `Localization::message` (I18N-MSG-06); public `Date`/`Time`/`Weekday` helpers |
+| `f887831` | spec: I18N-FMT-03/04 and GALLERY-52 follow ICU4X's data |
+| `f64ef7a` | test: i18n, new crate with stubs + 21 failing tests; `Date`/`Time`/`Weekday` moved |
+| `8be31c9` | test: format-only French and Hindi fixture resources |
+| `8c1d379` | test: a real Fluent syntax error; Japanese first in the negotiation example |
+| `f2b2252` | spec: widget strings follow a locale switch; reactive icon semantics labels |
+| `e1a8602` | test: GALLERY-50 accepts the section name in the sidebar and the header |
+| `f685b7b` | test: GALLERY-38 reads the Fruit combo box by name |
+| _this commit_ | impl: tantu-i18n (locales, Fluent messages, ICU4X formatting), Localizations, translated widget strings, localized calendar; gallery languages and i18n card, goldens; PLAN.md i18n ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
 
 ## Next steps
 
-Continue Phase 4 in PLAN.md order (Forms and `LayoutGrid` are done): i18n parts 2–3
-(Fluent localisation, locale formats; both need a new crate and dependencies, so the user
-decides first); the remaining clipboard/multi-window parts and OS drag and drop (file and
-text drops through the platform; winit delivers dropped files). RTL caret movement in
+Continue Phase 4 in PLAN.md order (Forms, `LayoutGrid` and i18n are done): the
+`examples/enterprise-dashboard` milestone; the remaining clipboard/multi-window parts and
+OS drag and drop (file and text drops through the platform; winit delivers dropped files). RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

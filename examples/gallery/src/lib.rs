@@ -4,6 +4,7 @@
 mod dialogs;
 mod dock;
 mod forms;
+mod i18n;
 mod menus;
 mod split;
 mod tabs;
@@ -40,7 +41,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 26] = [
+pub const SINK_CARDS: [(&str, &[&str]); 27] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -68,6 +69,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 26] = [
     ("time", &["time_picker_field"]),
     ("dashboard", &["layout_grid"]),
     ("dnd", &["draggable", "drag_target"]),
+    ("i18n", &["localizations"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -108,6 +110,8 @@ pub fn gallery() -> impl View {
         let section = signal(SECTIONS[0]);
         let dark = signal(false);
         let rtl = signal(false);
+        // The gallery's languages (GALLERY-50).
+        let loc = i18n::localization(cx);
         // A message shown in the status bar until the next navigation (Help → About).
         let note: Signal<Option<String>> = signal(None);
         effect(move || {
@@ -125,7 +129,7 @@ pub fn gallery() -> impl View {
                 }
             });
         });
-        Column::new()
+        let window = Column::new()
             .cross_axis_alignment(CrossAxisAlignment::Stretch)
             .child(Keyed::new("menubar", menu_bar(section, dark, note)))
             // Everything between the bars follows the RTL switch (GALLERY-46).
@@ -135,21 +139,25 @@ pub fn gallery() -> impl View {
                         if rtl.get() {
                             TextDirection::Rtl
                         } else {
-                            TextDirection::Ltr
+                            loc.locale().direction()
                         }
                     },
                     Column::new()
                         .cross_axis_alignment(CrossAxisAlignment::Stretch)
-                        .child(Keyed::new("header", header(section, dark, rtl)))
+                        .child(Keyed::new("header", header(section, dark, rtl, loc)))
                         .child(Expanded::new(
                             Row::new()
                                 .cross_axis_alignment(CrossAxisAlignment::Stretch)
-                                .child(Keyed::new("sidebar", sidebar(section)))
+                                .child(Keyed::new("sidebar", sidebar(section, loc)))
                                 .child(Expanded::new(Keyed::new("content", content(section)))),
                         )),
                 )),
             ))
-            .child(Keyed::new("statusbar", status_bar(section, dark, note)))
+            .child(Keyed::new(
+                "statusbar",
+                status_bar(section, dark, note, loc),
+            ));
+        Localizations::new(loc, window)
     })
 }
 
@@ -185,13 +193,16 @@ fn status_bar(
     section: Signal<&'static str>,
     dark: Signal<bool>,
     note: Signal<Option<String>>,
+    loc: Localization,
 ) -> impl View {
     StatusBar::new()
         .leading(Keyed::new(
             "status-section",
             Text::new(move || {
-                note.get()
-                    .unwrap_or_else(|| format!("Section: {}", section.get()))
+                note.get().unwrap_or_else(|| {
+                    let name = i18n::section_name(loc, section.get());
+                    loc.text_with("section", &Args::new().set("name", name))
+                })
             })
             .style(TextStyle::label()),
         ))
@@ -202,17 +213,23 @@ fn status_bar(
         ))
 }
 
-fn header(section: Signal<&'static str>, dark: Signal<bool>, rtl: Signal<bool>) -> impl View {
+fn header(
+    section: Signal<&'static str>,
+    dark: Signal<bool>,
+    rtl: Signal<bool>,
+    loc: Localization,
+) -> impl View {
     Padding::new(EdgeInsets::symmetric(16.0, 12.0)).child(
         Row::new()
             .cross_axis_alignment(CrossAxisAlignment::Center)
             .spacing(16.0)
-            .child(Text::new("Tantu gallery").style(TextStyle::title()))
+            .child(Text::new(move || loc.text("title")).style(TextStyle::title()))
             .child(Spacer::new())
             .child(Keyed::new(
                 "current",
-                Text::new(move || section.get().to_string()).style(TextStyle::label()),
+                Text::new(move || i18n::section_name(loc, section.get())).style(TextStyle::label()),
             ))
+            .child(Keyed::new("language", i18n::language_picker(loc)))
             .child(labeled_switch("RTL", "rtl", rtl))
             .child(dark_mode_switch(dark)),
     )
@@ -244,7 +261,7 @@ fn dark_mode_switch(dark: Signal<bool>) -> impl View {
 }
 
 /// The section buttons, scrolling when the window is too short for all of them.
-fn sidebar(section: Signal<&'static str>) -> impl View {
+fn sidebar(section: Signal<&'static str>, loc: Localization) -> impl View {
     SizedBox::width(200.0).child(ScrollView::new(
         Padding::all(8.0).child(
             Column::new()
@@ -253,7 +270,8 @@ fn sidebar(section: Signal<&'static str>) -> impl View {
                 .children(SECTIONS.iter().map(|name| {
                     Keyed::new(
                         nav_key(name),
-                        Button::new(*name).on_press(move || section.set(name)),
+                        Button::new(move || i18n::section_name(loc, name))
+                            .on_press(move || section.set(name)),
                     )
                 })),
         ),
@@ -846,6 +864,10 @@ fn kitchen_sink_section() -> impl View {
             .child(forms::time_sink())
             .child(dashboard_sink())
             .child(dnd_sink())
+            .child(Builder::new(|cx| {
+                let loc = Localization::of(cx).unwrap_or_else(|| i18n::localization(cx));
+                i18n::sink(loc)
+            }))
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())

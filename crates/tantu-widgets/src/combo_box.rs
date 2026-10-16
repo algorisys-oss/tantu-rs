@@ -1,8 +1,10 @@
 //! [`ComboBox`]: a text field with a filtered list of options. Spec:
 //! `docs/specs/widgets/combo-box.md`.
 
+use crate::localizations::string;
 use std::cell::RefCell;
 use std::rc::Rc;
+use tantu_i18n::Localization;
 
 use tantu_view::core::{Color, EdgeInsets, Rect, Vec2};
 use tantu_view::layout::{Alignment, BoxConstraints, CrossAxisAlignment, RenderConstrainedBox};
@@ -397,6 +399,7 @@ impl View for Popup {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
         let (combo, width) = (self.combo, self.width);
         let theme = ThemeHandle::of(cx);
+        let loc = Localization::of(cx);
         let rows = {
             let combo = combo.clone();
             Dyn::new(move || {
@@ -408,7 +411,9 @@ impl View for Popup {
                     column = column.child(OptionRow {
                         combo: combo.clone(),
                         row: None,
-                        label: NO_MATCHES.to_owned(),
+                        label: string(loc, "tantu-combo-no-matches", None, || {
+                            NO_MATCHES.to_owned()
+                        }),
                     });
                 }
                 for (row, index) in listed.iter().enumerate() {

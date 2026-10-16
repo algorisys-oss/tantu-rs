@@ -17,7 +17,11 @@ tantu-view = { workspace = true }
 tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 # Fluent messages and locale negotiation (ADR 0015).
 fluent-bundle = "0.16.0"
-fluent-langneg = "0.14.2"
+fluent-langneg = "0.13.1"
+# The resource syntax tree (duplicate ids) and the per-locale formatter cache, the
+# versions fluent-bundle uses.
+fluent-syntax = "0.12.0"
+intl-memoizer = "0.5.3"
 unic-langid = "0.9"
 # Locale data and formatting, the ICU4X version parley already uses (ADR 0015).
 icu_locale_core = "2.3.0"

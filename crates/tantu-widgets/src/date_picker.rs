@@ -16,6 +16,7 @@ use tantu_view::{
 
 use crate::combo_box::PopupPaint;
 use crate::formatter::MaskFormatter;
+use crate::localizations::string;
 use crate::text_field::FieldDecoration;
 use crate::theme::{ALPHA_12, ALPHA_38, ThemeHandle, at};
 use crate::{
@@ -23,6 +24,7 @@ use crate::{
     TextEditingController, TextField,
 };
 use crate::{Date, Weekday};
+use tantu_i18n::{DateLength, Localization};
 
 /// A day cell's side, and the calendar's width (WIDGETS-DATE-02).
 const CELL: f32 = 40.0;
@@ -44,7 +46,8 @@ struct Options {
     first: Date,
     last: Date,
     today: Option<Date>,
-    first_day: Weekday,
+    /// `None`: the localization's first weekday, else Monday (WIDGETS-I18N-03).
+    first_day: Option<Weekday>,
     on_change: Option<Rc<dyn Fn(Date)>>,
 }
 
@@ -54,7 +57,7 @@ impl Options {
             first: Date::new(1900, 1, 1).expect("1900-01-01 exists"),
             last: Date::new(2100, 12, 31).expect("2100-12-31 exists"),
             today: None,
-            first_day: Weekday::Monday,
+            first_day: None,
             on_change: None,
         }
     }
@@ -93,6 +96,8 @@ struct Calendar {
     cells_version: Signal<u32>,
     /// Called after a day is chosen (the field closes its popup).
     after_choose: Option<Rc<dyn Fn(Date)>>,
+    /// The nearest localization: names, formats and the first weekday (WIDGETS-I18N-03).
+    loc: Option<Localization>,
 }
 
 impl Calendar {
@@ -100,6 +105,7 @@ impl Calendar {
         selected: Signal<Option<Date>>,
         options: Rc<Options>,
         after_choose: Option<Rc<dyn Fn(Date)>>,
+        loc: Option<Localization>,
     ) -> Self {
         let start = Self::start(&options, untrack(|| selected.get()));
         Calendar {
@@ -112,6 +118,31 @@ impl Calendar {
             cells_version: signal(0),
             options,
             after_choose,
+            loc,
+        }
+    }
+
+    /// The first column's weekday (tracked): set, else the locale's, else Monday.
+    fn first_day(&self) -> Weekday {
+        self.options
+            .first_day
+            .or_else(|| self.loc.map(|l| l.first_weekday()))
+            .unwrap_or(Weekday::Monday)
+    }
+
+    /// A day cell's name (tracked).
+    fn day_name(&self, date: Date) -> String {
+        match self.loc {
+            Some(loc) => loc.format_date(date, DateLength::Full),
+            None => long_name(date),
+        }
+    }
+
+    /// A weekday's (short, full) names (tracked).
+    fn weekday_names(&self, day: Weekday) -> (String, String) {
+        match self.loc {
+            Some(loc) => (loc.weekday_name(day, true), loc.weekday_name(day, false)),
+            None => (day.short_name().to_owned(), day.name().to_owned()),
         }
     }
 
@@ -218,6 +249,9 @@ impl Calendar {
     /// "October 2026" (tracked).
     fn month_label(&self) -> String {
         let (year, month) = self.month.get();
+        if let Some(loc) = self.loc {
+            return loc.format_month_year(year, month);
+        }
         let first = Date::new(year, month, 1).unwrap_or(self.options.first);
         format!("{} {year}", first.month_name())
     }
@@ -284,7 +318,7 @@ impl CalendarDatePicker {
 
     /// The first column's weekday (default Monday).
     pub fn first_day_of_week(mut self, day: Weekday) -> Self {
-        self.options.first_day = day;
+        self.options.first_day = Some(day);
         self
     }
 
@@ -297,7 +331,12 @@ impl CalendarDatePicker {
 
 impl View for CalendarDatePicker {
     fn build(self, cx: &mut BuildCx<'_>) -> ElementId {
-        let calendar = Calendar::new(self.selected, Rc::new(self.options.normalized()), None);
+        let calendar = Calendar::new(
+            self.selected,
+            Rc::new(self.options.normalized()),
+            None,
+            Localization::of(cx),
+        );
         CalendarView {
             calendar,
             focusable: true,
@@ -357,7 +396,14 @@ impl View for CalendarView {
                             }
                         }
                     })
-                    .semantics_label("Previous month")
+                    .semantics_label({
+                        let loc = cal.loc;
+                        move || {
+                            string(loc, "tantu-date-previous-month", None, || {
+                                "Previous month".to_owned()
+                            })
+                        }
+                    })
                     .enabled({
                         let first = month_index(options.first);
                         move || shown() > first
@@ -375,7 +421,14 @@ impl View for CalendarView {
                             Icons::CHEVRON_RIGHT
                         }
                     })
-                    .semantics_label("Next month")
+                    .semantics_label({
+                        let loc = cal.loc;
+                        move || {
+                            string(loc, "tantu-date-next-month", None, || {
+                                "Next month".to_owned()
+                            })
+                        }
+                    })
                     .enabled({
                         let last = month_index(options.last);
                         move || shown() < last
@@ -386,20 +439,30 @@ impl View for CalendarView {
                     }),
                 ),
         );
-        let mut weekdays = Row::new();
-        for column in 0..7 {
-            weekdays = weekdays.child(WeekdayCell {
-                day: options.first_day.plus(column),
-                theme,
-            });
-        }
+        // The weekday row follows the first weekday and the locale's names.
+        let weekdays = {
+            let cal = cal.clone();
+            Dyn::new(move || {
+                let first = cal.first_day();
+                let mut row = Row::new();
+                for column in 0..7 {
+                    let (short, full) = cal.weekday_names(first.plus(column));
+                    row = row.child(WeekdayCell { short, full, theme });
+                }
+                row
+            })
+        };
         let body = {
             let cal = cal.clone();
             Dyn::new(move || {
                 let (year, month) = cal.month.get();
+                // The cells' names follow the locale too.
+                if let Some(loc) = cal.loc {
+                    loc.locale();
+                }
                 *cal.cells.borrow_mut() = vec![None; 31];
                 let first = Date::new(year, month, 1).unwrap_or(cal.options.first);
-                let offset = (first.weekday().index() + 7 - cal.options.first_day.index()) % 7;
+                let offset = (first.weekday().index() + 7 - cal.first_day().index()) % 7;
                 let days = Date::days_in_month(year, month) as usize;
                 let mut weeks = Column::new();
                 for row in 0..WEEKS {
@@ -482,7 +545,8 @@ impl View for CalendarView {
 
 /// A weekday's short name over a column (WIDGETS-DATE-02, -06).
 struct WeekdayCell {
-    day: Weekday,
+    short: String,
+    full: String,
     theme: ThemeHandle,
 }
 
@@ -493,7 +557,7 @@ impl View for WeekdayCell {
             RenderConstrainedBox::new(BoxConstraints::tight(Size::new(CELL, WEEKDAY_ROW))),
             [AnyView::new(
                 Center::new().child(
-                    Text::new(self.day.short_name().to_owned())
+                    Text::new(self.short)
                         .style(theme.snapshot().text.label)
                         .color(move || theme.colors().on_surface_variant),
                 ),
@@ -503,7 +567,7 @@ impl View for WeekdayCell {
             id,
             Semantics {
                 role: Role::ColumnHeader,
-                name: Some(self.day.name().to_owned()),
+                name: Some(self.full),
                 ..Default::default()
             },
         );
@@ -553,7 +617,7 @@ impl View for DayCell {
             id,
             Semantics {
                 role: Role::Cell,
-                name: Some(long_name(date)),
+                name: Some(cal.day_name(date)),
                 row_index: Some(self.row),
                 column_index: Some(self.column),
                 disabled: !enabled,
@@ -664,7 +728,7 @@ impl Paint for DayPaint {
 pub struct DatePickerField {
     selected: Signal<Option<Date>>,
     options: Options,
-    label: String,
+    label: Option<String>,
     width: f32,
 }
 
@@ -674,14 +738,14 @@ impl DatePickerField {
         DatePickerField {
             selected,
             options: Options::new(),
-            label: "Date".to_owned(),
+            label: None,
             width: 240.0,
         }
     }
 
     /// The accessible name (default "Date").
     pub fn label(mut self, label: impl Into<String>) -> Self {
-        self.label = label.into();
+        self.label = Some(label.into());
         self
     }
 
@@ -711,7 +775,7 @@ impl DatePickerField {
 
     /// The calendar's first column (default Monday).
     pub fn first_day_of_week(mut self, day: Weekday) -> Self {
-        self.options.first_day = day;
+        self.options.first_day = Some(day);
         self
     }
 
@@ -775,7 +839,8 @@ impl View for DatePickerField {
             controller.set_text(date.to_string());
             invalid.set(false);
         });
-        let mut calendar = Calendar::new(selected, Rc::clone(&options), Some(after_choose));
+        let loc = Localization::of(cx);
+        let mut calendar = Calendar::new(selected, Rc::clone(&options), Some(after_choose), loc);
         calendar.show_cursor = show_cursor;
         let field = Field {
             selected,
@@ -802,7 +867,11 @@ impl View for DatePickerField {
         }
         let mask = MaskFormatter::new("####-##-##");
         let decoration = FieldDecoration {
-            error: Rc::new(move || invalid.get().then(|| INVALID.to_owned())),
+            error: Rc::new(move || {
+                invalid
+                    .get()
+                    .then(|| string(loc, "tantu-date-invalid", None, || INVALID.to_owned()))
+            }),
             role: Some(Role::ComboBox),
             expanded: Some(Rc::new(move || open.get())),
             active: Some({
@@ -815,10 +884,16 @@ impl View for DatePickerField {
                     }
                 })
             }),
-            ..FieldDecoration::named(Some(self.label))
+            ..FieldDecoration::named(Some(self.label.unwrap_or_else(|| {
+                untrack(|| string(loc, "tantu-date-label", None, || "Date".to_owned()))
+            })))
         };
         let text_field = TextField::new(controller)
-            .placeholder("YYYY-MM-DD")
+            .placeholder(untrack(|| {
+                string(loc, "tantu-date-placeholder", None, || {
+                    "YYYY-MM-DD".to_owned()
+                })
+            }))
             .input_formatter(mask.clone())
             .decoration(decoration)
             .on_change({
@@ -847,7 +922,9 @@ impl View for DatePickerField {
         let field_id: Rc<Cell<Option<ElementId>>> = Rc::default();
         let focus_request = signal(0u32);
         let button = IconButton::new(Icons::CALENDAR_TODAY)
-            .semantics_label("Choose date")
+            .semantics_label(move || {
+                string(loc, "tantu-date-choose", None, || "Choose date".to_owned())
+            })
             .on_press({
                 let field = field.clone();
                 move || {

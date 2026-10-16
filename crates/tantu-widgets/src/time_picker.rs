@@ -1,7 +1,9 @@
 //! [`TimePickerField`]: a time typed as `HH:MM` or stepped with Up and Down. Spec:
 //! `docs/specs/widgets/time-picker.md`.
 
+use crate::localizations::string;
 use std::rc::Rc;
+use tantu_i18n::Localization;
 
 use tantu_view::reactive::{Signal, effect, signal, untrack};
 use tantu_view::{BuildCx, ElementId, Handled, LogicalKey, Modifiers, NamedKey, Phase, Role, View};
@@ -20,7 +22,7 @@ const HOURS_END: usize = 2;
 /// A time typed as `HH:MM` or stepped with Up and Down (WIDGETS-TIME-02..04).
 pub struct TimePickerField {
     selected: Signal<Option<Time>>,
-    label: String,
+    label: Option<String>,
     width: f32,
     minute_step: u32,
     on_change: Option<Rc<dyn Fn(Time)>>,
@@ -31,7 +33,7 @@ impl TimePickerField {
     pub fn new(selected: Signal<Option<Time>>) -> Self {
         TimePickerField {
             selected,
-            label: "Time".to_owned(),
+            label: None,
             width: 120.0,
             minute_step: 1,
             on_change: None,
@@ -40,7 +42,7 @@ impl TimePickerField {
 
     /// The accessible name (default "Time").
     pub fn label(mut self, label: impl Into<String>) -> Self {
-        self.label = label.into();
+        self.label = Some(label.into());
         self
     }
 
@@ -114,13 +116,22 @@ impl View for TimePickerField {
                 }
             }
         };
+        let loc = Localization::of(cx);
         let field = TextField::new(controller)
-            .placeholder("HH:MM")
+            .placeholder(untrack(|| {
+                string(loc, "tantu-time-placeholder", None, || "HH:MM".to_owned())
+            }))
             .input_formatter(mask.clone())
             .decoration(FieldDecoration {
-                error: Rc::new(move || invalid.get().then(|| INVALID.to_owned())),
+                error: Rc::new(move || {
+                    invalid
+                        .get()
+                        .then(|| string(loc, "tantu-time-invalid", None, || INVALID.to_owned()))
+                }),
                 role: Some(Role::SpinButton),
-                ..FieldDecoration::named(Some(self.label))
+                ..FieldDecoration::named(Some(self.label.unwrap_or_else(|| {
+                    untrack(|| string(loc, "tantu-time-label", None, || "Time".to_owned()))
+                })))
             })
             .on_change({
                 let (mask, report) = (mask.clone(), report.clone());

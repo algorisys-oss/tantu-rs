@@ -33,6 +33,7 @@
 #![forbid(unsafe_code)]
 
 mod date;
+mod formats;
 mod locale;
 mod localization;
 mod messages;

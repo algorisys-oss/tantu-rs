@@ -195,11 +195,11 @@ faster or more portable without changing how apps are written.
   - [x] input formatters and masked input: `TextInputFormatter`, `MaskFormatter` (spec `docs/specs/widgets/masked-input.md`)
   - [x] date picker: `Date`, `CalendarDatePicker`, `DatePickerField` (spec `docs/specs/widgets/date-picker.md`)
   - [x] time picker: `Time`, `TimePickerField` (spec `docs/specs/widgets/time-picker.md`)
-- [ ] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting, in parts:
+- [x] i18n: Fluent-based localisation, RTL layout mirroring, locale-aware formatting, in parts:
   - [x] RTL layout mirroring: `TextDirection`, `Directionality`, directional alignment, insets and positions, `Row`/`Column`/`Wrap` mirroring (spec `docs/specs/widgets/directionality.md`)
   - [x] RTL inside widgets: switch, slider, scrollbar, tree view, menus, combo arrow, calendar chevrons (spec `docs/specs/widgets/directionality-widgets.md`)
-  - [ ] Fluent-based localisation: `tantu-i18n`, `Locale`, `Translations`, `Localization`, `Localizations`, translated widget strings (spec `docs/specs/i18n/localization.md`, ADR 0015)
-  - [ ] locale-aware formatting of numbers, dates and times; the calendar's names and first weekday (spec `docs/specs/i18n/formatting.md`)
+  - [x] Fluent-based localisation: `tantu-i18n`, `Locale`, `Translations`, `Localization`, `Localizations`, translated widget strings (spec `docs/specs/i18n/localization.md`, ADR 0015)
+  - [x] locale-aware formatting of numbers, dates and times; the calendar's names and first weekday (spec `docs/specs/i18n/formatting.md`)
 - [x] `Grid` layout (possibly via taffy) for dashboard-style screens: `LayoutGrid` with fixed, flexible and auto tracks, in-house (spec `docs/specs/widgets/layout-grid.md`)
 - [x] Kitchen sink: a gallery section with every widget and layout widget on one scrolling page, state echoed as text, goldens (spec `docs/specs/examples/kitchen-sink.md`)
 - [ ] **Milestone:** `examples/enterprise-dashboard` (docking + grid + forms + charts area)

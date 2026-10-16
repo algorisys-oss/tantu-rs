@@ -70,7 +70,7 @@ pub struct Icon {
     icon: Prop<IconData>,
     size: f32,
     color: Option<Prop<Color>>,
-    label: Option<String>,
+    label: Option<Prop<String>>,
 }
 
 impl Icon {
@@ -85,8 +85,8 @@ impl Icon {
     }
 
     /// The accessible name (WIDGETS-SEM-01).
-    pub fn semantics_label(mut self, label: impl Into<String>) -> Self {
-        self.label = Some(label.into());
+    pub fn semantics_label(mut self, label: impl IntoProp<String>) -> Self {
+        self.label = Some(label.into_prop());
         self
     }
 
@@ -127,10 +127,10 @@ impl View for Icon {
             id,
             Semantics {
                 role: Role::Image,
-                name: label,
                 ..Default::default()
             },
         );
+        bind_name(cx, id, label);
         cx.set_paint(
             id,
             IconPaint {
@@ -178,7 +178,7 @@ pub struct IconButton {
     icon: Prop<IconData>,
     on_press: Option<Rc<dyn Fn()>>,
     enabled: Prop<bool>,
-    label: Option<String>,
+    label: Option<Prop<String>>,
 }
 
 impl IconButton {
@@ -194,8 +194,8 @@ impl IconButton {
     }
 
     /// The accessible name (WIDGETS-SEM-01).
-    pub fn semantics_label(mut self, label: impl Into<String>) -> Self {
-        self.label = Some(label.into());
+    pub fn semantics_label(mut self, label: impl IntoProp<String>) -> Self {
+        self.label = Some(label.into_prop());
         self
     }
 
@@ -237,7 +237,7 @@ impl View for IconButton {
             }
         };
         let icon = Center::new().child(Icon::new(self.icon).color(color));
-        build_toggle(
+        let id = build_toggle(
             cx,
             ICON_BUTTON_SIZE,
             enabled,
@@ -248,11 +248,12 @@ impl View for IconButton {
             },
             Semantics {
                 role: Role::Button,
-                name: label,
                 ..Default::default()
             },
             [AnyView::new(icon)],
-        )
+        );
+        bind_name(cx, id, label);
+        id
     }
 }
 
@@ -278,5 +279,14 @@ impl Paint for IconButtonPaint {
         let center = Point::new(size.width / 2.0, size.height / 2.0);
         self.state
             .paint_layer(cx.scene(), &self.colors, center, false);
+    }
+}
+
+/// Binds an optional (reactive) accessible name to `id`.
+fn bind_name(cx: &mut BuildCx<'_>, id: ElementId, label: Option<Prop<String>>) {
+    if let Some(label) = label {
+        cx.bind(id, label, |e, name| {
+            e.update_semantics(|s| s.name = Some(name));
+        });
     }
 }
