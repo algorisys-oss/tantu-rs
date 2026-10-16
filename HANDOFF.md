@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (the tray done: Phase 4 is complete)_
+_Last updated: 2026-10-16 (Phase 4 complete; Phase 5 started: damage tracking drafted for review)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -2074,7 +2074,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `a7c64fe` | docs: draft system tray spec (ADR 0017 part 3) for review |
 | `1a635ca` | spec: the system tray agreed |
 | `b10560a` | test: the system tray, stubs + 8 tests (7 failing); tray-icon as an opt-in dependency |
-| _this commit_ | impl: the system tray (SystemTray, app events, tray-icon on macOS/Windows); gallery tray; PLAN.md Phase 4 done |
+| `a4523a0` | impl: the system tray (SystemTray, app events, tray-icon on macOS/Windows); gallery tray; PLAN.md Phase 4 done |
+| _this commit_ | docs: draft damage tracking and partial repaint spec (Phase 5, item 1 part 1) for review; PLAN.md item split |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -2083,8 +2084,9 @@ that with the real hash from `git log`.
 
 Phase 4's milestone is done (`examples/enterprise-dashboard`), and so are multi-window
 and OS file drops. The rich clipboard, native dialogs/notifications, native menu bars and the tray are done:
-**Phase 4 is complete** (2026-10-16). Next is Phase 5 (polish, performance and tooling),
-once the user has checked the native integrations on macOS and Windows. RTL caret movement in
+**Phase 4 is complete** (2026-10-16). **Phase 5 has started**: the first item is split in
+four (PLAN.md), and part 1, damage from Scene diffs plus partial repaint in the software
+renderer, is drafted (`docs/specs/scene/damage.md`, six proposals; say "continue"). RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

@@ -206,7 +206,11 @@ faster or more portable without changing how apps are written.
 - [x] **Milestone:** `examples/enterprise-dashboard` (docking + grid + forms + charts area) (spec `docs/specs/examples/enterprise-dashboard.md`)
 
 ### Phase 5 — Polish, performance and tooling (weeks 27+)
-- [ ] Damage tracking and partial repaint; layer caching; GPU texture atlas tuning
+- [ ] Damage tracking and partial repaint; layer caching; GPU texture atlas tuning, in parts:
+  - [ ] damage from Scene diffs by element id; partial repaint in the software renderer (spec `docs/specs/scene/damage.md`; draft for review)
+  - [ ] partial repaint in the wgpu renderer (a retained target) and compositor damage
+  - [ ] layer caching
+  - [ ] glyph-atlas and texture-atlas tuning
 - [ ] Profiling overlay (frame time, rebuild/relayout counts); `tracing` spans throughout
 - [ ] Hot reload (theme and assets first, then view code via dylib or WASM host, the Knots-style approach)
 - [ ] Inspector / devtools (element tree, layout bounds, signals graph), drawn as ordinary Scene commands so it works on every renderer
