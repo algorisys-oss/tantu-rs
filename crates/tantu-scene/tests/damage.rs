@@ -124,6 +124,9 @@ fn scene_damage_02_groups_by_element() {
     assert_eq!(covered, r(10.0, 0.0, 50.0, 40.0));
 }
 
+/// What one element draws.
+type Draw = dyn Fn(&mut SceneBuilder<'_>);
+
 #[test]
 fn scene_damage_03_bounds() {
     let font = FontId::from_raw(1).expect("1 is not 0");
@@ -141,7 +144,7 @@ fn scene_damage_03_bounds() {
         },
     ];
     // Each case: what one element draws, and the damage when it appears.
-    let cases: Vec<(&str, Box<dyn Fn(&mut SceneBuilder<'_>)>, Rect)> = vec![
+    let cases: Vec<(&str, Box<Draw>, Rect)> = vec![
         (
             "translated fill",
             Box::new(|b| {

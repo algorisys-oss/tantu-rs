@@ -3,7 +3,7 @@
 use tantu_core::{Color, Rect, Size};
 use tantu_render_conformance::reference_scenes;
 use tantu_render_soft::SoftRenderer;
-use tantu_scene::{Command, ElementId, Entry, Renderer, Resources, Scene, SceneBuilder};
+use tantu_scene::{Command, ElementId, Renderer, Resources, Scene, SceneBuilder};
 
 fn r(l: f32, t: f32, w: f32, h: f32) -> Rect {
     Rect::from_ltwh(l, t, w, h)

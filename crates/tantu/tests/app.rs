@@ -1012,8 +1012,8 @@ fn facade_app_22_damage_between_frames() {
     let full = |i: usize| matches!(frames[i].scene.damage(), Damage::Full);
     // The first frame is full; the press and the release change part of the window.
     assert!(full(0), "the first frame");
-    for i in 1..frames.len() - 1 {
-        match frames[i].scene.damage() {
+    for (i, frame) in frames.iter().enumerate().take(frames.len() - 1).skip(1) {
+        match frame.scene.damage() {
             Damage::Rects(rects) => assert!(!rects.is_empty(), "frame {i} changed something"),
             Damage::Full => panic!("frame {i} should be partial"),
         }
