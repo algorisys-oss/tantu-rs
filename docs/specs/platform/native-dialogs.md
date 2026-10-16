@@ -117,7 +117,9 @@ impl Desktop {
 - **GALLERY-56:** A "desktop" kitchen-sink card (after "clipboard"; 30 cards) has "Open
   file…", "Ask…" and "Notify" buttons and echoes the outcome in `sink-desktop-state`
   ("Opened: a.txt", "Open cancelled", "Answer: Yes", "Notified", "Not supported in this
-  build"). The gallery enables both features.
+  build"). The gallery enables both features. The buttons are keyed `sink-open_file`,
+  `sink-ask` and `sink-notify` (the card's `SINK_CARDS` samples; added while writing the
+  tests, review).
 
 ## Performance and allocation
 
