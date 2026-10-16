@@ -137,9 +137,20 @@ fn facade_desk_01_dialogs_and_notifications() {
     );
     assert_eq!(fake.message_dialogs.len(), 2);
     assert_eq!(fake.notifications[0].body, "All saved");
-    // A window closed before its answers drops the callbacks.
+    // A window closed before its answers drops the callbacks (the answers would arrive after
+    // the next step, so the press is followed directly by the close).
     let log: Log = Rc::default();
-    let platform = click(FakePlatform::new()).event(0, WindowEvent::CloseRequested);
+    let platform = FakePlatform::new()
+        .event(
+            0,
+            WindowEvent::PointerButton {
+                pointer: PointerId::Mouse,
+                button: PointerButton::Primary,
+                state: ButtonState::Pressed,
+                position: Point::new(5.0, 5.0),
+            },
+        )
+        .event(0, WindowEvent::CloseRequested);
     run(app(&log), platform);
     assert_eq!(*log.borrow(), ["native true", "notified true"]);
 }
