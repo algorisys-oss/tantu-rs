@@ -1,6 +1,6 @@
 # The system tray (macOS and Windows)
 
-- **Status:** Draft (2026-10-16; drafted by the agent for the user's review)
+- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals)
 - **Crates:** `tantu-platform` (tray description, app events, fake), `tantu-platform-winit`
   (`tray-icon`, feature `tray`, macOS and Windows only), `tantu-widgets` (menu entries for
   hosts), `tantu` (`SystemTray` view, the runner), `examples/gallery`
