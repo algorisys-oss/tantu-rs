@@ -1,0 +1,19 @@
+[package]
+name = "enterprise-dashboard"
+description = "An order dashboard: docking, a data grid, a form, KPI tiles and a chart, in two languages."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+tantu = { workspace = true }
+
+[dev-dependencies]
+tantu-test = { workspace = true }
