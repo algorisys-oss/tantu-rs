@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (native menu bars done; the tray is the last Phase 4 item)_
+_Last updated: 2026-10-16 (native menu bars done; the tray drafted for review)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -36,8 +36,9 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
    dialogs and notifications, is done (decision 106), and so is part 2, native menu bars
    (decision 107). **Please check the gallery on a Mac and on Windows**: the menu bar
    should be the native one (macOS: at the top of the screen, with the application menu).
-   Part 3, the tray, is the last Phase 4 item (`tray-icon` 0.26 needs Rust 1.90; a
-   version within the MSRV is needed, or the MSRV raised).
+   Part 3, the tray, is drafted (`docs/specs/platform/tray.md`, six proposals): a
+   declarative `SystemTray` view, `tray-icon` 0.24.2 (Rust 1.73, the same `muda` 0.19),
+   app-level events through a new `PlatformHandler::app_event`. Say "continue" to accept.
 4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
 ## Earlier (2026-10-15)
@@ -2054,7 +2055,8 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `64414c8` | test: WIDGETS-MENUBAR-05's declining case puts the bar in a column |
 | `184f6f8` | test: GALLERY-53 drives the drawn menu bar |
 | `ef98c77` | spec: native menu bars Implemented; notes |
-| _this commit_ | impl: native menu bars (MenuBar::native, the runner's host, muda on macOS/Windows with the application menu); gallery native bar; PLAN.md Menus ticked |
+| `bf0d58a` | impl: native menu bars (MenuBar::native, the runner's host, muda on macOS/Windows with the application menu); gallery native bar; PLAN.md Menus ticked |
+| _this commit_ | docs: draft system tray spec (ADR 0017 part 3) for review |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.

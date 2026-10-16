@@ -183,7 +183,7 @@ faster or more portable without changing how apps are written.
 - [ ] Dialogs, native file dialogs, notifications, system tray, in parts:
   - [x] modal dialogs: `Dialog`, `DialogController`, `AlertDialog`, barrier, focus trap and restore (spec `docs/specs/widgets/dialog.md`)
   - [x] native file and message dialogs, notifications (`rfd`, `notify-rust`, opt-in features; spec `docs/specs/platform/native-dialogs.md`, ADR 0017)
-  - [ ] the system tray (`tray-icon` on macOS and Windows; ADR 0017 part 3)
+  - [ ] the system tray (`tray-icon` on macOS and Windows; ADR 0017 part 3; spec `docs/specs/platform/tray.md`, draft for review)
 - [ ] Multi-window, drag & drop (intra-app + OS), clipboard (text, rich, images), in parts:
   - [x] plain-text clipboard through the platform, view and tester; `TextField` copy, cut and paste (spec `docs/specs/platform/clipboard.md`)
   - [x] rich text and image clipboard, primary selection (spec `docs/specs/platform/clipboard-rich.md`)
