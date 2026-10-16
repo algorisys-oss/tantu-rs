@@ -134,12 +134,12 @@ fn widgets_menubar_05_native_host() {
         WidgetTester::with_size(400.0, 200.0, move || {
             Provide::new(
                 NativeMenus(declining as Rc<dyn NativeMenuHost>),
-                Keyed::new(
+                Column::new().child(Keyed::new(
                     "bar",
                     MenuBar::new()
                         .native(true)
                         .menu("File", [MenuItem::new("Save")]),
-                ),
+                )),
             )
         })
     };
