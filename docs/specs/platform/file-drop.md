@@ -1,6 +1,6 @@
 # Files dropped from the OS
 
-- **Status:** Draft (2026-10-16; drafted by the agent for the user's review)
+- **Status:** Agreed (2026-10-16; the user said "continue" on the five proposals)
 - **Crates:** `tantu-platform` (events, fake platform), `tantu-platform-winit`,
   `tantu-view` (delivery), `tantu-widgets` (`FileDropTarget`), `tantu` (runner),
   `tantu-test`, `examples/gallery`
