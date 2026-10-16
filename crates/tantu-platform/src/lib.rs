@@ -51,7 +51,7 @@ pub use accesskit;
 pub use fake::{FakeLog, FakePlatform, FakeStep, FakeWindow};
 pub use native::{
     DialogId, FileDialogKind, FileDialogRequest, MessageButtons, MessageLevel, MessageRequest,
-    MessageResult, Notification,
+    MessageResult, NativeCapabilities, Notification,
 };
 pub use platform::{
     Clipboard, ClipboardImage, Platform, PlatformContext, PlatformError, PlatformHandler,

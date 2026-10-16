@@ -1,6 +1,6 @@
 # Native file and message dialogs, and notifications
 
-- **Status:** Agreed (2026-10-16; the user said "continue" on the six proposals)
+- **Status:** Implemented (2026-10-16; the user said "continue" on the six proposals)
 - **Crates:** `tantu-platform` (requests, events, fake), `tantu-platform-winit` (`rfd`,
   `notify-rust`, behind features), `tantu` (`Desktop`, the runner, features),
   `examples/gallery`

@@ -3,7 +3,7 @@
 Where the project stands, so the next session (human or agent) can pick up without re-reading the
 whole history. Update this file in every commit (see `AGENTS.md` → General rules).
 
-_Last updated: 2026-10-16 (multi-window, file drops, rich clipboard done; native desktop integration drafted for review)_
+_Last updated: 2026-10-16 (native dialogs and notifications done; native menus and the tray next)_
 
 ## Resume here (2026-10-16, morning)
 
@@ -32,13 +32,10 @@ milestone `examples/enterprise-dashboard` is done** (decision 102, review):
 **Waiting for the user's decisions** (the rest of Phase 4 needs them):
 1. (done: multi-window)
 2. (done: the rich clipboard, decision 105; no new dependency was needed)
-3. **Native menus, file dialogs, notifications, tray — drafted, waiting for review:** ADR
-   0017 (Proposed: opt-in features `native-dialogs` (`rfd`), `notifications`
-   (`notify-rust`), `native-menus` (`muda`), `tray` (`tray-icon`); platform requests with
-   results as events; no GTK on Linux, so native menus and the tray are macOS/Windows
-   only; three parts) and the Draft spec `docs/specs/platform/native-dialogs.md` for part
-   1 (file and message dialogs, notifications, a `Desktop` handle). Six proposals; say
-   "continue" to accept (the ADR becomes Accepted).
+3. **Native desktop integration (ADR 0017, accepted):** part 1, native file and message
+   dialogs and notifications, is done (decision 106). Parts 2 (native menus with `muda`,
+   macOS/Windows) and 3 (the tray with `tray-icon`, macOS/Windows) are next; each needs
+   its own spec. Neither can be exercised by CI beyond compiling (no clicks on OS menus).
 4. (done: OS file drops, decision 104; exact positions wait for winit 0.31)
 
 ## Earlier (2026-10-15)
@@ -1389,6 +1386,24 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
     (PLATFORM-WINIT-19, opt-in, not in CI) passed locally: image, HTML and primary
     selection round trips on Linux. Not done: encoded image bytes,
     file lists, change notifications, Wayland's native data-control protocol.
+106. **Native file and message dialogs, notifications** (2026-10-16, spec
+    `docs/specs/platform/native-dialogs.md`, ADR 0017; the user said "continue" on the
+    ADR and the six proposals). Opt-in features `native-dialogs` and `notifications` on
+    `tantu-platform-winit`, forwarded by the facade (not defaults): **`rfd` 0.17** (xdg
+    portal on Linux, no GTK; message dialogs there need Zenity) and **`notify-rust` 4.17**
+    (4.18 needs Rust 1.89). Plain request types and `PlatformContext::file_dialog`/
+    `message_dialog`/`notify`/`native_capabilities` with "unsupported" defaults; results
+    as `WindowEvent::FileDialogClosed`/`MessageDialogClosed`. The winit shell starts rfd's
+    async dialogs on the main thread (parented to the window), awaits them on a worker
+    thread with an in-house `block_on` and sends the result through the event-loop proxy
+    (the user event became an enum), so the loop never blocks. The fake platform answers
+    from a script after the next step and logs requests. The facade's `Desktop` (inherited
+    like `Windows`) queues requests, maps results back to callbacks, drops them when the
+    window closes, and answers like a cancel without support. Added while implementing
+    (review): `native_capabilities` (for `has_native_dialogs` and `notify`'s answer).
+    Gallery: a "desktop" card (30 cards), the gallery enabling both features. Not checked
+    by clicking real OS dialogs (CI can't); `cargo run -p gallery` → Kitchen sink →
+    Desktop to try them.
 
 ## Commit log
 
@@ -2007,7 +2022,14 @@ gallery's Data grid section and the `GridScroll` benchmark (1.30 ms per one-row 
 | `40e0ae6` | test: rich clipboard, stubs + 8 failing tests |
 | `de5ea06` | spec: GALLERY-55 names its sample keys and first echo |
 | `2ccc2da` | impl: clipboard images, HTML and the primary selection (platform, fake, winit/arboard, view, runner, tester, TextField); gallery clipboard card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
-| _this commit_ | docs: draft ADR 0017 (native desktop integration) and the native dialogs/notifications spec for review; PLAN.md items split |
+| `f8d7be9` | docs: draft ADR 0017 (native desktop integration) and the native dialogs/notifications spec for review; PLAN.md items split |
+| `6de87f7` | spec: native file and message dialogs and notifications agreed; ADR 0017 accepted; architecture doc and diagram |
+| `35b84e2` | spec: PLATFORM-FAKE-18 delivers dialog results after the next step's event |
+| `b672dcc` | spec: GALLERY-56 names its sample keys |
+| `126fbb3` | test: native dialogs and notifications, stubs + 7 tests (6 failing); rfd and notify-rust as opt-in dependencies |
+| `db0d230` | spec: PlatformContext::native_capabilities |
+| `7cfc985` | test: FACADE-DESK-01's close case closes right after the press |
+| _this commit_ | impl: native file and message dialogs (rfd) and notifications (notify-rust), Desktop, fake answers; gallery desktop card, kitchen-sink goldens (scrollbar only); PLAN.md ticked |
 
 A commit can't contain its own hash, so the newest row says _this commit_ (or _uncommitted_ for work not yet committed). The next update replaces
 that with the real hash from `git log`.
@@ -2015,8 +2037,8 @@ that with the real hash from `git log`.
 ## Next steps
 
 Phase 4's milestone is done (`examples/enterprise-dashboard`), and so are multi-window
-and OS file drops. The rich clipboard is done too. The remaining Phase 4 items need the user's decisions
-(see "Waiting for the user's decisions"): native menus, dialogs, notifications and the tray. RTL caret movement in
+and OS file drops. The rich clipboard and native dialogs/notifications are done too. Next (ADR 0017): native
+menus (part 2) and the tray (part 3), macOS and Windows only. RTL caret movement in
 bidirectional text, the data grid, split view and dock under RTL are follow-ups. Native OS
 menus and native file dialogs/notifications/tray wait for the user.
 Overlay inheritance is ready for menus/dialogs; FocusScope already supplies modal focus scopes.

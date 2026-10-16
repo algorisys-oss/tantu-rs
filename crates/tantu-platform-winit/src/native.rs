@@ -8,22 +8,44 @@ use tantu_platform::{MessageButtons, MessageLevel, MessageResult};
 /// thread, so the event loop never blocks).
 #[cfg(feature = "native-dialogs")]
 pub(crate) fn block_on<F: std::future::Future>(future: F) -> F::Output {
-    let _ = future;
-    todo!("PLATFORM-WINIT-20")
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Wake, Waker};
+    /// Wakes the blocked thread.
+    struct Unpark(std::thread::Thread);
+    impl Wake for Unpark {
+        fn wake(self: Arc<Self>) {
+            self.0.unpark();
+        }
+    }
+    let waker = Waker::from(Arc::new(Unpark(std::thread::current())));
+    let mut cx = Context::from_waker(&waker);
+    let mut future = std::pin::pin!(future);
+    loop {
+        if let Poll::Ready(output) = future.as_mut().poll(&mut cx) {
+            return output;
+        }
+        std::thread::park();
+    }
 }
 
 /// rfd's level for ours.
 #[cfg(feature = "native-dialogs")]
 pub(crate) fn level(level: MessageLevel) -> rfd::MessageLevel {
-    let _ = level;
-    todo!("PLATFORM-WINIT-20")
+    match level {
+        MessageLevel::Info => rfd::MessageLevel::Info,
+        MessageLevel::Warning => rfd::MessageLevel::Warning,
+        MessageLevel::Error => rfd::MessageLevel::Error,
+    }
 }
 
 /// rfd's buttons for ours.
 #[cfg(feature = "native-dialogs")]
 pub(crate) fn buttons(buttons: MessageButtons) -> rfd::MessageButtons {
-    let _ = buttons;
-    todo!("PLATFORM-WINIT-20")
+    match buttons {
+        MessageButtons::Ok => rfd::MessageButtons::Ok,
+        MessageButtons::OkCancel => rfd::MessageButtons::OkCancel,
+        MessageButtons::YesNo => rfd::MessageButtons::YesNo,
+    }
 }
 
 /// Our result for rfd's; anything unexpected counts as dismissing the dialog.
@@ -32,8 +54,15 @@ pub(crate) fn message_result(
     result: rfd::MessageDialogResult,
     buttons: MessageButtons,
 ) -> MessageResult {
-    let _ = (result, buttons);
-    todo!("PLATFORM-WINIT-20")
+    use rfd::MessageDialogResult as R;
+    match result {
+        R::Ok => MessageResult::Ok,
+        R::Yes => MessageResult::Yes,
+        R::No => MessageResult::No,
+        // A dismissed dialog: a yes/no question counts as No.
+        _ if buttons == MessageButtons::YesNo => MessageResult::No,
+        _ => MessageResult::Cancel,
+    }
 }
 
 /// A notify-rust notification for ours, under the app's name.
@@ -42,8 +71,11 @@ pub(crate) fn notification(
     notification: &tantu_platform::Notification,
     app_name: &str,
 ) -> notify_rust::Notification {
-    let _ = (notification, app_name);
-    todo!("PLATFORM-WINIT-20")
+    let mut n = notify_rust::Notification::new();
+    n.summary(&notification.title)
+        .body(&notification.body)
+        .appname(app_name);
+    n
 }
 
 #[cfg(test)]

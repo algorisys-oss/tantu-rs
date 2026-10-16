@@ -148,7 +148,7 @@ pub trait PlatformContext {
         request: crate::FileDialogRequest,
     ) -> Option<crate::DialogId> {
         let _ = (window, request);
-        todo!("PLATFORM-NATIVE-01")
+        None
     }
 
     /// Opens a message dialog for `window`; the result arrives later as
@@ -159,13 +159,18 @@ pub trait PlatformContext {
         request: crate::MessageRequest,
     ) -> Option<crate::DialogId> {
         let _ = (window, request);
-        todo!("PLATFORM-NATIVE-01")
+        None
     }
 
     /// Shows a notification; false when not supported (the default) or it failed.
     fn notify(&mut self, notification: &crate::Notification) -> bool {
         let _ = notification;
-        todo!("PLATFORM-NATIVE-01")
+        false
+    }
+
+    /// What this platform supports (default: nothing).
+    fn native_capabilities(&self) -> crate::NativeCapabilities {
+        crate::NativeCapabilities::default()
     }
 
     /// Ends the event loop after the current callback returns. [`Platform::run`] then returns.

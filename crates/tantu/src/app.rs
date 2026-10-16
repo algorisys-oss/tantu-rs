@@ -22,6 +22,7 @@ use tantu_view::{
     ViewTree,
 };
 
+use crate::desktop::{Desktop, DesktopQueue, DesktopRequest, FileDone, MessageDone};
 use crate::windows::{Content, Queue, Request, Windows};
 
 /// Logical pixels scrolled per wheel line (FACADE-APP-05; Chromium's value).
@@ -261,15 +262,16 @@ impl App {
             .unwrap_or_default();
         // One runtime for every window, and the app scope (FACADE-WIN-01, -02; ADR 0016).
         let runtime = Rc::new(Runtime::new());
-        let (app_scope, queue, open) = runtime.enter(|| {
+        let (app_scope, queue, open, desktop) = runtime.enter(|| {
             let scope = Scope::new();
-            let (queue, open) = scope.run(|| {
+            let (queue, open, desktop) = scope.run(|| {
                 (
                     tantu_reactive::signal(Rc::new(Queue::default())),
                     tantu_reactive::signal(Vec::<u64>::new()),
+                    tantu_reactive::signal(Rc::new(DesktopQueue::default())),
                 )
             });
-            (scope, queue, open)
+            (scope, queue, open, desktop)
         });
         AppHandler {
             app_name,
@@ -287,6 +289,8 @@ impl App {
             queue,
             open,
             ticked: false,
+            desktop,
+            dialogs: std::collections::HashMap::new(),
         }
     }
 }
@@ -298,9 +302,11 @@ impl App {
 struct Background {
     color: Option<Color>,
     content: AnyView,
-    /// The app-provided values and the app's windows (FACADE-WIN-02, -03).
+    /// The app-provided values, the app's windows and the desktop services (FACADE-WIN-02,
+    /// -03, FACADE-DESK-01).
     providers: Rc<[Provider]>,
     windows: Windows,
+    desktop: Desktop,
 }
 
 impl View for Background {
@@ -310,6 +316,7 @@ impl View for Background {
             provide(cx);
         }
         cx.provide(self.windows);
+        cx.provide(self.desktop);
         #[cfg(feature = "default-theme")]
         let theme: Option<Signal<Theme>> = Some(tantu_reactive::signal(Theme::light()));
         #[cfg(not(feature = "default-theme"))]
@@ -486,6 +493,16 @@ pub struct AppHandler {
     open: Signal<Vec<u64>>,
     /// Whether the runtime was ticked since the last `idle` (FACADE-WIN-06).
     ticked: bool,
+    /// Desktop requests from views (FACADE-DESK-01).
+    desktop: Signal<Rc<DesktopQueue>>,
+    /// Open dialogs' continuations, by id, with their window's token.
+    dialogs: std::collections::HashMap<tantu_platform::DialogId, (u64, DialogDone)>,
+}
+
+/// A native dialog's continuation (FACADE-DESK-01).
+enum DialogDone {
+    File(FileDone),
+    Message(MessageDone),
 }
 
 impl AppHandler {
@@ -519,6 +536,11 @@ impl AppHandler {
             open,
             current: token,
         };
+        let desktop = Desktop {
+            queue: self.desktop,
+            window: token,
+            capabilities: cx.native_capabilities(),
+        };
         let (color, providers) = (window.background, self.providers.clone());
         let mut tree =
             ViewTree::with_runtime(self.runtime.clone(), self.text.styles(), move || {
@@ -527,6 +549,7 @@ impl AppHandler {
                     content: content(),
                     providers,
                     windows,
+                    desktop,
                 }
             });
         // The platform's clipboard for the window's views (FACADE-APP-18).
@@ -561,6 +584,8 @@ impl AppHandler {
         cx.close_window(state.id);
         let token = state.token;
         drop(state);
+        // Its dialogs' answers will never be wanted (FACADE-DESK-01).
+        self.dialogs.retain(|_, (owner, _)| *owner != token);
         let open = self.open;
         self.runtime
             .enter(|| open.update(|o| o.retain(|t| *t != token)));
@@ -577,8 +602,16 @@ impl AppHandler {
                 .runtime
                 .enter(|| queue.try_with(|queue| queue.take()))
                 .unwrap_or_default();
-            if requests.is_empty() || self.error.is_some() {
+            let desktop = self.desktop;
+            let desktop_requests = self
+                .runtime
+                .enter(|| desktop.try_with(|queue| queue.take()))
+                .unwrap_or_default();
+            if (requests.is_empty() && desktop_requests.is_empty()) || self.error.is_some() {
                 return;
+            }
+            for request in desktop_requests {
+                self.apply_desktop(cx, request);
             }
             for request in requests {
                 match request {
@@ -600,6 +633,49 @@ impl AppHandler {
                 }
                 if self.error.is_some() {
                     return;
+                }
+            }
+        }
+    }
+
+    /// Starts a dialog or shows a notification for a view; an unsupported dialog answers at
+    /// once (FACADE-DESK-01, -02).
+    fn apply_desktop(&mut self, cx: &mut dyn PlatformContext, request: DesktopRequest) {
+        let window = |token: u64| self.windows.iter().find(|w| w.token == token).map(|w| w.id);
+        match request {
+            DesktopRequest::File {
+                token,
+                request,
+                done,
+            } => {
+                let Some(id) = window(token) else { return };
+                match cx.file_dialog(id, request) {
+                    Some(dialog) => {
+                        self.dialogs.insert(dialog, (token, DialogDone::File(done)));
+                    }
+                    None => self.runtime.enter(|| done(Vec::new())),
+                }
+            }
+            DesktopRequest::Message {
+                token,
+                request,
+                done,
+            } => {
+                let Some(id) = window(token) else { return };
+                let buttons = request.buttons;
+                match cx.message_dialog(id, request) {
+                    Some(dialog) => {
+                        self.dialogs
+                            .insert(dialog, (token, DialogDone::Message(done)));
+                    }
+                    None => self
+                        .runtime
+                        .enter(|| done(crate::desktop::unanswered(buttons))),
+                }
+            }
+            DesktopRequest::Notify(notification) => {
+                if !cx.notify(&notification) {
+                    tracing::debug!(?notification, "the notification wasn't shown");
                 }
             }
         }
@@ -885,6 +961,18 @@ impl PlatformHandler for AppHandler {
                         paths: paths.clone(),
                         position,
                     });
+            }
+            WindowEvent::FileDialogClosed { id, ref paths } => {
+                // FACADE-DESK-01: the view's continuation, once.
+                if let Some((_, DialogDone::File(done))) = self.dialogs.remove(&id) {
+                    let paths = paths.clone();
+                    self.runtime.enter(|| done(paths));
+                }
+            }
+            WindowEvent::MessageDialogClosed { id, result } => {
+                if let Some((_, DialogDone::Message(done))) = self.dialogs.remove(&id) {
+                    self.runtime.enter(|| done(result));
+                }
             }
             WindowEvent::FilesHoverCancelled => {
                 self.windows[index]

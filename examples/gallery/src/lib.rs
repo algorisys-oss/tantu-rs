@@ -41,7 +41,7 @@ pub const SECTIONS: [&str; 13] = [
 
 /// The kitchen-sink cards, in page order: (card key, the widgets it shows, as sample keys
 /// `sink-<widget>`) (GALLERY-12).
-pub const SINK_CARDS: [(&str, &[&str]); 29] = [
+pub const SINK_CARDS: [(&str, &[&str]); 30] = [
     (
         "buttons",
         &["button", "icon_button", "tooltip", "overlay_portal"],
@@ -72,6 +72,7 @@ pub const SINK_CARDS: [(&str, &[&str]); 29] = [
     ("i18n", &["localizations"]),
     ("files", &["file_drop_target"]),
     ("clipboard", &["copy_image", "paste_image", "copy_html"]),
+    ("desktop", &["open_file", "ask", "notify"]),
     ("grid", &["data_grid"]),
     (
         "layout",
@@ -938,6 +939,7 @@ fn kitchen_sink_section() -> impl View {
             }))
             .child(files_sink())
             .child(clipboard_sink())
+            .child(desktop_sink())
             .child(sink_grid())
             .child(sink_layout())
             .child(sink_scrolling())
@@ -1161,6 +1163,64 @@ fn files_sink() -> impl View {
             }
         }),
     )
+}
+
+/// The desktop card (GALLERY-56): the OS's file and message dialogs and a notification,
+/// through the runner's `Desktop` (absent under the tester).
+fn desktop_sink() -> impl View {
+    Builder::new(|cx: &mut BuildCx<'_>| {
+        let desktop = Desktop::of(cx);
+        let state = signal("Nothing asked yet".to_owned());
+        let unsupported = move || state.set("Not supported in this build".to_owned());
+        let open = move || match desktop.filter(|d| d.has_native_dialogs()) {
+            Some(desktop) => desktop.file_dialog(
+                FileDialogRequest::new(FileDialogKind::Open)
+                    .title("Open a file")
+                    .filter("Text", &["txt", "md"]),
+                move |paths| {
+                    state.set(match paths.first().and_then(|p| p.file_name()) {
+                        Some(name) => format!("Opened: {}", name.to_string_lossy()),
+                        None => "Open cancelled".to_owned(),
+                    })
+                },
+            ),
+            None => unsupported(),
+        };
+        let ask = move || match desktop.filter(|d| d.has_native_dialogs()) {
+            Some(desktop) => desktop.message(
+                MessageRequest {
+                    level: MessageLevel::Info,
+                    title: "Tantu".into(),
+                    description: "Do you like native dialogs?".into(),
+                    buttons: MessageButtons::YesNo,
+                },
+                move |result| state.set(format!("Answer: {result:?}")),
+            ),
+            None => unsupported(),
+        };
+        let notify = move || match desktop {
+            Some(desktop) if desktop.notify("Tantu", "Hello from the gallery") => {
+                state.set("Notified".to_owned())
+            }
+            _ => unsupported(),
+        };
+        card(
+            "desktop",
+            "Desktop",
+            Row::new()
+                .spacing(12.0)
+                .child(Keyed::new(
+                    "sink-open_file",
+                    Button::new("Open file…").on_press(open),
+                ))
+                .child(Keyed::new("sink-ask", Button::new("Ask…").on_press(ask)))
+                .child(Keyed::new(
+                    "sink-notify",
+                    Button::new("Notify").on_press(notify),
+                )),
+            echo(move || state.get()),
+        )
+    })
 }
 
 /// The clipboard card (GALLERY-55): copy the gallery's gradient, paste an image back, copy

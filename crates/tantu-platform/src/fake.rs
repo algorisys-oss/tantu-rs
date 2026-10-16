@@ -89,24 +89,32 @@ pub struct FakePlatform {
     scale_factor: f32,
     steps: Vec<FakeStep>,
     clipboard: Option<String>,
+    /// Answers for file and message dialogs, in order (PLATFORM-FAKE-18).
+    file_answers: Vec<Vec<std::path::PathBuf>>,
+    message_answers: Vec<crate::MessageResult>,
+    /// Whether dialogs and notifications are supported.
+    native: bool,
 }
 
 impl FakePlatform {
     /// Answers the next unanswered file dialog with `paths` (PLATFORM-FAKE-18).
-    pub fn file_dialog_answer(self, paths: Vec<std::path::PathBuf>) -> Self {
-        let _ = paths;
-        todo!("PLATFORM-FAKE-18")
+    pub fn file_dialog_answer(mut self, paths: Vec<std::path::PathBuf>) -> Self {
+        self.file_answers.push(paths);
+        self
     }
 
     /// Answers the next unanswered message dialog with `result`.
-    pub fn message_answer(self, result: crate::MessageResult) -> Self {
-        let _ = result;
-        todo!("PLATFORM-FAKE-18")
+    pub fn message_answer(mut self, result: crate::MessageResult) -> Self {
+        self.message_answers.push(result);
+        self
     }
 
     /// A platform without native dialogs or notifications (the trait's defaults).
     pub fn without_native_dialogs(self) -> Self {
-        todo!("PLATFORM-FAKE-18")
+        FakePlatform {
+            native: false,
+            ..self
+        }
     }
 
     /// An empty script; new windows get scale factor 1.
@@ -115,6 +123,9 @@ impl FakePlatform {
             scale_factor: 1.0,
             steps: Vec::new(),
             clipboard: None,
+            file_answers: Vec::new(),
+            message_answers: Vec::new(),
+            native: true,
         }
     }
 
@@ -160,6 +171,11 @@ impl FakePlatform {
             start,
             now: start,
             clipboard: Rc::clone(&clipboard),
+            native: self.native,
+            file_answers: self.file_answers.into(),
+            message_answers: self.message_answers.into(),
+            next_dialog: 0,
+            dialog_results: Vec::new(),
         };
         handler.started(&mut cx);
         if !cx.log.exited {
@@ -169,9 +185,12 @@ impl FakePlatform {
             if cx.log.exited {
                 break;
             }
+            // Dialog answers due after this step's own event (PLATFORM-FAKE-18).
+            let due = std::mem::take(&mut cx.dialog_results);
             match step {
                 FakeStep::Event { window, mut event } => {
                     let Some(w) = cx.log.windows.get_mut(window).filter(|w| !w.closed) else {
+                        cx.deliver(handler, due);
                         continue;
                     };
                     match &mut event {
@@ -189,6 +208,7 @@ impl FakePlatform {
                     cx.log.steps_delivered += 1;
                 }
             }
+            cx.deliver(handler, due);
             if cx.log.exited {
                 break;
             }
@@ -234,6 +254,15 @@ struct FakeContext {
     now: std::time::Instant,
     /// The in-memory clipboard (PLATFORM-FAKE-15).
     clipboard: Rc<FakeClipboard>,
+    /// Whether dialogs and notifications are supported (PLATFORM-FAKE-18).
+    native: bool,
+    /// Scripted answers, in order.
+    file_answers: std::collections::VecDeque<Vec<std::path::PathBuf>>,
+    message_answers: std::collections::VecDeque<crate::MessageResult>,
+    /// The last dialog id handed out.
+    next_dialog: u64,
+    /// Answers waiting for the next step, with their window.
+    dialog_results: Vec<(WindowId, WindowEvent)>,
 }
 
 /// The fake platform's clipboard, in memory: text, an image, HTML and the primary
@@ -292,6 +321,21 @@ impl crate::Clipboard for FakeClipboard {
 }
 
 impl FakeContext {
+    /// Delivers dialog answers to the windows still open (PLATFORM-FAKE-18).
+    fn deliver(&mut self, handler: &mut dyn PlatformHandler, due: Vec<(WindowId, WindowEvent)>) {
+        for (window, event) in due {
+            if !self.log.exited && self.open_index(window).is_some() {
+                handler.window_event(self, window, event);
+            }
+        }
+    }
+
+    /// A fresh dialog id.
+    fn dialog_id(&mut self) -> crate::DialogId {
+        self.next_dialog += 1;
+        crate::DialogId(self.next_dialog)
+    }
+
     /// The index of an open window.
     fn open_index(&self, window: WindowId) -> Option<usize> {
         self.log
@@ -384,6 +428,55 @@ impl PlatformContext for FakeContext {
     fn set_ime_cursor_area(&mut self, window: WindowId, origin: Point, size: Size) {
         if let Some(index) = self.open_index(window) {
             self.log.windows[index].ime_area = Some((origin, size));
+        }
+    }
+
+    fn file_dialog(
+        &mut self,
+        window: WindowId,
+        request: crate::FileDialogRequest,
+    ) -> Option<crate::DialogId> {
+        if !self.native || self.open_index(window).is_none() {
+            return None;
+        }
+        self.log.file_dialogs.push((window, request));
+        let id = self.dialog_id();
+        let paths = self.file_answers.pop_front().unwrap_or_default();
+        self.dialog_results
+            .push((window, WindowEvent::FileDialogClosed { id, paths }));
+        Some(id)
+    }
+
+    fn message_dialog(
+        &mut self,
+        window: WindowId,
+        request: crate::MessageRequest,
+    ) -> Option<crate::DialogId> {
+        if !self.native || self.open_index(window).is_none() {
+            return None;
+        }
+        self.log.message_dialogs.push((window, request));
+        let id = self.dialog_id();
+        let result = self
+            .message_answers
+            .pop_front()
+            .unwrap_or(crate::MessageResult::Cancel);
+        self.dialog_results
+            .push((window, WindowEvent::MessageDialogClosed { id, result }));
+        Some(id)
+    }
+
+    fn notify(&mut self, notification: &crate::Notification) -> bool {
+        if self.native {
+            self.log.notifications.push(notification.clone());
+        }
+        self.native
+    }
+
+    fn native_capabilities(&self) -> crate::NativeCapabilities {
+        crate::NativeCapabilities {
+            dialogs: self.native,
+            notifications: self.native,
         }
     }
 

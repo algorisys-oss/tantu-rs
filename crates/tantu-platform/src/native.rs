@@ -134,6 +134,15 @@ pub struct Notification {
     pub body: String,
 }
 
+/// What a platform's native integrations support (FACADE-DESK-02).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct NativeCapabilities {
+    /// File and message dialogs.
+    pub dialogs: bool,
+    /// Notifications.
+    pub notifications: bool,
+}
+
 /// Identifies one dialog request.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct DialogId(pub u64);

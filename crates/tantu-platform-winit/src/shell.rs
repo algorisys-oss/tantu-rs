@@ -14,12 +14,17 @@ use winit::application::ApplicationHandler;
 use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
 use winit::window::Window;
 
-/// The event loop's user event: what the AccessKit adapters send (PLATFORM-WINIT-15).
-struct AccessEvent(accesskit_winit::Event);
+/// The event loop's user event: what the AccessKit adapters send (PLATFORM-WINIT-15) and
+/// native dialog results from their worker threads (PLATFORM-WINIT-20).
+enum UserEvent {
+    Access(accesskit_winit::Event),
+    #[cfg_attr(not(feature = "native-dialogs"), allow(dead_code))]
+    Window(WindowId, WindowEvent),
+}
 
-impl From<accesskit_winit::Event> for AccessEvent {
+impl From<accesskit_winit::Event> for UserEvent {
     fn from(event: accesskit_winit::Event) -> Self {
-        AccessEvent(event)
+        UserEvent::Access(event)
     }
 }
 
@@ -27,7 +32,7 @@ use crate::conv;
 
 /// The winit platform shell. Create it on the main thread.
 pub struct WinitPlatform {
-    event_loop: EventLoop<AccessEvent>,
+    event_loop: EventLoop<UserEvent>,
 }
 
 impl WinitPlatform {
@@ -63,10 +68,10 @@ struct Shell<'h> {
     windows: Windows,
     started: bool,
     /// For the AccessKit adapters, which send their events through the loop.
-    proxy: EventLoopProxy<AccessEvent>,
+    proxy: EventLoopProxy<UserEvent>,
 }
 
-impl ApplicationHandler<AccessEvent> for Shell<'_> {
+impl ApplicationHandler<UserEvent> for Shell<'_> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         // Desktop platforms resume once; later resumes (mobile) don't start the app again.
         if self.started {
@@ -81,12 +86,27 @@ impl ApplicationHandler<AccessEvent> for Shell<'_> {
         self.handler.started(&mut cx);
     }
 
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: AccessEvent) {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: UserEvent) {
+        let event = match event {
+            UserEvent::Access(event) => event,
+            // A dialog result, for a window still open (PLATFORM-WINIT-20).
+            UserEvent::Window(id, event) => {
+                if self.windows.entries.contains_key(&id) {
+                    let mut cx = Context {
+                        event_loop,
+                        windows: &mut self.windows,
+                        proxy: &self.proxy,
+                    };
+                    self.handler.window_event(&mut cx, id, event);
+                }
+                return;
+            }
+        };
         // The adapters' events become accessibility window events (PLATFORM-WINIT-15).
-        let Some(&id) = self.windows.by_winit.get(&event.0.window_id) else {
+        let Some(&id) = self.windows.by_winit.get(&event.window_id) else {
             return;
         };
-        let event = match event.0.window_event {
+        let event = match event.window_event {
             accesskit_winit::WindowEvent::InitialTreeRequested => AccessibilityEvent::Activated,
             accesskit_winit::WindowEvent::ActionRequested(request) => {
                 AccessibilityEvent::Action(request)
@@ -190,6 +210,12 @@ struct Windows {
     entries: HashMap<WindowId, Entry>,
     by_winit: HashMap<winit::window::WindowId, WindowId>,
     next: u64,
+    /// The last native dialog id handed out (PLATFORM-WINIT-20).
+    #[cfg_attr(not(feature = "native-dialogs"), allow(dead_code))]
+    dialogs: u64,
+    /// The first window's title, the app's name in notifications.
+    #[cfg_attr(not(feature = "notifications"), allow(dead_code))]
+    app_name: Option<String>,
     /// The OS clipboard, opened on first use; `Some(None)` after a failed open.
     clipboard: Option<Option<std::rc::Rc<dyn tantu_platform::Clipboard>>>,
 }
@@ -317,7 +343,16 @@ fn logged(result: Result<(), arboard::Error>, what: &str) -> bool {
 struct Context<'a> {
     event_loop: &'a ActiveEventLoop,
     windows: &'a mut Windows,
-    proxy: &'a EventLoopProxy<AccessEvent>,
+    proxy: &'a EventLoopProxy<UserEvent>,
+}
+
+impl Context<'_> {
+    /// A fresh dialog id (PLATFORM-WINIT-20).
+    #[cfg(feature = "native-dialogs")]
+    fn next_dialog(&mut self) -> tantu_platform::DialogId {
+        self.windows.dialogs += 1;
+        tantu_platform::DialogId(self.windows.dialogs)
+    }
 }
 
 impl PlatformContext for Context<'_> {
@@ -333,6 +368,9 @@ impl PlatformContext for Context<'_> {
             self.proxy.clone(),
         );
         window.set_visible(attributes.visible);
+        if self.windows.app_name.is_none() {
+            self.windows.app_name = Some(attributes.title.clone());
+        }
         self.windows.next += 1;
         let id = WindowId::from_raw(self.windows.next);
         self.windows.by_winit.insert(window.id(), id);
@@ -378,6 +416,109 @@ impl PlatformContext for Context<'_> {
     fn set_title(&mut self, window: WindowId, title: &str) {
         if let Some(entry) = self.windows.entries.get(&window) {
             entry.window.set_title(title);
+        }
+    }
+
+    #[cfg(feature = "native-dialogs")]
+    fn file_dialog(
+        &mut self,
+        window: WindowId,
+        request: tantu_platform::FileDialogRequest,
+    ) -> Option<tantu_platform::DialogId> {
+        use tantu_platform::FileDialogKind;
+        let entry = self.windows.entries.get(&window)?;
+        let mut dialog = rfd::AsyncFileDialog::new().set_parent(&*entry.window);
+        if let Some(title) = &request.title {
+            dialog = dialog.set_title(title);
+        }
+        if let Some(directory) = &request.directory {
+            dialog = dialog.set_directory(directory);
+        }
+        if let Some(name) = &request.file_name {
+            dialog = dialog.set_file_name(name);
+        }
+        for (name, extensions) in &request.filters {
+            dialog = dialog.add_filter(name, extensions);
+        }
+        let id = self.next_dialog();
+        let paths = |handles: Vec<rfd::FileHandle>| {
+            handles
+                .into_iter()
+                .map(|h| h.path().to_path_buf())
+                .collect::<Vec<_>>()
+        };
+        // Started here, on the main thread, and awaited on a worker (rfd's advice), so the
+        // event loop keeps running (PLATFORM-WINIT-20).
+        let result: std::pin::Pin<
+            Box<dyn std::future::Future<Output = Vec<std::path::PathBuf>> + Send>,
+        > = match request.kind {
+            FileDialogKind::Open => {
+                let f = dialog.pick_file();
+                Box::pin(async move { f.await.map(|h| paths(vec![h])).unwrap_or_default() })
+            }
+            FileDialogKind::OpenMany => {
+                let f = dialog.pick_files();
+                Box::pin(async move { f.await.map(paths).unwrap_or_default() })
+            }
+            FileDialogKind::Save => {
+                let f = dialog.save_file();
+                Box::pin(async move { f.await.map(|h| paths(vec![h])).unwrap_or_default() })
+            }
+            FileDialogKind::PickFolder => {
+                let f = dialog.pick_folder();
+                Box::pin(async move { f.await.map(|h| paths(vec![h])).unwrap_or_default() })
+            }
+        };
+        let proxy = self.proxy.clone();
+        std::thread::spawn(move || {
+            let paths = crate::native::block_on(result);
+            let event = WindowEvent::FileDialogClosed { id, paths };
+            let _ = proxy.send_event(UserEvent::Window(window, event));
+        });
+        Some(id)
+    }
+
+    #[cfg(feature = "native-dialogs")]
+    fn message_dialog(
+        &mut self,
+        window: WindowId,
+        request: tantu_platform::MessageRequest,
+    ) -> Option<tantu_platform::DialogId> {
+        let entry = self.windows.entries.get(&window)?;
+        let buttons = request.buttons;
+        let future = rfd::AsyncMessageDialog::new()
+            .set_parent(&*entry.window)
+            .set_level(crate::native::level(request.level))
+            .set_title(&request.title)
+            .set_description(&request.description)
+            .set_buttons(crate::native::buttons(buttons))
+            .show();
+        let id = self.next_dialog();
+        let proxy = self.proxy.clone();
+        std::thread::spawn(move || {
+            let result = crate::native::message_result(crate::native::block_on(future), buttons);
+            let event = WindowEvent::MessageDialogClosed { id, result };
+            let _ = proxy.send_event(UserEvent::Window(window, event));
+        });
+        Some(id)
+    }
+
+    #[cfg(feature = "notifications")]
+    fn notify(&mut self, notification: &tantu_platform::Notification) -> bool {
+        let app_name = self.windows.app_name.as_deref().unwrap_or("Tantu");
+        match crate::native::notification(notification, app_name).show() {
+            Ok(_) => true,
+            Err(error) => {
+                tracing::debug!(%error, "couldn't show a notification");
+                false
+            }
+        }
+    }
+
+    fn native_capabilities(&self) -> tantu_platform::NativeCapabilities {
+        tantu_platform::NativeCapabilities {
+            dialogs: cfg!(feature = "native-dialogs"),
+            notifications: cfg!(feature = "notifications"),
         }
     }
 

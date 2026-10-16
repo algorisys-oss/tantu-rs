@@ -13,7 +13,8 @@ publish = false
 workspace = true
 
 [dependencies]
-tantu = { workspace = true }
+# Native dialogs and notifications for the "desktop" card (GALLERY-56, ADR 0017).
+tantu = { workspace = true, features = ["native-dialogs", "notifications"] }
 
 [dev-dependencies]
 tantu-test = { workspace = true }
