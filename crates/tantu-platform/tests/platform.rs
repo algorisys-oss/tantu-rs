@@ -203,6 +203,7 @@ enum Seen {
     Started,
     Event(WindowId, WindowEvent),
     Idle,
+    App(tantu_platform::AppEvent),
 }
 
 type Reaction = Box<dyn FnMut(&mut dyn PlatformContext, &Seen)>;
@@ -241,6 +242,10 @@ impl PlatformHandler for Recorder {
 
     fn idle(&mut self, cx: &mut dyn PlatformContext) {
         self.record(cx, Seen::Idle);
+    }
+
+    fn app_event(&mut self, cx: &mut dyn PlatformContext, event: tantu_platform::AppEvent) {
+        self.record(cx, Seen::App(event));
     }
 }
 
@@ -400,6 +405,7 @@ fn platform_fake_05_redraws_are_coalesced_and_deferred() {
             Seen::Event(_, _) => "E".to_owned(),
             Seen::Idle => "I".to_owned(),
             Seen::Started => "S".to_owned(),
+            Seen::App(_) => "A".to_owned(),
         })
         .collect();
     // Started: both new windows redraw (w0 asks again). Step 1: the event, then w0 (asked
@@ -1192,4 +1198,75 @@ fn platform_fake_19_records_menu_bars() {
         .without_native_menus()
         .run_logged(&mut handler);
     assert!(log.windows[0].menu_bars.is_empty());
+}
+
+fn tray() -> tantu_platform::Tray {
+    tantu_platform::Tray {
+        image: tantu_platform::TrayImage {
+            width: 1,
+            height: 1,
+            rgba: vec![0, 0, 0, 255],
+        },
+        tooltip: Some("Tip".into()),
+        menu: native_menu().menus,
+    }
+}
+
+/// Sets the tray when started and records the answer and app events.
+fn tray_setter(seen: Rc<RefCell<Vec<String>>>) -> impl FnMut(&mut dyn PlatformContext, &Seen) {
+    move |cx, event| match event {
+        Seen::Started => {
+            cx.create_window(&WindowAttributes::new("A"))
+                .expect("a window");
+            let supported = cx.native_capabilities().tray;
+            let set = cx.set_tray(Some(tray()));
+            seen.borrow_mut().push(format!("tray {supported} {set}"));
+        }
+        Seen::App(event) => seen.borrow_mut().push(format!("{event:?}")),
+        _ => {}
+    }
+}
+
+#[test]
+fn platform_tray_01_tray_and_app_events() {
+    // The defaults: no tray; app events are ignored by a handler that doesn't override
+    // `app_event` (the test's Recorder overrides it).
+    struct Quiet;
+    impl PlatformHandler for Quiet {
+        fn started(&mut self, cx: &mut dyn PlatformContext) {
+            cx.create_window(&WindowAttributes::new("A"))
+                .expect("a window");
+        }
+        fn window_event(&mut self, _: &mut dyn PlatformContext, _: WindowId, _: WindowEvent) {}
+    }
+    FakePlatform::new()
+        .step(FakeStep::App(tantu_platform::AppEvent::TrayClicked))
+        .run_logged(&mut Quiet);
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(tray_setter(seen.clone()));
+    FakePlatform::new()
+        .without_native_menus()
+        .run_logged(&mut handler);
+    assert_eq!(*seen.borrow(), ["tray false false"]);
+}
+
+#[test]
+fn platform_fake_20_tray_log_and_app_steps() {
+    let seen: Rc<RefCell<Vec<String>>> = Rc::default();
+    let mut handler = Recorder::with(tray_setter(seen.clone()));
+    let log = FakePlatform::new()
+        .step(FakeStep::App(tantu_platform::AppEvent::TrayClicked))
+        .step(FakeStep::App(
+            tantu_platform::AppEvent::TrayMenuItemActivated { id: 9 },
+        ))
+        .run_logged(&mut handler);
+    assert_eq!(
+        *seen.borrow(),
+        [
+            "tray true true",
+            "TrayClicked",
+            "TrayMenuItemActivated { id: 9 }"
+        ]
+    );
+    assert_eq!(log.trays, [Some(tray())]);
 }

@@ -99,7 +99,7 @@ pub use list_view::ListView;
 pub use localizations::Localizations;
 pub use menu::{
     ContextMenuRegion, MenuAnchor, MenuBar, MenuController, MenuItem, NativeMenuEntry,
-    NativeMenuEntryKind, NativeMenuHost, NativeMenus,
+    NativeMenuEntryKind, NativeMenuHost, NativeMenus, native_menu_entries,
 };
 pub use offstage::Offstage;
 pub use opacity::Opacity;

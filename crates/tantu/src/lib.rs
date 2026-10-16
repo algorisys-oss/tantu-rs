@@ -36,10 +36,12 @@
 
 mod app;
 mod desktop;
+mod tray;
 mod windows;
 
 pub use app::{App, AppHandler, Error, Result, Window};
 pub use desktop::Desktop;
+pub use tray::SystemTray;
 pub use windows::{WindowHandle, Windows};
 
 /// `tantu-core`: geometry, color, ids.
@@ -65,7 +67,7 @@ pub use tantu_widgets as widgets;
 
 /// What app code imports: `use tantu::prelude::*;`
 pub mod prelude {
-    pub use crate::{App, Desktop, Result, Window, WindowHandle, Windows};
+    pub use crate::{App, Desktop, Result, SystemTray, Window, WindowHandle, Windows};
     pub use tantu_core::{Color, EdgeInsets, Point, Size};
     pub use tantu_i18n::{Args, DateLength, Locale, Localization, Translations};
     pub use tantu_layout::{

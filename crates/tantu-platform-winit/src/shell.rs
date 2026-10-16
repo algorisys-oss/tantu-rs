@@ -112,6 +112,8 @@ impl ApplicationHandler<UserEvent> for Shell<'_> {
                         .keys()
                         .map(|w| (*w, WindowEvent::CloseRequested))
                         .collect(),
+                    // Tray items are app events (PLATFORM-WINIT-22).
+                    Some(crate::native::MenuTarget::Tray(_)) => Vec::new(),
                     None => Vec::new(),
                 };
                 for (window, event) in targets {
@@ -607,6 +609,7 @@ impl PlatformContext for Context<'_> {
                 feature = "native-menus",
                 any(target_os = "macos", target_os = "windows")
             )),
+            tray: false,
         }
     }
 

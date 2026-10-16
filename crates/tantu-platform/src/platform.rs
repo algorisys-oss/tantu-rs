@@ -176,6 +176,13 @@ pub trait PlatformContext {
         false
     }
 
+    /// Shows (or replaces, or with `None` removes) the app's tray icon; false when not
+    /// supported (the default) (PLATFORM-TRAY-01).
+    fn set_tray(&mut self, tray: Option<crate::Tray>) -> bool {
+        let _ = tray;
+        todo!("PLATFORM-TRAY-01")
+    }
+
     /// What this platform supports (default: nothing).
     fn native_capabilities(&self) -> crate::NativeCapabilities {
         crate::NativeCapabilities::default()
@@ -207,6 +214,12 @@ pub trait PlatformHandler {
     /// Called when pending events have been handled and the platform is about to wait.
     fn idle(&mut self, cx: &mut dyn PlatformContext) {
         let _ = cx;
+    }
+
+    /// Called for an app-level event, such as the tray's (PLATFORM-TRAY-01). Default:
+    /// ignored.
+    fn app_event(&mut self, cx: &mut dyn PlatformContext, event: crate::AppEvent) {
+        let _ = (cx, event);
     }
 }
 

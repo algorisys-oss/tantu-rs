@@ -143,6 +143,43 @@ pub struct NativeCapabilities {
     pub notifications: bool,
     /// Native menu bars (PLATFORM-MENU-01).
     pub menus: bool,
+    /// The tray icon (PLATFORM-TRAY-01).
+    pub tray: bool,
+}
+
+/// The tray icon's image: straight-alpha RGBA8 rows, top to bottom (PLATFORM-TRAY-01).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TrayImage {
+    /// Width in pixels.
+    pub width: u32,
+    /// Height in pixels.
+    pub height: u32,
+    /// `width · height · 4` bytes.
+    pub rgba: Vec<u8>,
+}
+
+/// The app's tray icon.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Tray {
+    /// The icon.
+    pub image: TrayImage,
+    /// Shown on hover.
+    pub tooltip: Option<String>,
+    /// The icon's menu; item ids come back in `AppEvent::TrayMenuItemActivated`.
+    pub menu: Vec<NativeMenuItem>,
+}
+
+/// Something that happened to the app rather than a window (PLATFORM-TRAY-01).
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum AppEvent {
+    /// A tray menu item was chosen.
+    TrayMenuItemActivated {
+        /// The item's id from the `Tray`'s menu.
+        id: u64,
+    },
+    /// The tray icon was clicked (primary button).
+    TrayClicked,
 }
 
 /// One entry of a native menu (PLATFORM-MENU-01).

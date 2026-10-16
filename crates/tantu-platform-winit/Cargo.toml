@@ -18,6 +18,8 @@ native-dialogs = ["dep:rfd"]
 notifications = ["dep:notify-rust"]
 ## Native menu bars through `muda` on macOS and Windows (ADR 0017 part 2).
 native-menus = ["dep:muda"]
+## The system tray through `tray-icon` on macOS and Windows (ADR 0017 part 3).
+tray = ["dep:tray-icon", "dep:muda"]
 
 [dependencies]
 tantu-core = { workspace = true }
@@ -45,3 +47,5 @@ harness = false
 # 0.19.3: 0.20 and later need Rust 1.90, above the MSRV.
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
 muda = { version = "0.19.3", optional = true, default-features = false }
+# The system tray (ADR 0017 part 3), opt-in; 0.24.2 shares muda 0.19 (0.25+ need Rust 1.90).
+tray-icon = { version = "0.24.2", optional = true, default-features = false }

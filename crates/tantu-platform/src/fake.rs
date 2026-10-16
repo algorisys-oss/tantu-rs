@@ -23,6 +23,8 @@ pub enum FakeStep {
     Idle,
     /// Moves the fake clock forward, then runs a redraw round and `idle` (PLATFORM-FAKE-12).
     Advance(std::time::Duration),
+    /// Delivers an app-level event, then runs a redraw round and `idle` (PLATFORM-FAKE-20).
+    App(crate::AppEvent),
 }
 
 /// What the handler asked a [`FakePlatform`] for.
@@ -51,6 +53,8 @@ pub struct FakeLog {
     pub message_dialogs: Vec<(WindowId, crate::MessageRequest)>,
     /// Every notification shown.
     pub notifications: Vec<crate::Notification>,
+    /// Every `set_tray` call, in order (PLATFORM-FAKE-20).
+    pub trays: Vec<Option<crate::Tray>>,
 }
 
 /// A window of a [`FakePlatform`], as last seen.
@@ -221,6 +225,10 @@ impl FakePlatform {
                 FakeStep::Advance(by) => {
                     cx.now += by;
                     cx.log.steps_delivered += 1;
+                }
+                FakeStep::App(event) => {
+                    let _ = event;
+                    todo!("PLATFORM-FAKE-20")
                 }
             }
             cx.deliver(handler, due);
@@ -504,6 +512,7 @@ impl PlatformContext for FakeContext {
             dialogs: self.native,
             notifications: self.native,
             menus: self.menus,
+            tray: false,
         }
     }
 

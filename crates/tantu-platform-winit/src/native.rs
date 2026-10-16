@@ -92,6 +92,32 @@ pub(crate) enum MenuTarget {
     Item(tantu_platform::WindowId, u64),
     /// The macOS application menu's Quit.
     Quit,
+    /// The tray menu's item `id` (PLATFORM-WINIT-22).
+    Tray(u64),
+}
+
+/// The `muda` id of the tray menu's item `id` (PLATFORM-WINIT-22).
+#[cfg_attr(
+    not(all(feature = "tray", any(target_os = "macos", target_os = "windows"))),
+    allow(dead_code)
+)]
+pub(crate) fn tray_menu_id(id: u64) -> String {
+    let _ = id;
+    todo!("PLATFORM-WINIT-22")
+}
+
+/// The tray's `muda` menu.
+#[cfg(all(feature = "tray", any(target_os = "macos", target_os = "windows")))]
+pub(crate) fn build_tray_menu(items: &[tantu_platform::NativeMenuItem]) -> muda::Menu {
+    let _ = items;
+    todo!("PLATFORM-WINIT-22")
+}
+
+/// The tray icon's image.
+#[cfg(all(feature = "tray", any(target_os = "macos", target_os = "windows")))]
+pub(crate) fn tray_image(image: &tantu_platform::TrayImage) -> Option<tray_icon::Icon> {
+    let _ = image;
+    todo!("PLATFORM-WINIT-22")
 }
 
 /// The `muda` id of the window's item `id`.
@@ -230,6 +256,42 @@ fn append_menu_item(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn platform_winit_22_tray_ids_and_mapping() {
+        assert_eq!(parse_menu_id(&tray_menu_id(5)), Some(MenuTarget::Tray(5)));
+        assert_eq!(parse_menu_id("tantu:tray:x"), None);
+        #[cfg(all(feature = "tray", target_os = "windows"))]
+        {
+            use tantu_platform::{NativeMenuItem, TrayImage};
+            let menu = build_tray_menu(&[
+                NativeMenuItem::Item {
+                    id: 5,
+                    label: "Open".into(),
+                    enabled: true,
+                    checked: None,
+                    shortcut: None,
+                },
+                NativeMenuItem::Separator,
+            ]);
+            let items = menu.items();
+            assert_eq!(items.len(), 2);
+            let open = items[0].as_menuitem().expect("an item");
+            assert_eq!(open.id().0, tray_menu_id(5));
+            let good = TrayImage {
+                width: 2,
+                height: 2,
+                rgba: vec![255; 16],
+            };
+            assert!(tray_image(&good).is_some());
+            let bad = TrayImage {
+                width: 2,
+                height: 2,
+                rgba: vec![255; 3],
+            };
+            assert!(tray_image(&bad).is_none());
+        }
+    }
 
     #[test]
     fn platform_winit_21_menu_ids_and_mapping() {

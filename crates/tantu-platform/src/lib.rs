@@ -50,8 +50,9 @@ mod types;
 pub use accesskit;
 pub use fake::{FakeLog, FakePlatform, FakeStep, FakeWindow};
 pub use native::{
-    DialogId, FileDialogKind, FileDialogRequest, MessageButtons, MessageLevel, MessageRequest,
-    MessageResult, NativeCapabilities, NativeMenu, NativeMenuItem, Notification,
+    AppEvent, DialogId, FileDialogKind, FileDialogRequest, MessageButtons, MessageLevel,
+    MessageRequest, MessageResult, NativeCapabilities, NativeMenu, NativeMenuItem, Notification,
+    Tray, TrayImage,
 };
 pub use platform::{
     Clipboard, ClipboardImage, Platform, PlatformContext, PlatformError, PlatformHandler,

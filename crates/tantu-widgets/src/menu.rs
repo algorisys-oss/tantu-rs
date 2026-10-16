@@ -1119,6 +1119,12 @@ struct Bar {
     count: usize,
 }
 
+/// The host's view of menu items (what `MenuBar::native` sends), for other hosts such as
+/// the tray (FACADE-TRAY-01); reads their states, tracked.
+pub fn native_menu_entries(items: &[MenuItem]) -> Vec<NativeMenuEntry> {
+    native_entries(items)
+}
+
 /// The host's view of `items` (WIDGETS-MENUBAR-05); reads their states, tracked.
 fn native_entries(items: &[MenuItem]) -> Vec<NativeMenuEntry> {
     items

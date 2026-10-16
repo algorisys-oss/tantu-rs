@@ -141,3 +141,55 @@ fn gallery_57_native_menu_bar() {
         .collect();
     assert_eq!(labels, ["View", "Go", "Help"]);
 }
+
+#[test]
+fn gallery_58_tray() {
+    use tantu::platform::{AppEvent, FakeStep, NativeMenuItem};
+    let handler = || {
+        gallery::app()
+            .without_system_fonts()
+            .font(FONT.to_vec())
+            .handler(|_: &mut dyn PlatformContext, _: WindowId| {
+                Ok(
+                    Box::new(Recorder(Rc::new(RefCell::new(HeadlessRenderer::new(1, 1)))))
+                        as Box<dyn Renderer>,
+                )
+            })
+    };
+    let log = FakePlatform::new().run_logged(&mut handler());
+    let tray = log
+        .trays
+        .last()
+        .cloned()
+        .flatten()
+        .expect("the gallery shows a tray");
+    assert_eq!(tray.tooltip.as_deref(), Some("Tantu gallery"));
+    assert_eq!((tray.image.width, tray.image.height), (32, 32));
+    let items: Vec<(String, u64)> = tray
+        .menu
+        .iter()
+        .filter_map(|i| match i {
+            NativeMenuItem::Item { id, label, .. } => Some((label.clone(), *id)),
+            _ => None,
+        })
+        .collect();
+    let labels: Vec<&str> = items.iter().map(|(l, _)| l.as_str()).collect();
+    assert_eq!(labels, ["Dark theme", "New window", "Close gallery"]);
+    // The tray's Dark theme turns the window dark; New window opens one.
+    let log = FakePlatform::new()
+        .step(FakeStep::App(AppEvent::TrayMenuItemActivated {
+            id: items[0].1,
+        }))
+        .step(FakeStep::App(AppEvent::TrayMenuItemActivated {
+            id: items[1].1,
+        }))
+        .run_logged(&mut handler());
+    assert_eq!(log.windows.len(), 2);
+    // Close gallery closes the main window, which ends the run.
+    let log = FakePlatform::new()
+        .step(FakeStep::App(AppEvent::TrayMenuItemActivated {
+            id: items[2].1,
+        }))
+        .run_logged(&mut handler());
+    assert!(log.windows[0].closed && log.exited);
+}
