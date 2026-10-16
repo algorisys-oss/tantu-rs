@@ -61,7 +61,13 @@ pub trait PlatformContext {
     fn message_dialog(&mut self, window: WindowId, request: MessageRequest) -> Option<DialogId> { None }
     /// Shows a notification; false when not supported or it failed (default false).
     fn notify(&mut self, notification: &Notification) -> bool { false }
+    /// What this platform supports (default: nothing). Added while implementing (review):
+    /// `Desktop` needs it for `has_native_dialogs` and `notify`'s answer, which are
+    /// synchronous while requests are applied after the event.
+    fn native_capabilities(&self) -> NativeCapabilities { NativeCapabilities::default() }
 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct NativeCapabilities { pub dialogs: bool, pub notifications: bool }
 pub enum WindowEvent {
     // ...
     /// A file dialog closed: the chosen paths, empty when cancelled.
@@ -109,7 +115,9 @@ impl Desktop {
   are applied after the event; each result calls its `done` once, with the app's runtime
   current, then the window redraws as after any event. A window closed before its result
   arrives drops the callback without calling it.
-- **FACADE-DESK-02:** Without support, `file_dialog` calls `done(vec![])` and `message`
+- **FACADE-DESK-02:** `Desktop` reads the platform's `native_capabilities()` when the
+  window opens: `has_native_dialogs` is its `dialogs`, and `notify` returns its
+  `notifications` (the notification itself is shown after the event). Without support, `file_dialog` calls `done(vec![])` and `message`
   calls `done(Cancel)` (for `YesNo`: `No`) after the event, and `has_native_dialogs` is
   false, so apps can fall back to Tantu's own `Dialog`.
 - **FACADE-DESK-03:** The facade features `native-dialogs` and `notifications` forward to
